@@ -97,21 +97,47 @@ class MmsDownloadReceiver : BroadcastReceiver() {
                     storeUndownloadable(context, fallbackAddress, transactionId)
                     return@launch
                 }
-                val address = conf.from ?: fallbackAddress ?: return@launch
+                val sender = conf.from ?: fallbackAddress ?: return@launch
+                // Group MMS: other recipients besides us → thread on the whole
+                // group (sender + co-recipients), matching the send-side convention.
+                val ownNumbers = ownNumbers(context)
+                val coRecipients = conf.to
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() && ownNumbers.none { own -> sameNumber(own, it) } }
+                val threadAddress =
+                    if (coRecipients.isEmpty()) sender
+                    else (listOf(sender) + coRecipients).distinct().joinToString(";")
                 val body = listOfNotNull(
                     conf.subject?.takeIf { it.isNotBlank() },
                     conf.textBody.takeIf { it.isNotBlank() },
                 ).joinToString("\n")
                 val repo = MessageRepository.get(context)
                 val result = repo.onIncomingMms(
-                    address, body, System.currentTimeMillis(), transactionId, conf.attachments,
+                    threadAddress, body, System.currentTimeMillis(), transactionId,
+                    conf.attachments, senderAddress = sender,
                 ) ?: return@launch // duplicate delivery
-                MessageNotifier(context).notifyFor(result.first, result.second, repo.lookupContactName(address))
+                MessageNotifier(context).notifyFor(result.first, result.second, repo.lookupContactName(sender))
             } finally {
                 pending.finish()
             }
         }
     }
+}
+
+/** Our own line numbers (all active SIMs) — used to drop ourselves from group threads. */
+private fun ownNumbers(context: Context): List<String> = try {
+    context.getSystemService(android.telephony.SubscriptionManager::class.java)
+        ?.activeSubscriptionInfoList.orEmpty()
+        .mapNotNull { it.number?.takeIf { n -> n.isNotBlank() } }
+} catch (_: Exception) {
+    emptyList()
+}
+
+/** Loose phone-number equality: compare the last 10 digits (or fewer). */
+private fun sameNumber(a: String, b: String): Boolean {
+    val da = a.filter { it.isDigit() }.takeLast(10)
+    val db = b.filter { it.isDigit() }.takeLast(10)
+    return da.isNotEmpty() && da == db
 }
 
 /** Never-lose fallback: record that an MMS arrived even when we can't fetch it. */

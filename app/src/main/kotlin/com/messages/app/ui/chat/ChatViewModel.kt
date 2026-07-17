@@ -53,7 +53,7 @@ class ChatViewModel(
             } else if (!fallbackAddress.isNullOrBlank()) {
                 address.value = fallbackAddress
                 contactName.value = withContext(Dispatchers.IO) {
-                    repo.lookupContactName(fallbackAddress)
+                    repo.displayNameFor(fallbackAddress)
                 }
             }
             repo.db.messages().markThreadRead(threadId)
@@ -109,13 +109,16 @@ class ChatViewModel(
                     Intent(ctx, SmsSentReceiver::class.java).putExtra("messageId", entity.id),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
-                if (parts.size == 1) {
-                    sms.sendTextMessage(to, null, text, sentIntent, null)
-                } else {
-                    sms.sendMultipartTextMessage(
-                        to, null, parts,
-                        ArrayList(parts.map { sentIntent }), null,
-                    )
+                // Group SMS (§8.1): fan out to every recipient on the thread.
+                repo.recipientsOf(to).forEach { recipient ->
+                    if (parts.size == 1) {
+                        sms.sendTextMessage(recipient, null, text, sentIntent, null)
+                    } else {
+                        sms.sendMultipartTextMessage(
+                            recipient, null, parts,
+                            ArrayList(parts.map { sentIntent }), null,
+                        )
+                    }
                 }
             } catch (_: Exception) {
                 repo.db.messages().update(entity.copy(sendStatus = "FAILED"))

@@ -4,6 +4,7 @@ import android.app.Application
 import android.provider.ContactsContract
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,14 +17,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -34,7 +40,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -115,6 +123,25 @@ class NewMessageViewModel(app: Application) : AndroidViewModel(app) {
     fun openThread(address: String, onResult: (Long) -> Unit) = viewModelScope.launch {
         onResult(repo.threadIdFor(address))
     }
+
+    // ---- Group compose (§8.1): staged recipients before opening the thread ----
+
+    val selected = MutableStateFlow<List<PickerContact>>(emptyList())
+
+    fun addRecipient(contact: PickerContact) {
+        val key = contact.number.filter { it.isDigit() || it == '+' }
+        if (selected.value.none { it.number.filter { ch -> ch.isDigit() || ch == '+' } == key }) {
+            selected.value = selected.value + contact
+        }
+        query.value = ""
+    }
+
+    fun removeRecipient(contact: PickerContact) {
+        selected.value = selected.value - contact
+    }
+
+    /** ';'-joined group address (repo convention) or the single number. */
+    fun groupAddress(): String = selected.value.joinToString(";") { it.number }
 }
 
 /** Whether the query itself can be sent to as a raw phone number. */
@@ -131,25 +158,66 @@ fun NewMessageScreen(
 ) {
     val query by vm.query.collectAsState()
     val contacts by vm.contacts.collectAsState()
+    val selected by vm.selected.collectAsState()
+    var groupMode by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-    fun pick(address: String) = vm.openThread(address) { threadId -> onOpenThread(threadId, address) }
+    fun open(address: String) = vm.openThread(address) { threadId -> onOpenThread(threadId, address) }
+
+    // 1:1 tap opens the thread directly; in group mode taps stage recipients.
+    fun pick(contact: PickerContact) {
+        if (groupMode) vm.addRecipient(contact) else open(contact.number)
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New message") },
+                title = { Text(if (groupMode) "New group (${selected.size})" else "New message") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (groupMode && selected.size >= 2) {
+                        IconButton(onClick = { open(vm.groupAddress()) }) {
+                            Icon(
+                                Icons.Filled.Check, contentDescription = "Start conversation",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
                 },
             )
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
+            // Staged group recipients
+            if (selected.isNotEmpty()) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                ) {
+                    selected.forEach { contact ->
+                        InputChip(
+                            selected = false,
+                            onClick = { vm.removeRecipient(contact) },
+                            label = { Text(contact.name) },
+                            trailingIcon = {
+                                Icon(
+                                    Icons.Filled.Close, contentDescription = "Remove",
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                            modifier = Modifier.padding(end = 6.dp),
+                        )
+                    }
+                }
+            }
             TextField(
                 value = query,
                 onValueChange = { vm.query.value = it },
@@ -167,13 +235,25 @@ fun NewMessageScreen(
             )
 
             LazyColumn(Modifier.fillMaxSize()) {
+                if (!groupMode && query.isBlank()) {
+                    item(key = "start-group") {
+                        StartGroupRow(onClick = { groupMode = true })
+                    }
+                }
                 if (isDialable(query)) {
                     item(key = "send-to-number") {
-                        SendToNumberRow(query.trim(), onClick = { pick(query.trim()) })
+                        val number = query.trim()
+                        SendToNumberRow(
+                            number,
+                            onClick = {
+                                if (groupMode) vm.addRecipient(PickerContact(number, number, ""))
+                                else open(number)
+                            },
+                        )
                     }
                 }
                 items(contacts, key = { it.name + "|" + it.number }) { contact ->
-                    ContactRow(contact, onClick = { pick(contact.number) })
+                    ContactRow(contact, onClick = { pick(contact) })
                 }
                 if (contacts.isEmpty() && !isDialable(query)) {
                     item {
@@ -188,6 +268,33 @@ fun NewMessageScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun StartGroupRow(onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.tertiaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.Group, contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Text("New group", style = MaterialTheme.typography.titleMedium)
     }
 }
 

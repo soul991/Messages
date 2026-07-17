@@ -216,17 +216,15 @@ class MessageRepository private constructor(private val context: Context) {
         timestamp: Long,
         transactionId: String?,
         attachments: List<MmsPduParser.Attachment>,
+        /** Actual sender; differs from [address] for group MMS (address = whole group). */
+        senderAddress: String = address,
     ): Pair<MessageEntity, Verdict>? = withContext(Dispatchers.IO) {
         if (transactionId != null && db.messages().byMmsTransactionId(transactionId) != null) {
             return@withContext null
         }
-        val threadId = try {
-            Telephony.Threads.getOrCreateThreadId(context, address)
-        } catch (_: Exception) {
-            address.hashCode().toLong()
-        }
+        val threadId = resolveThreadId(address)
         // Provider write first — zero message loss.
-        val mmsId = storeMmsInProvider(address, textBody, timestamp, threadId, transactionId, attachments)
+        val mmsId = storeMmsInProvider(senderAddress, textBody, timestamp, threadId, transactionId, attachments)
 
         // Keep the first displayable attachment as a local file for the chat UI.
         val media = attachments.firstOrNull {
@@ -235,13 +233,13 @@ class MessageRepository private constructor(private val context: Context) {
         } ?: attachments.firstOrNull()
         val mediaPath = media?.let { saveAttachmentFile(it, timestamp) }
 
-        val verdict = classify(address, textBody)
+        val verdict = classify(senderAddress, textBody)
         val entity = MessageEntity(
             smsId = null,
             mmsId = mmsId,
             mmsTransactionId = transactionId,
             threadId = threadId,
-            address = address,
+            address = senderAddress,
             body = textBody,
             timestamp = timestamp,
             isOutgoing = false,
@@ -353,10 +351,24 @@ class MessageRepository private constructor(private val context: Context) {
     /**
      * Resolve (or create) the system thread for an address — used by the
      * new-message compose flow before any message exists on the thread.
+     * Group threads: pass addresses joined with ';' (our group convention).
      */
     suspend fun threadIdFor(address: String): Long = withContext(Dispatchers.IO) {
-        try {
-            Telephony.Threads.getOrCreateThreadId(context, address)
+        resolveThreadId(address)
+    }
+
+    /** Split a (possibly ';'-joined group) address into individual recipients. */
+    fun recipientsOf(address: String): List<String> =
+        address.split(';').map { it.trim() }.filter { it.isNotEmpty() }
+
+    private fun resolveThreadId(address: String): Long {
+        val recipients = recipientsOf(address)
+        return try {
+            if (recipients.size > 1) {
+                Telephony.Threads.getOrCreateThreadId(context, recipients.toSet())
+            } else {
+                Telephony.Threads.getOrCreateThreadId(context, address)
+            }
         } catch (_: Exception) {
             address.hashCode().toLong()
         }
@@ -396,11 +408,8 @@ class MessageRepository private constructor(private val context: Context) {
         transactionId: String,
         attachment: MmsPduParser.Attachment?,
     ): MessageEntity = withContext(Dispatchers.IO) {
-        val threadId = try {
-            Telephony.Threads.getOrCreateThreadId(context, address)
-        } catch (_: Exception) {
-            address.hashCode().toLong()
-        }
+        val recipients = recipientsOf(address)
+        val threadId = resolveThreadId(address)
         val mmsId = try {
             val resolver = context.contentResolver
             val values = ContentValues().apply {
@@ -440,15 +449,17 @@ class MessageRepository private constructor(private val context: Context) {
                     )
                     if (part != null) resolver.openOutputStream(part)?.use { it.write(attachment.data) }
                 }
-                resolver.insert(
-                    android.net.Uri.parse("content://mms/$id/addr"),
-                    ContentValues().apply {
-                        put(Telephony.Mms.Addr.MSG_ID, id)
-                        put(Telephony.Mms.Addr.ADDRESS, address)
-                        put(Telephony.Mms.Addr.TYPE, 151) // PduHeaders.TO
-                        put(Telephony.Mms.Addr.CHARSET, 106)
-                    },
-                )
+                recipients.forEach { recipient ->
+                    resolver.insert(
+                        android.net.Uri.parse("content://mms/$id/addr"),
+                        ContentValues().apply {
+                            put(Telephony.Mms.Addr.MSG_ID, id)
+                            put(Telephony.Mms.Addr.ADDRESS, recipient)
+                            put(Telephony.Mms.Addr.TYPE, 151) // PduHeaders.TO
+                            put(Telephony.Mms.Addr.CHARSET, 106)
+                        },
+                    )
+                }
             }
             id
         } catch (_: Exception) {
@@ -505,26 +516,29 @@ class MessageRepository private constructor(private val context: Context) {
         subId: Int? = null,
     ): MessageEntity =
         withContext(Dispatchers.IO) {
-            val values = ContentValues().apply {
-                put(Telephony.Sms.ADDRESS, address)
-                put(Telephony.Sms.BODY, body)
-                put(Telephony.Sms.DATE, timestamp)
-                put(Telephony.Sms.READ, 1)
-                put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_SENT)
-                if (subId != null) put(Telephony.Sms.SUBSCRIPTION_ID, subId)
-            }
-            val uri = try {
-                context.contentResolver.insert(Telephony.Sms.Sent.CONTENT_URI, values)
-            } catch (_: Exception) {
-                null
-            }
-            val threadId = try {
-                Telephony.Threads.getOrCreateThreadId(context, address)
-            } catch (_: Exception) {
-                address.hashCode().toLong()
+            val recipients = recipientsOf(address)
+            val threadId = resolveThreadId(address)
+            // Group SMS: one provider row per recipient, all pinned to the group thread.
+            var firstSmsId: Long? = null
+            recipients.forEach { recipient ->
+                val values = ContentValues().apply {
+                    put(Telephony.Sms.ADDRESS, recipient)
+                    put(Telephony.Sms.BODY, body)
+                    put(Telephony.Sms.DATE, timestamp)
+                    put(Telephony.Sms.READ, 1)
+                    put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_SENT)
+                    put(Telephony.Sms.THREAD_ID, threadId)
+                    if (subId != null) put(Telephony.Sms.SUBSCRIPTION_ID, subId)
+                }
+                val uri = try {
+                    context.contentResolver.insert(Telephony.Sms.Sent.CONTENT_URI, values)
+                } catch (_: Exception) {
+                    null
+                }
+                if (firstSmsId == null) firstSmsId = uri?.lastPathSegment?.toLongOrNull()
             }
             val entity = MessageEntity(
-                smsId = uri?.lastPathSegment?.toLongOrNull(),
+                smsId = firstSmsId,
                 threadId = threadId,
                 address = address,
                 body = body,
@@ -548,7 +562,7 @@ class MessageRepository private constructor(private val context: Context) {
         incrementUnread: Boolean,
     ) {
         val existing = db.conversations().byThreadId(threadId)
-        val name = lookupContactName(address)
+        val name = displayNameFor(address)
         db.conversations().upsert(
             ConversationEntity(
                 id = existing?.id ?: 0,
@@ -564,6 +578,13 @@ class MessageRepository private constructor(private val context: Context) {
                 muted = existing?.muted ?: false,
             )
         )
+    }
+
+    /** Group addresses (';'-joined) resolve each member; singles use PhoneLookup. */
+    fun displayNameFor(address: String): String? {
+        val recipients = recipientsOf(address)
+        if (recipients.size <= 1) return lookupContactName(address)
+        return recipients.joinToString(", ") { lookupContactName(it) ?: it }
     }
 
     fun lookupContactName(address: String): String? = try {

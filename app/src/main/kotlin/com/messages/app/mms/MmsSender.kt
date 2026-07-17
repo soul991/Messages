@@ -69,7 +69,8 @@ object MmsSender {
                 }
             }
             require(parts.isNotEmpty()) { "empty MMS" }
-            val pdu = MmsPduBuilder.buildSendReq(listOf(address), parts, transactionId)
+            // Group MMS is one PDU addressed to every recipient (§8.1).
+            val pdu = MmsPduBuilder.buildSendReq(repo.recipientsOf(address), parts, transactionId)
 
             val dir = File(context.cacheDir, "mms").apply { mkdirs() }
             val file = File(dir, "send_${entity.id}.pdu")

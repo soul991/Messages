@@ -21,18 +21,22 @@ object MmsPduParser {
 
     data class RetrieveConf(
         val from: String?,
+        /** To/CC recipients — non-empty beyond our own number means a group MMS. */
+        val to: List<String>,
         val subject: String?,
         val textBody: String,
         val attachments: List<Attachment>,
     )
 
     // MMS header field IDs (with high bit set)
+    private const val H_CC = 0x82
     private const val H_CONTENT_LOCATION = 0x83
     private const val H_CONTENT_TYPE = 0x84
     private const val H_FROM = 0x89
     private const val H_MESSAGE_TYPE = 0x8C
     private const val H_MESSAGE_SIZE = 0x8E
     private const val H_SUBJECT = 0x96
+    private const val H_TO = 0x97
     private const val H_TRANSACTION_ID = 0x98
 
     private const val TYPE_NOTIFICATION_IND = 0x82
@@ -75,6 +79,7 @@ object MmsPduParser {
     private fun parseRetrieveConfInner(pdu: ByteArray): RetrieveConf? {
         val r = Reader(pdu)
         var from: String? = null
+        val to = mutableListOf<String>()
         var subject: String? = null
         var messageType = -1
         var bodyContentType: String? = null
@@ -90,6 +95,8 @@ object MmsPduParser {
             when (field) {
                 H_MESSAGE_TYPE -> messageType = r.readByte()
                 H_FROM -> from = r.readFromValue()
+                H_TO, H_CC -> r.readEncodedString().substringBefore("/TYPE=")
+                    .takeIf { it.isNotBlank() }?.let { to += it }
                 H_SUBJECT -> subject = r.readEncodedString()
                 else -> r.skipHeaderValue()
             }
@@ -119,7 +126,7 @@ object MmsPduParser {
             if (bodyContentType.startsWith("text/plain")) texts += data.toString(Charsets.UTF_8)
             else attachments += Attachment(bodyContentType, null, data)
         }
-        return RetrieveConf(from, subject, texts.joinToString("\n").trim(), attachments)
+        return RetrieveConf(from, to, subject, texts.joinToString("\n").trim(), attachments)
     }
 
     /** WSP well-known content types we expect; others arrive as literal strings. */
