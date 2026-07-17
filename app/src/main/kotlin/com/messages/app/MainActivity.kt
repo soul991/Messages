@@ -114,6 +114,12 @@ class MainActivity : FragmentActivity() {
                                 onboardingPrefs.edit().putBoolean("done", true).apply()
                                 nav.navigate("home") { popUpTo("onboarding") { inclusive = true } }
                             },
+                            onRestoreFromDrive = {
+                                // §8.3: restore offer during onboarding.
+                                onboardingPrefs.edit().putBoolean("done", true).apply()
+                                nav.navigate("home") { popUpTo("onboarding") { inclusive = true } }
+                                nav.navigate("drive_backup")
+                            },
                         )
                     }
                     composable("home") {
@@ -138,6 +144,18 @@ class MainActivity : FragmentActivity() {
                         SettingsScreen(
                             onBack = { nav.popBackStack() },
                             onOpenTrash = { nav.navigate("trash") },
+                            onOpenDriveBackup = { nav.navigate("drive_backup") },
+                        )
+                    }
+                    composable("drive_backup") {
+                        com.messages.app.ui.drivebackup.DriveBackupScreen(
+                            onBack = { nav.popBackStack() },
+                            onPickSpamMessages = { nav.navigate("spam_backup_picker") },
+                        )
+                    }
+                    composable("spam_backup_picker") {
+                        com.messages.app.ui.drivebackup.SpamBackupPickerScreen(
+                            onBack = { nav.popBackStack() },
                         )
                     }
                     composable("trash") {

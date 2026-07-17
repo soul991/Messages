@@ -200,6 +200,7 @@ private val SENSITIVITY_STEPS = listOf("RELAXED", "DEFAULT", "STRICT")
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenTrash: () -> Unit = {},
+    onOpenDriveBackup: () -> Unit = {},
     vm: SettingsViewModel = viewModel(),
 ) {
     val rules by vm.rules.collectAsState()
@@ -450,6 +451,8 @@ fun SettingsScreen(
                         }) { Text("Back up now") }
                         TextButton(onClick = { confirmRestore = true }) { Text("Restore") }
                     }
+                    // §8.3: encrypted, scheduled cloud backup.
+                    TextButton(onClick = onOpenDriveBackup) { Text("Google Drive backup…") }
                 }
                 Spacer(Modifier.height(24.dp))
             }

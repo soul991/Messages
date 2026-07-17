@@ -16,6 +16,7 @@ class MessagesApp : Application() {
         OtpCleanup.ensureScheduled(this)
         TrashRetention.ensureScheduled(this)
         FtsBackfill.ensureScheduled(this)
+        com.messages.app.drive.DriveBackup.reschedule(this)
     }
 
     private fun createNotificationChannels() {

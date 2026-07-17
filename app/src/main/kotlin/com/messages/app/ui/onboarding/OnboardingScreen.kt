@@ -62,6 +62,7 @@ fun OnboardingScreen(
     isDefaultSmsApp: Boolean,
     onRequestDefault: () -> Unit,
     onDone: () -> Unit,
+    onRestoreFromDrive: () -> Unit = {},
 ) {
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
@@ -102,8 +103,15 @@ fun OnboardingScreen(
                 ) { Text("Not now") }
             }
 
-            2 -> Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
-                Text("Start messaging")
+            2 -> Column {
+                Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+                    Text("Start messaging")
+                }
+                // §8.3: offer restore during onboarding, right after the
+                // default-app step — lands on the Drive backup screen.
+                TextButton(onClick = onRestoreFromDrive, modifier = Modifier.fillMaxWidth()) {
+                    Text("Restore from Google Drive backup")
+                }
             }
         }
     }
