@@ -36,6 +36,9 @@ class ChatViewModel(
     val contactName = MutableStateFlow<String?>(null)
     val address = MutableStateFlow("")
 
+    /** Conversation category — tints the top-bar avatar to match the list row. */
+    val category = MutableStateFlow<String?>(null)
+
     /** Locked conversation (§8.2): gate the chat UI until authenticated. */
     val locked = MutableStateFlow(false)
     val chatUnlocked = MutableStateFlow(false)
@@ -51,6 +54,7 @@ class ChatViewModel(
             if (conv != null) {
                 address.value = conv.address
                 contactName.value = conv.contactName
+                category.value = conv.category
                 selectedSubId.value = conv.preferredSubId
                 locked.value = conv.locked
             } else if (!fallbackAddress.isNullOrBlank()) {

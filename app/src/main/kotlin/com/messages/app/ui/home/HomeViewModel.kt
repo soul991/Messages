@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -26,9 +26,20 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     val folder = MutableStateFlow("INBOX")
 
-    val conversations: StateFlow<List<ConversationEntity>> = folder
-        .flatMapLatest { repo.db.conversations().byCategory(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /**
+     * Per-folder conversation flows, cached so the animated folder switch can
+     * render the outgoing and incoming folder simultaneously with each one's
+     * own data. `null` = not yet loaded (UI shows nothing rather than
+     * flashing an empty state).
+     */
+    private val conversationCache = HashMap<String, StateFlow<List<ConversationEntity>?>>()
+
+    fun conversationsFor(category: String): StateFlow<List<ConversationEntity>?> =
+        conversationCache.getOrPut(category) {
+            repo.db.conversations().byCategory(category)
+                .map<List<ConversationEntity>, List<ConversationEntity>?> { it }
+                .stateIn(viewModelScope, SharingStarted.Lazily, null)
+        }
 
     fun folderUnread(category: String) = repo.db.messages().unreadCount(category)
 

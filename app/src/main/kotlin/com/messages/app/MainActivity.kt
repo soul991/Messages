@@ -8,6 +8,11 @@ import android.os.Bundle
 import android.provider.Telephony
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +24,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.messages.app.security.AppLock
+import com.messages.app.ui.common.LocalNavAnimatedVisibilityScope
+import com.messages.app.ui.common.LocalSharedTransitionScope
+import com.messages.app.ui.common.fadeThroughEnter
+import com.messages.app.ui.common.fadeThroughExit
+import com.messages.app.ui.common.sharedAxisEnter
+import com.messages.app.ui.common.sharedAxisExit
 import com.messages.app.ui.chat.ChatScreen
 import com.messages.app.ui.compose.NewMessageScreen
 import com.messages.app.ui.dashboard.DashboardScreen
@@ -30,7 +41,14 @@ import com.messages.app.ui.why.WhyFilteredScreen
 import com.messages.core.backfill.Backfill
 import com.messages.designsystem.MessagesTheme
 
+/** Scopes route content so shared elements can find their nav animation scope. */
+@Composable
+private fun ProvideNavScope(scope: AnimatedVisibilityScope, content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides scope, content = content)
+}
+
 // FragmentActivity (not ComponentActivity) so BiometricPrompt can attach (§8.2 app lock).
+@OptIn(ExperimentalSharedTransitionApi::class)
 class MainActivity : FragmentActivity() {
 
     private var isDefaultSmsApp by mutableStateOf(false)
@@ -107,6 +125,8 @@ class MainActivity : FragmentActivity() {
                     }
                     onDispose { intentNavigator = null }
                 }
+                SharedTransitionLayout {
+                    CompositionLocalProvider(LocalSharedTransitionScope provides this) {
                 NavHost(
                     navController = nav,
                     startDestination = when {
@@ -114,6 +134,13 @@ class MainActivity : FragmentActivity() {
                         !onboardingPrefs.getBoolean("done", false) -> "onboarding"
                         else -> "home"
                     },
+                    // §9 motion: shared-axis X between sibling screens by
+                    // default; the list↔chat pair overrides with fade-through
+                    // so the shared avatar element carries the transition.
+                    enterTransition = { sharedAxisEnter(forward = true) },
+                    exitTransition = { sharedAxisExit(forward = true) },
+                    popEnterTransition = { sharedAxisEnter(forward = false) },
+                    popExitTransition = { sharedAxisExit(forward = false) },
                 ) {
                     composable("onboarding") {
                         OnboardingScreen(
@@ -131,7 +158,14 @@ class MainActivity : FragmentActivity() {
                             },
                         )
                     }
-                    composable("home") {
+                    composable(
+                        "home",
+                        enterTransition = { fadeThroughEnter() },
+                        exitTransition = { fadeThroughExit() },
+                        popEnterTransition = { fadeThroughEnter() },
+                        popExitTransition = { fadeThroughExit() },
+                    ) {
+                        ProvideNavScope(this) {
                         HomeScreen(
                             isDefaultSmsApp = isDefaultSmsApp,
                             initialFolder = folderRequest,
@@ -145,6 +179,7 @@ class MainActivity : FragmentActivity() {
                             onSettings = { nav.navigate("settings") },
                             onDashboard = { nav.navigate("dashboard") },
                         )
+                        }
                     }
                     composable("dashboard") {
                         DashboardScreen(onBack = { nav.popBackStack() })
@@ -182,6 +217,10 @@ class MainActivity : FragmentActivity() {
                     }
                     composable(
                         "chat/{threadId}?address={address}&q={q}&target={target}&draft={draft}",
+                        enterTransition = { fadeThroughEnter() },
+                        exitTransition = { fadeThroughExit() },
+                        popEnterTransition = { fadeThroughEnter() },
+                        popExitTransition = { fadeThroughExit() },
                         arguments = listOf(
                             navArgument("address") {
                                 type = NavType.StringType
@@ -206,6 +245,7 @@ class MainActivity : FragmentActivity() {
                         ),
                     ) { entry ->
                         val threadId = entry.arguments?.getString("threadId")?.toLongOrNull() ?: return@composable
+                        ProvideNavScope(this) {
                         ChatScreen(
                             threadId = threadId,
                             onBack = { nav.popBackStack() },
@@ -218,10 +258,13 @@ class MainActivity : FragmentActivity() {
                             // Direct share (§8.2): shared text lands as the draft.
                             initialDraft = entry.arguments?.getString("draft") ?: "",
                         )
+                        }
                     }
                     composable("why/{messageId}") { entry ->
                         val messageId = entry.arguments?.getString("messageId")?.toLongOrNull() ?: return@composable
                         WhyFilteredScreen(messageId = messageId, onBack = { nav.popBackStack() })
+                    }
+                }
                     }
                 }
             }

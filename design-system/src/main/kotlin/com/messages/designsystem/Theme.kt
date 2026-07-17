@@ -4,15 +4,54 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
-// Category hues (§9): fraud = red, promo = amber, protected = green
+/** True when the resolved theme is dark — for theme-aware category hues. */
+val LocalDarkTheme = staticCompositionLocalOf { false }
+
+/**
+ * Category hue triple (§9: fraud = red, promo = amber, protected = green).
+ * `tint` is the icon/accent color, `container`/`onContainer` are an
+ * AA-contrast pair for avatar and banner fills in the active theme.
+ */
+@Immutable
+data class CategoryPalette(val tint: Color, val container: Color, val onContainer: Color)
+
+private val FraudLight = CategoryPalette(Color(0xFFBA1A1A), Color(0xFFFFDAD6), Color(0xFF410002))
+private val FraudDark = CategoryPalette(Color(0xFFFFB4AB), Color(0xFF93000A), Color(0xFFFFDAD6))
+private val PromoLight = CategoryPalette(Color(0xFF7A5900), Color(0xFFFFDF9E), Color(0xFF261A00))
+private val PromoDark = CategoryPalette(Color(0xFFEFC047), Color(0xFF5C4300), Color(0xFFFFDF9E))
+private val ProtectedLight = CategoryPalette(Color(0xFF1B6C31), Color(0xFFA3F4AF), Color(0xFF00210A))
+private val ProtectedDark = CategoryPalette(Color(0xFF88D896), Color(0xFF0F5223), Color(0xFFA3F4AF))
+private val ReviewLight = CategoryPalette(Color(0xFF555F71), Color(0xFFD9E3F8), Color(0xFF121C2B))
+private val ReviewDark = CategoryPalette(Color(0xFFBDC7DC), Color(0xFF3E4759), Color(0xFFD9E3F8))
+
+/** Theme-aware palette for a message/conversation category, or null for neutral. */
+@Composable
+fun categoryPalette(category: String?): CategoryPalette? {
+    val dark = LocalDarkTheme.current
+    return when (category) {
+        "SPAM", "BLOCKED" -> if (dark) FraudDark else FraudLight
+        "PROMOTIONS" -> if (dark) PromoDark else PromoLight
+        "TRANSACTIONS" -> if (dark) ProtectedDark else ProtectedLight
+        "REVIEW" -> if (dark) ReviewDark else ReviewLight
+        else -> null
+    }
+}
+
+// Legacy static hues — kept for non-composable callers (widgets, notifications).
 object CategoryColors {
     val Fraud = Color(0xFFBA1A1A)
     val FraudContainer = Color(0xFFFFDAD6)
@@ -53,6 +92,26 @@ private val AmoledScheme = DarkScheme.copy(
     background = Color.Black,
 )
 
+/**
+ * §9 craft bar: clear hierarchy on the default (correct-for-M3) Roboto —
+ * headlines carry weight and tight tracking; titles are semi-bold so
+ * conversation names read as anchors; labels are calm, never shouty.
+ */
+private val MessagesTypography = Typography().let { base ->
+    base.copy(
+        headlineLarge = base.headlineLarge.copy(
+            fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp,
+        ),
+        headlineMedium = base.headlineMedium.copy(
+            fontWeight = FontWeight.Bold, letterSpacing = (-0.25).sp,
+        ),
+        headlineSmall = base.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
+        titleLarge = base.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+        titleMedium = base.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+        labelLarge = base.labelLarge.copy(fontWeight = FontWeight.Medium),
+    )
+}
+
 enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 
 @Composable
@@ -76,5 +135,11 @@ fun MessagesTheme(
         darkTheme -> DarkScheme
         else -> LightScheme
     }
-    MaterialTheme(colorScheme = scheme, content = content)
+    CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = scheme,
+            typography = MessagesTypography,
+            content = content,
+        )
+    }
 }

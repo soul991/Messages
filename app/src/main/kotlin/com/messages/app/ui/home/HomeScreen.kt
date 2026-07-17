@@ -1,6 +1,16 @@
 package com.messages.app.ui.home
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +30,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -31,8 +43,13 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.RateReview
+import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -42,14 +59,17 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,8 +77,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -66,9 +91,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.ui.common.ContactAvatar
+import com.messages.app.ui.common.sharedThreadAvatar
 import com.messages.app.ui.search.SearchHighlight
 import com.messages.core.db.ConversationEntity
-import com.messages.designsystem.CategoryColors
+import com.messages.designsystem.Haptics
+import com.messages.designsystem.Motion
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -106,13 +134,20 @@ fun HomeScreen(
 ) {
     LaunchedEffect(initialFolder) { if (initialFolder != null) vm.setFolder(initialFolder) }
 
+    val view = LocalView.current
     val folder by vm.folder.collectAsState()
-    val conversations by vm.conversations.collectAsState()
     var searchActive by remember { mutableStateOf(false) }
     val typing by vm.typing.collectAsState()
     val chips by vm.chips.collectAsState()
     val labelFilter by vm.labelFilter.collectAsState()
     val searchState by vm.searchState.collectAsState()
+
+    // §9: large-title collapsing app bar; its collapse fraction also drives
+    // the FAB shrinking to icon-only as the list scrolls.
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val fabExpanded by remember {
+        derivedStateOf { scrollBehavior.state.collapsedFraction < 0.5f }
+    }
 
     fun exitSearch() {
         searchActive = false
@@ -121,11 +156,33 @@ fun HomeScreen(
     BackHandler(enabled = searchActive) { exitSearch() }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            AnimatedVisibility(
+                visible = !searchActive,
+                enter = expandVertically(Motion.spatialDefault()) + fadeIn(Motion.effectsDefault()),
+                exit = shrinkVertically(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
+            ) {
+                LargeTopAppBar(
+                    title = { Text("Messages") },
+                    actions = {
+                        IconButton(onClick = onDashboard) {
+                            Icon(Icons.Filled.Shield, contentDescription = "Protection dashboard")
+                        }
+                        IconButton(onClick = onSettings) {
+                            Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+        },
         floatingActionButton = {
             // §8.4: no messaging features until the default-SMS role is granted.
             if (!searchActive && isDefaultSmsApp) {
                 ExtendedFloatingActionButton(
                     onClick = onCompose,
+                    expanded = fabExpanded,
                     icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
                     text = { Text("New message") },
                 )
@@ -133,26 +190,6 @@ fun HomeScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
-
-            if (!searchActive) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "Messages",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = onDashboard) {
-                        Icon(Icons.Filled.Shield, contentDescription = "Protection dashboard")
-                    }
-                    IconButton(onClick = onSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
-                    }
-                }
-            }
 
             // §8.4 gate (Google Messages behavior): if the role was denied, the
             // conversation area is an empty state with a single card that
@@ -167,7 +204,11 @@ fun HomeScreen(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (searchActive) {
+                AnimatedVisibility(
+                    visible = searchActive,
+                    enter = fadeIn(Motion.effectsDefault()),
+                    exit = fadeOut(Motion.effectsFast()),
+                ) {
                     IconButton(onClick = { exitSearch() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
                     }
@@ -195,6 +236,8 @@ fun HomeScreen(
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     ),
                     modifier = Modifier
                         .weight(1f)
@@ -202,49 +245,109 @@ fun HomeScreen(
                 )
             }
 
-            if (searchActive) {
-                SearchPane(
-                    vm = vm,
-                    chips = chips,
-                    typing = typing,
-                    labelFilter = labelFilter,
-                    state = searchState,
-                    onOpenResult = { msg ->
-                        vm.recordSearchUse()
-                        onOpenSearchResult(msg.threadId, msg.id, searchState.activeKeywords)
-                    },
-                    onOpenThread = onOpenThread,
-                )
-            } else {
-                // Folder chips directly under the search bar (§9)
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    items(FOLDERS) { (key, label) ->
-                        val unread by vm.folderUnread(key).collectAsState(initial = 0)
-                        FilterChip(
-                            selected = folder == key,
-                            onClick = { vm.setFolder(key) },
-                            label = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(label)
-                                    if (unread > 0) {
-                                        Spacer(Modifier.width(6.dp))
-                                        Badge { Text("$unread") }
-                                    }
-                                }
+            AnimatedContent(
+                targetState = searchActive,
+                transitionSpec = {
+                    fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
+                },
+                label = "search-mode",
+            ) { inSearch ->
+                if (inSearch) {
+                    Column(Modifier.fillMaxSize()) {
+                        SearchPane(
+                            vm = vm,
+                            chips = chips,
+                            typing = typing,
+                            labelFilter = labelFilter,
+                            state = searchState,
+                            onOpenResult = { msg ->
+                                vm.recordSearchUse()
+                                onOpenSearchResult(msg.threadId, msg.id, searchState.activeKeywords)
                             },
+                            onOpenThread = onOpenThread,
                         )
                     }
-                }
-
-                if (conversations.isEmpty()) {
-                    EmptyFolderState(folder)
                 } else {
-                    LazyColumn(Modifier.fillMaxSize()) {
-                        items(conversations, key = { it.threadId }) { conv ->
-                            ConversationRow(conv, onClick = { onOpenThread(conv.threadId) })
+                    FolderPane(
+                        vm = vm,
+                        folder = folder,
+                        onSelectFolder = { key ->
+                            if (key != folder) Haptics.tick(view)
+                            vm.setFolder(key)
+                        },
+                        onOpenThread = onOpenThread,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Folder chips + the conversation list, with a directional animated switch (§9). */
+@Composable
+private fun FolderPane(
+    vm: HomeViewModel,
+    folder: String,
+    onSelectFolder: (String) -> Unit,
+    onOpenThread: (Long) -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        // Folder chips directly under the search bar (§9)
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            items(FOLDERS) { (key, label) ->
+                val unread by vm.folderUnread(key).collectAsState(initial = 0)
+                FilterChip(
+                    selected = folder == key,
+                    onClick = { onSelectFolder(key) },
+                    label = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(label)
+                            if (unread > 0) {
+                                Spacer(Modifier.width(6.dp))
+                                Badge { Text("$unread") }
+                            }
+                        }
+                    },
+                )
+            }
+        }
+
+        // Animated folder switch: content slides toward the tapped direction
+        // on expressive spatial springs; fades stay critically damped.
+        AnimatedContent(
+            targetState = folder,
+            transitionSpec = {
+                val from = FOLDERS.indexOfFirst { it.first == initialState }
+                val to = FOLDERS.indexOfFirst { it.first == targetState }
+                val dir = if (to >= from) 1 else -1
+                (slideInHorizontally(Motion.spatialDefault()) { it / 4 * dir } +
+                    fadeIn(Motion.effectsDefault())) togetherWith
+                    (slideOutHorizontally(Motion.spatialDefault()) { -it / 4 * dir } +
+                        fadeOut(Motion.effectsFast()))
+            },
+            label = "folder-switch",
+        ) { targetFolder ->
+            val conversations by remember(targetFolder) { vm.conversationsFor(targetFolder) }
+                .collectAsState()
+            when {
+                conversations == null -> Box(Modifier.fillMaxSize()) // first load, no flash
+                conversations.orEmpty().isEmpty() -> EmptyFolderState(targetFolder)
+                else -> {
+                    val listState = rememberLazyListState()
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                        items(conversations.orEmpty(), key = { it.threadId }) { conv ->
+                            ConversationRow(
+                                conv = conv,
+                                onClick = { onOpenThread(conv.threadId) },
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = Motion.effectsDefault(),
+                                    placementSpec = Motion.spatialDefault(),
+                                    fadeOutSpec = Motion.effectsFast(),
+                                ),
+                            )
                         }
                     }
                 }
@@ -324,7 +427,7 @@ private fun SearchPane(
                 Text(
                     "Type at least 3 characters",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
             }
@@ -332,7 +435,7 @@ private fun SearchPane(
                 Text(
                     "Recent searches",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(6.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -359,7 +462,7 @@ private fun SearchPane(
             Text(
                 "No messages match",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         return
@@ -374,44 +477,35 @@ private fun SearchPane(
         // §8.5.3: conversations whose contact name / number matches ("mom").
         if (state.conversationMatches.isNotEmpty()) {
             item {
-                Text(
-                    "Conversations",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+                SearchSectionHeader("Conversations")
             }
             items(state.conversationMatches, key = { "conv-${it.threadId}" }) { conv ->
                 ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
             }
             if (state.results.isNotEmpty()) {
-                item {
-                    Text(
-                        "Messages",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                }
+                item { SearchSectionHeader("Messages") }
             }
         }
         items(normal, key = { it.message.id }) { row ->
             SearchResultRow(row, state.activeKeywords, onOpenResult)
         }
         if (filtered.isNotEmpty()) {
-            item {
-                Text(
-                    "In Spam & Blocked",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(16.dp),
-                )
-            }
+            item { SearchSectionHeader("In Spam & Blocked") }
             items(filtered, key = { it.message.id }) { row ->
                 SearchResultRow(row, state.activeKeywords, onOpenResult)
             }
         }
     }
+}
+
+@Composable
+private fun SearchSectionHeader(label: String) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 /** A conversation whose contact name / number matched a keyword (§8.5.3). */
@@ -433,7 +527,7 @@ private fun ConversationMatchRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Avatar(conv.contactName ?: conv.address, conv.category)
+        ContactAvatar(conv.contactName ?: conv.address, conv.category)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
@@ -472,7 +566,7 @@ private fun SearchResultRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Avatar(row.displayName ?: msg.address, msg.category)
+        ContactAvatar(row.displayName ?: msg.address, msg.category)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -486,7 +580,7 @@ private fun SearchResultRow(
                 Text(
                     formatTime(msg.timestamp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             // Snippet windowed around the first match, all terms highlighted (§8.5.3).
@@ -537,7 +631,6 @@ private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
             Text(
                 "Set Messages as your default SMS app",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
@@ -545,7 +638,7 @@ private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
                 "To see your conversations and turn on spam, scam & fraud " +
                     "protection, Messages needs to be your SMS app.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(20.dp))
@@ -557,22 +650,31 @@ private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
 }
 
 @Composable
-private fun ConversationRow(conv: ConversationEntity, onClick: () -> Unit) {
+private fun ConversationRow(
+    conv: ConversationEntity,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val unread = conv.unreadCount > 0
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Avatar(conv.contactName ?: conv.address, conv.category)
-        Spacer(Modifier.width(14.dp))
+        ContactAvatar(
+            conv.contactName ?: conv.address,
+            conv.category,
+            modifier = Modifier.sharedThreadAvatar(conv.threadId),
+        )
+        Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     conv.contactName ?: conv.address,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = if (conv.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
@@ -581,14 +683,15 @@ private fun ConversationRow(conv: ConversationEntity, onClick: () -> Unit) {
                     Icon(
                         Icons.Outlined.PushPin, contentDescription = "Pinned",
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.width(4.dp))
                 }
                 Text(
                     formatTime(conv.lastTimestamp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = if (unread) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(2.dp))
@@ -596,13 +699,14 @@ private fun ConversationRow(conv: ConversationEntity, onClick: () -> Unit) {
                 Text(
                     if (conv.locked) "🔒 Locked conversation" else conv.lastMessage,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (conv.unreadCount > 0) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.outline,
+                    fontWeight = if (unread) FontWeight.Medium else FontWeight.Normal,
+                    color = if (unread) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                if (conv.unreadCount > 0) {
+                if (unread) {
                     Spacer(Modifier.width(8.dp))
                     Badge { Text("${conv.unreadCount}") }
                 }
@@ -611,55 +715,103 @@ private fun ConversationRow(conv: ConversationEntity, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun Avatar(name: String, category: String) {
-    val bg = when (category) {
-        "SPAM" -> CategoryColors.FraudContainer
-        "PROMOTIONS" -> CategoryColors.PromoContainer
-        "TRANSACTIONS" -> CategoryColors.ProtectedContainer
-        "REVIEW" -> CategoryColors.ReviewContainer
-        else -> MaterialTheme.colorScheme.primaryContainer
-    }
-    val fg = when (category) {
-        "SPAM" -> CategoryColors.Fraud
-        "PROMOTIONS" -> CategoryColors.Promo
-        "TRANSACTIONS" -> CategoryColors.Protected
-        "REVIEW" -> CategoryColors.Review
-        else -> MaterialTheme.colorScheme.onPrimaryContainer
-    }
-    Box(
-        Modifier.size(48.dp).clip(CircleShape).background(bg),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-            style = MaterialTheme.typography.titleLarge,
-            color = fg,
-        )
-    }
+private data class EmptyStateSpec(
+    val icon: ImageVector,
+    val headline: String,
+    val supporting: String,
+)
+
+private fun emptySpecFor(folder: String): EmptyStateSpec = when (folder) {
+    "SPAM" -> EmptyStateSpec(
+        Icons.Outlined.Shield,
+        "No spam today — enjoy the silence",
+        "Caught messages stay here, reviewable any time. Nothing is ever deleted.",
+    )
+    "PROMOTIONS" -> EmptyStateSpec(
+        Icons.Outlined.LocalOffer,
+        "No promotions right now",
+        "Offers and marketing wait here without making a sound.",
+    )
+    "REVIEW" -> EmptyStateSpec(
+        Icons.Outlined.RateReview,
+        "Nothing needs your review",
+        "When the engine isn't sure, it asks you here instead of guessing.",
+    )
+    "BLOCKED" -> EmptyStateSpec(
+        Icons.Outlined.Block,
+        "No blocked messages",
+        "Messages from senders you block are kept here, silently.",
+    )
+    "TRANSACTIONS" -> EmptyStateSpec(
+        Icons.Outlined.ReceiptLong,
+        "No transactions yet",
+        "Receipts, debits and statements are filed here automatically.",
+    )
+    else -> EmptyStateSpec(
+        Icons.Outlined.Forum,
+        "No messages yet",
+        "Conversations you start or receive will appear here.",
+    )
 }
 
+/** §9 delight: layered-shape illustration settling in on a gentle spring. */
 @Composable
 private fun EmptyFolderState(folder: String) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Outlined.Archive, contentDescription = null,
-                modifier = Modifier.size(56.dp),
-                tint = MaterialTheme.colorScheme.outlineVariant,
-            )
-            Spacer(Modifier.height(12.dp))
+    val spec = emptySpecFor(folder)
+    var appeared by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { appeared = true }
+    val scale by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0.85f,
+        animationSpec = Motion.gentle(),
+        label = "empty-scale",
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = Motion.effectsSlow(),
+        label = "empty-alpha",
+    )
+    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+            },
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier
+                        .size(120.dp)
+                        .rotate(-10f)
+                        .clip(RoundedCornerShape(32.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                )
+                Box(
+                    Modifier
+                        .size(104.dp)
+                        .rotate(8f)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                )
+                Icon(
+                    spec.icon, contentDescription = null,
+                    modifier = Modifier.size(44.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+            Spacer(Modifier.height(24.dp))
             Text(
-                when (folder) {
-                    "SPAM" -> "No spam today — enjoy the silence"
-                    "PROMOTIONS" -> "No promotions right now"
-                    "REVIEW" -> "Nothing needs your review"
-                    "BLOCKED" -> "No blocked messages"
-                    "TRANSACTIONS" -> "No transactions yet"
-                    else -> "No messages yet"
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.outline,
+                spec.headline,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                spec.supporting,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
         }
     }

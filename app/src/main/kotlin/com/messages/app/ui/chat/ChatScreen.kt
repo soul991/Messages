@@ -4,12 +4,18 @@ import android.app.Application
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,12 +54,15 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -64,9 +74,11 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,19 +87,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.messages.app.ui.common.ContactAvatar
+import com.messages.app.ui.common.sharedThreadAvatar
 import com.messages.core.db.MessageEntity
-import com.messages.designsystem.CategoryColors
+import com.messages.designsystem.Haptics
+import com.messages.designsystem.Motion
+import com.messages.designsystem.categoryPalette
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 class ChatViewModelFactory(
     private val app: Application,
@@ -97,6 +115,56 @@ class ChatViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         ChatViewModel(app, threadId, fallbackAddress) as T
+}
+
+/**
+ * Chat list rows (§9): messages grouped when consecutive, same direction and
+ * < 3 min apart; date pills between days. `first`/`last` are group edges and
+ * drive the bubble corner shape (tail on the last bubble of a group).
+ */
+private sealed interface ChatItem {
+    val key: String
+
+    data class DateHeader(val ts: Long) : ChatItem {
+        override val key get() = "d$ts"
+    }
+
+    data class Msg(val m: MessageEntity, val first: Boolean, val last: Boolean) : ChatItem {
+        override val key get() = "m${m.id}"
+    }
+}
+
+private const val GROUP_GAP_MS = 3 * 60 * 1000L
+
+private fun sameDay(a: Long, b: Long): Boolean {
+    val ca = Calendar.getInstance().apply { timeInMillis = a }
+    val cb = Calendar.getInstance().apply { timeInMillis = b }
+    return ca.get(Calendar.YEAR) == cb.get(Calendar.YEAR) &&
+        ca.get(Calendar.DAY_OF_YEAR) == cb.get(Calendar.DAY_OF_YEAR)
+}
+
+private fun groupsTogether(a: MessageEntity, b: MessageEntity): Boolean =
+    a.isOutgoing == b.isOutgoing &&
+        sameDay(a.timestamp, b.timestamp) &&
+        b.timestamp - a.timestamp < GROUP_GAP_MS &&
+        a.sendStatus != "SCHEDULED" && b.sendStatus != "SCHEDULED"
+
+private fun buildChatItems(messages: List<MessageEntity>): List<ChatItem> {
+    val out = ArrayList<ChatItem>(messages.size + 8)
+    for (i in messages.indices) {
+        val m = messages[i]
+        val prev = messages.getOrNull(i - 1)
+        val next = messages.getOrNull(i + 1)
+        if (prev == null || !sameDay(prev.timestamp, m.timestamp)) {
+            out += ChatItem.DateHeader(m.timestamp)
+        }
+        out += ChatItem.Msg(
+            m = m,
+            first = prev == null || !groupsTogether(prev, m),
+            last = next == null || !groupsTogether(m, next),
+        )
+    }
+    return out
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,12 +182,15 @@ fun ChatScreen(
     initialDraft: String = "",
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
+    val scope = rememberCoroutineScope()
     val vm: ChatViewModel = viewModel(
         factory = ChatViewModelFactory(context.applicationContext as Application, threadId, fallbackAddress)
     )
     val messages by vm.messages.collectAsState()
     val contactName by vm.contactName.collectAsState()
     val address by vm.address.collectAsState()
+    val category by vm.category.collectAsState()
     val locked by vm.locked.collectAsState()
     val chatUnlocked by vm.chatUnlocked.collectAsState()
     val pendingAttachment by vm.pendingAttachment.collectAsState()
@@ -130,6 +201,8 @@ fun ChatScreen(
     var draft by remember { mutableStateOf(initialDraft) }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val items = remember(messages) { buildChatItems(messages) }
 
     // Attachment sources: gallery (photo picker) and camera (FileProvider target).
     val galleryPicker = rememberLauncherForActivityResult(
@@ -153,18 +226,20 @@ fun ChatScreen(
             chatSearchQuery.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
         else emptyList()
     }
-    val matchIndices = remember(messages, searchTerms) {
+    // Indices into `items` (date headers never match).
+    val matchIndices = remember(items, searchTerms) {
         if (searchTerms.isEmpty()) emptyList()
-        else messages.indices.filter { i ->
-            searchTerms.any { t -> messages[i].body.contains(t, ignoreCase = true) }
+        else items.indices.filter { i ->
+            val msg = (items[i] as? ChatItem.Msg)?.m
+            msg != null && searchTerms.any { t -> msg.body.contains(t, ignoreCase = true) }
         }
     }
     var currentMatch by remember { mutableStateOf(0) } // index into matchIndices
     // One-shot jump to the search result this chat was opened from.
     var pendingTarget by remember { mutableStateOf(targetMessageId) }
-    LaunchedEffect(messages, matchIndices) {
+    LaunchedEffect(items, matchIndices) {
         val target = pendingTarget ?: return@LaunchedEffect
-        val listIndex = messages.indexOfFirst { it.id == target }
+        val listIndex = items.indexOfFirst { (it as? ChatItem.Msg)?.m?.id == target }
         if (listIndex >= 0) {
             pendingTarget = null
             matchIndices.indexOf(listIndex).takeIf { it >= 0 }?.let { currentMatch = it }
@@ -197,11 +272,15 @@ fun ChatScreen(
         return
     }
 
-    LaunchedEffect(messages.size) {
+    // First composition lands at the bottom instantly; new messages animate.
+    var firstScroll by remember { mutableStateOf(true) }
+    LaunchedEffect(items.size) {
         // Don't fight the search jump/navigation (§8.5.3).
-        if (messages.isNotEmpty() && pendingTarget == null && !chatSearchActive) {
-            listState.animateScrollToItem(messages.size - 1)
+        if (items.isNotEmpty() && pendingTarget == null && !chatSearchActive) {
+            if (firstScroll) listState.scrollToItem(items.size - 1)
+            else listState.animateScrollToItem(items.size - 1)
         }
+        if (items.isNotEmpty()) firstScroll = false
     }
     LaunchedEffect(sendError) {
         sendError?.let {
@@ -246,7 +325,7 @@ fun ChatScreen(
                                 if (matchIndices.isEmpty()) "0/0"
                                 else "${currentMatch + 1}/${matchIndices.size}",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         IconButton(
@@ -274,13 +353,24 @@ fun ChatScreen(
             } else {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(contactName ?: address, style = MaterialTheme.typography.titleMedium)
-                        if (contactName != null) {
-                            Text(
-                                address, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Shared element with the list row's avatar (§9).
+                        ContactAvatar(
+                            contactName ?: address,
+                            category,
+                            size = 38.dp,
+                            textStyle = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.sharedThreadAvatar(threadId),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(contactName ?: address, style = MaterialTheme.typography.titleMedium)
+                            if (contactName != null) {
+                                Text(
+                                    address, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 },
@@ -330,25 +420,68 @@ fun ChatScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().imePadding()) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                items(messages, key = { it.id }) { msg ->
-                    MessageBubble(
-                        msg = msg,
-                        highlightTerms = if (chatSearchActive) searchTerms else emptyList(),
-                        onWhy = { onWhy(msg.id) },
-                        onNotSpam = { vm.moveToInbox(msg.id) },
-                        onResend = { vm.resend(msg) },
-                        onSendNow = { vm.sendScheduledNow(msg.id) },
-                        onCancelScheduled = { vm.cancelScheduled(msg.id) },
-                        onSnooze = { remindAt -> vm.snooze(msg.id, remindAt) },
-                        onStar = { vm.star(msg.id, !msg.starred) },
-                        onDelete = { vm.delete(msg.id) },
-                    )
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    items(
+                        items,
+                        key = { it.key },
+                        contentType = { if (it is ChatItem.Msg) "msg" else "date" },
+                    ) { item ->
+                        val itemModifier = Modifier.animateItem(
+                            fadeInSpec = Motion.effectsDefault(),
+                            placementSpec = Motion.spatialDefault(),
+                            fadeOutSpec = Motion.effectsFast(),
+                        )
+                        when (item) {
+                            is ChatItem.DateHeader -> DatePill(item.ts, itemModifier)
+                            is ChatItem.Msg -> MessageBubble(
+                                msg = item.m,
+                                firstInGroup = item.first,
+                                lastInGroup = item.last,
+                                highlightTerms = if (chatSearchActive) searchTerms else emptyList(),
+                                onWhy = { onWhy(item.m.id) },
+                                onNotSpam = {
+                                    // §9: satisfying "message moved" moment.
+                                    Haptics.confirm(view)
+                                    vm.moveToInbox(item.m.id)
+                                    scope.launch { snackbarHostState.showSnackbar("Moved to Inbox") }
+                                },
+                                onResend = { vm.resend(item.m) },
+                                onSendNow = { vm.sendScheduledNow(item.m.id) },
+                                onCancelScheduled = { vm.cancelScheduled(item.m.id) },
+                                onSnooze = { remindAt -> vm.snooze(item.m.id, remindAt) },
+                                onStar = { vm.star(item.m.id, !item.m.starred) },
+                                onDelete = { vm.delete(item.m.id) },
+                                modifier = itemModifier,
+                            )
+                        }
+                    }
+                }
+
+                // Floating scroll-to-bottom (§9), springs in when scrolled up.
+                val showJump by remember { derivedStateOf { listState.canScrollForward } }
+                // Fully qualified: the ColumnScope.AnimatedVisibility extension
+                // otherwise shadows the top-level overload inside this Box.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showJump,
+                    enter = scaleIn(Motion.spatialFast()) + fadeIn(Motion.effectsDefault()),
+                    exit = scaleOut(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                ) {
+                    SmallFloatingActionButton(
+                        onClick = {
+                            scope.launch {
+                                if (items.isNotEmpty()) listState.animateScrollToItem(items.size - 1)
+                            }
+                        },
+                    ) {
+                        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Scroll to latest")
+                    }
                 }
             }
 
@@ -374,9 +507,9 @@ fun ChatScreen(
                 }
             }
 
-            // Composer
+            // Composer — pill field, spring-scaled send button (§9).
             Row(
-                Modifier.fillMaxWidth().padding(12.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
                 IconButton(onClick = { showAttachSheet = true }) {
@@ -394,11 +527,12 @@ fun ChatScreen(
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     ),
                     modifier = Modifier.weight(1f),
                     maxLines = 5,
                 )
-                Spacer(Modifier.width(8.dp))
                 // Scheduled send (§8.2) — text-only, so hidden while an attachment is staged
                 if (draft.isNotBlank() && pendingAttachment == null) {
                     IconButton(onClick = { showScheduleDialog = true }) {
@@ -419,16 +553,16 @@ fun ChatScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        androidx.compose.material3.DropdownMenu(
+                        DropdownMenu(
                             expanded = showSimMenu,
                             onDismissRequest = { showSimMenu = false },
                         ) {
-                            androidx.compose.material3.DropdownMenuItem(
+                            DropdownMenuItem(
                                 text = { Text(if (selectedSubId == null) "• Default SIM" else "Default SIM") },
                                 onClick = { vm.selectSim(null); showSimMenu = false },
                             )
                             simOptions.forEach { sim ->
-                                androidx.compose.material3.DropdownMenuItem(
+                                DropdownMenuItem(
                                     text = {
                                         Text(
                                             (if (selectedSubId == sim.subId) "• " else "") +
@@ -441,15 +575,22 @@ fun ChatScreen(
                         }
                     }
                 }
-                IconButton(
-                    onClick = { vm.sendWithAttachment(draft); draft = "" },
-                    enabled = draft.isNotBlank() || pendingAttachment != null,
+                Spacer(Modifier.width(4.dp))
+                AnimatedVisibility(
+                    visible = draft.isNotBlank() || pendingAttachment != null,
+                    enter = scaleIn(Motion.spatialFast()) + fadeIn(Motion.effectsDefault()),
+                    exit = scaleOut(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+                    FilledIconButton(
+                        onClick = {
+                            Haptics.confirm(view)
+                            vm.sendWithAttachment(draft)
+                            draft = ""
+                        },
+                        modifier = Modifier.size(48.dp),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+                    }
                 }
             }
         }
@@ -553,6 +694,264 @@ private fun timePresets(): List<Pair<String, Long>> {
 }
 
 private val SCHEDULED_FMT = SimpleDateFormat("EEE, MMM d · h:mm a", Locale.US)
+private val DATE_PILL_FMT = SimpleDateFormat("EEE, d MMM", Locale.US)
+private val DATE_PILL_YEAR_FMT = SimpleDateFormat("d MMM yyyy", Locale.US)
+
+@Composable
+private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
+    val label = remember(ts) {
+        val now = System.currentTimeMillis()
+        val cal = Calendar.getInstance()
+        val thisYear = cal.get(Calendar.YEAR)
+        cal.timeInMillis = ts
+        when {
+            sameDay(ts, now) -> "Today"
+            sameDay(ts, now - 24 * 60 * 60 * 1000) -> "Yesterday"
+            cal.get(Calendar.YEAR) == thisYear -> DATE_PILL_FMT.format(Date(ts))
+            else -> DATE_PILL_YEAR_FMT.format(Date(ts))
+        }
+    }
+    Box(modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun MessageBubble(
+    msg: MessageEntity,
+    firstInGroup: Boolean,
+    lastInGroup: Boolean,
+    highlightTerms: List<String> = emptyList(),
+    onWhy: () -> Unit,
+    onNotSpam: () -> Unit,
+    onResend: () -> Unit,
+    onSendNow: () -> Unit,
+    onCancelScheduled: () -> Unit,
+    onSnooze: (Long) -> Unit,
+    onStar: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val clipboard = LocalClipboardManager.current
+    val view = LocalView.current
+    val isOut = msg.isOutgoing
+    val isScheduled = msg.sendStatus == "SCHEDULED"
+    var showMenu by remember { mutableStateOf(false) }
+    var showSnoozeMenu by remember { mutableStateOf(false) }
+    val fraudPalette = categoryPalette("SPAM")
+
+    // Grouped-bubble corners (§9): big outer corners, tight corners between
+    // group neighbours, and a tail corner on the group's last bubble.
+    val big = 20.dp
+    val cont = 8.dp
+    val tail = 4.dp
+    val bubbleShape = if (isOut) RoundedCornerShape(
+        topStart = big, bottomStart = big,
+        topEnd = if (firstInGroup) big else cont,
+        bottomEnd = if (lastInGroup) tail else cont,
+    ) else RoundedCornerShape(
+        topEnd = big, bottomEnd = big,
+        topStart = if (firstInGroup) big else cont,
+        bottomStart = if (lastInGroup) tail else cont,
+    )
+
+    Column(
+        modifier
+            .fillMaxWidth()
+            .padding(top = if (firstInGroup) 6.dp else 0.dp),
+        horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
+    ) {
+        // Red fraud-warning banner (Stage 2 exception / dangerous label)
+        if (msg.fraudWarning || msg.dangerous) {
+            Row(
+                Modifier
+                    .widthIn(max = 320.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(fraudPalette?.container ?: MaterialTheme.colorScheme.errorContainer)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Filled.Warning, contentDescription = null,
+                    tint = fraudPalette?.tint ?: MaterialTheme.colorScheme.error,
+                    modifier = Modifier.width(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    if (msg.dangerous) "Dangerous — likely fraud. Links are disabled."
+                    else "Caution: suspicious link from unverified sender",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = fraudPalette?.onContainer ?: MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+            Spacer(Modifier.height(2.dp))
+        }
+
+        Box(
+            Modifier
+                .widthIn(max = 320.dp)
+                .clip(bubbleShape)
+                .background(
+                    if (isOut) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceContainerHigh
+                )
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = {
+                        Haptics.longPress(view)
+                        showMenu = true
+                    },
+                ),
+        ) {
+            Column {
+                // MMS media attachment
+                if (msg.mediaUri != null) {
+                    if (msg.mediaMimeType?.startsWith("image/") == true) {
+                        AsyncImage(
+                            model = File(msg.mediaUri!!),
+                            contentDescription = "MMS image",
+                            contentScale = ContentScale.FillWidth,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Row(
+                            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Filled.Attachment, contentDescription = null,
+                                modifier = Modifier.width(18.dp),
+                                tint = if (isOut) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                msg.mediaMimeType ?: "Attachment",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isOut) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                if (msg.body.isNotBlank()) {
+                    // §8.5.3: in-conversation search highlights terms inside the bubble.
+                    val bodyText = if (highlightTerms.isEmpty()) AnnotatedString(msg.body)
+                    else com.messages.app.ui.search.SearchHighlight.annotate(
+                        msg.body, highlightTerms,
+                        androidx.compose.ui.text.SpanStyle(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            background = MaterialTheme.colorScheme.tertiaryContainer,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        ),
+                    )
+                    Text(
+                        bodyText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (isOut) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
+
+            // Long-press actions: copy, star, snooze (§8.2), delete
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenuItem(
+                    text = { Text("Copy text") },
+                    onClick = {
+                        clipboard.setText(AnnotatedString(msg.body))
+                        showMenu = false
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(if (msg.starred) "Unstar" else "Star") },
+                    onClick = { onStar(); showMenu = false },
+                )
+                if (!isScheduled) {
+                    DropdownMenuItem(
+                        text = { Text("Remind me…") },
+                        onClick = { showMenu = false; showSnoozeMenu = true },
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text("Delete") },
+                    onClick = { onDelete(); showMenu = false },
+                )
+            }
+            DropdownMenu(expanded = showSnoozeMenu, onDismissRequest = { showSnoozeMenu = false }) {
+                timePresets().forEach { (label, time) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = { onSnooze(time); showSnoozeMenu = false },
+                    )
+                }
+            }
+        }
+
+        // Meta line: only at group edges (§9 grouped messages), always for
+        // failures/scheduled so status is never hidden.
+        if (lastInGroup || isScheduled || msg.sendStatus == "FAILED") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    when {
+                        isScheduled -> "Scheduled · " + SCHEDULED_FMT.format(Date(msg.timestamp))
+                        else -> SimpleDateFormat("HH:mm", Locale.US).format(Date(msg.timestamp)) +
+                            if (msg.sendStatus == "FAILED") " · Failed" else ""
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = when {
+                        isScheduled -> MaterialTheme.colorScheme.primary
+                        msg.sendStatus == "FAILED" -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+                )
+                if (msg.sendStatus == "FAILED") {
+                    TextButton(onClick = onResend) { Text("Resend") }
+                }
+            }
+        }
+        if (isScheduled) {
+            Row {
+                TextButton(onClick = onSendNow) { Text("Send now") }
+                TextButton(onClick = onCancelScheduled) { Text("Cancel") }
+            }
+        }
+
+        // One-tap OTP copy chip (§8.2)
+        if (msg.protectedLabel == "OTP") {
+            OTP_EXTRACT.find(msg.body)?.groupValues?.get(1)?.let { code ->
+                AssistChip(
+                    onClick = { clipboard.setText(AnnotatedString(code)) },
+                    label = { Text("Copy OTP $code") },
+                    leadingIcon = {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.width(16.dp))
+                    },
+                )
+            }
+        }
+
+        // Filtered-message actions
+        if (msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED")) {
+            Row {
+                TextButton(onClick = onNotSpam) { Text("Not spam") }
+                TextButton(onClick = onWhy) { Text("Why?") }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -615,208 +1014,5 @@ private fun ScheduleSendDialog(
             },
             dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
         )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun MessageBubble(
-    msg: MessageEntity,
-    highlightTerms: List<String> = emptyList(),
-    onWhy: () -> Unit,
-    onNotSpam: () -> Unit,
-    onResend: () -> Unit,
-    onSendNow: () -> Unit,
-    onCancelScheduled: () -> Unit,
-    onSnooze: (Long) -> Unit,
-    onStar: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    val clipboard = LocalClipboardManager.current
-    val isOut = msg.isOutgoing
-    val isScheduled = msg.sendStatus == "SCHEDULED"
-    var showMenu by remember { mutableStateOf(false) }
-    var showSnoozeMenu by remember { mutableStateOf(false) }
-    Column(
-        Modifier.fillMaxWidth(),
-        horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
-    ) {
-        // Red fraud-warning banner (Stage 2 exception / dangerous label)
-        if (msg.fraudWarning || msg.dangerous) {
-            Row(
-                Modifier
-                    .widthIn(max = 320.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(CategoryColors.FraudContainer)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Filled.Warning, contentDescription = null,
-                    tint = CategoryColors.Fraud,
-                    modifier = Modifier.width(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (msg.dangerous) "Dangerous — likely fraud. Links are disabled."
-                    else "Caution: suspicious link from unverified sender",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = CategoryColors.Fraud,
-                )
-            }
-            Spacer(Modifier.height(2.dp))
-        }
-
-        Box(
-            Modifier
-                .widthIn(max = 320.dp)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 18.dp, topEnd = 18.dp,
-                        bottomStart = if (isOut) 18.dp else 4.dp,
-                        bottomEnd = if (isOut) 4.dp else 18.dp,
-                    )
-                )
-                .background(
-                    if (isOut) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant
-                )
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = { showMenu = true },
-                ),
-        ) {
-            Column {
-                // MMS media attachment
-                if (msg.mediaUri != null) {
-                    if (msg.mediaMimeType?.startsWith("image/") == true) {
-                        AsyncImage(
-                            model = File(msg.mediaUri!!),
-                            contentDescription = "MMS image",
-                            contentScale = ContentScale.FillWidth,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        Row(
-                            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Filled.Attachment, contentDescription = null,
-                                modifier = Modifier.width(18.dp),
-                                tint = if (isOut) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                msg.mediaMimeType ?: "Attachment",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (isOut) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-                if (msg.body.isNotBlank()) {
-                    // §8.5.3: in-conversation search highlights terms inside the bubble.
-                    val bodyText = if (highlightTerms.isEmpty()) AnnotatedString(msg.body)
-                    else com.messages.app.ui.search.SearchHighlight.annotate(
-                        msg.body, highlightTerms,
-                        androidx.compose.ui.text.SpanStyle(
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                            background = MaterialTheme.colorScheme.tertiaryContainer,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        ),
-                    )
-                    Text(
-                        bodyText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (isOut) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    )
-                }
-            }
-
-            // Long-press actions: copy, star, snooze (§8.2), delete
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(
-                    text = { Text("Copy text") },
-                    onClick = {
-                        clipboard.setText(AnnotatedString(msg.body))
-                        showMenu = false
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(if (msg.starred) "Unstar" else "Star") },
-                    onClick = { onStar(); showMenu = false },
-                )
-                if (!isScheduled) {
-                    DropdownMenuItem(
-                        text = { Text("Remind me…") },
-                        onClick = { showMenu = false; showSnoozeMenu = true },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text("Delete") },
-                    onClick = { onDelete(); showMenu = false },
-                )
-            }
-            DropdownMenu(expanded = showSnoozeMenu, onDismissRequest = { showSnoozeMenu = false }) {
-                timePresets().forEach { (label, time) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = { onSnooze(time); showSnoozeMenu = false },
-                    )
-                }
-            }
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                when {
-                    isScheduled -> "Scheduled · " + SCHEDULED_FMT.format(Date(msg.timestamp))
-                    else -> SimpleDateFormat("HH:mm", Locale.US).format(Date(msg.timestamp)) +
-                        if (msg.sendStatus == "FAILED") " · Failed" else ""
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = when {
-                    isScheduled -> MaterialTheme.colorScheme.primary
-                    msg.sendStatus == "FAILED" -> CategoryColors.Fraud
-                    else -> MaterialTheme.colorScheme.outline
-                },
-                modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-            )
-            if (msg.sendStatus == "FAILED") {
-                TextButton(onClick = onResend) { Text("Resend") }
-            }
-        }
-        if (isScheduled) {
-            Row {
-                TextButton(onClick = onSendNow) { Text("Send now") }
-                TextButton(onClick = onCancelScheduled) { Text("Cancel") }
-            }
-        }
-
-        // One-tap OTP copy chip (§8.2)
-        if (msg.protectedLabel == "OTP") {
-            OTP_EXTRACT.find(msg.body)?.groupValues?.get(1)?.let { code ->
-                AssistChip(
-                    onClick = { clipboard.setText(AnnotatedString(code)) },
-                    label = { Text("Copy OTP $code") },
-                    leadingIcon = {
-                        Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.width(16.dp))
-                    },
-                )
-            }
-        }
-
-        // Filtered-message actions
-        if (msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED")) {
-            Row {
-                TextButton(onClick = onNotSpam) { Text("Not spam") }
-                TextButton(onClick = onWhy) { Text("Why?") }
-            }
-        }
     }
 }
