@@ -92,7 +92,7 @@ class CorpusRegressionTest {
 
     @Test
     fun corpus_is_large_enough() {
-        // §7.4 target is ≥500; enforce current floor so it only grows
-        assertTrue("Corpus shrank to ${corpus.entries.size}", corpus.entries.size >= 170)
+        // §7.4 floor; enforce so it only grows
+        assertTrue("Corpus shrank to ${corpus.entries.size}", corpus.entries.size >= 500)
     }
 }
