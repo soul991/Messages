@@ -71,6 +71,7 @@ fun HomeScreen(
     initialFolder: String?,
     onRequestDefault: () -> Unit,
     onOpenThread: (Long) -> Unit,
+    onCompose: () -> Unit,
     vm: HomeViewModel = viewModel(),
 ) {
     LaunchedEffect(initialFolder) { if (initialFolder != null) vm.setFolder(initialFolder) }
@@ -84,7 +85,7 @@ fun HomeScreen(
     Scaffold(
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { /* compose flow: opens chat with recipient picker (M4) */ },
+                onClick = onCompose,
                 icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
                 text = { Text("New message") },
             )

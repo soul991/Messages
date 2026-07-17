@@ -3,17 +3,22 @@ package com.messages.app
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Telephony
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.messages.app.ui.chat.ChatScreen
+import com.messages.app.ui.compose.NewMessageScreen
 import com.messages.app.ui.home.HomeScreen
 import com.messages.app.ui.onboarding.OnboardingScreen
 import com.messages.app.ui.why.WhyFilteredScreen
@@ -42,6 +47,19 @@ class MainActivity : ComponentActivity() {
 
         val initialThreadId = intent.getLongExtra("threadId", -1L)
         val initialFolder = intent.getStringExtra("folder")
+        // ACTION_SENDTO / ACTION_SEND with sms:/smsto:/mms:/mmsto: data — jump
+        // straight into (or create) the thread for that recipient.
+        val sendToAddress = intent.data
+            ?.takeIf { it.scheme in listOf("sms", "smsto", "mms", "mmsto") }
+            ?.schemeSpecificPart?.substringBefore('?')?.trim()
+            ?.takeIf { it.isNotBlank() }
+        val sendToThreadId = sendToAddress?.let {
+            try {
+                Telephony.Threads.getOrCreateThreadId(this, it)
+            } catch (_: Exception) {
+                it.hashCode().toLong()
+            }
+        }
         val onboardingPrefs = getSharedPreferences("onboarding", MODE_PRIVATE)
 
         setContent {
@@ -51,6 +69,7 @@ class MainActivity : ComponentActivity() {
                     navController = nav,
                     startDestination = when {
                         initialThreadId != -1L -> "chat/$initialThreadId"
+                        sendToThreadId != null -> "chat/$sendToThreadId?address=${Uri.encode(sendToAddress)}"
                         !onboardingPrefs.getBoolean("done", false) -> "onboarding"
                         else -> "home"
                     },
@@ -71,14 +90,35 @@ class MainActivity : ComponentActivity() {
                             initialFolder = initialFolder,
                             onRequestDefault = ::requestDefaultRole,
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
+                            onCompose = { nav.navigate("compose") },
                         )
                     }
-                    composable("chat/{threadId}") { entry ->
+                    composable("compose") {
+                        NewMessageScreen(
+                            onBack = { nav.popBackStack() },
+                            onOpenThread = { threadId, address ->
+                                nav.navigate("chat/$threadId?address=${Uri.encode(address)}") {
+                                    popUpTo("compose") { inclusive = true }
+                                }
+                            },
+                        )
+                    }
+                    composable(
+                        "chat/{threadId}?address={address}",
+                        arguments = listOf(
+                            navArgument("address") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            },
+                        ),
+                    ) { entry ->
                         val threadId = entry.arguments?.getString("threadId")?.toLongOrNull() ?: return@composable
                         ChatScreen(
                             threadId = threadId,
                             onBack = { nav.popBackStack() },
                             onWhy = { messageId -> nav.navigate("why/$messageId") },
+                            fallbackAddress = entry.arguments?.getString("address"),
                         )
                     }
                     composable("why/{messageId}") { entry ->

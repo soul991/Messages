@@ -9,13 +9,20 @@ import androidx.lifecycle.viewModelScope
 import com.messages.app.receiver.SmsSentReceiver
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class ChatViewModel(app: Application, private val threadId: Long) : AndroidViewModel(app) {
+class ChatViewModel(
+    app: Application,
+    private val threadId: Long,
+    /** Recipient for a brand-new thread with no conversation row yet (compose flow). */
+    private val fallbackAddress: String? = null,
+) : AndroidViewModel(app) {
 
     private val repo = MessageRepository.get(app)
 
@@ -28,9 +35,15 @@ class ChatViewModel(app: Application, private val threadId: Long) : AndroidViewM
 
     init {
         viewModelScope.launch {
-            repo.db.conversations().byThreadId(threadId)?.let { conv ->
+            val conv = repo.db.conversations().byThreadId(threadId)
+            if (conv != null) {
                 address.value = conv.address
                 contactName.value = conv.contactName
+            } else if (!fallbackAddress.isNullOrBlank()) {
+                address.value = fallbackAddress
+                contactName.value = withContext(Dispatchers.IO) {
+                    repo.lookupContactName(fallbackAddress)
+                }
             }
             repo.db.messages().markThreadRead(threadId)
             repo.db.conversations().clearUnread(threadId)

@@ -62,10 +62,11 @@ import java.util.Locale
 class ChatViewModelFactory(
     private val app: Application,
     private val threadId: Long,
+    private val fallbackAddress: String? = null,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        ChatViewModel(app, threadId) as T
+        ChatViewModel(app, threadId, fallbackAddress) as T
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,10 +75,11 @@ fun ChatScreen(
     threadId: Long,
     onBack: () -> Unit,
     onWhy: (Long) -> Unit,
+    fallbackAddress: String? = null,
 ) {
     val context = LocalContext.current
     val vm: ChatViewModel = viewModel(
-        factory = ChatViewModelFactory(context.applicationContext as Application, threadId)
+        factory = ChatViewModelFactory(context.applicationContext as Application, threadId, fallbackAddress)
     )
     val messages by vm.messages.collectAsState()
     val contactName by vm.contactName.collectAsState()

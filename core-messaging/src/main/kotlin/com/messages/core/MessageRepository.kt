@@ -142,6 +142,18 @@ class MessageRepository private constructor(private val context: Context) {
         inserted
     }
 
+    /**
+     * Resolve (or create) the system thread for an address — used by the
+     * new-message compose flow before any message exists on the thread.
+     */
+    suspend fun threadIdFor(address: String): Long = withContext(Dispatchers.IO) {
+        try {
+            Telephony.Threads.getOrCreateThreadId(context, address)
+        } catch (_: Exception) {
+            address.hashCode().toLong()
+        }
+    }
+
     suspend fun classify(address: String, body: String): Verdict {
         val isContact = lookupContactName(address) != null
         val reputation = db.reputation().forSender(address)?.score ?: 0
