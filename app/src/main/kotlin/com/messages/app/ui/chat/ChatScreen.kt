@@ -11,7 +11,11 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,6 +92,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -197,7 +203,11 @@ fun ChatScreen(
     val sendError by vm.sendError.collectAsState()
     val simOptions by vm.simOptions.collectAsState()
     val selectedSubId by vm.selectedSubId.collectAsState()
+    val bubbleStyleId by vm.bubbleStyleId.collectAsState()
+    val wallpaperId by vm.wallpaperId.collectAsState()
+    val wallpaperVersion by vm.wallpaperVersion.collectAsState()
     var showSimMenu by remember { mutableStateOf(false) }
+    var showCustomizeSheet by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf(initialDraft) }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -208,6 +218,9 @@ fun ChatScreen(
     val galleryPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> if (uri != null) vm.attach(uri) }
+    val wallpaperPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> if (uri != null) vm.importWallpaper(uri) }
     var cameraTarget by remember { mutableStateOf<android.net.Uri?>(null) }
     val cameraCapture = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
@@ -399,6 +412,13 @@ fun ChatScreen(
                             onDismissRequest = { showChatMenu = false },
                         ) {
                             DropdownMenuItem(
+                                text = { Text("Customize chat") },
+                                onClick = {
+                                    showChatMenu = false
+                                    showCustomizeSheet = true
+                                },
+                            )
+                            DropdownMenuItem(
                                 text = { Text(if (locked) "Unlock conversation" else "Lock conversation") },
                                 onClick = {
                                     showChatMenu = false
@@ -420,7 +440,34 @@ fun ChatScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().imePadding()) {
-            Box(Modifier.weight(1f).fillMaxWidth()) {
+            // Per-chat wallpaper (§8.2): gradient preset or an imported photo
+            // under a soft surface scrim so bubbles stay legible.
+            val wallpaperBrush = ChatStyle.wallpaperBrush(wallpaperId)
+            val outBubbleColors = ChatStyle.bubbleColors(bubbleStyleId)
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .then(if (wallpaperBrush != null) Modifier.background(wallpaperBrush) else Modifier)
+            ) {
+                if (wallpaperId == ChatStyle.WALLPAPER_PHOTO) {
+                    val photo = remember(wallpaperVersion) { ChatStyle.photoFile(context, threadId) }
+                    AsyncImage(
+                        model = coil.request.ImageRequest.Builder(context)
+                            .data(photo)
+                            .memoryCacheKey("wp_$threadId-$wallpaperVersion")
+                            .diskCachePolicy(coil.request.CachePolicy.DISABLED)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f))
+                    )
+                }
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -443,6 +490,7 @@ fun ChatScreen(
                                 msg = item.m,
                                 firstInGroup = item.first,
                                 lastInGroup = item.last,
+                                outBubbleColors = outBubbleColors,
                                 highlightTerms = if (chatSearchActive) searchTerms else emptyList(),
                                 onWhy = { onWhy(item.m.id) },
                                 onNotSpam = {
@@ -629,6 +677,22 @@ fun ChatScreen(
             )
         }
 
+        // Per-chat customization sheet (§8.2).
+        if (showCustomizeSheet) {
+            CustomizeChatSheet(
+                currentBubble = bubbleStyleId,
+                currentWallpaper = wallpaperId,
+                onBubble = { Haptics.tick(view); vm.setBubbleStyle(it) },
+                onWallpaper = { Haptics.tick(view); vm.setWallpaper(it) },
+                onPickPhoto = {
+                    wallpaperPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                onDismiss = { showCustomizeSheet = false },
+            )
+        }
+
         if (showAttachSheet) {
             androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showAttachSheet = false }) {
                 Row(
@@ -654,6 +718,148 @@ fun ChatScreen(
                 }
             }
         }
+    }
+}
+
+/** Per-chat customization sheet (§8.2): bubble color swatches + wallpapers. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomizeChatSheet(
+    currentBubble: String,
+    currentWallpaper: String,
+    onBubble: (String) -> Unit,
+    onWallpaper: (String) -> Unit,
+    onPickPhoto: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+            Text("Customize chat", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                "Bubble color",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ChatStyle.bubblePresets.forEach { preset ->
+                    val fill = if (preset.id == "default") MaterialTheme.colorScheme.primary
+                    else if (com.messages.designsystem.LocalDarkTheme.current) preset.darkContainer
+                    else preset.lightContainer
+                    val selected = currentBubble == preset.id
+                    Box(
+                        Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(fill)
+                            .then(
+                                if (selected) Modifier.border(
+                                    3.dp, MaterialTheme.colorScheme.onSurface, CircleShape,
+                                ) else Modifier
+                            )
+                            .clickable { onBubble(preset.id) }
+                            .semantics {
+                                contentDescription =
+                                    "${preset.name} bubble color" + if (selected) ", selected" else ""
+                            },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "Wallpaper",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ChatStyle.wallpaperPresets.forEach { preset ->
+                    val selected = currentWallpaper == preset.id
+                    val colors =
+                        if (com.messages.designsystem.LocalDarkTheme.current) preset.dark else preset.light
+                    WallpaperTile(
+                        label = preset.name,
+                        selected = selected,
+                        onClick = { onWallpaper(preset.id) },
+                    ) {
+                        if (colors.isEmpty()) {
+                            Box(
+                                Modifier.fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            )
+                        } else {
+                            Box(
+                                Modifier.fillMaxSize()
+                                    .background(
+                                        androidx.compose.ui.graphics.Brush.verticalGradient(colors)
+                                    )
+                            )
+                        }
+                    }
+                }
+                WallpaperTile(
+                    label = "Photo",
+                    selected = currentWallpaper == ChatStyle.WALLPAPER_PHOTO,
+                    onClick = onPickPhoto,
+                ) {
+                    Box(
+                        Modifier.fillMaxSize()
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Filled.Image, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WallpaperTile(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    preview: @Composable () -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .size(width = 56.dp, height = 84.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .then(
+                    if (selected) Modifier.border(
+                        3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp),
+                    ) else Modifier
+                )
+                .clickable(onClick = onClick)
+                .semantics {
+                    contentDescription = "$label wallpaper" + if (selected) ", selected" else ""
+                },
+        ) { preview() }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -732,6 +938,8 @@ private fun MessageBubble(
     msg: MessageEntity,
     firstInGroup: Boolean,
     lastInGroup: Boolean,
+    /** Outgoing bubble container/on pair — per-chat customizable (§8.2). */
+    outBubbleColors: Pair<Color, Color>,
     highlightTerms: List<String> = emptyList(),
     onWhy: () -> Unit,
     onNotSpam: () -> Unit,
@@ -803,7 +1011,7 @@ private fun MessageBubble(
                 .widthIn(max = 320.dp)
                 .clip(bubbleShape)
                 .background(
-                    if (isOut) MaterialTheme.colorScheme.primary
+                    if (isOut) outBubbleColors.first
                     else MaterialTheme.colorScheme.surfaceContainerHigh
                 )
                 .combinedClickable(
@@ -832,14 +1040,14 @@ private fun MessageBubble(
                             Icon(
                                 Icons.Filled.Attachment, contentDescription = null,
                                 modifier = Modifier.width(18.dp),
-                                tint = if (isOut) MaterialTheme.colorScheme.onPrimary
+                                tint = if (isOut) outBubbleColors.second
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 msg.mediaMimeType ?: "Attachment",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (isOut) MaterialTheme.colorScheme.onPrimary
+                                color = if (isOut) outBubbleColors.second
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -859,7 +1067,7 @@ private fun MessageBubble(
                     Text(
                         bodyText,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = if (isOut) MaterialTheme.colorScheme.onPrimary
+                        color = if (isOut) outBubbleColors.second
                         else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                     )

@@ -169,6 +169,32 @@ class ChatViewModel(
         }
     }
 
+    // ---- Per-chat customization (§8.2): bubble color + wallpaper ----
+    val bubbleStyleId = MutableStateFlow(ChatStyle.bubbleId(app, threadId))
+    val wallpaperId = MutableStateFlow(ChatStyle.wallpaperId(app, threadId))
+
+    /** Bumped on photo import so a re-imported image invalidates the cache. */
+    val wallpaperVersion = MutableStateFlow(0)
+
+    fun setBubbleStyle(id: String) {
+        ChatStyle.setBubble(getApplication(), threadId, id)
+        bubbleStyleId.value = id
+    }
+
+    fun setWallpaper(id: String) {
+        ChatStyle.setWallpaper(getApplication(), threadId, id)
+        wallpaperId.value = id
+    }
+
+    fun importWallpaper(uri: Uri) = viewModelScope.launch(Dispatchers.IO) {
+        if (ChatStyle.importPhoto(getApplication(), threadId, uri)) {
+            wallpaperId.value = ChatStyle.WALLPAPER_PHOTO
+            wallpaperVersion.value++
+        } else {
+            sendError.value = "Couldn't use that image"
+        }
+    }
+
     /** Attachment picked in the composer, pending send. */
     val pendingAttachment = MutableStateFlow<Uri?>(null)
     val sendError = MutableStateFlow<String?>(null)
