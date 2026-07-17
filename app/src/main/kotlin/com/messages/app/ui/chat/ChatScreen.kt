@@ -1,6 +1,9 @@
 package com.messages.app.ui.chat
 
 import android.app.Application
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +26,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +37,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -88,14 +96,34 @@ fun ChatScreen(
     val messages by vm.messages.collectAsState()
     val contactName by vm.contactName.collectAsState()
     val address by vm.address.collectAsState()
+    val pendingAttachment by vm.pendingAttachment.collectAsState()
+    val sendError by vm.sendError.collectAsState()
     var draft by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Attachment sources: gallery (photo picker) and camera (FileProvider target).
+    val galleryPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> if (uri != null) vm.attach(uri) }
+    var cameraTarget by remember { mutableStateOf<android.net.Uri?>(null) }
+    val cameraCapture = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { ok -> if (ok) cameraTarget?.let { vm.attach(it) } }
+    var showAttachSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
+    LaunchedEffect(sendError) {
+        sendError?.let {
+            snackbarHostState.showSnackbar(it)
+            vm.clearSendError()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -134,11 +162,40 @@ fun ChatScreen(
                 }
             }
 
+            // Pending attachment preview
+            if (pendingAttachment != null) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AsyncImage(
+                        model = pendingAttachment,
+                        contentDescription = "Attachment preview",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .width(72.dp)
+                            .height(72.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(onClick = { vm.attach(null) }) {
+                        Icon(Icons.Filled.Close, contentDescription = "Remove attachment")
+                    }
+                }
+            }
+
             // Composer
             Row(
                 Modifier.fillMaxWidth().padding(12.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
+                IconButton(onClick = { showAttachSheet = true }) {
+                    Icon(
+                        Icons.Filled.Attachment,
+                        contentDescription = "Attach",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 TextField(
                     value = draft,
                     onValueChange = { draft = it },
@@ -153,8 +210,8 @@ fun ChatScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 IconButton(
-                    onClick = { vm.send(draft); draft = "" },
-                    enabled = draft.isNotBlank(),
+                    onClick = { vm.sendWithAttachment(draft); draft = "" },
+                    enabled = draft.isNotBlank() || pendingAttachment != null,
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.Send,
@@ -164,6 +221,46 @@ fun ChatScreen(
                 }
             }
         }
+
+        if (showAttachSheet) {
+            androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showAttachSheet = false }) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(32.dp),
+                ) {
+                    AttachOption(Icons.Filled.Image, "Gallery") {
+                        showAttachSheet = false
+                        galleryPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
+                    AttachOption(Icons.Filled.PhotoCamera, "Camera") {
+                        showAttachSheet = false
+                        val dir = File(context.cacheDir, "camera").apply { mkdirs() }
+                        val file = File(dir, "capture_${System.currentTimeMillis()}.jpg")
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            context, "${context.packageName}.fileprovider", file,
+                        )
+                        cameraTarget = uri
+                        cameraCapture.launch(uri)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AttachOption(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        IconButton(onClick = onClick) {
+            Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary)
+        }
+        Text(label, style = MaterialTheme.typography.labelMedium)
     }
 }
 

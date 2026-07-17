@@ -128,6 +128,24 @@ private suspend fun storeUndownloadable(context: Context, address: String?, tran
     MessageNotifier(context).notifyFor(result.first, result.second, repo.lookupContactName(address))
 }
 
+/** Result of SmsManager.sendMultimediaMessage — finalize status + provider box. */
+class MmsSentReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val messageId = intent.getLongExtra("messageId", -1L)
+        if (messageId == -1L) return
+        val ok = resultCode == Activity.RESULT_OK
+        intent.getStringExtra("filePath")?.let { File(it).delete() } // temp send PDU
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                MessageRepository.get(context).onMmsSendResult(messageId, ok)
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+}
+
 /** Tracks SENT result for outgoing SMS (delivery status / resend on failure). */
 class SmsSentReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

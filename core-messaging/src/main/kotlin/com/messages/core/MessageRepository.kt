@@ -377,6 +377,120 @@ class MessageRepository private constructor(private val context: Context) {
         runCatching { Regex(pattern, RegexOption.IGNORE_CASE).containsMatchIn(address) }
             .getOrDefault(pattern.equals(address, ignoreCase = true))
 
+    /**
+     * Store an outgoing MMS before handing it to SmsManager: Telephony MMS
+     * provider first (Outbox; moved to Sent by the send-status receiver), then
+     * the Room index row the chat UI renders. Mirrors [storeOutgoing] for SMS.
+     */
+    suspend fun storeOutgoingMms(
+        address: String,
+        textBody: String,
+        timestamp: Long,
+        transactionId: String,
+        attachment: MmsPduParser.Attachment?,
+    ): MessageEntity = withContext(Dispatchers.IO) {
+        val threadId = try {
+            Telephony.Threads.getOrCreateThreadId(context, address)
+        } catch (_: Exception) {
+            address.hashCode().toLong()
+        }
+        val mmsId = try {
+            val resolver = context.contentResolver
+            val values = ContentValues().apply {
+                put(Telephony.Mms.THREAD_ID, threadId)
+                put(Telephony.Mms.DATE, timestamp / 1000) // MMS provider dates are in seconds
+                put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_OUTBOX)
+                put(Telephony.Mms.READ, 1)
+                put(Telephony.Mms.SEEN, 1)
+                put(Telephony.Mms.MESSAGE_TYPE, 128) // m-send-req
+                put(Telephony.Mms.MMS_VERSION, 0x12)
+                put(Telephony.Mms.CONTENT_TYPE, "application/vnd.wap.multipart.mixed")
+                put(Telephony.Mms.TRANSACTION_ID, transactionId)
+            }
+            val uri = resolver.insert(Telephony.Mms.Outbox.CONTENT_URI, values)
+            val id = uri?.lastPathSegment?.toLongOrNull()
+            if (id != null) {
+                val partUri = android.net.Uri.parse("content://mms/$id/part")
+                if (textBody.isNotBlank()) {
+                    resolver.insert(
+                        partUri,
+                        ContentValues().apply {
+                            put(Telephony.Mms.Part.MSG_ID, id)
+                            put(Telephony.Mms.Part.CONTENT_TYPE, "text/plain")
+                            put(Telephony.Mms.Part.CHARSET, 106) // utf-8
+                            put(Telephony.Mms.Part.TEXT, textBody)
+                        },
+                    )
+                }
+                if (attachment != null) {
+                    val part = resolver.insert(
+                        partUri,
+                        ContentValues().apply {
+                            put(Telephony.Mms.Part.MSG_ID, id)
+                            put(Telephony.Mms.Part.CONTENT_TYPE, attachment.mimeType)
+                            if (attachment.name != null) put(Telephony.Mms.Part.NAME, attachment.name)
+                        },
+                    )
+                    if (part != null) resolver.openOutputStream(part)?.use { it.write(attachment.data) }
+                }
+                resolver.insert(
+                    android.net.Uri.parse("content://mms/$id/addr"),
+                    ContentValues().apply {
+                        put(Telephony.Mms.Addr.MSG_ID, id)
+                        put(Telephony.Mms.Addr.ADDRESS, address)
+                        put(Telephony.Mms.Addr.TYPE, 151) // PduHeaders.TO
+                        put(Telephony.Mms.Addr.CHARSET, 106)
+                    },
+                )
+            }
+            id
+        } catch (_: Exception) {
+            null // Room row below still renders the message
+        }
+
+        val mediaPath = attachment?.let { saveAttachmentFile(it, timestamp) }
+        val entity = MessageEntity(
+            smsId = null,
+            mmsId = mmsId,
+            mmsTransactionId = transactionId,
+            threadId = threadId,
+            address = address,
+            body = textBody,
+            timestamp = timestamp,
+            isOutgoing = true,
+            read = true,
+            mediaUri = mediaPath,
+            mediaMimeType = attachment?.mimeType,
+            sendStatus = "SENDING",
+        )
+        val id = db.messages().insert(entity)
+        val preview = textBody.ifBlank { mediaPreview(attachment?.mimeType) }
+        updateConversation(threadId, address, preview, timestamp, category = null, incrementUnread = false)
+        entity.copy(id = id)
+    }
+
+    /** Move a sent/failed outgoing MMS to the right provider box + index status. */
+    suspend fun onMmsSendResult(messageId: Long, success: Boolean) = withContext(Dispatchers.IO) {
+        val msg = db.messages().byId(messageId) ?: return@withContext
+        db.messages().update(msg.copy(sendStatus = if (success) "SENT" else "FAILED"))
+        val mmsId = msg.mmsId ?: return@withContext
+        try {
+            context.contentResolver.update(
+                android.net.Uri.parse("content://mms/$mmsId"),
+                ContentValues().apply {
+                    put(
+                        Telephony.Mms.MESSAGE_BOX,
+                        if (success) Telephony.Mms.MESSAGE_BOX_SENT
+                        else Telephony.Mms.MESSAGE_BOX_FAILED,
+                    )
+                },
+                null, null,
+            )
+        } catch (_: Exception) {
+            // provider box update is best-effort; the index row carries status
+        }
+    }
+
     suspend fun storeOutgoing(address: String, body: String, timestamp: Long): MessageEntity =
         withContext(Dispatchers.IO) {
             val values = ContentValues().apply {

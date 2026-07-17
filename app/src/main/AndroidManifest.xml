@@ -79,6 +79,7 @@
         </service>
 
         <receiver android:name=".receiver.SmsSentReceiver" android:exported="false" />
+        <receiver android:name=".receiver.MmsSentReceiver" android:exported="false" />
         <receiver android:name=".receiver.MmsDownloadReceiver" android:exported="false" />
         <receiver android:name=".receiver.NotificationActionReceiver" android:exported="false" />
 

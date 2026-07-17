@@ -3,9 +3,11 @@ package com.messages.app.ui.chat
 import android.app.Application
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.Uri
 import android.telephony.SmsManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.messages.app.mms.MmsSender
 import com.messages.app.receiver.SmsSentReceiver
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
@@ -78,7 +80,62 @@ class ChatViewModel(
         }
     }
 
-    fun resend(message: MessageEntity) = send(message.body)
+    fun resend(message: MessageEntity) {
+        // Failed MMS: rebuild from the locally saved media file, don't degrade to text.
+        if (message.mmsTransactionId != null) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val ctx = getApplication<Application>()
+                val attachment = message.mediaUri
+                    ?.let { path -> runCatching { java.io.File(path).readBytes() }.getOrNull() }
+                    ?.let { bytes ->
+                        com.messages.core.mms.MmsPduParser.Attachment(
+                            message.mediaMimeType ?: "application/octet-stream", null, bytes,
+                        )
+                    }
+                if (attachment == null && message.body.isBlank()) {
+                    sendError.value = "Nothing left to resend"
+                    return@launch
+                }
+                MmsSender.send(ctx, message.address, message.body, attachment)
+            }
+        } else {
+            send(message.body)
+        }
+    }
+
+    /** Attachment picked in the composer, pending send. */
+    val pendingAttachment = MutableStateFlow<Uri?>(null)
+    val sendError = MutableStateFlow<String?>(null)
+
+    fun attach(uri: Uri?) {
+        pendingAttachment.value = uri
+    }
+
+    /** Send text + pending attachment as MMS (falls back to plain SMS when no attachment). */
+    fun sendWithAttachment(text: String) {
+        val uri = pendingAttachment.value
+        if (uri == null) {
+            send(text)
+            return
+        }
+        val to = address.value
+        if (to.isBlank()) return
+        pendingAttachment.value = null
+        viewModelScope.launch(Dispatchers.IO) {
+            val ctx = getApplication<Application>()
+            val attachment = MmsSender.prepareAttachment(ctx, uri)
+            if (attachment == null) {
+                sendError.value = "Couldn't attach that file (too large or unreadable)"
+                if (text.isNotBlank()) send(text)
+                return@launch
+            }
+            MmsSender.send(ctx, to, text, attachment)
+        }
+    }
+
+    fun clearSendError() {
+        sendError.value = null
+    }
 
     fun moveToInbox(messageId: Long) = viewModelScope.launch { repo.moveToInbox(messageId) }
     fun moveToSpam(messageId: Long) = viewModelScope.launch { repo.moveToSpam(messageId) }
