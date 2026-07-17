@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import com.messages.core.cleanup.OtpCleanup
+import com.messages.core.trash.TrashRetention
 
 class MessagesApp : Application() {
 
@@ -12,6 +13,7 @@ class MessagesApp : Application() {
         super.onCreate()
         createNotificationChannels()
         OtpCleanup.ensureScheduled(this)
+        TrashRetention.ensureScheduled(this)
     }
 
     private fun createNotificationChannels() {

@@ -205,5 +205,12 @@ class ChatViewModel(
     fun star(messageId: Long, starred: Boolean) = viewModelScope.launch {
         repo.db.messages().setStarred(messageId, starred)
     }
-    fun delete(messageId: Long) = viewModelScope.launch { repo.db.messages().userDelete(messageId) }
+    /** User delete → Trash (§6.4): provider row removed, restorable for 60 days. */
+    fun delete(messageId: Long) = viewModelScope.launch { repo.moveToTrash(messageId) }
+
+    /** Delete the whole conversation → Trash (§6.4). */
+    fun deleteThread(onDone: () -> Unit) = viewModelScope.launch {
+        repo.moveThreadToTrash(threadId)
+        onDone()
+    }
 }

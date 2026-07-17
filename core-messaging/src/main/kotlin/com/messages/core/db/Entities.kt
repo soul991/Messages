@@ -18,6 +18,7 @@ import androidx.room.PrimaryKey
         Index(value = ["smsId"], unique = true),
         Index(value = ["mmsId"], unique = true),
         Index("mmsTransactionId"),
+        Index("trashed"),
     ],
 )
 data class MessageEntity(
@@ -54,6 +55,14 @@ data class MessageEntity(
     val sendStatus: String = "NONE", // NONE | SENDING | SENT | FAILED
     /** Dual-SIM: subscription this message was sent/received on, when known. */
     val subId: Int? = null,
+    /**
+     * Trash (§6.4): user deletions remove the Telephony-provider row but keep
+     * this index row flagged as trash for 60 days, restorable from the Trash
+     * folder. Trashed rows are excluded from every normal query.
+     */
+    val trashed: Boolean = false,
+    /** When the message was trashed; purge happens 60 days later. */
+    val trashedAt: Long? = null,
 )
 
 @Entity(tableName = "conversations", indices = [Index(value = ["threadId"], unique = true)])

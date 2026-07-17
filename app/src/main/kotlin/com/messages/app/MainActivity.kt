@@ -122,7 +122,13 @@ class MainActivity : FragmentActivity() {
                         DashboardScreen(onBack = { nav.popBackStack() })
                     }
                     composable("settings") {
-                        SettingsScreen(onBack = { nav.popBackStack() })
+                        SettingsScreen(
+                            onBack = { nav.popBackStack() },
+                            onOpenTrash = { nav.navigate("trash") },
+                        )
+                    }
+                    composable("trash") {
+                        com.messages.app.ui.trash.TrashScreen(onBack = { nav.popBackStack() })
                     }
                     composable("compose") {
                         NewMessageScreen(

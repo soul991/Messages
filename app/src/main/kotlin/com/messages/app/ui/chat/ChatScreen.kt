@@ -133,6 +133,7 @@ fun ChatScreen(
     var showAttachSheet by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
     var showChatMenu by remember { mutableStateOf(false) }
+    var showDeleteThreadConfirm by remember { mutableStateOf(false) }
 
     // Locked-conversation gate (§8.2): nothing renders until authenticated.
     if (locked && !chatUnlocked) {
@@ -202,6 +203,13 @@ fun ChatScreen(
                                 onClick = {
                                     showChatMenu = false
                                     vm.setConversationLocked(!locked)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete conversation") },
+                                onClick = {
+                                    showChatMenu = false
+                                    showDeleteThreadConfirm = true
                                 },
                             )
                         }
@@ -341,6 +349,29 @@ fun ChatScreen(
                     showScheduleDialog = false
                     vm.scheduleSend(draft, sendAt)
                     draft = ""
+                },
+            )
+        }
+
+        // §6.4: conversation deletion goes to Trash — say so, offer the way back.
+        if (showDeleteThreadConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteThreadConfirm = false },
+                title = { Text("Delete this conversation?") },
+                text = {
+                    Text(
+                        "All its messages move to Trash and can be restored for " +
+                            "60 days (Settings → Trash)."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDeleteThreadConfirm = false
+                        vm.deleteThread(onDone = onBack)
+                    }) { Text("Delete") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteThreadConfirm = false }) { Text("Cancel") }
                 },
             )
         }

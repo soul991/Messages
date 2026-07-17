@@ -17,8 +17,11 @@ interface MessageDao {
     @Update
     suspend fun update(message: MessageEntity)
 
-    @Query("SELECT * FROM messages WHERE threadId = :threadId ORDER BY timestamp ASC")
+    @Query("SELECT * FROM messages WHERE threadId = :threadId AND trashed = 0 ORDER BY timestamp ASC")
     fun messagesForThread(threadId: Long): Flow<List<MessageEntity>>
+
+    @Query("SELECT * FROM messages WHERE threadId = :threadId AND trashed = 0")
+    suspend fun listForThread(threadId: Long): List<MessageEntity>
 
     @Query("SELECT * FROM messages WHERE id = :id")
     suspend fun byId(id: Long): MessageEntity?
@@ -38,34 +41,60 @@ interface MessageDao {
     @Query("UPDATE messages SET starred = :starred WHERE id = :id")
     suspend fun setStarred(id: Long, starred: Boolean)
 
-    // User-initiated only — the filter itself never calls delete (§6). The one
-    // other permitted caller is the user-ENABLED OTP cleanup (§6.5), which is
-    // restricted by [expiredOtps] to OTP-labeled Inbox messages.
+    // User-initiated only — the filter itself never calls delete (§6). Normal
+    // user deletions go through the Trash flags below (§6.4); the permitted
+    // hard-delete callers are: "Delete forever" in Trash, the 60-day trash
+    // purge, the user-ENABLED OTP cleanup (§6.6 — bypasses Trash), and
+    // cancelling a scheduled draft (never sent, nothing to retain).
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun userDelete(id: Long)
 
-    @Query("SELECT * FROM messages WHERE threadId = :threadId ORDER BY timestamp DESC LIMIT 1")
+    // ---- Trash (§6.4) ----
+
+    @Query("UPDATE messages SET trashed = 1, trashedAt = :at WHERE id = :id")
+    suspend fun moveToTrash(id: Long, at: Long)
+
+    @Query("UPDATE messages SET trashed = 1, trashedAt = :at WHERE threadId = :threadId AND trashed = 0")
+    suspend fun moveThreadToTrash(threadId: Long, at: Long)
+
+    @Query("UPDATE messages SET trashed = 0, trashedAt = NULL WHERE id = :id")
+    suspend fun restoreFromTrash(id: Long)
+
+    @Query("SELECT * FROM messages WHERE trashed = 1 ORDER BY trashedAt DESC, timestamp DESC")
+    fun trashedMessages(): Flow<List<MessageEntity>>
+
+    @Query("SELECT * FROM messages WHERE trashed = 1")
+    suspend fun allTrashed(): List<MessageEntity>
+
+    @Query("SELECT * FROM messages WHERE trashed = 1 AND trashedAt < :before")
+    suspend fun trashExpiredBefore(before: Long): List<MessageEntity>
+
+    @Query("SELECT COUNT(*) FROM messages WHERE trashed = 1")
+    fun trashCount(): Flow<Int>
+
+    @Query("SELECT * FROM messages WHERE threadId = :threadId AND trashed = 0 ORDER BY timestamp DESC LIMIT 1")
     suspend fun latestForThread(threadId: Long): MessageEntity?
 
-    @Query("SELECT * FROM messages WHERE body LIKE '%' || :query || '%' ORDER BY timestamp DESC LIMIT 100")
+    @Query("SELECT * FROM messages WHERE body LIKE '%' || :query || '%' AND trashed = 0 ORDER BY timestamp DESC LIMIT 100")
     suspend fun search(query: String): List<MessageEntity>
 
-    @Query("SELECT COUNT(*) FROM messages WHERE category = :category AND read = 0")
+    @Query("SELECT COUNT(*) FROM messages WHERE category = :category AND read = 0 AND trashed = 0")
     fun unreadCount(category: String): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED') AND timestamp > :since")
+    @Query("SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED') AND timestamp > :since AND trashed = 0")
     suspend fun spamCountSince(since: Long): Int
 
-    // §6.5/§8.2 guarantee lives in this WHERE clause: only OTP-labeled Inbox
+    // §6.6/§8.2 guarantee lives in this WHERE clause: only OTP-labeled Inbox
     // messages — never filtered folders (Spam/Promotions/Blocked/Review), never
-    // other labels, never starred messages the user chose to keep.
+    // other labels, never starred messages the user chose to keep. Trashed
+    // OTPs are excluded: they follow the normal 60-day trash purge instead.
     @Query(
         "SELECT * FROM messages WHERE protectedLabel = 'OTP' AND category = 'INBOX' " +
-            "AND starred = 0 AND timestamp < :olderThan"
+            "AND starred = 0 AND trashed = 0 AND timestamp < :olderThan"
     )
     suspend fun expiredOtps(olderThan: Long): List<MessageEntity>
 
-    @Query("SELECT * FROM messages WHERE starred = 1 ORDER BY timestamp DESC")
+    @Query("SELECT * FROM messages WHERE starred = 1 AND trashed = 0 ORDER BY timestamp DESC")
     fun starred(): Flow<List<MessageEntity>>
 
     // ---- Backup/restore (§8.2) ----
@@ -77,26 +106,26 @@ interface MessageDao {
 
     @Query(
         "SELECT category, COUNT(*) as count FROM messages WHERE category IN " +
-            "('SPAM','PROMOTIONS','BLOCKED','REVIEW') AND timestamp >= :since GROUP BY category"
+            "('SPAM','PROMOTIONS','BLOCKED','REVIEW') AND timestamp >= :since AND trashed = 0 GROUP BY category"
     )
     suspend fun filteredCountsSince(since: Long): List<CategoryCount>
 
     @Query(
         "SELECT address, COUNT(*) as count FROM messages WHERE category IN ('SPAM','BLOCKED') " +
-            "AND timestamp >= :since GROUP BY address ORDER BY count DESC LIMIT :limit"
+            "AND timestamp >= :since AND trashed = 0 GROUP BY address ORDER BY count DESC LIMIT :limit"
     )
     suspend fun topFilteredSenders(since: Long, limit: Int): List<SenderCount>
 
-    @Query("SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED','PROMOTIONS')")
+    @Query("SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED','PROMOTIONS') AND trashed = 0")
     suspend fun totalSilenced(): Int
 
-    @Query("SELECT COUNT(*) FROM messages WHERE dangerous = 1 AND timestamp >= :since")
+    @Query("SELECT COUNT(*) FROM messages WHERE dangerous = 1 AND timestamp >= :since AND trashed = 0")
     suspend fun dangerousCountSince(since: Long): Int
 
     @Query(
         "SELECT matchedPatternIds FROM messages WHERE category IN " +
             "('SPAM','PROMOTIONS','BLOCKED','REVIEW') AND timestamp >= :since " +
-            "AND matchedPatternIds != ''"
+            "AND trashed = 0 AND matchedPatternIds != ''"
     )
     suspend fun filteredPatternIdsSince(since: Long): List<String>
 }
@@ -192,7 +221,7 @@ interface UserRuleDao {
         MessageEntity::class, ConversationEntity::class,
         SenderReputationEntity::class, UserRuleEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class MessagesDatabase : RoomDatabase() {

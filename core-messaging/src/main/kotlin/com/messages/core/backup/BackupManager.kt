@@ -41,6 +41,9 @@ object BackupManager {
         val matchedComboIds: String,
         val explanations: String,
         val starred: Boolean,
+        /** §6.4/§8.3: trash items travel in backups *as trash*, with purge clock intact. */
+        val trashed: Boolean = false,
+        val trashedAt: Long? = null,
     )
 
     @Serializable
@@ -130,7 +133,7 @@ object BackupManager {
                         it.address, it.body, it.timestamp, it.isOutgoing, it.read,
                         it.category, it.dangerous, it.fraudWarning, it.protectedLabel,
                         it.score, it.matchedPatternIds, it.matchedComboIds, it.explanations,
-                        it.starred,
+                        it.starred, it.trashed, it.trashedAt,
                     )
                 },
         )
@@ -205,8 +208,11 @@ object BackupManager {
                     }
                     val threadId = repo.threadIdFor(m.address)
                     // Best-effort provider write (needs default-SMS role); the
-                    // index row below keeps the message either way.
-                    val smsId = try {
+                    // index row below keeps the message either way. Trash items
+                    // (§6.4) stay OUT of the provider — they were deleted from
+                    // it on this or the source device; only the index row with
+                    // its purge clock is restored.
+                    val smsId = if (m.trashed) null else try {
                         val uri = if (m.isOutgoing) Telephony.Sms.Sent.CONTENT_URI
                         else Telephony.Sms.Inbox.CONTENT_URI
                         context.contentResolver.insert(
@@ -245,6 +251,8 @@ object BackupManager {
                             matchedComboIds = m.matchedComboIds,
                             explanations = m.explanations,
                             starred = m.starred,
+                            trashed = m.trashed,
+                            trashedAt = m.trashedAt,
                             sendStatus = if (m.isOutgoing) "SENT" else "NONE",
                         )
                     )
@@ -275,6 +283,7 @@ object BackupManager {
     private suspend fun rebuildConversations(repo: MessageRepository) {
         val db = repo.db
         val latestByThread = db.messages().allMessages()
+            .filter { !it.trashed } // trash never resurfaces a conversation (§6.4)
             .groupBy { it.threadId }
             .mapValues { (_, msgs) -> msgs.maxBy { it.timestamp } }
         latestByThread.forEach { (threadId, latest) ->

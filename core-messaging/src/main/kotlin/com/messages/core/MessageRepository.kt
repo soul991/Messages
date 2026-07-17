@@ -10,6 +10,7 @@ import com.messages.core.db.MessageEntity
 import com.messages.core.db.MessagesDatabase
 import com.messages.core.db.SenderReputationEntity
 import com.messages.core.mms.MmsPduParser
+import com.messages.core.trash.TrashRetention
 import com.messages.protection.Category
 import com.messages.protection.PatternMatcher
 import com.messages.protection.ProtectionEngine
@@ -27,7 +28,9 @@ class MessageRepository private constructor(private val context: Context) {
 
     val db: MessagesDatabase = Room.databaseBuilder(
         context, MessagesDatabase::class.java, "messages.db"
-    ).fallbackToDestructiveMigration().build()
+    ).addMigrations(*com.messages.core.db.Migrations.ALL)
+        .fallbackToDestructiveMigration()
+        .build()
 
     private val settingsPrefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
@@ -689,26 +692,153 @@ class MessageRepository private constructor(private val context: Context) {
         if (conv != null) db.conversations().upsert(conv.copy(category = "SPAM"))
     }
 
+    // ---- Trash (§6.4) ----
+
     /**
-     * User-ENABLED OTP cleanup (§6.5/§8.2): delete OTP-labeled Inbox messages
-     * older than [olderThanMs]. The only auto-delete in the app; the DAO query
-     * itself restricts it to OTP + Inbox + unstarred, so filtered folders can
-     * never be touched. Removes the Telephony provider row too (best-effort —
-     * requires default-SMS role) and keeps conversation summaries consistent.
-     * Returns how many messages were deleted.
+     * User delete: remove the Telephony-provider row (the message disappears
+     * from the phone normally) but keep the index row flagged as trash,
+     * restorable for [TrashRetention.RETENTION_MS]. Scheduled drafts are the
+     * exception — they were never sent or in the provider, so cancelling one
+     * deletes it outright (nothing to retain).
+     */
+    suspend fun moveToTrash(messageId: Long) = withContext(Dispatchers.IO) {
+        val msg = db.messages().byId(messageId) ?: return@withContext
+        if (msg.sendStatus == "SCHEDULED") {
+            db.messages().userDelete(messageId)
+        } else {
+            deleteProviderRow(msg)
+            db.messages().moveToTrash(messageId, System.currentTimeMillis())
+        }
+        refreshConversationSummary(msg.threadId)
+    }
+
+    /** Delete a whole conversation to Trash (§6.4). */
+    suspend fun moveThreadToTrash(threadId: Long) = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        db.messages().listForThread(threadId).forEach { msg ->
+            if (msg.sendStatus == "SCHEDULED") db.messages().userDelete(msg.id)
+            else deleteProviderRow(msg)
+        }
+        db.messages().moveThreadToTrash(threadId, now)
+        refreshConversationSummary(threadId) // no live messages left → row is dropped
+    }
+
+    /**
+     * Restore from Trash within the 60-day window: clear the flag and write
+     * the message back into the Telephony provider with its original
+     * timestamp (best-effort — needs the default-SMS role; the index row is
+     * restored either way). MMS rows come back index-only: their local media
+     * file was kept, the provider PDU was not.
+     */
+    suspend fun restoreFromTrash(messageId: Long) = withContext(Dispatchers.IO) {
+        val msg = db.messages().byId(messageId) ?: return@withContext
+        if (!msg.trashed) return@withContext
+        var restored = msg.copy(trashed = false, trashedAt = null)
+        if (msg.mmsId == null && msg.mmsTransactionId == null) {
+            val smsId = try {
+                val uri = if (msg.isOutgoing) Telephony.Sms.Sent.CONTENT_URI
+                else Telephony.Sms.Inbox.CONTENT_URI
+                context.contentResolver.insert(
+                    uri,
+                    ContentValues().apply {
+                        put(Telephony.Sms.ADDRESS, msg.address)
+                        put(Telephony.Sms.BODY, msg.body)
+                        put(Telephony.Sms.DATE, msg.timestamp)
+                        put(Telephony.Sms.READ, if (msg.read) 1 else 0)
+                        put(Telephony.Sms.THREAD_ID, msg.threadId)
+                        put(
+                            Telephony.Sms.TYPE,
+                            if (msg.isOutgoing) Telephony.Sms.MESSAGE_TYPE_SENT
+                            else Telephony.Sms.MESSAGE_TYPE_INBOX,
+                        )
+                        if (msg.subId != null) put(Telephony.Sms.SUBSCRIPTION_ID, msg.subId)
+                    },
+                )?.lastPathSegment?.toLongOrNull()
+            } catch (_: Exception) {
+                null
+            }
+            restored = restored.copy(smsId = smsId)
+        } else {
+            restored = restored.copy(mmsId = null) // old provider row is gone
+        }
+        db.messages().update(restored)
+        // Rebuild the conversation row (it may have been dropped when the
+        // thread emptied) without disturbing unread counts.
+        val conv = db.conversations().byThreadId(msg.threadId)
+        val latest = db.messages().latestForThread(msg.threadId)
+        if (latest != null && (conv == null || latest.timestamp >= conv.lastTimestamp)) {
+            db.conversations().upsert(
+                ConversationEntity(
+                    id = conv?.id ?: 0,
+                    threadId = msg.threadId,
+                    address = conv?.address ?: msg.address,
+                    contactName = conv?.contactName ?: displayNameFor(msg.address),
+                    lastMessage = latest.body.ifBlank { mediaPreview(latest.mediaMimeType) },
+                    lastTimestamp = latest.timestamp,
+                    unreadCount = conv?.unreadCount ?: 0,
+                    category = conv?.category ?: latest.category,
+                    pinned = conv?.pinned ?: false,
+                    archived = conv?.archived ?: false,
+                    muted = conv?.muted ?: false,
+                    locked = conv?.locked ?: false,
+                    preferredSubId = conv?.preferredSubId,
+                )
+            )
+        }
+    }
+
+    /** "Delete forever" from within Trash — immediate permanent deletion. */
+    suspend fun deleteForever(messageId: Long) = withContext(Dispatchers.IO) {
+        val msg = db.messages().byId(messageId) ?: return@withContext
+        deleteLocalMedia(msg)
+        db.messages().userDelete(messageId)
+    }
+
+    /** The 60-day purge (§6.4), run by [com.messages.core.trash.TrashPurge]. */
+    suspend fun purgeExpiredTrash(): Int = withContext(Dispatchers.IO) {
+        val expired = db.messages().trashExpiredBefore(
+            System.currentTimeMillis() - TrashRetention.RETENTION_MS
+        )
+        expired.forEach { msg ->
+            deleteLocalMedia(msg)
+            db.messages().userDelete(msg.id)
+        }
+        expired.size
+    }
+
+    /** Remove the message's row from the system SMS/MMS provider (best-effort). */
+    private fun deleteProviderRow(msg: MessageEntity) {
+        try {
+            when {
+                msg.smsId != null -> context.contentResolver.delete(
+                    android.net.Uri.parse("content://sms/${msg.smsId}"), null, null
+                )
+                msg.mmsId != null -> context.contentResolver.delete(
+                    android.net.Uri.parse("content://mms/${msg.mmsId}"), null, null
+                )
+            }
+        } catch (_: Exception) {
+            // Needs the default-SMS role; the index-side trash flag still applies.
+        }
+    }
+
+    private fun deleteLocalMedia(msg: MessageEntity) {
+        msg.mediaUri?.let { path -> runCatching { java.io.File(path).delete() } }
+    }
+
+    /**
+     * User-ENABLED OTP cleanup (§6.6/§8.2): delete OTP-labeled Inbox messages
+     * older than [olderThanMs]. Deliberately BYPASSES Trash (expired OTPs have
+     * no recovery value, per §6.6); the DAO query itself restricts it to
+     * OTP + Inbox + unstarred + untrashed, so filtered folders and the Trash
+     * can never be touched. Removes the Telephony provider row too
+     * (best-effort — requires default-SMS role) and keeps conversation
+     * summaries consistent. Returns how many messages were deleted.
      */
     suspend fun cleanupExpiredOtps(olderThanMs: Long): Int = withContext(Dispatchers.IO) {
         val expired = db.messages().expiredOtps(System.currentTimeMillis() - olderThanMs)
         expired.forEach { msg ->
-            try {
-                if (msg.smsId != null) {
-                    context.contentResolver.delete(
-                        android.net.Uri.parse("content://sms/${msg.smsId}"), null, null
-                    )
-                }
-            } catch (_: Exception) {
-                // Provider delete needs default-SMS role; the index row still goes.
-            }
+            deleteProviderRow(msg)
             db.messages().userDelete(msg.id)
         }
         expired.map { it.threadId }.distinct().forEach { refreshConversationSummary(it) }

@@ -76,6 +76,9 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     val hidePreviews = MutableStateFlow(AppLock.hidePreviews(app))
     val canAuthenticate = AppLock.canAuthenticate(app)
 
+    /** Trash entry badge (§6.4). */
+    val trashCount = repo.db.messages().trashCount()
+
     fun setAppLock(enabled: Boolean) {
         AppLock.setEnabled(getApplication(), enabled)
         appLock.value = enabled
@@ -196,6 +199,7 @@ private val SENSITIVITY_STEPS = listOf("RELAXED", "DEFAULT", "STRICT")
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenTrash: () -> Unit = {},
     vm: SettingsViewModel = viewModel(),
 ) {
     val rules by vm.rules.collectAsState()
@@ -445,6 +449,24 @@ fun SettingsScreen(
                             backupCreator.launch("messages-backup-$stamp.json")
                         }) { Text("Back up now") }
                         TextButton(onClick = { confirmRestore = true }) { Text("Restore") }
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+            }
+
+            // ---- Trash (§6.4) ----
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                SectionHeader("Trash")
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    Text(
+                        "Deleted messages are kept for 60 days and can be restored.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    val trashCount by vm.trashCount.collectAsState(initial = 0)
+                    TextButton(onClick = onOpenTrash) {
+                        Text(if (trashCount > 0) "Open Trash ($trashCount)" else "Open Trash")
                     }
                 }
                 Spacer(Modifier.height(24.dp))
