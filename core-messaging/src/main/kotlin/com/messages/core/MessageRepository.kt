@@ -29,7 +29,10 @@ class MessageRepository private constructor(private val context: Context) {
     ).fallbackToDestructiveMigration().build()
 
     val engine: ProtectionEngine by lazy {
-        val text = context.assets.open("patterns.json").bufferedReader().readText()
+        // patterns.json ships as a JVM resource inside the :protection-engine jar
+        // (it has no Android assets) — load it via the classloader, not AssetManager.
+        val text = ProtectionEngine::class.java.getResourceAsStream("/patterns.json")!!
+            .bufferedReader().readText()
         ProtectionEngine(PatternMatcher.fromJson(text))
     }
 
