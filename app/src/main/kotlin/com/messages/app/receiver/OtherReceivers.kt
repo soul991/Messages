@@ -192,6 +192,30 @@ class SmsSentReceiver : BroadcastReceiver() {
     }
 }
 
+/**
+ * Delivery report (§8.1): the carrier acknowledged handset delivery. Only
+ * upgrades SENT → DELIVERED; never downgrades a FAILED message.
+ */
+class SmsDeliveredReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val messageId = intent.getLongExtra("messageId", -1L)
+        if (messageId == -1L) return
+        if (resultCode != Activity.RESULT_OK) return
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val db = com.messages.core.MessageRepository.get(context).db
+                val msg = db.messages().byId(messageId)
+                if (msg != null && msg.sendStatus != "FAILED") {
+                    db.messages().update(msg.copy(sendStatus = "DELIVERED"))
+                }
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+}
+
 /** Handles notification inline actions: mark read, move to inbox/spam. */
 class NotificationActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

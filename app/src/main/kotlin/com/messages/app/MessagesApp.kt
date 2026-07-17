@@ -13,6 +13,8 @@ class MessagesApp : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        com.messages.app.ui.home.SwipeActions.init(this)
+        com.messages.app.ui.common.DraftStore.init(this)
         OtpCleanup.ensureScheduled(this)
         TrashRetention.ensureScheduled(this)
         FtsBackfill.ensureScheduled(this)

@@ -43,9 +43,13 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.MarkChatRead
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.RateReview
 import androidx.compose.material.icons.outlined.ReceiptLong
@@ -62,10 +66,17 @@ import androidx.compose.material3.InputChip
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,6 +84,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,6 +115,7 @@ import com.messages.designsystem.Motion
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 private val FOLDERS = listOf(
     "INBOX" to "Inbox",
@@ -138,6 +151,8 @@ fun HomeScreen(
     LaunchedEffect(initialFolder) { if (initialFolder != null) vm.setFolder(initialFolder) }
 
     val view = LocalView.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val folder by vm.folder.collectAsState()
     var searchActive by remember { mutableStateOf(false) }
     val typing by vm.typing.collectAsState()
@@ -158,8 +173,41 @@ fun HomeScreen(
     }
     BackHandler(enabled = searchActive) { exitSearch() }
 
+    // Swipe actions (§8.2) with undo snackbars for the destructive ones.
+    fun onSwipeAction(action: String, conv: ConversationEntity) {
+        Haptics.tick(view)
+        when (action) {
+            SwipeActions.ARCHIVE -> {
+                vm.archive(conv.threadId)
+                scope.launch {
+                    val r = snackbarHostState.showSnackbar(
+                        "Archived", actionLabel = "Undo", withDismissAction = true,
+                    )
+                    if (r == SnackbarResult.ActionPerformed) vm.unarchive(conv.threadId)
+                }
+            }
+            SwipeActions.DELETE -> {
+                val at = System.currentTimeMillis()
+                vm.trashThread(conv.threadId)
+                scope.launch {
+                    val r = snackbarHostState.showSnackbar(
+                        "Conversation moved to Trash", actionLabel = "Undo",
+                        withDismissAction = true,
+                    )
+                    if (r == SnackbarResult.ActionPerformed) {
+                        vm.undoTrashThread(conv.threadId, at - 1_000)
+                    }
+                }
+            }
+            SwipeActions.PIN -> vm.togglePin(conv.threadId, !conv.pinned)
+            SwipeActions.READ -> vm.markThreadRead(conv.threadId)
+            SwipeActions.MUTE -> vm.toggleMute(conv.threadId, !conv.muted)
+        }
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             AnimatedVisibility(
                 visible = !searchActive,
@@ -279,6 +327,7 @@ fun HomeScreen(
                             vm.setFolder(key)
                         },
                         onOpenThread = onOpenThread,
+                        onSwipeAction = ::onSwipeAction,
                     )
                 }
             }
@@ -293,7 +342,11 @@ private fun FolderPane(
     folder: String,
     onSelectFolder: (String) -> Unit,
     onOpenThread: (Long) -> Unit,
+    onSwipeAction: (String, ConversationEntity) -> Unit,
 ) {
+    val rightAction by SwipeActions.right.collectAsState()
+    val leftAction by SwipeActions.left.collectAsState()
+    val drafts by com.messages.app.ui.common.DraftStore.drafts.collectAsState()
     Column(Modifier.fillMaxSize()) {
         // Folder chips directly under the search bar (§9)
         LazyRow(
@@ -349,8 +402,12 @@ private fun FolderPane(
                     val listState = rememberLazyListState()
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                         items(conversations.orEmpty(), key = { it.threadId }) { conv ->
-                            ConversationRow(
+                            SwipeableConversationRow(
                                 conv = conv,
+                                draft = drafts[conv.threadId],
+                                rightAction = rightAction,
+                                leftAction = leftAction,
+                                onAction = onSwipeAction,
                                 onClick = { onOpenThread(conv.threadId) },
                                 modifier = Modifier.animateItem(
                                     fadeInSpec = Motion.effectsDefault(),
@@ -661,11 +718,110 @@ private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
     }
 }
 
+/**
+ * Swipe-action wrapper (§8.2): start→end runs [rightAction], end→start runs
+ * [leftAction]. The row always snaps back (confirmValueChange returns false) —
+ * rows that leave the list do so via the data update + animateItem, so
+ * non-removing actions (pin, read, mute) don't strand a dismissed row.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableConversationRow(
+    conv: ConversationEntity,
+    draft: String?,
+    rightAction: String,
+    leftAction: String,
+    onAction: (String, ConversationEntity) -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> onAction(rightAction, conv)
+                SwipeToDismissBoxValue.EndToStart -> onAction(leftAction, conv)
+                else -> {}
+            }
+            false
+        },
+        positionalThreshold = { total -> total * 0.4f },
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = rightAction != SwipeActions.NONE,
+        enableDismissFromEndToStart = leftAction != SwipeActions.NONE,
+        backgroundContent = { SwipeActionBackground(dismissState, rightAction, leftAction) },
+        modifier = modifier,
+    ) {
+        Box(Modifier.background(MaterialTheme.colorScheme.surface)) {
+            ConversationRow(conv = conv, draft = draft, onClick = onClick)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeActionBackground(
+    state: SwipeToDismissBoxState,
+    rightAction: String,
+    leftAction: String,
+) {
+    val direction = state.dismissDirection
+    val action = when (direction) {
+        SwipeToDismissBoxValue.StartToEnd -> rightAction
+        SwipeToDismissBoxValue.EndToStart -> leftAction
+        else -> return
+    }
+    val (icon, container, tint) = when (action) {
+        SwipeActions.ARCHIVE -> Triple(
+            Icons.Outlined.Archive,
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+        SwipeActions.DELETE -> Triple(
+            Icons.Outlined.Delete,
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer,
+        )
+        SwipeActions.PIN -> Triple(
+            Icons.Outlined.PushPin,
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+        SwipeActions.READ -> Triple(
+            Icons.Outlined.MarkChatRead,
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.onTertiaryContainer,
+        )
+        SwipeActions.MUTE -> Triple(
+            Icons.Outlined.NotificationsOff,
+            MaterialTheme.colorScheme.surfaceContainerHighest,
+            MaterialTheme.colorScheme.onSurface,
+        )
+        else -> return
+    }
+    Row(
+        Modifier
+            .fillMaxSize()
+            .background(container)
+            .padding(horizontal = 28.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (direction == SwipeToDismissBoxValue.StartToEnd) {
+            Arrangement.Start
+        } else {
+            Arrangement.End
+        },
+    ) {
+        Icon(icon, contentDescription = SwipeActions.label(action), tint = tint)
+    }
+}
+
 @Composable
 private fun ConversationRow(
     conv: ConversationEntity,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    draft: String? = null,
 ) {
     val unread = conv.unreadCount > 0
     Row(
@@ -708,12 +864,22 @@ private fun ConversationRow(
             }
             Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Draft preview (§8.1) outranks the last message, like Google
+                // Messages — but never leaks content from locked chats.
+                val showDraft = draft != null && !conv.locked
                 Text(
-                    if (conv.locked) "🔒 Locked conversation" else conv.lastMessage,
+                    when {
+                        conv.locked -> "🔒 Locked conversation"
+                        showDraft -> "Draft: $draft"
+                        else -> conv.lastMessage
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (unread) FontWeight.Medium else FontWeight.Normal,
-                    color = if (unread) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = when {
+                        showDraft -> MaterialTheme.colorScheme.primary
+                        unread -> MaterialTheme.colorScheme.onSurface
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),

@@ -39,13 +39,24 @@ object SmsRadio {
                 Intent(context, SmsSentReceiver::class.java).putExtra("messageId", entity.id),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
+            // Delivery reports (§8.1): opt-out via Settings; the carrier's
+            // delivery ack flips the bubble status to DELIVERED.
+            val wantDelivery = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .getBoolean("delivery_reports", true)
+            val deliveredIntent = if (!wantDelivery) null else PendingIntent.getBroadcast(
+                context, entity.id.toInt(),
+                Intent(context, com.messages.app.receiver.SmsDeliveredReceiver::class.java)
+                    .putExtra("messageId", entity.id),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
             repo.recipientsOf(entity.address).forEach { recipient ->
                 if (parts.size == 1) {
-                    sms.sendTextMessage(recipient, null, entity.body, sentIntent, null)
+                    sms.sendTextMessage(recipient, null, entity.body, sentIntent, deliveredIntent)
                 } else {
                     sms.sendMultipartTextMessage(
                         recipient, null, parts,
-                        ArrayList(parts.map { sentIntent }), null,
+                        ArrayList(parts.map { sentIntent }),
+                        deliveredIntent?.let { ArrayList(parts.map { _ -> it }) },
                     )
                 }
             }

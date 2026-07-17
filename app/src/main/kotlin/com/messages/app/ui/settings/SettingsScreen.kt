@@ -4,7 +4,9 @@ import android.app.Application
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +22,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -378,6 +382,45 @@ fun SettingsScreen(
                 )
             }
 
+            // ---- Conversations (§8.1/§8.2): swipe actions + delivery reports ----
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                SectionHeader("Conversations")
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                val rightAction by com.messages.app.ui.home.SwipeActions.right.collectAsState()
+                val leftAction by com.messages.app.ui.home.SwipeActions.left.collectAsState()
+                SwipeActionPickerRow(
+                    title = "Swipe right",
+                    subtitle = "Left-to-right swipe on a conversation",
+                    selectedId = rightAction,
+                    onSelect = { com.messages.app.ui.home.SwipeActions.setRight(ctx, it) },
+                )
+                SwipeActionPickerRow(
+                    title = "Swipe left",
+                    subtitle = "Right-to-left swipe on a conversation",
+                    selectedId = leftAction,
+                    onSelect = { com.messages.app.ui.home.SwipeActions.setLeft(ctx, it) },
+                )
+                Spacer(Modifier.height(12.dp))
+                var deliveryReports by remember {
+                    mutableStateOf(
+                        ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                            .getBoolean("delivery_reports", true)
+                    )
+                }
+                SettingSwitchRow(
+                    title = "Delivery reports",
+                    subtitle = "Show \"Delivered\" on sent messages when the carrier confirms.",
+                    checked = deliveryReports,
+                    enabled = true,
+                    onChange = {
+                        deliveryReports = it
+                        ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                            .edit().putBoolean("delivery_reports", it).apply()
+                    },
+                )
+            }
+
             // ---- OTP auto-delete (§6.5 / §8.2 — the app's only auto-delete) ----
             item {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
@@ -510,6 +553,52 @@ fun SettingsScreen(
                     }
                 }
                 Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+/** Picker row for a swipe direction's action (§8.2). */
+@Composable
+private fun SwipeActionPickerRow(
+    title: String,
+    subtitle: String,
+    selectedId: String,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { expanded = true }
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Box {
+            Text(
+                com.messages.app.ui.home.SwipeActions.label(selectedId),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                com.messages.app.ui.home.SwipeActions.options.forEach { (id, label) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            expanded = false
+                            onSelect(id)
+                        },
+                    )
+                }
             }
         }
     }

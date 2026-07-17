@@ -111,6 +111,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class ChatViewModelFactory(
@@ -208,7 +209,25 @@ fun ChatScreen(
     val wallpaperVersion by vm.wallpaperVersion.collectAsState()
     var showSimMenu by remember { mutableStateOf(false) }
     var showCustomizeSheet by remember { mutableStateOf(false) }
-    var draft by remember { mutableStateOf(initialDraft) }
+    // Drafts (§8.1): restore the saved draft unless direct-share provided one.
+    var draft by remember {
+        mutableStateOf(
+            initialDraft.ifEmpty { com.messages.app.ui.common.DraftStore.get(context, threadId) }
+        )
+    }
+    // Debounced write-through; sending sets draft = "" which clears it.
+    LaunchedEffect(Unit) {
+        androidx.compose.runtime.snapshotFlow { draft }.collectLatest { text ->
+            kotlinx.coroutines.delay(400)
+            com.messages.app.ui.common.DraftStore.save(context, threadId, text)
+        }
+    }
+    val latestDraft = androidx.compose.runtime.rememberUpdatedState(draft)
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            com.messages.app.ui.common.DraftStore.save(context, threadId, latestDraft.value)
+        }
+    }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -1134,7 +1153,11 @@ private fun MessageBubble(
                     when {
                         isScheduled -> "Scheduled · " + SCHEDULED_FMT.format(Date(msg.timestamp))
                         else -> SimpleDateFormat("HH:mm", Locale.US).format(Date(msg.timestamp)) +
-                            if (msg.sendStatus == "FAILED") " · Failed" else ""
+                            when (msg.sendStatus) {
+                                "FAILED" -> " · Failed"
+                                "DELIVERED" -> " · Delivered"
+                                else -> ""
+                            }
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = when {

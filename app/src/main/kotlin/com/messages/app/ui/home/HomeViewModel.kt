@@ -53,6 +53,30 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         repo.db.conversations().setArchived(threadId, true)
     }
 
+    // ---- Swipe actions (§8.2) + undo ----
+
+    fun unarchive(threadId: Long) = viewModelScope.launch {
+        repo.db.conversations().setArchived(threadId, false)
+    }
+
+    fun trashThread(threadId: Long) = viewModelScope.launch {
+        repo.moveThreadToTrash(threadId)
+    }
+
+    /** Undo for swipe-delete: restore messages trashed at/after [trashedAfter]. */
+    fun undoTrashThread(threadId: Long, trashedAfter: Long) = viewModelScope.launch {
+        repo.restoreThreadFromTrash(threadId, trashedAfter)
+    }
+
+    fun markThreadRead(threadId: Long) = viewModelScope.launch {
+        repo.db.messages().markThreadRead(threadId)
+        repo.db.conversations().clearUnread(threadId)
+    }
+
+    fun toggleMute(threadId: Long, muted: Boolean) = viewModelScope.launch {
+        repo.db.conversations().setMuted(threadId, muted)
+    }
+
     // ---- §8.5 incremental multi-keyword search ----
 
     /** Committed keyword chips — unlimited, all equal, match-any (§8.5.2). */

@@ -57,6 +57,9 @@ interface MessageDao {
     @Query("UPDATE messages SET trashed = 1, trashedAt = :at WHERE threadId = :threadId AND trashed = 0")
     suspend fun moveThreadToTrash(threadId: Long, at: Long)
 
+    @Query("SELECT id FROM messages WHERE threadId = :threadId AND trashed = 1 AND trashedAt >= :after")
+    suspend fun trashedIdsForThread(threadId: Long, after: Long): List<Long>
+
     @Query("UPDATE messages SET trashed = 0, trashedAt = NULL WHERE id = :id")
     suspend fun restoreFromTrash(id: Long)
 

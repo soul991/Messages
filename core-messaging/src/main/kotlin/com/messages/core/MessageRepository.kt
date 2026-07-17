@@ -744,6 +744,17 @@ class MessageRepository private constructor(private val context: Context) {
         refreshConversationSummary(msg.threadId)
     }
 
+    /**
+     * Undo for a just-trashed conversation (swipe-delete snackbar): restore
+     * every message of the thread trashed at/after [trashedAfter].
+     */
+    suspend fun restoreThreadFromTrash(threadId: Long, trashedAfter: Long) =
+        withContext(Dispatchers.IO) {
+            db.messages().trashedIdsForThread(threadId, trashedAfter).forEach {
+                restoreFromTrash(it)
+            }
+        }
+
     /** Delete a whole conversation to Trash (§6.4). */
     suspend fun moveThreadToTrash(threadId: Long) = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
