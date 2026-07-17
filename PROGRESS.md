@@ -1,6 +1,6 @@
 # PROGRESS — "Messages" (Android SMS app with deterministic spam/scam protection)
 
-_Last updated: 2026-07-17 (real-device bugfix session: backfill crash root-caused & fixed, contact-name search, chip fixes — all verified on a physical device via adb). Source spec: `PRD_Messages.md` (v2)._
+_Last updated: 2026-07-18 (M5 polish session: §9 animation + UI pass, real app icon, per-chat customization, accessibility, in-chat search normalization, swipe/undo/drafts/delivery reports). Source spec: `PRD_Messages.md` (v2)._
 
 ## Current state at a glance
 
@@ -39,6 +39,25 @@ _Last updated: 2026-07-17 (real-device bugfix session: backfill crash root-cause
 ## In progress
 
 _(nothing mid-flight)_
+
+### Recently completed (2026-07-17/18, M5 polish session — commits `3a0a566`, `4c515f6`, `52ecc97`, `49396ea`, `fa3c41c`)
+- **§9 animation + UI pass** (`3a0a566`) — the mandated on-device-quality fix, built with the frontend-design / compose-expert / material-3 skills:
+  - `design-system/Motion.kt`: M3 Expressive spring tokens (spatial default 0.8/380, fast 0.6/800, slow 0.8/200; effects springs critically damped — fades/colors never wobble) + `Haptics` helpers (tick/confirm/longPress). Defined locally because material3 1.3 (BOM 2024.09) has no `MotionScheme` API yet — **swap to `MaterialTheme.motionScheme` when the BOM moves to material3 1.4**.
+  - Theme: tuned `Typography` hierarchy (bold tight-tracked headlines, semibold titles); **theme-aware `categoryPalette()`** with dark-mode variants (AA container/on pairs) + `LocalDarkTheme`; old static `CategoryColors` kept for widgets/notifications only.
+  - MainActivity: `SharedTransitionLayout` wrapping the NavHost; `LocalSharedTransitionScope`/`LocalNavAnimatedVisibilityScope` CompositionLocals (`ui/common/Transitions.kt`); shared-axis-X springs between sibling screens; fade-through on the list↔chat pair so the **shared-element avatar** (list row ↔ chat top bar, `sharedThreadAvatar(threadId)`) carries the motion.
+  - Home: `LargeTopAppBar` collapsing large title (`exitUntilCollapsedScrollBehavior`); FAB shrinks to icon at half-collapse; pill search bar on `surfaceContainerHigh`; **directional animated folder switches** (AnimatedContent slides toward the tapped chip on spatial springs; per-folder **cached** conversation StateFlows with a `null` loading sentinel so both panes animate with their own data — replaces the single `flatMapLatest` flow); `animateItem` on rows; per-folder empty states (icon + headline + supporting line per folder, layered-shape illustration settling on a gentle spring); haptic tick on folder change.
+  - Chat: **grouped consecutive bubbles** (same direction, <3 min, same day) with tail-corner shape on the group's last bubble and meta line only at group edges; **date pills** (Today/Yesterday/date); floating scroll-to-bottom FAB (springs in when `canScrollForward`); send button is a spring-scaled `FilledIconButton` appearing only with content; haptics on long-press/send/not-spam (+ "Moved to Inbox" snackbar); first scroll is instant, later ones animate.
+  - WCAG AA: all `outline`-as-text-color replaced with `onSurfaceVariant`; incoming bubble text `onSurface` on `surfaceContainerHigh`; fraud banner on AA container pairs.
+  - On-device: gfxinfo after warmup ~9ms median on fling (debug build); screenshots verified header, chips, rows, date pill, tails, composer.
+- **Real app icon + per-chat customization** (`4c515f6`): adaptive icon = white chat bubble + brand-blue check on a blue gradient, with **monochrome layer** (Android 13 themed icons); `ChatStyle` — 7 bubble presets (light/dark AA pairs; "Dynamic" = theme primary) + 4 gradient wallpapers + **photo wallpaper** (copied to `filesDir/wallpapers`, memory-cache-busted by version counter, rendered under a 35% surface scrim); persisted per-thread in `chat_style` prefs; "Customize chat" sheet in the chat overflow menu. Verified on device (sheet, apply, persist, launcher icon).
+- **In-chat search normalization** (`52ecc97`, §8.5 debt): in-conversation match indices now also check `normalizedBody` against the Stage-0-normalized term — obfuscated text findable like in global search.
+- **Accessibility pass** (`49396ea`): avatar monogram `clearAndSetSemantics` (row announces the name); unread badges announce "N unread"; search section headers are semantic headings; bubble long-press labeled; match counter announces "Match k of n"; customize swatches labeled + 48dp. Verified: 1.7× font scale reflows; uiautomator dump shows the descriptions.
+- **Swipe customization / undo / drafts / delivery reports** (`fa3c41c`, §8.1/§8.2):
+  - `SwipeActions` (app/ui/home): configurable left/right swipe (archive/delete/pin/read/mute/none) via Settings → Conversations; `SwipeToDismissBox` rows with colored action backgrounds; rows always snap back (`confirmValueChange=false`) and leave via the data change + `animateItem`.
+  - **Undo snackbars**: archive→Unarchive; delete→restore via new `repo.restoreThreadFromTrash(threadId, trashedAfter)` + `trashedIdsForThread` DAO query (restores only messages trashed by that swipe).
+  - **Drafts** (`DraftStore`, prefs "drafts" keyed by threadId + reactive map flow): composer restores on open (direct-share draft wins), 400ms debounced write-through + save-on-dispose; list rows show "Draft: …" in primary — suppressed for locked chats.
+  - **Delivery reports**: `deliveredIntent` on single & multipart SMS sends → `SmsDeliveredReceiver` (manifest-registered) upgrades SENT→DELIVERED (never downgrades FAILED); bubble shows "· Delivered"; Settings toggle `delivery_reports` (default on).
+  - Engine + core JVM tests green; **on-device verification pending** — the phone's wireless-debugging session dropped near session end and would not reconnect (adb server saw no device/mdns). First thing next session: reconnect, install, verify swipes/undo/draft/Delivered on-device.
 
 ### Recently completed (2026-07-17, real-device bugfix session — commits `be292ee`, `e4992a0`, `f461b45`) — first physical-device testing
 - **CRITICAL fix — backfill imported zero messages** (`be292ee`): the Normalizer's URL regex used an unbounded lookbehind (`(?<=…(?:/\S*)?)`). OpenJDK accepts it (all JVM tests green) but **Android's ICU regex rejects it at compile time** → `ExceptionInInitializerError` in `Normalizer.<clinit>` on first classification → the backfill worker died (an Error escapes `catch(Exception)`, so WorkManager marked it FAILED with no retry) and the incoming-SMS pipeline would have crashed too. Root-caused on-device via adb (workdb state=FAILED, `total=4568` written but no checkpoint; live logcat repro showed the PatternSyntaxException). Rewrote the scheme-less-domain alternative without lookbehind + regression test. **Lesson recorded: JVM-only tests cannot catch ICU regex differences — anything regex-new must be smoke-tested on a device.**
@@ -95,7 +114,7 @@ _(nothing mid-flight)_
 
 - **§8.3 unblockers (owner action)**: register the Android OAuth client in Google Cloud Console (`docs/DRIVE_BACKUP_SETUP.md` §1–3), then end-to-end test sign-in → back up now → restore on a second profile/device. Optional later: passkey-PRF wrap (needs an owner-hosted RP domain, doc §5), snapshot chooser, transfer progress UI.
 - **Deferred from §6.5**: optional auto-clean of Spam >90 days old (deliberately not built yet; Trash/OTP cleanup landed first).
-- **M5 — polish/parity:** RCS via available Android APIs, per-chat customization (wallpapers/bubble colors), animation pass (spring transitions, shared-element list→chat, 120Hz), accessibility pass, swipe-action customization, undo snackbars, drafts, delivery reports, Play Store SMS-permission declaration + privacy policy. **Confirmed on real device — full animation + UI pass is mandatory in M5, using the frontend-design, compose-skill, and material-3 skills** (animation quality poor on-device; UI not yet at the §9 bar).
+- **M5 — remaining:** on-device verification of `fa3c41c` (swipes/undo/drafts/Delivered — device dropped before install); RCS via available Android APIs; dual-SIM refinement; per-folder notification behavior config; Play Store SMS-permission declaration + privacy policy; theme mode picker UI (AMOLED/light/dark exist in `MessagesTheme` but no Settings control); conversation-bubbles/shortcuts polish. Done this session: §9 animation+UI pass, app icon, per-chat customization, accessibility, in-chat search normalization, swipe/undo/drafts/delivery reports.
 
 ## Decisions made that are not in the PRD
 
@@ -132,8 +151,9 @@ _(nothing mid-flight)_
 - Group MMS receive: if SubscriptionManager can't report our own number (common), a group's incoming messages thread against sender+co-recipients minus nothing — our number may appear as a phantom member in the thread address.
 - Snooze reminders don't survive the message being moved to another thread/category (they re-check existence only). One-shot works clamp to `initialDelay`, so a device reboot mid-delay resumes correctly via WorkManager.
 - Dashboard family rollup parses `matchedPatternIds` CSV in Kotlin per refresh (fine at SMS scale; revisit if slow on 10k+ filtered messages).
-- App icon is a placeholder vector.
 - CI workflow is untested against a live GitHub remote (no remote configured yet).
 - Drive backup (§8.3) is code-complete but **not yet runnable end-to-end**: Google sign-in returns DEVELOPER_ERROR until the owner registers the Android OAuth client (see `docs/DRIVE_BACKUP_SETUP.md`); no on-device test has been possible. Passkey-PRF unlock is format-reserved only. Restore offers the newest snapshot only; no transfer progress UI.
 - In-chat search matches on raw `body` contains (not the normalized FTS text), so an obfuscated term findable in global search may not hit in-conversation next/prev — acceptable for v1, revisit with the M5 polish pass.
 - Saved-search recording uses `System.currentTimeMillis()` at result-open; combos are capped at 20 and never expire.
+- M5 additions (2026-07-18): `Motion.kt` hardcodes expressive spring values (BOM 2024.09 predates `MotionScheme`) — migrate when material3 ≥1.4; per-chat `chat_style`/`drafts`/swipe prefs are device-local and not in backups; photo wallpapers are not backed up; swipe-delete undo window is the snackbar duration (after that, restore via Settings → Trash as usual); group-SMS "Delivered" reflects the last recipient ack (shared PI, same debt as multipart accounting).
+- App icon is no longer a placeholder (real adaptive icon since `4c515f6`).
