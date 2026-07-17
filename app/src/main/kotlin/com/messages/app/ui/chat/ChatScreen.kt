@@ -239,12 +239,24 @@ fun ChatScreen(
             chatSearchQuery.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
         else emptyList()
     }
+    // §8.5 debt fix: match on the engine-normalized text too, so obfuscated
+    // spam ("F.R.E.E") is findable in-conversation just like in global search.
+    val normalizedTerms = remember(searchTerms) {
+        searchTerms.map { t ->
+            runCatching { com.messages.protection.Normalizer.normalize(t).normalizedText.trim() }
+                .getOrDefault(t.lowercase())
+        }
+    }
     // Indices into `items` (date headers never match).
-    val matchIndices = remember(items, searchTerms) {
+    val matchIndices = remember(items, searchTerms, normalizedTerms) {
         if (searchTerms.isEmpty()) emptyList()
         else items.indices.filter { i ->
-            val msg = (items[i] as? ChatItem.Msg)?.m
-            msg != null && searchTerms.any { t -> msg.body.contains(t, ignoreCase = true) }
+            val msg = (items[i] as? ChatItem.Msg)?.m ?: return@filter false
+            searchTerms.indices.any { k ->
+                msg.body.contains(searchTerms[k], ignoreCase = true) ||
+                    (normalizedTerms[k].isNotBlank() &&
+                        msg.normalizedBody.contains(normalizedTerms[k]))
+            }
         }
     }
     var currentMatch by remember { mutableStateOf(0) } // index into matchIndices
