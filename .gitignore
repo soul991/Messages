@@ -11,6 +11,9 @@ local.properties
 *.iml
 .DS_Store
 
+# Claude Code local session settings
+.claude/settings.local.json
+
 # Android
 captures/
 *.apk
