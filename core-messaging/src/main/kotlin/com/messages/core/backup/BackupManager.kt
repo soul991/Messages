@@ -25,6 +25,23 @@ object BackupManager {
 
     const val FORMAT_VERSION = 1
 
+    /** §8.3 spam-backup mode: everything, nothing, or a hand-picked set. */
+    enum class SpamMode { ON, OFF, CUSTOM }
+
+    /**
+     * Export shaping (§8.3). Defaults reproduce the full local backup (§8.2):
+     * everything, spam included, no media blobs.
+     */
+    data class ExportOptions(
+        /** Checkpoint cut: only messages with timestamp <= upTo. Null = all. */
+        val upTo: Long? = null,
+        val spamMode: SpamMode = SpamMode.ON,
+        /** Message ids to keep when [spamMode] is CUSTOM. */
+        val customSpamIds: Set<Long> = emptySet(),
+        /** Bundle MMS media files into the backup (separate toggle, §8.3). */
+        val includeMedia: Boolean = false,
+    )
+
     @Serializable
     data class BackupMessage(
         val address: String,
@@ -44,6 +61,9 @@ object BackupManager {
         /** §6.4/§8.3: trash items travel in backups *as trash*, with purge clock intact. */
         val trashed: Boolean = false,
         val trashedAt: Long? = null,
+        /** §8.3 media toggle: name of this message's blob in [BackupFile.media]. */
+        val mediaFileName: String? = null,
+        val mediaMimeType: String? = null,
     )
 
     @Serializable
@@ -87,6 +107,8 @@ object BackupManager {
         val reputations: List<BackupReputation>,
         val conversationPrefs: List<BackupConversationPrefs>,
         val messages: List<BackupMessage>,
+        /** §8.3 media toggle: fileName → base64 file bytes. Empty when off. */
+        val media: Map<String, String> = emptyMap(),
     )
 
     data class ImportStats(
@@ -101,12 +123,46 @@ object BackupManager {
         encodeDefaults = true
     }
 
-    suspend fun export(context: Context): String = withContext(Dispatchers.IO) {
+    suspend fun export(
+        context: Context,
+        options: ExportOptions = ExportOptions(),
+    ): String = withContext(Dispatchers.IO) {
         val repo = MessageRepository.get(context)
         val db = repo.db
         val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
         val importedPack = java.io.File(context.filesDir, "patterns_imported.json")
             .takeIf { it.exists() }?.readText()
+
+        val included = db.messages().allMessages()
+            // Never export an unsent scheduled draft as if it were history.
+            .filter { it.sendStatus != "SCHEDULED" }
+            // §8.3 checkpoint cut: deterministic content per checkpoint.
+            .filter { options.upTo == null || it.timestamp <= options.upTo }
+            // §8.3 spam-backup mode (Spam folder only — Blocked always travels).
+            .filter {
+                it.category != "SPAM" || when (options.spamMode) {
+                    SpamMode.ON -> true
+                    SpamMode.OFF -> false
+                    SpamMode.CUSTOM -> it.id in options.customSpamIds
+                }
+            }
+
+        // §8.3 media toggle: bundle each included message's media file.
+        val media = LinkedHashMap<String, String>()
+        val mediaNames = HashMap<Long, String>()
+        if (options.includeMedia) {
+            included.forEach { msg ->
+                val path = msg.mediaUri ?: return@forEach
+                runCatching {
+                    val file = java.io.File(path)
+                    if (file.exists() && file.length() < 5L * 1024 * 1024) {
+                        val name = "${msg.id}_${file.name}"
+                        media[name] = java.util.Base64.getEncoder().encodeToString(file.readBytes())
+                        mediaNames[msg.id] = name
+                    }
+                }
+            }
+        }
 
         val backup = BackupFile(
             formatVersion = FORMAT_VERSION,
@@ -125,17 +181,17 @@ object BackupManager {
             conversationPrefs = db.conversations().allConversations()
                 .filter { it.pinned || it.archived || it.muted || it.locked }
                 .map { BackupConversationPrefs(it.address, it.pinned, it.archived, it.muted, it.locked) },
-            messages = db.messages().allMessages()
-                // Never export an unsent scheduled draft as if it were history.
-                .filter { it.sendStatus != "SCHEDULED" }
-                .map {
-                    BackupMessage(
-                        it.address, it.body, it.timestamp, it.isOutgoing, it.read,
-                        it.category, it.dangerous, it.fraudWarning, it.protectedLabel,
-                        it.score, it.matchedPatternIds, it.matchedComboIds, it.explanations,
-                        it.starred, it.trashed, it.trashedAt,
-                    )
-                },
+            messages = included.map {
+                BackupMessage(
+                    it.address, it.body, it.timestamp, it.isOutgoing, it.read,
+                    it.category, it.dangerous, it.fraudWarning, it.protectedLabel,
+                    it.score, it.matchedPatternIds, it.matchedComboIds, it.explanations,
+                    it.starred, it.trashed, it.trashedAt,
+                    mediaFileName = mediaNames[it.id],
+                    mediaMimeType = if (mediaNames[it.id] != null) it.mediaMimeType else null,
+                )
+            },
+            media = media,
         )
         json.encodeToString(BackupFile.serializer(), backup)
     }
@@ -233,6 +289,18 @@ object BackupManager {
                     } catch (_: Exception) {
                         null
                     }
+                    // §8.3 media toggle: write the bundled blob back to local storage.
+                    var mediaUri: String? = null
+                    if (m.mediaFileName != null) {
+                        backup.media[m.mediaFileName]?.let { b64 ->
+                            runCatching {
+                                val dir = java.io.File(context.filesDir, "mms_media").apply { mkdirs() }
+                                val f = java.io.File(dir, "restored_${m.timestamp}_${m.mediaFileName}")
+                                f.writeBytes(java.util.Base64.getDecoder().decode(b64))
+                                mediaUri = f.absolutePath
+                            }
+                        }
+                    }
                     db.messages().insert(
                         MessageEntity(
                             smsId = smsId,
@@ -254,6 +322,8 @@ object BackupManager {
                             starred = m.starred,
                             trashed = m.trashed,
                             trashedAt = m.trashedAt,
+                            mediaUri = mediaUri,
+                            mediaMimeType = if (mediaUri != null) m.mediaMimeType else null,
                             sendStatus = if (m.isOutgoing) "SENT" else "NONE",
                         )
                     )
