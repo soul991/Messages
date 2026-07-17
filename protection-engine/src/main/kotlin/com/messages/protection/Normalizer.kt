@@ -35,8 +35,12 @@ object Normalizer {
     )
 
     private val ZERO_WIDTH = Regex("[\\u200B-\\u200D\\uFEFF\\u2060\\u00AD]")
+    // Scheme-less domains are matched by listing labels then a known TLD directly.
+    // Never use lookbehind with * or + here: Android's ICU regex only accepts
+    // bounded-length lookbehind and throws PatternSyntaxException at compile
+    // time (OpenJDK, where the JVM tests run, accepts it — so tests can't catch it).
     private val URL_REGEX = Regex(
-        """(?i)\b(?:https?://|www\.)\S+|\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\S*)?|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)+\.?(?:/\S*)?\b(?<=\.(?:com|in|net|org|io|co|me|ly|gl|xyz|top|club|online|site|buzz|icu|vip|rest|click|link|work|loan|men|cyou|cfd|sbs|quest|monster|lol|pw|cc|tk|ml|ga|gq|app|dev|info|biz|shop|store|live|life|apk|to|id|at|gy|gd|ru|li)\b(?:/\S*)?)"""
+        """(?i)\b(?:https?://|www\.)\S+|\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\S*)?|\b(?:[a-z0-9][a-z0-9-]*\.)+(?:com|in|net|org|io|co|me|ly|gl|xyz|top|club|online|site|buzz|icu|vip|rest|click|link|work|loan|men|cyou|cfd|sbs|quest|monster|lol|pw|cc|tk|ml|ga|gq|app|dev|info|biz|shop|store|live|life|apk|to|id|at|gy|gd|ru|li)\b(?:/\S*)?"""
     )
     private val PHONE_REGEX = Regex("""(?<!\d)(?:\+\d{1,3}[\s-]?)?[6-9]\d{9}(?!\d)|(?<!\d)\+\d{7,15}(?!\d)""")
     private val AMOUNT_REGEX = Regex(

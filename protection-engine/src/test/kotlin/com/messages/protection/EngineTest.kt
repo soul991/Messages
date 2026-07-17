@@ -138,6 +138,18 @@ class NormalizerTest {
         assertTrue(n.phoneNumbers.any { it.contains("9876543210") })
         assertTrue(n.amounts.isNotEmpty())
     }
+
+    @Test
+    fun extracts_schemeless_domains_with_known_tlds() {
+        // Regression for the on-device backfill failure: the old URL regex used an
+        // unbounded lookbehind that Android's ICU regex rejects at compile time.
+        val n = Normalizer.normalize("Claim at amazon-kyc.xyz/win or sbi-verify.online now")
+        assertTrue(n.urls.any { it.contains("amazon-kyc.xyz/win") })
+        assertTrue(n.urls.any { it.contains("sbi-verify.online") })
+        // Near-misses: times and plain sentences must not become URLs.
+        val neg = Normalizer.normalize("Meet me at 9.30 tomorrow. That movie was great.")
+        assertTrue(neg.urls.isEmpty())
+    }
 }
 
 class SenderAnalyzerTest {
