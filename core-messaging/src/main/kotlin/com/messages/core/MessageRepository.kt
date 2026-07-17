@@ -516,27 +516,8 @@ class MessageRepository private constructor(private val context: Context) {
         subId: Int? = null,
     ): MessageEntity =
         withContext(Dispatchers.IO) {
-            val recipients = recipientsOf(address)
             val threadId = resolveThreadId(address)
-            // Group SMS: one provider row per recipient, all pinned to the group thread.
-            var firstSmsId: Long? = null
-            recipients.forEach { recipient ->
-                val values = ContentValues().apply {
-                    put(Telephony.Sms.ADDRESS, recipient)
-                    put(Telephony.Sms.BODY, body)
-                    put(Telephony.Sms.DATE, timestamp)
-                    put(Telephony.Sms.READ, 1)
-                    put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_SENT)
-                    put(Telephony.Sms.THREAD_ID, threadId)
-                    if (subId != null) put(Telephony.Sms.SUBSCRIPTION_ID, subId)
-                }
-                val uri = try {
-                    context.contentResolver.insert(Telephony.Sms.Sent.CONTENT_URI, values)
-                } catch (_: Exception) {
-                    null
-                }
-                if (firstSmsId == null) firstSmsId = uri?.lastPathSegment?.toLongOrNull()
-            }
+            val firstSmsId = writeOutgoingSmsToProvider(address, body, timestamp, threadId, subId)
             val entity = MessageEntity(
                 smsId = firstSmsId,
                 threadId = threadId,
@@ -552,6 +533,93 @@ class MessageRepository private constructor(private val context: Context) {
             updateConversation(threadId, address, body, timestamp, category = null, incrementUnread = false)
             entity.copy(id = id)
         }
+
+    /** Group SMS: one provider Sent row per recipient, all pinned to the thread. */
+    private fun writeOutgoingSmsToProvider(
+        address: String,
+        body: String,
+        timestamp: Long,
+        threadId: Long,
+        subId: Int?,
+    ): Long? {
+        var firstSmsId: Long? = null
+        recipientsOf(address).forEach { recipient ->
+            val values = ContentValues().apply {
+                put(Telephony.Sms.ADDRESS, recipient)
+                put(Telephony.Sms.BODY, body)
+                put(Telephony.Sms.DATE, timestamp)
+                put(Telephony.Sms.READ, 1)
+                put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_SENT)
+                put(Telephony.Sms.THREAD_ID, threadId)
+                if (subId != null) put(Telephony.Sms.SUBSCRIPTION_ID, subId)
+            }
+            val uri = try {
+                context.contentResolver.insert(Telephony.Sms.Sent.CONTENT_URI, values)
+            } catch (_: Exception) {
+                null
+            }
+            if (firstSmsId == null) firstSmsId = uri?.lastPathSegment?.toLongOrNull()
+        }
+        return firstSmsId
+    }
+
+    /**
+     * Scheduled send (§8.2), step 1: store the message in the local index only
+     * — NOT the Telephony provider (it hasn't been sent; other SMS apps must
+     * not see it as sent). `timestamp` = the scheduled fire time so the bubble
+     * sits at the right place in the chat; the provider row is written when
+     * [promoteScheduledToSending] fires.
+     */
+    suspend fun storeScheduledSms(
+        address: String,
+        body: String,
+        sendAt: Long,
+        subId: Int? = null,
+    ): MessageEntity = withContext(Dispatchers.IO) {
+        val threadId = resolveThreadId(address)
+        val entity = MessageEntity(
+            threadId = threadId,
+            address = address,
+            body = body,
+            timestamp = sendAt,
+            isOutgoing = true,
+            read = true,
+            sendStatus = "SCHEDULED",
+            subId = subId,
+        )
+        val id = db.messages().insert(entity)
+        updateConversation(threadId, address, body, sendAt, category = null, incrementUnread = false)
+        entity.copy(id = id)
+    }
+
+    /**
+     * Scheduled send, step 2 (worker fire time or "Send now"): write the
+     * provider Sent row(s), flip the index row to SENDING with the real send
+     * time. Returns the updated entity for the radio send, or null when the
+     * message was cancelled/already promoted meanwhile.
+     */
+    suspend fun promoteScheduledToSending(messageId: Long): MessageEntity? =
+        withContext(Dispatchers.IO) {
+            val msg = db.messages().byId(messageId) ?: return@withContext null
+            if (msg.sendStatus != "SCHEDULED") return@withContext null
+            val now = System.currentTimeMillis()
+            val smsId = writeOutgoingSmsToProvider(msg.address, msg.body, now, msg.threadId, msg.subId)
+            val updated = msg.copy(smsId = smsId, timestamp = now, sendStatus = "SENDING")
+            db.messages().update(updated)
+            updateConversation(
+                msg.threadId, msg.address, msg.body, now,
+                category = null, incrementUnread = false,
+            )
+            updated
+        }
+
+    /** Cancel a scheduled message: remove its index row (it was never in the provider). */
+    suspend fun cancelScheduled(messageId: Long) = withContext(Dispatchers.IO) {
+        val msg = db.messages().byId(messageId) ?: return@withContext
+        if (msg.sendStatus != "SCHEDULED") return@withContext
+        db.messages().userDelete(messageId)
+        refreshConversationSummary(msg.threadId)
+    }
 
     private suspend fun updateConversation(
         threadId: Long,

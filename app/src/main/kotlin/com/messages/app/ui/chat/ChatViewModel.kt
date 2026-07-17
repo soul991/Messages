@@ -1,17 +1,15 @@
 package com.messages.app.ui.chat
 
 import android.app.Application
-import android.app.PendingIntent
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.messages.app.mms.MmsSender
-import com.messages.app.receiver.SmsSentReceiver
+import com.messages.app.schedule.Scheduler
+import com.messages.app.schedule.SmsRadio
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
 import kotlinx.coroutines.Dispatchers
@@ -88,42 +86,42 @@ class ChatViewModel(
         viewModelScope.launch { repo.db.conversations().setPreferredSubId(threadId, subId) }
     }
 
-    private fun smsManagerFor(subId: Int?): SmsManager {
-        val ctx = getApplication<Application>()
-        val base = ctx.getSystemService(SmsManager::class.java)
-        return if (subId != null) base.createForSubscriptionId(subId) else base
-    }
-
     fun send(text: String) {
         val to = address.value
         if (to.isBlank() || text.isBlank()) return
         viewModelScope.launch {
             val subId = selectedSubId.value
             val entity = repo.storeOutgoing(to, text, System.currentTimeMillis(), subId)
-            try {
-                val ctx = getApplication<Application>()
-                val sms = smsManagerFor(subId)
-                val parts = sms.divideMessage(text)
-                val sentIntent = PendingIntent.getBroadcast(
-                    ctx, entity.id.toInt(),
-                    Intent(ctx, SmsSentReceiver::class.java).putExtra("messageId", entity.id),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                )
-                // Group SMS (§8.1): fan out to every recipient on the thread.
-                repo.recipientsOf(to).forEach { recipient ->
-                    if (parts.size == 1) {
-                        sms.sendTextMessage(recipient, null, text, sentIntent, null)
-                    } else {
-                        sms.sendMultipartTextMessage(
-                            recipient, null, parts,
-                            ArrayList(parts.map { sentIntent }), null,
-                        )
-                    }
-                }
-            } catch (_: Exception) {
-                repo.db.messages().update(entity.copy(sendStatus = "FAILED"))
-            }
+            SmsRadio.send(getApplication(), repo, entity)
         }
+    }
+
+    /** Scheduled send (§8.2): index-only row now, worker fires at [sendAt]. */
+    fun scheduleSend(text: String, sendAt: Long) {
+        val to = address.value
+        if (to.isBlank() || text.isBlank()) return
+        viewModelScope.launch {
+            val entity = repo.storeScheduledSms(to, text, sendAt, selectedSubId.value)
+            Scheduler.scheduleSend(getApplication(), entity.id, sendAt)
+        }
+    }
+
+    /** "Send now" on a scheduled bubble. */
+    fun sendScheduledNow(messageId: Long) = viewModelScope.launch {
+        Scheduler.cancelSend(getApplication(), messageId)
+        val entity = repo.promoteScheduledToSending(messageId) ?: return@launch
+        SmsRadio.send(getApplication(), repo, entity)
+    }
+
+    /** Cancel a scheduled bubble: drop the row + the pending worker. */
+    fun cancelScheduled(messageId: Long) = viewModelScope.launch {
+        Scheduler.cancelSend(getApplication(), messageId)
+        repo.cancelScheduled(messageId)
+    }
+
+    /** Snooze / remind-me-about-this-message (§8.2). */
+    fun snooze(messageId: Long, remindAt: Long) {
+        Scheduler.snooze(getApplication(), messageId, remindAt)
     }
 
     fun resend(message: MessageEntity) {

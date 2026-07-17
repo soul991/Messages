@@ -27,6 +27,9 @@ class MessagesApp : Application() {
                 NotificationChannel(CH_REVIEW, "Review folder", NotificationManager.IMPORTANCE_LOW).apply {
                     description = "Batched quiet notification for gray-zone messages"
                 },
+                NotificationChannel(CH_REMINDERS, "Reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = "Snoozed message reminders"
+                },
                 // Promotions/Spam/Blocked have NO channel — they are silent, badge only (§4)
             )
         )
@@ -36,5 +39,6 @@ class MessagesApp : Application() {
         const val CH_PERSONAL = "personal"
         const val CH_TRANSACTIONS = "transactions"
         const val CH_REVIEW = "review"
+        const val CH_REMINDERS = "reminders"
     }
 }

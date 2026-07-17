@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,9 +32,15 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,7 +52,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -69,6 +80,7 @@ import com.messages.core.db.MessageEntity
 import com.messages.designsystem.CategoryColors
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -115,6 +127,7 @@ fun ChatScreen(
         ActivityResultContracts.TakePicture()
     ) { ok -> if (ok) cameraTarget?.let { vm.attach(it) } }
     var showAttachSheet by remember { mutableStateOf(false) }
+    var showScheduleDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
@@ -162,6 +175,11 @@ fun ChatScreen(
                         onWhy = { onWhy(msg.id) },
                         onNotSpam = { vm.moveToInbox(msg.id) },
                         onResend = { vm.resend(msg) },
+                        onSendNow = { vm.sendScheduledNow(msg.id) },
+                        onCancelScheduled = { vm.cancelScheduled(msg.id) },
+                        onSnooze = { remindAt -> vm.snooze(msg.id, remindAt) },
+                        onStar = { vm.star(msg.id, !msg.starred) },
+                        onDelete = { vm.delete(msg.id) },
                     )
                 }
             }
@@ -213,6 +231,16 @@ fun ChatScreen(
                     maxLines = 5,
                 )
                 Spacer(Modifier.width(8.dp))
+                // Scheduled send (§8.2) — text-only, so hidden while an attachment is staged
+                if (draft.isNotBlank() && pendingAttachment == null) {
+                    IconButton(onClick = { showScheduleDialog = true }) {
+                        Icon(
+                            Icons.Filled.Schedule,
+                            contentDescription = "Schedule send",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
                 // Dual-SIM indicator + per-chat picker (§8.1) — only with 2+ SIMs
                 if (simOptions.isNotEmpty()) {
                     Box {
@@ -256,6 +284,17 @@ fun ChatScreen(
                     )
                 }
             }
+        }
+
+        if (showScheduleDialog) {
+            ScheduleSendDialog(
+                onDismiss = { showScheduleDialog = false },
+                onPick = { sendAt ->
+                    showScheduleDialog = false
+                    vm.scheduleSend(draft, sendAt)
+                    draft = ""
+                },
+            )
         }
 
         if (showAttachSheet) {
@@ -302,15 +341,110 @@ private fun AttachOption(
 
 private val OTP_EXTRACT = Regex("""\b(\d{4,8})\b""")
 
+/** Quick time presets shared by schedule-send and snooze ("this evening" = 18:00). */
+private fun timePresets(): List<Pair<String, Long>> {
+    val now = System.currentTimeMillis()
+    fun at(hour: Int, addDays: Int): Long = Calendar.getInstance().run {
+        add(Calendar.DAY_OF_YEAR, addDays)
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+        timeInMillis
+    }
+    val evening = at(18, 0).let { if (it > now + 60_000) it else at(18, 1) }
+    val morning = at(8, 0).let { if (it > now + 60_000) it else at(8, 1) }
+    return listOf(
+        "In 1 hour" to now + 60 * 60 * 1000,
+        "This evening (6:00 PM)" to evening,
+        "Tomorrow morning (8:00 AM)" to morning,
+    )
+}
+
+private val SCHEDULED_FMT = SimpleDateFormat("EEE, MMM d · h:mm a", Locale.US)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScheduleSendDialog(
+    onDismiss: () -> Unit,
+    onPick: (Long) -> Unit,
+) {
+    var step by remember { mutableStateOf("presets") } // presets | date | time
+    val dateState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+    val timeState = rememberTimePickerState(is24Hour = false)
+
+    when (step) {
+        "presets" -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Send later") },
+            text = {
+                Column {
+                    timePresets().forEach { (label, time) ->
+                        TextButton(onClick = { onPick(time) }, modifier = Modifier.fillMaxWidth()) {
+                            Text(label, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                    TextButton(onClick = { step = "date" }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Pick date & time…", modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        )
+        "date" -> DatePickerDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(
+                    onClick = { step = "time" },
+                    enabled = dateState.selectedDateMillis != null,
+                ) { Text("Next") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        ) { DatePicker(state = dateState) }
+        "time" -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Send at") },
+            text = { TimePicker(state = timeState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    // DatePicker returns UTC midnight; rebuild in the local zone.
+                    val utc = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+                        .apply { timeInMillis = dateState.selectedDateMillis ?: return@TextButton }
+                    val local = Calendar.getInstance().apply {
+                        set(
+                            utc.get(Calendar.YEAR), utc.get(Calendar.MONTH),
+                            utc.get(Calendar.DAY_OF_MONTH),
+                            timeState.hour, timeState.minute, 0,
+                        )
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    onPick(local.timeInMillis.coerceAtLeast(System.currentTimeMillis() + 60_000))
+                }) { Text("Schedule") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
     msg: MessageEntity,
     onWhy: () -> Unit,
     onNotSpam: () -> Unit,
     onResend: () -> Unit,
+    onSendNow: () -> Unit,
+    onCancelScheduled: () -> Unit,
+    onSnooze: (Long) -> Unit,
+    onStar: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     val clipboard = LocalClipboardManager.current
     val isOut = msg.isOutgoing
+    val isScheduled = msg.sendStatus == "SCHEDULED"
+    var showMenu by remember { mutableStateOf(false) }
+    var showSnoozeMenu by remember { mutableStateOf(false) }
     Column(
         Modifier.fillMaxWidth(),
         horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
@@ -354,6 +488,10 @@ private fun MessageBubble(
                 .background(
                     if (isOut) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.surfaceVariant
+                )
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = { showMenu = true },
                 ),
         ) {
             Column {
@@ -397,19 +535,64 @@ private fun MessageBubble(
                     )
                 }
             }
+
+            // Long-press actions: copy, star, snooze (§8.2), delete
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenuItem(
+                    text = { Text("Copy text") },
+                    onClick = {
+                        clipboard.setText(AnnotatedString(msg.body))
+                        showMenu = false
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(if (msg.starred) "Unstar" else "Star") },
+                    onClick = { onStar(); showMenu = false },
+                )
+                if (!isScheduled) {
+                    DropdownMenuItem(
+                        text = { Text("Remind me…") },
+                        onClick = { showMenu = false; showSnoozeMenu = true },
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text("Delete") },
+                    onClick = { onDelete(); showMenu = false },
+                )
+            }
+            DropdownMenu(expanded = showSnoozeMenu, onDismissRequest = { showSnoozeMenu = false }) {
+                timePresets().forEach { (label, time) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = { onSnooze(time); showSnoozeMenu = false },
+                    )
+                }
+            }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                SimpleDateFormat("HH:mm", Locale.US).format(Date(msg.timestamp)) +
-                    if (msg.sendStatus == "FAILED") " · Failed" else "",
+                when {
+                    isScheduled -> "Scheduled · " + SCHEDULED_FMT.format(Date(msg.timestamp))
+                    else -> SimpleDateFormat("HH:mm", Locale.US).format(Date(msg.timestamp)) +
+                        if (msg.sendStatus == "FAILED") " · Failed" else ""
+                },
                 style = MaterialTheme.typography.labelSmall,
-                color = if (msg.sendStatus == "FAILED") CategoryColors.Fraud
-                else MaterialTheme.colorScheme.outline,
+                color = when {
+                    isScheduled -> MaterialTheme.colorScheme.primary
+                    msg.sendStatus == "FAILED" -> CategoryColors.Fraud
+                    else -> MaterialTheme.colorScheme.outline
+                },
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp),
             )
             if (msg.sendStatus == "FAILED") {
                 TextButton(onClick = onResend) { Text("Resend") }
+            }
+        }
+        if (isScheduled) {
+            Row {
+                TextButton(onClick = onSendNow) { Text("Send now") }
+                TextButton(onClick = onCancelScheduled) { Text("Cancel") }
             }
         }
 
