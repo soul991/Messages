@@ -239,7 +239,12 @@ Default-SMS role; send/receive SMS/MMS/RCS (typing indicators, read receipts, re
 
 **Identity & storage:** Google Sign-In + Google Drive **appDataFolder** (hidden, app-private area of the user's own Drive). No app servers; the Google account IS the identity. On any device, signing in with the same Gmail lets the app discover that account's backup and offer restore. Scopes: `drive.appdata` only — never general Drive access.
 
-**What is backed up:** all messages from ALL folders (Inbox, Transactions, Promotions, Spam, Review, Blocked, Archived — the never-delete philosophy extends to backup), Trash items *flagged as trash with their purge dates*, category/label assignments, matched-pattern verdicts, user rules, allow/block lists, sender reputations, settings, and pattern-pack version. **MMS media is a separate toggle** ("Include photos/videos"), OFF by default — text always, media opt-in.
+**What is backed up:** all messages from Inbox, Transactions, Promotions, Review, Blocked, Archived; Trash items *flagged as trash with their purge dates*; category/label assignments, matched-pattern verdicts, user rules, allow/block lists, sender reputations, settings, and pattern-pack version. **MMS media is a separate toggle** ("Include photos/videos"), OFF by default — text always, media opt-in.
+
+**Spam backup control (three modes, in Backup settings):**
+- **Back up spam: On** — the whole Spam folder is included in snapshots (default: On, honoring the never-delete philosophy).
+- **Back up spam: Off** — Spam folder excluded entirely; backups get smaller and junk doesn't follow the user to a new phone.
+- **Back up spam: Custom** — the user hand-picks which spam messages/threads are worth keeping. Opens a multi-select picker over the Spam folder with **search-first UX (§8.5)**: a search bar with keyword chips at the top instead of forcing endless scrolling, checkboxes per message/thread, "select all results" for the current keyword filter, and a running count ("23 of 1,204 spam messages will be backed up"). Selections persist; newly arriving spam is NOT auto-included in Custom mode (only what the user explicitly picked).
 
 **Deletion semantics:** backup mirrors the phone's state including Trash. A message the user deleted appears in the backup as a trash item until its 60-day purge, after which it leaves both. Each new backup **replaces** the previous snapshot (keep the last 2 snapshots in Drive for corruption safety; prune older).
 
@@ -269,6 +274,30 @@ Default-SMS role; send/receive SMS/MMS/RCS (typing indicators, read receipts, re
 - On very first open: immediately show the system default-SMS-app prompt (RoleManager).
 - **If denied:** the app stays usable as a viewer shell only — the conversation area shows an empty state with a single **"Set as default SMS app"** card/button (mirroring Google Messages' behavior) that re-triggers the role request. No messaging features, no backup, no protection until granted; re-prompt contextually (banner) rather than nagging with popups.
 - If granted: proceed to onboarding → restore offer (§8.3) → backfill.
+
+### 8.5 Search — everywhere, deliberate, multi-keyword, highlighted (hard requirement)
+
+Search is the primary navigation tool of this app. Anywhere the user could face a long list, provide a search bar — global search, per-folder search (Spam, Promotions, Blocked, Review, Trash, Archived), in-conversation search, the Custom-spam-backup picker (§8.3), contact picker, and rules/allow/block list management. Unlimited scrolling is the fallback, never the primary way to find something.
+
+**1) Search trigger — standard incremental, instant (WhatsApp/Telegram-class latency):**
+- Search-as-you-type, exactly like the major messaging apps: results update live as the user types, backed by the FTS index so every query returns in tens of milliseconds even at 100k+ messages. Latency must feel identical to WhatsApp/Telegram search — this is a hard requirement.
+- Junk-fragment guard: the first query fires only after **3 typed characters** (single letters like `a`/`ap` produce no query), with a short debounce (~150–250 ms) so intermediate keystrokes don't waste queries. Below the threshold, show recent searches + suggested keyword chips instead of results.
+- Prefix matching applies to the word being typed (`applicat` already matches "application") so results appear before the word is even finished.
+
+**2) Multi-keyword search with unlimited keyword chips (the disambiguation tool):**
+- Problem this solves: searching `application number` may match 100 messages (driving licence, NEET, JEE, SSC, job portals…). The user must be able to narrow without scrolling.
+- The user can add any number of keywords: typing more words and/or tapping suggested chips. Each keyword becomes a removable **chip** in the search bar (e.g., `[application] [neet] [jee] [upsc]`). Type-and-select or tap-and-select, both work — "infinite keywords."
+- **Suggested chips are generated from the current result set:** the app extracts frequent distinctive words from the matched messages (e.g., "driving licence", "learner", "NEET", "JEE", "SSC", "registration") and offers them as one-tap chips.
+- **Semantics — all keywords are equal; match-any with relevance ranking:** a message appears if it contains **any** of the keywords; results are **ranked by how many keywords they match** (more matches → higher). Example: chips `[application] [neet] [jee] [upsc]` → a NEET application message (matches 2) ranks above a generic message containing only "application" (matches 1); messages matching none are excluded. No keyword is mandatory; no boolean logic is ever shown to the user — it's simply "show messages containing these words, best matches first." Removing a chip instantly re-filters and re-ranks. Ties broken by recency. Maps to FTS `OR` queries with match-count scoring.
+- Chips combine with the existing filters (folder, label like OTP/Bank/Delivery, date, sender) — e.g., `[application] [neet]` + label:OTP.
+- Persist the user's frequently used keyword combos as tappable "saved searches" (e.g., a "NEET application" saved chip-set).
+
+**3) Match highlighting (Google Messages behavior):**
+- Every matched word/phrase is **highlighted** (accent-colored span, high-contrast in dark mode) in the results list — in the message-body snippet, the sender/contact name, and, when a result is opened, in the conversation view itself (auto-scroll to the matched message with the term highlighted in the bubble; next/previous match arrows for in-conversation search).
+- With multiple chips, ALL chip terms are highlighted in each result (same highlight color; the snippet is windowed around the first match with ellipses).
+- Snippets prefer the sentence/line containing the match rather than truncating mid-word.
+
+**Implementation guidance:** back this with SQLite **FTS4/FTS5** (Room `@Fts4` entity mirroring the message table) — indexed full-text search stays instant at 100k+ messages, gives `snippet()`/`offsets()` for highlight spans, and multi-keyword match-any queries with match-count ranking are native FTS (`application OR neet OR jee`, ranked by hits). Index the normalized text (§3 Stage 0) so obfuscated spam is searchable by its real words too. The suggested-chip extractor runs over the FTS result set with a stop-word list (skip "the", "your", "is"…) and surfaces the top distinctive terms by frequency.
 
 ---
 
@@ -313,7 +342,7 @@ Default-SMS role; send/receive SMS/MMS/RCS (typing indicators, read receipts, re
 - **M1 — Core messenger:** default-SMS role, send/receive SMS/MMS, list + chat UI (already at §9 quality bar), notifications, contacts, search.
 - **M2 — Protection engine:** normalizer, sender analyzer, full seed pattern library + combos + scoring, folders, per-category channels, "Why filtered?", reclassify actions, backfill, never-delete guarantee.
 - **M3 — Library expansion + hardening:** Claude Code's §7 expansion pass, labeled corpus + CI gates, sensitivity slider, rules/allow/block UI, pattern-pack import.
-- **M4 — Modern extras:** OTP auto-delete + copy chip, scheduled send, labels/chips, widgets, bubbles, **Trash with 60-day retention (§6.4)**, **Drive backup & restore with checkpoint scheduling and passkey/password encryption (§8.3)**, **first-open default-app gate (§8.4)**, protection dashboard, app lock.
+- **M4 — Modern extras:** OTP auto-delete + copy chip, scheduled send, labels/chips, widgets, bubbles, **Trash with 60-day retention (§6.4)**, **Drive backup & restore with checkpoint scheduling, passkey/password encryption, and spam-backup modes (§8.3)**, **first-open default-app gate (§8.4)**, **FTS-backed search everywhere: whole-word trigger, keyword chips, highlighting (§8.5)**, protection dashboard, app lock.
 - **M5 — Polish & parity:** RCS features, per-chat customization, animations pass, accessibility pass, dual-SIM refinement, Play submission prep.
 
 ---
