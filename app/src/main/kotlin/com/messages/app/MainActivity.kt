@@ -9,6 +9,7 @@ import android.provider.Telephony
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -30,6 +31,12 @@ class MainActivity : ComponentActivity() {
 
     private var isDefaultSmsApp by mutableStateOf(false)
 
+    /** Set once the NavHost is up; routes intents arriving via onNewIntent (singleTask). */
+    private var intentNavigator: ((Intent) -> Unit)? = null
+
+    /** Folder to show on Home (e.g. Review notification tap); observed by HomeScreen. */
+    private var folderRequest by mutableStateOf<String?>(null)
+
     private val roleRequest = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { refreshDefaultState() }
@@ -46,31 +53,27 @@ class MainActivity : ComponentActivity() {
         refreshDefaultState()
         requestCorePermissions()
 
-        val initialThreadId = intent.getLongExtra("threadId", -1L)
-        val initialFolder = intent.getStringExtra("folder")
-        // ACTION_SENDTO / ACTION_SEND with sms:/smsto:/mms:/mmsto: data — jump
-        // straight into (or create) the thread for that recipient.
-        val sendToAddress = intent.data
-            ?.takeIf { it.scheme in listOf("sms", "smsto", "mms", "mmsto") }
-            ?.schemeSpecificPart?.substringBefore('?')?.trim()
-            ?.takeIf { it.isNotBlank() }
-        val sendToThreadId = sendToAddress?.let {
-            try {
-                Telephony.Threads.getOrCreateThreadId(this, it)
-            } catch (_: Exception) {
-                it.hashCode().toLong()
-            }
-        }
+        val initialRoute = routeFor(intent)
+        folderRequest = intent.getStringExtra("folder")
         val onboardingPrefs = getSharedPreferences("onboarding", MODE_PRIVATE)
 
         setContent {
             MessagesTheme {
                 val nav = rememberNavController()
+                // Route intents that arrive while this singleTask activity is alive
+                // (notification taps, ACTION_SENDTO from other apps).
+                DisposableEffect(nav) {
+                    intentNavigator = { newIntent ->
+                        routeFor(newIntent)?.let { route ->
+                            nav.navigate(route) { launchSingleTop = true }
+                        }
+                    }
+                    onDispose { intentNavigator = null }
+                }
                 NavHost(
                     navController = nav,
                     startDestination = when {
-                        initialThreadId != -1L -> "chat/$initialThreadId"
-                        sendToThreadId != null -> "chat/$sendToThreadId?address=${Uri.encode(sendToAddress)}"
+                        initialRoute != null -> initialRoute
                         !onboardingPrefs.getBoolean("done", false) -> "onboarding"
                         else -> "home"
                     },
@@ -88,7 +91,7 @@ class MainActivity : ComponentActivity() {
                     composable("home") {
                         HomeScreen(
                             isDefaultSmsApp = isDefaultSmsApp,
-                            initialFolder = initialFolder,
+                            initialFolder = folderRequest,
                             onRequestDefault = ::requestDefaultRole,
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
                             onCompose = { nav.navigate("compose") },
@@ -138,6 +141,43 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshDefaultState()
+    }
+
+    // singleTask: notification taps and SENDTO while alive land here, not onCreate.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intentNavigator?.invoke(intent)
+    }
+
+    /**
+     * Maps a launch intent to a nav route: notification `threadId` extra or an
+     * ACTION_SENDTO/ACTION_SEND `sms:/smsto:/mms:/mmsto:` data URI → the chat for
+     * that thread/recipient; a `folder` extra (Review notification) → home with
+     * that folder selected. Null when the intent carries no destination.
+     */
+    private fun routeFor(intent: Intent): String? {
+        val threadId = intent.getLongExtra("threadId", -1L)
+        if (threadId != -1L) return "chat/$threadId"
+
+        val sendToAddress = intent.data
+            ?.takeIf { it.scheme in listOf("sms", "smsto", "mms", "mmsto") }
+            ?.schemeSpecificPart?.substringBefore('?')?.trim()
+            ?.takeIf { it.isNotBlank() }
+        if (sendToAddress != null) {
+            val sendToThreadId = try {
+                Telephony.Threads.getOrCreateThreadId(this, sendToAddress)
+            } catch (_: Exception) {
+                sendToAddress.hashCode().toLong()
+            }
+            return "chat/$sendToThreadId?address=${Uri.encode(sendToAddress)}"
+        }
+
+        intent.getStringExtra("folder")?.let { folder ->
+            folderRequest = folder
+            return "home"
+        }
+        return null
     }
 
     private fun refreshDefaultState() {
