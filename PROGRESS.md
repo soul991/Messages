@@ -1,6 +1,6 @@
 # PROGRESS — "Messages" (Android SMS app with deterministic spam/scam protection)
 
-_Last updated: 2026-07-17 (M4 completion session: Trash, real migrations, FTS search, default-gate, bubbles, Drive backup). Source spec: `PRD_Messages.md` (v2)._
+_Last updated: 2026-07-17 (real-device bugfix session: backfill crash root-caused & fixed, contact-name search, chip fixes — all verified on a physical device via adb). Source spec: `PRD_Messages.md` (v2)._
 
 ## Current state at a glance
 
@@ -39,6 +39,13 @@ _Last updated: 2026-07-17 (M4 completion session: Trash, real migrations, FTS se
 ## In progress
 
 _(nothing mid-flight)_
+
+### Recently completed (2026-07-17, real-device bugfix session — commits `be292ee`, `e4992a0`, `f461b45`) — first physical-device testing
+- **CRITICAL fix — backfill imported zero messages** (`be292ee`): the Normalizer's URL regex used an unbounded lookbehind (`(?<=…(?:/\S*)?)`). OpenJDK accepts it (all JVM tests green) but **Android's ICU regex rejects it at compile time** → `ExceptionInInitializerError` in `Normalizer.<clinit>` on first classification → the backfill worker died (an Error escapes `catch(Exception)`, so WorkManager marked it FAILED with no retry) and the incoming-SMS pipeline would have crashed too. Root-caused on-device via adb (workdb state=FAILED, `total=4568` written but no checkpoint; live logcat repro showed the PatternSyntaxException). Rewrote the scheme-less-domain alternative without lookbehind + regression test. **Lesson recorded: JVM-only tests cannot catch ICU regex differences — anything regex-new must be smoke-tested on a device.**
+- **Backfill hardening** (`e4992a0`): per-message `catch(Throwable)` (poison message can't kill the import), batch-level `catch(Throwable)` → retry from checkpoint, classify-failure fallback to Inbox in `onIncomingSms`/`indexHistorical` (§14.2 — a message must never become invisible), receiver pipeline catch, `ensureScheduled` on every launch once READ_SMS granted (was: only in the grant callback — one failed run = never again), and Settings → Message import → **"Re-import messages"** safety-net button with live n-of-total progress.
+- **Search fixes (§8.5)** (`f461b45`): contact-name search — "maa"/"mom" finds the conversation via a new `searchByNameOrAddress` conversations query, rendered as a highlighted "Conversations" section above message results; committed chips query from 2 chars (a "hi" chip finds "hi" — the 3-char guard now applies only to the live-typed token); below-threshold hint text now reads "Type at least 3 characters".
+- **On-device verification (physical device, 4,569 provider messages)**: backfill imported 4,569/4,569 with zero row failures and zero classify fallbacks; categories Inbox 2,876 / Transactions 687 / Spam 483 / Promotions 451 / Review 72 (1.6% < §11's 10% cap); FTS row count = messages count; folder chips show live counts (Inbox 846 unread / Transactions 54 / Promotions 122); screenshots confirmed: search-as-you-type with highlight, contact-name "Conversations" section, chips commit on space with ×-remove, suggested chips from result set, "Matches k of n keywords" ranking.
+- **BUG noted for M5 (from real-device testing): Confirmed on real device — full animation + UI pass is mandatory in M5, using the frontend-design, compose-skill, and material-3 skills.** Animation quality on the real device is poor/low-quality and the overall UI is not yet at the PRD §9 bar.
 
 ### Recently completed (2026-07-17, this session — commits `7fbe900`, `819c1fc`, `08020bb`, `c0cf0c2`, `6179b33`, `7b5506b`, `350e0d7`, `439ef3a`) — M4 completion
 - **Trash system (§6.4)** (`819c1fc`): user deletion = provider row removed + Room row flagged `trashed`/`trashedAt` (Room **v5** + `MIGRATION_4_5`); every surfaced DAO query excludes trashed. Restore re-inserts the SMS provider row with original timestamp (MMS restores index-only, local media kept); scheduled drafts hard-delete; OTP cleanup (§6.6) bypasses Trash but skips trashed rows. Daily `TrashPurgeWorker` (60-day retention). TrashScreen (Settings → Trash with live count): restore / delete-forever / empty, per-item purge countdown. Chat gains "Delete conversation" (whole-thread trash). Backups carry trash items *as trash* (no provider write on import).
@@ -88,7 +95,7 @@ _(nothing mid-flight)_
 
 - **§8.3 unblockers (owner action)**: register the Android OAuth client in Google Cloud Console (`docs/DRIVE_BACKUP_SETUP.md` §1–3), then end-to-end test sign-in → back up now → restore on a second profile/device. Optional later: passkey-PRF wrap (needs an owner-hosted RP domain, doc §5), snapshot chooser, transfer progress UI.
 - **Deferred from §6.5**: optional auto-clean of Spam >90 days old (deliberately not built yet; Trash/OTP cleanup landed first).
-- **M5 — polish/parity:** RCS via available Android APIs, per-chat customization (wallpapers/bubble colors), animation pass (spring transitions, shared-element list→chat, 120Hz), accessibility pass, swipe-action customization, undo snackbars, drafts, delivery reports, Play Store SMS-permission declaration + privacy policy.
+- **M5 — polish/parity:** RCS via available Android APIs, per-chat customization (wallpapers/bubble colors), animation pass (spring transitions, shared-element list→chat, 120Hz), accessibility pass, swipe-action customization, undo snackbars, drafts, delivery reports, Play Store SMS-permission declaration + privacy policy. **Confirmed on real device — full animation + UI pass is mandatory in M5, using the frontend-design, compose-skill, and material-3 skills** (animation quality poor on-device; UI not yet at the §9 bar).
 
 ## Decisions made that are not in the PRD
 
