@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.messages.app.ui.chat.ChatScreen
 import com.messages.app.ui.home.HomeScreen
+import com.messages.app.ui.onboarding.OnboardingScreen
 import com.messages.app.ui.why.WhyFilteredScreen
 import com.messages.core.backfill.Backfill
 import com.messages.designsystem.MessagesTheme
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
 
         val initialThreadId = intent.getLongExtra("threadId", -1L)
         val initialFolder = intent.getStringExtra("folder")
+        val onboardingPrefs = getSharedPreferences("onboarding", MODE_PRIVATE)
 
         setContent {
             MessagesTheme {
@@ -49,9 +51,20 @@ class MainActivity : ComponentActivity() {
                     navController = nav,
                     startDestination = when {
                         initialThreadId != -1L -> "chat/$initialThreadId"
+                        !onboardingPrefs.getBoolean("done", false) -> "onboarding"
                         else -> "home"
                     },
                 ) {
+                    composable("onboarding") {
+                        OnboardingScreen(
+                            isDefaultSmsApp = isDefaultSmsApp,
+                            onRequestDefault = ::requestDefaultRole,
+                            onDone = {
+                                onboardingPrefs.edit().putBoolean("done", true).apply()
+                                nav.navigate("home") { popUpTo("onboarding") { inclusive = true } }
+                            },
+                        )
+                    }
                     composable("home") {
                         HomeScreen(
                             isDefaultSmsApp = isDefaultSmsApp,
