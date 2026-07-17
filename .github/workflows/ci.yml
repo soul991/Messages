@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  engine-tests:
+    name: "Protection engine — pattern tests + corpus gates (PRD §7.4/§11)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Pure-JVM module: every pattern's positive/negative examples, combo
+      # rules, normalizer obfuscation corpus, and the corpus regression gates
+      # (zero protected filtered, ≥95% scam caught, genuine never spammed,
+      # median <50ms, corpus-size floor). No Android SDK needed.
+      - name: Run engine tests
+        run: ./gradlew :protection-engine:test
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-test-reports
+          path: protection-engine/build/reports/tests/test/
+
+  app-build:
+    name: "Android app — assembleDebug"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # ubuntu-latest ships the Android SDK; ANDROID_HOME is preset, so no
+      # local.properties is needed on CI.
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug
