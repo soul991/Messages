@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.RestoreFromTrash
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +29,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,11 +41,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.ui.search.SearchHighlight
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
 import com.messages.core.trash.TrashRetention
@@ -100,6 +108,20 @@ fun TrashScreen(
     var confirmForever by remember { mutableStateOf<MessageEntity?>(null) }
     var confirmEmpty by remember { mutableStateOf(false) }
 
+    // Per-folder search (§8.5): 3-char threshold, live filter + highlighting.
+    var query by remember { mutableStateOf("") }
+    val terms = remember(query) {
+        if (query.trim().length >= 3) query.trim().split(Regex("\\s+")) else emptyList()
+    }
+    val shown = remember(trashed, terms) {
+        if (terms.isEmpty()) trashed
+        else trashed.filter { m ->
+            terms.any { t ->
+                m.body.contains(t, ignoreCase = true) || m.address.contains(t, ignoreCase = true)
+            }
+        }
+    }
+
     LaunchedEffect(lastAction) {
         lastAction?.let {
             snackbarHostState.showSnackbar(it)
@@ -132,6 +154,21 @@ fun TrashScreen(
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
+            if (trashed.isNotEmpty()) {
+                TextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text("Search in Trash") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    singleLine = true,
+                    shape = CircleShape,
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
             if (trashed.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -150,12 +187,23 @@ fun TrashScreen(
                 }
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {
-                    items(trashed, key = { it.id }) { msg ->
+                    items(shown, key = { it.id }) { msg ->
                         TrashRow(
                             msg = msg,
+                            terms = terms,
                             onRestore = { vm.restore(msg.id) },
                             onDeleteForever = { confirmForever = msg },
                         )
+                    }
+                    if (shown.isEmpty()) {
+                        item {
+                            Text(
+                                "No trashed messages match",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.padding(16.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -201,10 +249,16 @@ private val TRASH_TIME_FMT = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.US)
 @Composable
 private fun TrashRow(
     msg: MessageEntity,
+    terms: List<String> = emptyList(),
     onRestore: () -> Unit,
     onDeleteForever: () -> Unit,
 ) {
     val daysLeft = TrashRetention.purgeCountdownDays(msg.trashedAt)
+    val highlight = SpanStyle(
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold,
+        background = MaterialTheme.colorScheme.primaryContainer,
+    )
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -212,7 +266,7 @@ private fun TrashRow(
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    (if (msg.isOutgoing) "To " else "") + msg.address,
+                    SearchHighlight.annotate((if (msg.isOutgoing) "To " else "") + msg.address, terms, highlight),
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -226,7 +280,8 @@ private fun TrashRow(
                 )
             }
             Text(
-                msg.body.ifBlank { "(media message)" },
+                if (msg.body.isBlank()) androidx.compose.ui.text.AnnotatedString("(media message)")
+                else SearchHighlight.annotate(SearchHighlight.snippet(msg.body, terms), terms, highlight),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline,
                 maxLines = 2,

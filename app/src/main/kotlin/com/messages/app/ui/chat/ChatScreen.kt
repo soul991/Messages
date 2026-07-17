@@ -31,10 +31,13 @@ import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -103,6 +106,10 @@ fun ChatScreen(
     onBack: () -> Unit,
     onWhy: (Long) -> Unit,
     fallbackAddress: String? = null,
+    /** §8.5.3: terms to highlight when opened from a search result. */
+    initialSearchTerms: List<String> = emptyList(),
+    /** §8.5.3: the matched message to auto-scroll to. */
+    targetMessageId: Long? = null,
 ) {
     val context = LocalContext.current
     val vm: ChatViewModel = viewModel(
@@ -135,6 +142,42 @@ fun ChatScreen(
     var showChatMenu by remember { mutableStateOf(false) }
     var showDeleteThreadConfirm by remember { mutableStateOf(false) }
 
+    // ---- In-conversation search (§8.5.3) ----
+    var chatSearchActive by remember { mutableStateOf(initialSearchTerms.isNotEmpty()) }
+    var chatSearchQuery by remember { mutableStateOf(initialSearchTerms.joinToString(" ")) }
+    // The 3-char guard applies to the whole typed query (§8.5.1).
+    val searchTerms = remember(chatSearchQuery) {
+        if (chatSearchQuery.trim().length >= 3)
+            chatSearchQuery.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        else emptyList()
+    }
+    val matchIndices = remember(messages, searchTerms) {
+        if (searchTerms.isEmpty()) emptyList()
+        else messages.indices.filter { i ->
+            searchTerms.any { t -> messages[i].body.contains(t, ignoreCase = true) }
+        }
+    }
+    var currentMatch by remember { mutableStateOf(0) } // index into matchIndices
+    // One-shot jump to the search result this chat was opened from.
+    var pendingTarget by remember { mutableStateOf(targetMessageId) }
+    LaunchedEffect(messages, matchIndices) {
+        val target = pendingTarget ?: return@LaunchedEffect
+        val listIndex = messages.indexOfFirst { it.id == target }
+        if (listIndex >= 0) {
+            pendingTarget = null
+            matchIndices.indexOf(listIndex).takeIf { it >= 0 }?.let { currentMatch = it }
+            listState.animateScrollToItem(listIndex)
+        }
+    }
+    LaunchedEffect(currentMatch, chatSearchActive) {
+        if (chatSearchActive && pendingTarget == null) {
+            matchIndices.getOrNull(currentMatch)?.let { listState.animateScrollToItem(it) }
+        }
+    }
+    LaunchedEffect(matchIndices) {
+        if (currentMatch >= matchIndices.size) currentMatch = 0
+    }
+
     // Locked-conversation gate (§8.2): nothing renders until authenticated.
     if (locked && !chatUnlocked) {
         com.messages.app.ui.lock.LockScreen(
@@ -153,7 +196,10 @@ fun ChatScreen(
     }
 
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
+        // Don't fight the search jump/navigation (§8.5.3).
+        if (messages.isNotEmpty() && pendingTarget == null && !chatSearchActive) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
     }
     LaunchedEffect(sendError) {
         sendError?.let {
@@ -165,6 +211,65 @@ fun ChatScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
+            if (chatSearchActive) {
+                // In-conversation search bar (§8.5.3): live query, match count,
+                // next/previous arrows.
+                TopAppBar(
+                    title = {
+                        TextField(
+                            value = chatSearchQuery,
+                            onValueChange = { chatSearchQuery = it; currentMatch = 0 },
+                            placeholder = { Text("Search in conversation") },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            chatSearchActive = false
+                            chatSearchQuery = ""
+                        }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
+                        }
+                    },
+                    actions = {
+                        if (searchTerms.isNotEmpty()) {
+                            Text(
+                                if (matchIndices.isEmpty()) "0/0"
+                                else "${currentMatch + 1}/${matchIndices.size}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (matchIndices.isNotEmpty()) {
+                                    currentMatch = (currentMatch - 1 + matchIndices.size) % matchIndices.size
+                                }
+                            },
+                            enabled = matchIndices.isNotEmpty(),
+                        ) {
+                            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
+                        }
+                        IconButton(
+                            onClick = {
+                                if (matchIndices.isNotEmpty()) {
+                                    currentMatch = (currentMatch + 1) % matchIndices.size
+                                }
+                            },
+                            enabled = matchIndices.isNotEmpty(),
+                        ) {
+                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
+                        }
+                    },
+                )
+            } else {
             TopAppBar(
                 title = {
                     Column {
@@ -183,6 +288,9 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { chatSearchActive = true }) {
+                        Icon(Icons.Filled.Search, contentDescription = "Search in conversation")
+                    }
                     if (locked) {
                         Icon(
                             Icons.Filled.Lock, contentDescription = "Locked conversation",
@@ -216,6 +324,7 @@ fun ChatScreen(
                     }
                 },
             )
+            }
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().imePadding()) {
@@ -228,6 +337,7 @@ fun ChatScreen(
                 items(messages, key = { it.id }) { msg ->
                     MessageBubble(
                         msg = msg,
+                        highlightTerms = if (chatSearchActive) searchTerms else emptyList(),
                         onWhy = { onWhy(msg.id) },
                         onNotSpam = { vm.moveToInbox(msg.id) },
                         onResend = { vm.resend(msg) },
@@ -510,6 +620,7 @@ private fun ScheduleSendDialog(
 @Composable
 private fun MessageBubble(
     msg: MessageEntity,
+    highlightTerms: List<String> = emptyList(),
     onWhy: () -> Unit,
     onNotSpam: () -> Unit,
     onResend: () -> Unit,
@@ -605,8 +716,18 @@ private fun MessageBubble(
                     }
                 }
                 if (msg.body.isNotBlank()) {
+                    // §8.5.3: in-conversation search highlights terms inside the bubble.
+                    val bodyText = if (highlightTerms.isEmpty()) AnnotatedString(msg.body)
+                    else com.messages.app.ui.search.SearchHighlight.annotate(
+                        msg.body, highlightTerms,
+                        androidx.compose.ui.text.SpanStyle(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            background = MaterialTheme.colorScheme.tertiaryContainer,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        ),
+                    )
                     Text(
-                        msg.body,
+                        bodyText,
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (isOut) MaterialTheme.colorScheme.onPrimary
                         else MaterialTheme.colorScheme.onSurfaceVariant,

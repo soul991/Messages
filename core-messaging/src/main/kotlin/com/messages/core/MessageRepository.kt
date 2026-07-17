@@ -10,8 +10,10 @@ import com.messages.core.db.MessageEntity
 import com.messages.core.db.MessagesDatabase
 import com.messages.core.db.SenderReputationEntity
 import com.messages.core.mms.MmsPduParser
+import com.messages.core.search.MessageSearch
 import com.messages.core.trash.TrashRetention
 import com.messages.protection.Category
+import com.messages.protection.Normalizer
 import com.messages.protection.PatternMatcher
 import com.messages.protection.ProtectionEngine
 import com.messages.protection.SenderAnalyzer
@@ -36,6 +38,15 @@ class MessageRepository private constructor(private val context: Context) {
         .build()
 
     private val settingsPrefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    /** §8.5 multi-keyword FTS search. */
+    val search: MessageSearch by lazy { MessageSearch(db.messages()) }
+
+    /** Stage-0 normalization for the FTS index (§8.5) — never fails the caller. */
+    fun normalizedOf(body: String): String =
+        runCatching { Normalizer.normalize(body).normalizedText }
+            .getOrDefault(body.lowercase())
+            .ifBlank { body.lowercase() }
 
     val engine: ProtectionEngine by lazy {
         // An imported pattern pack (§7.5) overrides the bundled library.
@@ -132,6 +143,7 @@ class MessageRepository private constructor(private val context: Context) {
                 threadId = threadId,
                 address = address,
                 body = body,
+                normalizedBody = normalizedOf(body),
                 timestamp = timestamp,
                 isOutgoing = false,
                 subId = subId,
@@ -173,6 +185,7 @@ class MessageRepository private constructor(private val context: Context) {
             threadId = threadId,
             address = address,
             body = body,
+            normalizedBody = normalizedOf(body),
             timestamp = timestamp,
             isOutgoing = isOutgoing,
             read = read,
@@ -249,6 +262,7 @@ class MessageRepository private constructor(private val context: Context) {
             threadId = threadId,
             address = senderAddress,
             body = textBody,
+            normalizedBody = normalizedOf(textBody),
             timestamp = timestamp,
             isOutgoing = false,
             category = verdict.category.name,
@@ -482,6 +496,7 @@ class MessageRepository private constructor(private val context: Context) {
             threadId = threadId,
             address = address,
             body = textBody,
+            normalizedBody = normalizedOf(textBody),
             timestamp = timestamp,
             isOutgoing = true,
             read = true,
@@ -531,6 +546,7 @@ class MessageRepository private constructor(private val context: Context) {
                 threadId = threadId,
                 address = address,
                 body = body,
+                normalizedBody = normalizedOf(body),
                 timestamp = timestamp,
                 isOutgoing = true,
                 read = true,
@@ -589,6 +605,7 @@ class MessageRepository private constructor(private val context: Context) {
             threadId = threadId,
             address = address,
             body = body,
+            normalizedBody = normalizedOf(body),
             timestamp = sendAt,
             isOutgoing = true,
             read = true,

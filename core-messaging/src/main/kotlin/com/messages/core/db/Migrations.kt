@@ -23,5 +23,24 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_4_5)
+    /**
+     * v6 (§8.5 search): normalizedBody column + external-content FTS4 index.
+     * Existing rows keep the '' default (still searchable via the body
+     * column); the one-time [com.messages.core.search.FtsRenormalizeWorker]
+     * pass fills them with the engine's Stage-0 normalization
+     * (leet/homoglyph/separator undo).
+     */
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE messages ADD COLUMN normalizedBody TEXT NOT NULL DEFAULT ''")
+            db.execSQL(
+                "CREATE VIRTUAL TABLE IF NOT EXISTS `messages_fts` USING FTS4(" +
+                    "`body` TEXT NOT NULL, `normalizedBody` TEXT NOT NULL, " +
+                    "`address` TEXT NOT NULL, content=`messages`)"
+            )
+            db.execSQL("INSERT INTO messages_fts(messages_fts) VALUES('rebuild')")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_4_5, MIGRATION_5_6)
 }

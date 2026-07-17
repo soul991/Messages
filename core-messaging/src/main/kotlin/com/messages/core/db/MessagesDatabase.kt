@@ -78,6 +78,28 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE body LIKE '%' || :query || '%' AND trashed = 0 ORDER BY timestamp DESC LIMIT 100")
     suspend fun search(query: String): List<MessageEntity>
 
+    // ---- §8.5 FTS search ----
+
+    /**
+     * One keyword (as an FTS MATCH expression, e.g. `applicat*` or a quoted
+     * phrase) → matching live messages, newest first. Multi-keyword match-any
+     * ranking is assembled in [com.messages.core.search.MessageSearch] by
+     * merging per-keyword result sets — avoids relying on FTS enhanced-query
+     * OR syntax, which not every OEM SQLite build enables.
+     */
+    @Query(
+        "SELECT messages.* FROM messages JOIN messages_fts ON messages.id = messages_fts.docid " +
+            "WHERE messages_fts MATCH :match AND messages.trashed = 0 " +
+            "ORDER BY messages.timestamp DESC LIMIT :limit"
+    )
+    suspend fun searchFts(match: String, limit: Int): List<MessageEntity>
+
+    @Query("UPDATE messages SET normalizedBody = :normalized WHERE id = :id")
+    suspend fun setNormalizedBody(id: Long, normalized: String)
+
+    @Query("SELECT id, body FROM messages WHERE normalizedBody = ''")
+    suspend fun rowsNeedingNormalization(): List<IdBody>
+
     @Query("SELECT COUNT(*) FROM messages WHERE category = :category AND read = 0 AND trashed = 0")
     fun unreadCount(category: String): Flow<Int>
 
@@ -132,6 +154,7 @@ interface MessageDao {
 
 data class CategoryCount(val category: String, val count: Int)
 data class SenderCount(val address: String, val count: Int)
+data class IdBody(val id: Long, val body: String)
 
 @Dao
 interface ConversationDao {
@@ -220,8 +243,9 @@ interface UserRuleDao {
     entities = [
         MessageEntity::class, ConversationEntity::class,
         SenderReputationEntity::class, UserRuleEntity::class,
+        MessageFtsEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class MessagesDatabase : RoomDatabase() {

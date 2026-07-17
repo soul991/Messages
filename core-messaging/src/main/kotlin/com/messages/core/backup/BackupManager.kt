@@ -239,6 +239,7 @@ object BackupManager {
                             threadId = threadId,
                             address = m.address,
                             body = m.body,
+                            normalizedBody = repo.normalizedOf(m.body),
                             timestamp = m.timestamp,
                             isOutgoing = m.isOutgoing,
                             read = m.read,

@@ -113,6 +113,10 @@ class MainActivity : FragmentActivity() {
                             initialFolder = folderRequest,
                             onRequestDefault = ::requestDefaultRole,
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
+                            onOpenSearchResult = { threadId, messageId, terms ->
+                                val q = Uri.encode(terms.joinToString(" "))
+                                nav.navigate("chat/$threadId?q=$q&target=$messageId")
+                            },
                             onCompose = { nav.navigate("compose") },
                             onSettings = { nav.navigate("settings") },
                             onDashboard = { nav.navigate("dashboard") },
@@ -141,9 +145,19 @@ class MainActivity : FragmentActivity() {
                         )
                     }
                     composable(
-                        "chat/{threadId}?address={address}",
+                        "chat/{threadId}?address={address}&q={q}&target={target}",
                         arguments = listOf(
                             navArgument("address") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            },
+                            navArgument("q") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            },
+                            navArgument("target") {
                                 type = NavType.StringType
                                 nullable = true
                                 defaultValue = null
@@ -156,6 +170,10 @@ class MainActivity : FragmentActivity() {
                             onBack = { nav.popBackStack() },
                             onWhy = { messageId -> nav.navigate("why/$messageId") },
                             fallbackAddress = entry.arguments?.getString("address"),
+                            // §8.5.3: opened from search — highlight terms + jump to the match.
+                            initialSearchTerms = entry.arguments?.getString("q")
+                                ?.split(' ')?.filter { it.isNotBlank() } ?: emptyList(),
+                            targetMessageId = entry.arguments?.getString("target")?.toLongOrNull(),
                         )
                     }
                     composable("why/{messageId}") { entry ->

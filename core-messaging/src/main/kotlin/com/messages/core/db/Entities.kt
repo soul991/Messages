@@ -1,6 +1,7 @@
 package com.messages.core.db
 
 import androidx.room.Entity
+import androidx.room.Fts4
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -32,6 +33,13 @@ data class MessageEntity(
     val threadId: Long,
     val address: String,
     val body: String,
+    /**
+     * §8.5: Stage-0-normalized text (leet/homoglyph/separator obfuscation
+     * undone) — indexed by FTS so obfuscated spam is searchable by its real
+     * words. Populated on insert; historical rows are re-normalized once by
+     * the FTS backfill.
+     */
+    val normalizedBody: String = "",
     val timestamp: Long,
     val isOutgoing: Boolean,
     val read: Boolean = false,
@@ -63,6 +71,19 @@ data class MessageEntity(
     val trashed: Boolean = false,
     /** When the message was trashed; purge happens 60 days later. */
     val trashedAt: Long? = null,
+)
+
+/**
+ * §8.5: FTS4 mirror of [MessageEntity] (external content — Room keeps it in
+ * sync with triggers). Indexes original body, normalized body, and sender so
+ * incremental multi-keyword search stays instant at 100k+ messages.
+ */
+@Fts4(contentEntity = MessageEntity::class)
+@Entity(tableName = "messages_fts")
+data class MessageFtsEntity(
+    val body: String,
+    val normalizedBody: String,
+    val address: String,
 )
 
 @Entity(tableName = "conversations", indices = [Index(value = ["threadId"], unique = true)])
