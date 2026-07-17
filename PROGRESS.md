@@ -1,12 +1,12 @@
 # PROGRESS — "Messages" (Android SMS app with deterministic spam/scam protection)
 
-_Last updated: 2026-07-17 (night — onNewIntent fix, MMS send, dual-SIM, group messaging, CI). Source spec: `PRD_Messages.md` (v2)._
+_Last updated: 2026-07-17 (late night — M4 extras session). Source spec: `PRD_Messages.md` (v2)._
 
 ## Current state at a glance
 
 - **Toolchain**: installed on this Mac (OpenJDK 17 via Homebrew at `/opt/homebrew/opt/openjdk@17`, Gradle 8.9 wrapper, Android SDK cmdline-tools + platform 35 + build-tools 35 installing to `~/Library/Android/sdk`).
 - **Protection engine (`:protection-engine`)**: implemented, pure Kotlin/JVM, **48 of 48 tests passing** incl. all corpus CI gates. Corpus: **506 entries**, pattern library **121 patterns** (v1). Sensitivity + library both hot-swappable.
-- **Android app**: **compiles** (`:app:assembleDebug` green; `local.properties` with `sdk.dir` required). Compose flow, MMS send+receive, group messaging, dual-SIM send, Settings (sensitivity/rules/pattern-pack) are in. M1/M2/M3 complete; GitHub Actions CI committed.
+- **Android app**: **compiles** (`:app:assembleDebug` green; `local.properties` with `sdk.dir` required). M1/M2/M3 complete; **M4 core extras complete** (OTP auto-delete, scheduled send + snooze, dashboard + widgets, app lock, backup/restore). GitHub Actions CI committed.
 - Run engine tests: `export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && ./gradlew :protection-engine:test`
 
 ## Done
@@ -40,7 +40,15 @@ _Last updated: 2026-07-17 (night — onNewIntent fix, MMS send, dual-SIM, group 
 
 _(nothing mid-flight)_
 
-### Recently completed (2026-07-17, this session — commits `faf073b`, `21d1b0b`, `b6d0314`, `901b79b`, `4b0b1f9`)
+### Recently completed (2026-07-17, this session — commits `f451b3e`, `6f84187`, `bb9cbb8`, `0184d15`, `b2c0a76`) — M4 extras
+- **OTP auto-delete (§6.5/§8.2)** (`core-messaging/cleanup/OtpCleanupWorker.kt`): opt-in Settings switch (off by default) → 6-hourly periodic worker deleting OTP-labeled Inbox messages older than 24h. Scope guarantee lives in the DAO WHERE clause (OTP label + INBOX + unstarred only — filtered folders untouchable); deletes the Telephony provider row too (best-effort) and refreshes/drops conversation summaries. `ensureScheduled` safety net in `MessagesApp.onCreate`. OTP copy chip was already in ChatScreen (verified).
+- **Scheduled send + snooze (§8.2)** (`app/schedule/Scheduling.kt`): SCHEDULED rows live in the Room index only (timestamp = fire time; provider untouched until actually sent — other SMS apps must not see unsent messages); `ScheduledSendWorker` (unique OneTimeWork, survives reboot) promotes to provider Sent rows + radio-sends. Composer clock button → presets (1h / evening 6pm / tomorrow 8am) or M3 date+time pickers; scheduled bubble shows fire time + Send now / Cancel. Snooze: bubble long-press menu → Remind me presets → `SnoozeWorker` posts on a new `reminders` channel. Radio send extracted to `SmsRadio` (shared composer/worker). Long-press menu also has copy/star/delete.
+- **Protection dashboard + widgets (§8.2)**: `app/ui/dashboard/DashboardScreen.kt` (shield icon on Home → `dashboard` route) — all-time silenced hero counter, week/month chips, Spam/Promos/Blocked cards, dangerous count, per-family bars (new engine `familiesByPatternId` map; `link-*`/`format-*` synthetic IDs grouped as "Links & Format"), top blocked senders, empty state. Stats DAO queries in MessageDao. Widgets (`app/widget/Widgets.kt`, classic RemoteViews, no new deps): ProtectionStatsWidget (spam this week + all-time → opens dashboard via `dashboard` intent extra) and UnreadWidget (count + 3 unread previews); pushed via `WidgetUpdater.requestUpdate` on SMS/MMS arrival, mark-read, chat-open; 30-min system cycle backstop.
+- **App lock + hide previews + locked conversations (§8.2)** (`app/security/AppLock.kt`, `app/ui/lock/LockScreen.kt`): BiometricPrompt BIOMETRIC_WEAK|DEVICE_CREDENTIAL; **MainActivity is now FragmentActivity** (BiometricPrompt requirement). Full-screen gate until auth, re-locks on `onStop`. Settings: enabling requires successful auth; switch disabled without device lock. Hide previews → notifications say "New message". Locked conversations: `ConversationEntity.locked` (**Room v4**), chat ⋮ menu toggle, auth gate on open (back out on cancel), masked list preview, notifications drop sender+content for that thread; snooze reminders respect both.
+- **Local backup/restore (§8.2)** (`core-messaging/backup/BackupManager.kt`): one JSON file — messages (full index incl. category/labels/why-data; scheduled drafts excluded), settings (sensitivity/OTP-cleanup/hide-previews; app lock deliberately NOT restored — device-specific), rules, reputations, pinned/archived/muted/locked prefs by address, active imported pattern pack. Restore additive+idempotent (§6): dedupe by address+time+direction+body-hash, provider writes best-effort, conversation summaries rebuilt, settings hot-applied. Settings UI: Back up now (SAF, dated filename) / Restore (confirm dialog). Google Drive backup not started (optional per plan).
+- **Bug fix (latent)**: conversation upserts on incoming messages were dropping `preferredSubId` (and would have dropped `locked`) — now preserved.
+
+### Previously completed (2026-07-17, earlier session — commits `faf073b`, `21d1b0b`, `b6d0314`, `901b79b`, `4b0b1f9`)
 - **onNewIntent navigation fix** (`MainActivity`): intent→route mapping extracted to `routeFor()` (threadId extra / sms-family data URI / folder extra), shared by onCreate start-destination and a `DisposableEffect`-registered navigator invoked from `onNewIntent` — notification taps and SENDTO now navigate while the singleTask activity is alive; folder extra flows through compose state so a Review tap re-selects the chip on a live Home.
 - **MMS send** (`MmsPduBuilder` in core-messaging/mms, `MmsSender` in app/mms): m-send-req WSP encoder (counterpart of the parser), provider-write-first via `repo.storeOutgoingMms` (Mms Outbox pdu+parts+addr → Sent/Failed box on result), image downscale/recompress to ≤1MB/≤1440px JPEG, `SmsManager.sendMultimediaMessage` with MUTABLE status PI + `MmsSentReceiver`. Composer: attach button → bottom sheet (Gallery photo picker / Camera via TakePicture into FileProvider cache), preview with remove, snackbar errors; failed-MMS resend rebuilds from the saved local media file.
 - **Dual-SIM send**: `ConversationEntity.preferredSubId` + `MessageEntity.subId` (Room v3); SmsDeliverReceiver stores the receiving subscription; per-chat SIM dropdown in the composer (only with 2+ active SIMs, READ_PHONE_STATE-guarded); SMS + MMS send via `createForSubscriptionId`.
@@ -62,8 +70,8 @@ _(nothing mid-flight)_
 
 ## Next (per PRD §12 milestones)
 
-- **M4 — extras (next up):** OTP auto-delete after 24h (opt-in, `expiredOtps` DAO query already exists), scheduled send, snooze, protection-stats dashboard + widget, app lock (biometric dep already declared), backup/restore, conversation bubbles/shortcuts.
-- **M5 — polish/parity:** RCS via available Android APIs, per-chat customization, animation pass (spring transitions, 120Hz), accessibility pass, Play Store SMS-permission declaration + privacy policy.
+- **M4 leftovers:** auto-label filter chips in search (labels exist on entities; chips not yet in search UI), conversation bubbles (Android 11+) + conversation shortcuts + direct share, optional Google Drive backup on top of `BackupManager`.
+- **M5 — polish/parity:** RCS via available Android APIs, per-chat customization (wallpapers/bubble colors), animation pass (spring transitions, shared-element list→chat, 120Hz), accessibility pass, swipe-action customization, undo snackbars, drafts, delivery reports, Play Store SMS-permission declaration + privacy policy, real Room migrations (replace `fallbackToDestructiveMigration` — now at v4).
 
 ## Decisions made that are not in the PRD
 
@@ -81,12 +89,20 @@ _(nothing mid-flight)_
 12. **MMS send**: hand-rolled `MmsPduBuilder` (m-send-req only), symmetric with the parser. From-header uses insert-address-token (MMSC fills our number). Images are recompressed to ≤1MB/≤1440px JPEG before send; oversized non-images are rejected with a snackbar rather than sent and carrier-bounced.
 13. **Group thread convention**: a group is addressed as `;`-joined recipient numbers in `ConversationEntity.address` / `MessageEntity` fallback routes; `recipientsOf()` splits it everywhere. Incoming group MMS identifies co-recipients from To/CC and drops our own numbers by comparing the last 10 digits (SubscriptionManager numbers are often blank — then the group thread degrades to 1:1 with the sender, acceptable).
 14. **Dual-SIM**: per-chat choice persisted on the conversation row (`preferredSubId`, null = system default); the picker only renders with ≥2 active subscriptions. Sends go through `SmsManager.createForSubscriptionId`; group SMS status still shares one PendingIntent (same debt as multipart, below).
+15. **OTP auto-delete scope**: DAO query additionally excludes **starred** OTPs (user explicitly kept them) — slightly stricter than the PRD's "OTP-labeled Inbox messages". The DAO `userDelete` comment documents the §6.5 cleanup as its only non-user caller.
+16. **Scheduled send is index-only until fire time**: the Telephony provider is written only when the message actually sends (other apps must not see unsent messages as Sent). Snooze is a WorkManager one-shot that re-posts a notification; nothing is stored on the message row. Scheduled MMS not supported (schedule button hides while an attachment is staged).
+17. **App lock re-locks on every `onStop`** (no grace period) — external flows (camera capture, role dialogs) re-prompt on return; accepted for v1. App-lock state is deliberately excluded from backup restore (device-specific auth hardware).
+18. **Widgets are classic RemoteViews** (no Glance/ListView) — static text lines, updated by push (`WidgetUpdater`) + 30-min system cycle.
+19. **Backup restore is additive-only** per §6: never deletes/overwrites; dedupe key is address+timestamp+direction+body-hash; reputations only fill senders with no local record; rules dedupe by kind+target+pattern.
 
 ## Known gaps / debt
 
 - `SmsSentReceiver` multipart send reuses one PendingIntent for all parts (fine for status, not per-part accounting); group SMS likewise shares one sent-PI across recipients, so one failure marks the whole message FAILED.
-- No delivery reports, drafts, scheduled send yet.
-- MMS: no m-notifyresp-ind ack (dedupe covers redelivery); only the first attachment is surfaced in the chat UI (all parts are in the provider); audio/video attachments show as a mime-label row, not players; composer attaches one image per message (gallery picker is single-select, no multi-attachment).
+- No delivery reports or drafts yet (scheduled send now exists).
+- User-initiated single-message delete (`ChatViewModel.delete`) removes only the Room index row, not the Telephony provider row (OTP cleanup and backup restore DO touch the provider). Should be unified.
+- MMS: no m-notifyresp-ind ack (dedupe covers redelivery); only the first attachment is surfaced in the chat UI (all parts are in the provider); audio/video attachments show as a mime-label row, not players; composer attaches one image per message (gallery picker is single-select, no multi-attachment). MMS is not included in backup export (text-only rows are; media files are not).
 - Group MMS receive: if SubscriptionManager can't report our own number (common), a group's incoming messages thread against sender+co-recipients minus nothing — our number may appear as a phantom member in the thread address.
+- Snooze reminders don't survive the message being moved to another thread/category (they re-check existence only). One-shot works clamp to `initialDelay`, so a device reboot mid-delay resumes correctly via WorkManager.
+- Dashboard family rollup parses `matchedPatternIds` CSV in Kotlin per refresh (fine at SMS scale; revisit if slow on 10k+ filtered messages).
 - App icon is a placeholder vector.
 - CI workflow is untested against a live GitHub remote (no remote configured yet).
