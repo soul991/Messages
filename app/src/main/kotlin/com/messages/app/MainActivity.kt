@@ -64,6 +64,15 @@ class MainActivity : FragmentActivity() {
         folderRequest = intent.getStringExtra("folder")
         val onboardingPrefs = getSharedPreferences("onboarding", MODE_PRIVATE)
 
+        // §8.4 first-open gate (Google Messages behavior): fire the system
+        // default-SMS prompt immediately on the very first open. If denied,
+        // HomeScreen renders the viewer-shell empty state whose single card
+        // re-triggers this request; we never nag with popups again.
+        if (!isDefaultSmsApp && !onboardingPrefs.getBoolean("role_prompted", false)) {
+            onboardingPrefs.edit().putBoolean("role_prompted", true).apply()
+            requestDefaultRole()
+        }
+
         setContent {
             MessagesTheme {
                 // App lock gate (§8.2): everything below stays hidden until unlocked.

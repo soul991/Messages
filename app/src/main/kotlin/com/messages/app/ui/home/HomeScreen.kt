@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -61,6 +62,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -120,7 +122,8 @@ fun HomeScreen(
 
     Scaffold(
         floatingActionButton = {
-            if (!searchActive) {
+            // §8.4: no messaging features until the default-SMS role is granted.
+            if (!searchActive && isDefaultSmsApp) {
                 ExtendedFloatingActionButton(
                     onClick = onCompose,
                     icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
@@ -149,10 +152,14 @@ fun HomeScreen(
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
                     }
                 }
+            }
 
-                if (!isDefaultSmsApp) {
-                    DefaultAppBanner(onRequestDefault)
-                }
+            // §8.4 gate (Google Messages behavior): if the role was denied, the
+            // conversation area is an empty state with a single card that
+            // re-triggers the role request. No list, no search, no composer.
+            if (!isDefaultSmsApp) {
+                DefaultSmsGate(onRequestDefault)
+                return@Column
             }
 
             // Search bar — incremental, chip-based (§8.5)
@@ -439,34 +446,47 @@ private fun SearchResultRow(
     }
 }
 
+/**
+ * §8.4: the viewer-shell empty state shown while the default-SMS role is not
+ * held — mirrors Google Messages' "Set as default" screen. The single card
+ * re-triggers the RoleManager request; no popup nagging.
+ */
 @Composable
-private fun DefaultAppBanner(onRequestDefault: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clip(MaterialTheme.shapes.large)
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .clickable(onClick = onRequestDefault)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            Icons.Filled.Shield, contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
-        Spacer(Modifier.width(12.dp))
-        Column {
+private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
+    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Shield, contentDescription = null,
+                    modifier = Modifier.size(44.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+            Spacer(Modifier.height(20.dp))
             Text(
-                "Make Messages your default SMS app",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                "Set Messages as your default SMS app",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
             )
+            Spacer(Modifier.height(8.dp))
             Text(
-                "Enable spam & fraud protection for every message",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                "To see your conversations and turn on spam, scam & fraud " +
+                    "protection, Messages needs to be your SMS app.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline,
+                textAlign = TextAlign.Center,
             )
+            Spacer(Modifier.height(20.dp))
+            Button(onClick = onRequestDefault) {
+                Text("Set as default SMS app")
+            }
         }
     }
 }
