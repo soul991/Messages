@@ -16,6 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import com.messages.app.ui.chat.ChatScreen
 import com.messages.app.ui.home.HomeScreen
 import com.messages.app.ui.why.WhyFilteredScreen
+import com.messages.core.backfill.Backfill
 import com.messages.designsystem.MessagesTheme
 
 class MainActivity : ComponentActivity() {
@@ -28,7 +29,10 @@ class MainActivity : ComponentActivity() {
 
     private val permissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { }
+    ) { grants ->
+        // First-run backfill: classify existing history once we can read it (§10).
+        if (grants[android.Manifest.permission.READ_SMS] == true) Backfill.ensureScheduled(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

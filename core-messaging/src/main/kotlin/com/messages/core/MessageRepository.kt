@@ -78,6 +78,67 @@ class MessageRepository private constructor(private val context: Context) {
             entity.copy(id = id) to verdict
         }
 
+    /**
+     * Index one pre-existing message from the Telephony provider (first-run
+     * backfill, §10). Unlike [onIncomingSms]: no provider write (it's already
+     * there), no unread increment, no notification, and the conversation
+     * summary is only touched when this message is newer than what's recorded
+     * — the backfill walks newest-first, so the first message seen per thread
+     * is its latest. Returns false if the smsId was already indexed.
+     */
+    suspend fun indexHistorical(
+        smsId: Long,
+        threadId: Long,
+        address: String,
+        body: String,
+        timestamp: Long,
+        isOutgoing: Boolean,
+        read: Boolean,
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (db.messages().bySmsId(smsId) != null) return@withContext false
+        val verdict = if (isOutgoing) null else classify(address, body)
+        val entity = MessageEntity(
+            smsId = smsId,
+            threadId = threadId,
+            address = address,
+            body = body,
+            timestamp = timestamp,
+            isOutgoing = isOutgoing,
+            read = read,
+            category = verdict?.category?.name ?: "INBOX",
+            dangerous = verdict?.dangerous ?: false,
+            fraudWarning = verdict?.fraudWarningBanner ?: false,
+            protectedLabel = verdict?.protectedLabel?.name ?: "NONE",
+            score = verdict?.score ?: 0,
+            matchedPatternIds = verdict?.matchedPatternIds?.joinToString(",") ?: "",
+            matchedComboIds = verdict?.matchedComboIds?.joinToString(",") ?: "",
+            explanations = verdict?.explanations?.joinToString("\n") ?: "",
+            sendStatus = if (isOutgoing) "SENT" else "NONE",
+        )
+        val inserted = db.messages().insert(entity) != -1L
+        if (inserted) {
+            val existing = db.conversations().byThreadId(threadId)
+            if (existing == null || timestamp > existing.lastTimestamp) {
+                db.conversations().upsert(
+                    ConversationEntity(
+                        id = existing?.id ?: 0,
+                        threadId = threadId,
+                        address = address,
+                        contactName = existing?.contactName ?: lookupContactName(address),
+                        lastMessage = body,
+                        lastTimestamp = timestamp,
+                        unreadCount = existing?.unreadCount ?: 0,
+                        category = verdict?.category?.name ?: existing?.category ?: "INBOX",
+                        pinned = existing?.pinned ?: false,
+                        archived = existing?.archived ?: false,
+                        muted = existing?.muted ?: false,
+                    )
+                )
+            }
+        }
+        inserted
+    }
+
     suspend fun classify(address: String, body: String): Verdict {
         val isContact = lookupContactName(address) != null
         val reputation = db.reputation().forSender(address)?.score ?: 0
