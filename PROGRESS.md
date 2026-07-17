@@ -1,12 +1,12 @@
 # PROGRESS — "Messages" (Android SMS app with deterministic spam/scam protection)
 
-_Last updated: 2026-07-17. Source spec: `PRD_Messages.md` (v2)._
+_Last updated: 2026-07-17 (evening — post corpus expansion & first green build). Source spec: `PRD_Messages.md` (v2)._
 
 ## Current state at a glance
 
 - **Toolchain**: installed on this Mac (OpenJDK 17 via Homebrew at `/opt/homebrew/opt/openjdk@17`, Gradle 8.9 wrapper, Android SDK cmdline-tools + platform 35 + build-tools 35 installing to `~/Library/Android/sdk`).
-- **Protection engine (`:protection-engine`)**: implemented, pure Kotlin/JVM, **46 of 47 tests passing**. The only failing test is the corpus-size floor (166 entries vs 170 floor; PRD target ≥500 — expansion in progress, see below).
-- **Android app**: scaffolded and partially written (all 4 default-SMS components, Room DB, repository, notifications, Home + Chat Compose screens). **Not yet compiled** — first `:app` build is the immediate next step.
+- **Protection engine (`:protection-engine`)**: implemented, pure Kotlin/JVM, **46 of 46 tests passing** incl. all corpus CI gates. Corpus: **506 entries**, pattern library **121 patterns** (v1).
+- **Android app**: **compiles** (`:app:assembleDebug` green; `local.properties` with `sdk.dir` required). WhyFilteredScreen, first-run backfill worker, and 3-screen onboarding are in. Repo is under git (baseline `cf129ae`).
 - Run engine tests: `export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && ./gradlew :protection-engine:test`
 
 ## Done
@@ -38,17 +38,22 @@ _Last updated: 2026-07-17. Source spec: `PRD_Messages.md` (v2)._
 
 ## In progress
 
-1. **Corpus expansion to ≥500 entries** (§7.4) — a background agent was launched to append ~350 realistic entries to `corpus.json`, raise the floor in `CorpusRegressionTest.kt` from 170→500, and delete the temporary `DebugMissesTest.kt`. **That agent was stopped before making any changes** — corpus is still 166 entries, floor still 170 (hence the one red test), `DebugMissesTest.kt` still present. Needs to be re-run or done inline.
+_(nothing mid-flight)_
+
+### Recently completed (2026-07-17, this session)
+- First `:app` build compiling (missing `local.properties` + coroutine imports in `OtherReceivers.kt`).
+- `WhyFilteredScreen.kt` (`app/ui/why/`) — verdict header, message card, explanations + pattern IDs from `MessageEntity`, not-spam action.
+- First-run backfill worker (`core-messaging/.../backfill/BackfillWorker.kt`) — newest-first keyset pagination over Telephony provider, checkpointed to prefs (resumable), no notifications/unread bumps; enqueued from `MainActivity` once READ_SMS granted; progress exposed for onboarding.
+- Onboarding (`app/ui/onboarding/OnboardingScreen.kt`) — 3 pages (intro → set-default via RoleManager, auto-advance → done with live backfill counter); one-time prefs flag.
+- Corpus 166→**506**; floor 170→**500**; `DebugMissesTest.kt` deleted; 14 new patterns (419/inheritance, cyber-cell/contraband, compensation-fund, N-hour block, IVR press-digit, electricity/meter, job fees, IPO allotment, charity-to-UPI, wrong-number openers, mistaken-transfer clawback, lost-phone/stranded-abroad emergencies). All gates green.
+- **Bug fix:** `patterns.json` is a JVM resource in the engine jar, not an Android asset — repository now loads it via classloader (was a guaranteed first-SMS crash).
 
 ## Next (per PRD §12 milestones)
 
 - **Finish M1/M2 (immediate):**
-  1. First `:app` assembleDebug build; fix compile errors (the whole app tree has never been compiled).
-  2. "Why filtered?" screen (`app/ui/why/WhyFilteredScreen.kt`) — referenced by `MainActivity` nav but **file not yet written**; must show human-readable matched-pattern descriptions from `MessageEntity.explanations`.
-  3. First-run backfill worker (WorkManager, classify existing history newest-first, resumable) + onboarding (3 screens max, live classify counter).
-  4. New-message compose flow (FAB currently a no-op stub) with recipient picker.
-  5. MMS receive (currently stub) and dual-SIM send.
-- **M3 — hardening:** corpus →500+ (restart the expansion), sensitivity slider UI wired to `Sensitivity` presets, allow/block/custom-rules management UI, pattern-pack import (local file, hot-reload via `engine.updateLibrary`), GitHub Actions CI running the corpus gates.
+  1. New-message compose flow (FAB currently a no-op stub) with recipient picker.
+  2. MMS receive (currently stub) and dual-SIM send.
+- **M3 — hardening (corpus done):** sensitivity slider UI wired to `Sensitivity` presets, allow/block/custom-rules management UI, pattern-pack import (local file, hot-reload via `engine.updateLibrary`), GitHub Actions CI running the corpus gates.
 - **M4 — extras:** OTP auto-delete after 24h (opt-in, `expiredOtps` DAO query already exists), scheduled send, snooze, protection-stats dashboard + widget, app lock (biometric dep already declared), backup/restore, conversation bubbles/shortcuts.
 - **M5 — polish/parity:** RCS via available Android APIs, per-chat customization, animation pass (spring transitions, 120Hz), accessibility pass, Play Store SMS-permission declaration + privacy policy.
 
@@ -67,8 +72,6 @@ _Last updated: 2026-07-17. Source spec: `PRD_Messages.md` (v2)._
 
 ## Known gaps / debt
 
-- `DebugMissesTest.kt` is temporary scratch — delete when corpus work resumes.
-- `corpus_is_large_enough` floor (170) intentionally fails until corpus expansion lands: don't lower it to green the build.
 - `SmsSentReceiver` multipart send reuses one PendingIntent for all parts (fine for status, not per-part accounting).
 - No delivery reports, drafts, scheduled send, or group-MMS yet.
 - App icon is a placeholder vector.
