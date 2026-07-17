@@ -21,6 +21,7 @@ import com.messages.app.ui.chat.ChatScreen
 import com.messages.app.ui.compose.NewMessageScreen
 import com.messages.app.ui.home.HomeScreen
 import com.messages.app.ui.onboarding.OnboardingScreen
+import com.messages.app.ui.settings.SettingsScreen
 import com.messages.app.ui.why.WhyFilteredScreen
 import com.messages.core.backfill.Backfill
 import com.messages.designsystem.MessagesTheme
@@ -91,7 +92,11 @@ class MainActivity : ComponentActivity() {
                             onRequestDefault = ::requestDefaultRole,
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
                             onCompose = { nav.navigate("compose") },
+                            onSettings = { nav.navigate("settings") },
                         )
+                    }
+                    composable("settings") {
+                        SettingsScreen(onBack = { nav.popBackStack() })
                     }
                     composable("compose") {
                         NewMessageScreen(

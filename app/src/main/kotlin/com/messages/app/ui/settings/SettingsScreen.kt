@@ -1,0 +1,393 @@
+package com.messages.app.ui.settings
+
+import android.app.Application
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.core.MessageRepository
+import com.messages.core.db.UserRuleEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+class SettingsViewModel(app: Application) : AndroidViewModel(app) {
+
+    private val repo = MessageRepository.get(app)
+
+    val rules: StateFlow<List<UserRuleEntity>> =
+        repo.db.userRules().observeAll()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val sensitivity = MutableStateFlow(repo.sensitivityName())
+    val libraryInfo = MutableStateFlow(repo.engine.libraryVersion to repo.engine.patternCount)
+    val hasImportedPack = MutableStateFlow(repo.hasImportedPatternPack())
+    val importStatus = MutableStateFlow<String?>(null)
+
+    fun setSensitivity(name: String) {
+        repo.setSensitivity(name)
+        sensitivity.value = name
+    }
+
+    fun addRule(kind: String, target: String, pattern: String, category: String) {
+        if (pattern.isBlank()) return
+        viewModelScope.launch {
+            val position = (rules.value.maxOfOrNull { it.position } ?: 0) + 1
+            repo.db.userRules().insert(
+                UserRuleEntity(
+                    position = position, kind = kind, target = target,
+                    pattern = pattern.trim(), category = category,
+                )
+            )
+        }
+    }
+
+    fun deleteRule(id: Long) = viewModelScope.launch { repo.db.userRules().delete(id) }
+
+    fun importPack(uri: Uri) = viewModelScope.launch {
+        val text = withContext(Dispatchers.IO) {
+            runCatching {
+                getApplication<Application>().contentResolver.openInputStream(uri)
+                    ?.bufferedReader()?.readText()
+            }.getOrNull()
+        }
+        if (text == null) {
+            importStatus.value = "Couldn't read the selected file"
+            return@launch
+        }
+        repo.importPatternPack(text).fold(
+            onSuccess = { (version, count) ->
+                importStatus.value = "Imported pattern pack v$version — $count patterns active"
+                refreshLibraryInfo()
+            },
+            onFailure = { importStatus.value = "Invalid pattern pack: ${it.message}" },
+        )
+    }
+
+    fun revertPack() = viewModelScope.launch {
+        repo.revertToBundledPatterns()
+        importStatus.value = "Reverted to the bundled library"
+        refreshLibraryInfo()
+    }
+
+    private fun refreshLibraryInfo() {
+        libraryInfo.value = repo.engine.libraryVersion to repo.engine.patternCount
+        hasImportedPack.value = repo.hasImportedPatternPack()
+    }
+}
+
+private val SENSITIVITY_STEPS = listOf("RELAXED", "DEFAULT", "STRICT")
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    onBack: () -> Unit,
+    vm: SettingsViewModel = viewModel(),
+) {
+    val rules by vm.rules.collectAsState()
+    val sensitivity by vm.sensitivity.collectAsState()
+    val libraryInfo by vm.libraryInfo.collectAsState()
+    val hasImportedPack by vm.hasImportedPack.collectAsState()
+    val importStatus by vm.importStatus.collectAsState()
+
+    var addRuleKind by remember { mutableStateOf<String?>(null) } // ALLOW | BLOCK | CUSTOM
+
+    val packPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> if (uri != null) vm.importPack(uri) }
+
+    if (addRuleKind != null) {
+        AddRuleDialog(
+            kind = addRuleKind!!,
+            onDismiss = { addRuleKind = null },
+            onAdd = { target, pattern, category ->
+                vm.addRule(addRuleKind!!, target, pattern, category)
+                addRuleKind = null
+            },
+        )
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        LazyColumn(Modifier.padding(padding).fillMaxSize()) {
+
+            // ---- Protection sensitivity (§3 Stage 5) ----
+            item {
+                SectionHeader("Protection sensitivity")
+                val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    Slider(
+                        value = index.toFloat(),
+                        onValueChange = { vm.setSensitivity(SENSITIVITY_STEPS[it.toInt().coerceIn(0, 2)]) },
+                        valueRange = 0f..2f,
+                        steps = 1,
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        SENSITIVITY_STEPS.forEachIndexed { i, step ->
+                            Text(
+                                step.lowercase().replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (i == index) FontWeight.Bold else FontWeight.Normal,
+                                color = if (i == index) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        when (sensitivity) {
+                            "RELAXED" -> "Fewer messages filtered — borderline messages stay in your Inbox or Review."
+                            "STRICT" -> "Aggressive filtering — borderline messages go to Spam sooner. Protected messages (OTPs, bank alerts) are never filtered at any level."
+                            else -> "Balanced filtering, recommended for most people. Protected messages (OTPs, bank alerts) are never filtered."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+
+            // ---- Rules (§3 Stage 1) ----
+            item {
+                SectionHeader("Your rules")
+                Text(
+                    "Rules outrank everything, including the pattern library.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+            }
+            item { RuleGroupHeader("Always allow", "ALLOW", onAdd = { addRuleKind = "ALLOW" }) }
+            items(rules.filter { it.kind == "ALLOW" }, key = { it.id }) { rule ->
+                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+            }
+            item { RuleGroupHeader("Always block", "BLOCK", onAdd = { addRuleKind = "BLOCK" }) }
+            items(rules.filter { it.kind == "BLOCK" }, key = { it.id }) { rule ->
+                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+            }
+            item { RuleGroupHeader("Custom rules", "CUSTOM", onAdd = { addRuleKind = "CUSTOM" }) }
+            items(rules.filter { it.kind == "CUSTOM" }, key = { it.id }) { rule ->
+                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+            }
+
+            // ---- Pattern library (§7.5) ----
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                SectionHeader("Pattern library")
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    Text(
+                        "Version ${libraryInfo.first} — ${libraryInfo.second} patterns" +
+                            if (hasImportedPack) " (imported pack)" else " (bundled)",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (importStatus != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            importStatus!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Row {
+                        TextButton(onClick = {
+                            packPicker.launch(
+                                arrayOf("application/json", "text/plain", "application/octet-stream")
+                            )
+                        }) { Text("Import pattern pack") }
+                        if (hasImportedPack) {
+                            TextButton(onClick = { vm.revertPack() }) { Text("Revert to bundled") }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
+    )
+}
+
+@Composable
+private fun RuleGroupHeader(title: String, kind: String, onAdd: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onAdd) {
+            Icon(Icons.Filled.Add, contentDescription = "Add $title rule")
+        }
+    }
+}
+
+@Composable
+private fun RuleRow(rule: UserRuleEntity, onDelete: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(rule.pattern, style = MaterialTheme.typography.bodyMedium)
+            if (rule.kind == "CUSTOM") {
+                Text(
+                    "When ${if (rule.target == "TEXT") "message text" else "sender"} matches → " +
+                        rule.category.lowercase().replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Filled.Delete, contentDescription = "Delete rule",
+                tint = MaterialTheme.colorScheme.outline,
+            )
+        }
+    }
+}
+
+private val CUSTOM_CATEGORIES = listOf("INBOX", "TRANSACTIONS", "PROMOTIONS", "SPAM", "REVIEW")
+
+@Composable
+private fun AddRuleDialog(
+    kind: String,
+    onDismiss: () -> Unit,
+    onAdd: (target: String, pattern: String, category: String) -> Unit,
+) {
+    var pattern by remember { mutableStateOf("") }
+    var target by remember { mutableStateOf("SENDER") }
+    var category by remember { mutableStateOf("SPAM") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                when (kind) {
+                    "ALLOW" -> "Always allow sender"
+                    "BLOCK" -> "Always block sender"
+                    else -> "Add custom rule"
+                }
+            )
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = pattern,
+                    onValueChange = { pattern = it },
+                    label = {
+                        Text(if (kind == "CUSTOM" && target == "TEXT") "Text pattern (regex ok)" else "Sender number, header, or regex")
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (kind == "CUSTOM") {
+                    Spacer(Modifier.height(12.dp))
+                    Text("Match against", style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = target == "SENDER",
+                            onClick = { target = "SENDER" },
+                            label = { Text("Sender") },
+                        )
+                        FilterChip(
+                            selected = target == "TEXT",
+                            onClick = { target = "TEXT" },
+                            label = { Text("Message text") },
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Move to", style = MaterialTheme.typography.labelMedium)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        CUSTOM_CATEGORIES.forEach { cat ->
+                            FilterChip(
+                                selected = category == cat,
+                                onClick = { category = cat },
+                                label = {
+                                    Text(
+                                        cat.lowercase().replaceFirstChar { it.uppercase() },
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onAdd(target, pattern, category) },
+                enabled = pattern.isNotBlank(),
+            ) { Text("Add") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}

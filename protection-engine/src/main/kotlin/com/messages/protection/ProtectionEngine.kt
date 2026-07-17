@@ -7,7 +7,7 @@ package com.messages.protection
  */
 class ProtectionEngine(
     private var matcher: PatternMatcher,
-    private val sensitivity: Sensitivity = Sensitivity.DEFAULT,
+    private var sensitivity: Sensitivity = Sensitivity.DEFAULT,
 ) {
 
     /** Tunable thresholds behind the Sensitivity slider (§3 Stage 5). */
@@ -47,6 +47,14 @@ class ProtectionEngine(
     fun updateLibrary(newMatcher: PatternMatcher) {
         matcher = newMatcher
     }
+
+    /** Hot-apply the Sensitivity slider (§3 Stage 5). */
+    fun updateSensitivity(newSensitivity: Sensitivity) {
+        sensitivity = newSensitivity
+    }
+
+    val libraryVersion: Int get() = matcher.library.version
+    val patternCount: Int get() = matcher.library.patterns.size
 
     fun classify(input: Input): Verdict {
         // Stage 0 — normalization (always)

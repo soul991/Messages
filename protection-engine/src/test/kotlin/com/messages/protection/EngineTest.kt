@@ -406,3 +406,41 @@ class PatternLibraryIntegrityTest {
         }
     }
 }
+
+/** §3 Stage 5 — the Sensitivity slider hot-applies without rebuilding the engine. */
+class SensitivityUpdateTest {
+
+    @Test
+    fun update_sensitivity_hot_applies_thresholds() {
+        val engine = TestEngine.engine()
+        val input = ProtectionEngine.Input(
+            "Claim your reward now",
+            SenderAnalyzer.analyze("VM-UPDATE", isContact = false),
+        )
+        val baseline = engine.classify(input)
+        assertTrue("test message must score > 0", baseline.score > 0)
+        assertTrue("test message must not trip a combo", baseline.matchedComboIds.isEmpty())
+        val score = baseline.score
+
+        // All thresholds above the score → clean pass to Inbox.
+        engine.updateSensitivity(
+            ProtectionEngine.Sensitivity(dangerousAt = score + 3, spamAt = score + 2, reviewAt = score + 1)
+        )
+        assertEquals(Category.INBOX, engine.classify(input).category)
+
+        // Dangerous threshold at the score → Spam with Dangerous label.
+        engine.updateSensitivity(
+            ProtectionEngine.Sensitivity(dangerousAt = score, spamAt = score, reviewAt = score)
+        )
+        val strict = engine.classify(input)
+        assertEquals(Category.SPAM, strict.category)
+        assertTrue(strict.dangerous)
+    }
+
+    @Test
+    fun library_info_is_exposed_and_tracks_updates() {
+        val engine = TestEngine.engine()
+        assertEquals(TestEngine.matcher.library.version, engine.libraryVersion)
+        assertEquals(TestEngine.matcher.library.patterns.size, engine.patternCount)
+    }
+}

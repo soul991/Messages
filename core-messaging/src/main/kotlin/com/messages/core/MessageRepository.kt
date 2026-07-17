@@ -29,12 +29,66 @@ class MessageRepository private constructor(private val context: Context) {
         context, MessagesDatabase::class.java, "messages.db"
     ).fallbackToDestructiveMigration().build()
 
+    private val settingsPrefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
     val engine: ProtectionEngine by lazy {
+        // An imported pattern pack (§7.5) overrides the bundled library.
+        val imported = runCatching {
+            val f = importedPackFile()
+            if (f.exists()) PatternMatcher.fromJson(f.readText()) else null
+        }.getOrNull()
+        ProtectionEngine(imported ?: bundledMatcher(), currentSensitivity())
+    }
+
+    private fun bundledMatcher(): PatternMatcher {
         // patterns.json ships as a JVM resource inside the :protection-engine jar
         // (it has no Android assets) — load it via the classloader, not AssetManager.
         val text = ProtectionEngine::class.java.getResourceAsStream("/patterns.json")!!
             .bufferedReader().readText()
-        ProtectionEngine(PatternMatcher.fromJson(text))
+        return PatternMatcher.fromJson(text)
+    }
+
+    private fun importedPackFile() = java.io.File(context.filesDir, "patterns_imported.json")
+
+    // ---- Sensitivity slider (§3 Stage 5) ----
+
+    fun sensitivityName(): String = settingsPrefs.getString("sensitivity", "DEFAULT")!!
+
+    private fun currentSensitivity(): ProtectionEngine.Sensitivity = when (sensitivityName()) {
+        "RELAXED" -> ProtectionEngine.Sensitivity.RELAXED
+        "STRICT" -> ProtectionEngine.Sensitivity.STRICT
+        else -> ProtectionEngine.Sensitivity.DEFAULT
+    }
+
+    fun setSensitivity(name: String) {
+        settingsPrefs.edit().putString("sensitivity", name).apply()
+        engine.updateSensitivity(currentSensitivity())
+    }
+
+    // ---- Pattern-pack import (§7.5) ----
+
+    fun hasImportedPatternPack(): Boolean = importedPackFile().exists()
+
+    /**
+     * Validate + hot-reload + persist a pattern pack. Returns (version, count)
+     * on success. User rules always outrank library patterns, so a bad pack
+     * can never override an allow/block decision.
+     */
+    suspend fun importPatternPack(jsonText: String): Result<Pair<Int, Int>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val matcher = PatternMatcher.fromJson(jsonText)
+                require(matcher.library.patterns.isNotEmpty()) { "Pack contains no patterns" }
+                importedPackFile().writeText(jsonText)
+                engine.updateLibrary(matcher)
+                matcher.library.version to matcher.library.patterns.size
+            }
+        }
+
+    /** Drop the imported pack and hot-reload the bundled library. */
+    suspend fun revertToBundledPatterns() = withContext(Dispatchers.IO) {
+        importedPackFile().delete()
+        engine.updateLibrary(bundledMatcher())
     }
 
     /** Classify + store an incoming message. Never drops anything (§6). */
