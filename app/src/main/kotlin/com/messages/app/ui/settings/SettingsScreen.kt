@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -46,6 +47,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.core.MessageRepository
+import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.db.UserRuleEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,6 +69,12 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     val libraryInfo = MutableStateFlow(repo.engine.libraryVersion to repo.engine.patternCount)
     val hasImportedPack = MutableStateFlow(repo.hasImportedPatternPack())
     val importStatus = MutableStateFlow<String?>(null)
+    val otpAutoDelete = MutableStateFlow(OtpCleanup.isEnabled(app))
+
+    fun setOtpAutoDelete(enabled: Boolean) {
+        OtpCleanup.setEnabled(getApplication(), enabled)
+        otpAutoDelete.value = enabled
+    }
 
     fun setSensitivity(name: String) {
         repo.setSensitivity(name)
@@ -133,6 +141,7 @@ fun SettingsScreen(
     val libraryInfo by vm.libraryInfo.collectAsState()
     val hasImportedPack by vm.hasImportedPack.collectAsState()
     val importStatus by vm.importStatus.collectAsState()
+    val otpAutoDelete by vm.otpAutoDelete.collectAsState()
 
     var addRuleKind by remember { mutableStateOf<String?>(null) } // ALLOW | BLOCK | CUSTOM
 
@@ -221,6 +230,34 @@ fun SettingsScreen(
             item { RuleGroupHeader("Custom rules", "CUSTOM", onAdd = { addRuleKind = "CUSTOM" }) }
             items(rules.filter { it.kind == "CUSTOM" }, key = { it.id }) { rule ->
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+            }
+
+            // ---- OTP auto-delete (§6.5 / §8.2 — the app's only auto-delete) ----
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                SectionHeader("Auto-delete OTPs")
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Delete OTP messages after 24 hours",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            "Only OTP-labeled messages in your Inbox. Starred OTPs and " +
+                                "filtered folders are never touched.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Switch(
+                        checked = otpAutoDelete,
+                        onCheckedChange = { vm.setOtpAutoDelete(it) },
+                    )
+                }
             }
 
             // ---- Pattern library (§7.5) ----

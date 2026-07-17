@@ -38,9 +38,14 @@ interface MessageDao {
     @Query("UPDATE messages SET starred = :starred WHERE id = :id")
     suspend fun setStarred(id: Long, starred: Boolean)
 
-    // User-initiated only — the filter itself never calls delete (§6).
+    // User-initiated only — the filter itself never calls delete (§6). The one
+    // other permitted caller is the user-ENABLED OTP cleanup (§6.5), which is
+    // restricted by [expiredOtps] to OTP-labeled Inbox messages.
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun userDelete(id: Long)
+
+    @Query("SELECT * FROM messages WHERE threadId = :threadId ORDER BY timestamp DESC LIMIT 1")
+    suspend fun latestForThread(threadId: Long): MessageEntity?
 
     @Query("SELECT * FROM messages WHERE body LIKE '%' || :query || '%' ORDER BY timestamp DESC LIMIT 100")
     suspend fun search(query: String): List<MessageEntity>
@@ -51,7 +56,13 @@ interface MessageDao {
     @Query("SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED') AND timestamp > :since")
     suspend fun spamCountSince(since: Long): Int
 
-    @Query("SELECT * FROM messages WHERE protectedLabel = 'OTP' AND category = 'INBOX' AND timestamp < :olderThan")
+    // §6.5/§8.2 guarantee lives in this WHERE clause: only OTP-labeled Inbox
+    // messages — never filtered folders (Spam/Promotions/Blocked/Review), never
+    // other labels, never starred messages the user chose to keep.
+    @Query(
+        "SELECT * FROM messages WHERE protectedLabel = 'OTP' AND category = 'INBOX' " +
+            "AND starred = 0 AND timestamp < :olderThan"
+    )
     suspend fun expiredOtps(olderThan: Long): List<MessageEntity>
 
     @Query("SELECT * FROM messages WHERE starred = 1 ORDER BY timestamp DESC")
@@ -89,6 +100,9 @@ interface ConversationDao {
 
     @Query("UPDATE conversations SET preferredSubId = :subId WHERE threadId = :threadId")
     suspend fun setPreferredSubId(threadId: Long, subId: Int?)
+
+    @Query("DELETE FROM conversations WHERE threadId = :threadId")
+    suspend fun deleteByThreadId(threadId: Long)
 
     @Query("SELECT COUNT(*) FROM conversations WHERE category = :category AND unreadCount > 0 AND archived = 0")
     fun unreadConversationCount(category: String): Flow<Int>

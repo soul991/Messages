@@ -4,12 +4,14 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import com.messages.core.cleanup.OtpCleanup
 
 class MessagesApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        OtpCleanup.ensureScheduled(this)
     }
 
     private fun createNotificationChannels() {

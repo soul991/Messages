@@ -617,6 +617,48 @@ class MessageRepository private constructor(private val context: Context) {
         if (conv != null) db.conversations().upsert(conv.copy(category = "SPAM"))
     }
 
+    /**
+     * User-ENABLED OTP cleanup (§6.5/§8.2): delete OTP-labeled Inbox messages
+     * older than [olderThanMs]. The only auto-delete in the app; the DAO query
+     * itself restricts it to OTP + Inbox + unstarred, so filtered folders can
+     * never be touched. Removes the Telephony provider row too (best-effort —
+     * requires default-SMS role) and keeps conversation summaries consistent.
+     * Returns how many messages were deleted.
+     */
+    suspend fun cleanupExpiredOtps(olderThanMs: Long): Int = withContext(Dispatchers.IO) {
+        val expired = db.messages().expiredOtps(System.currentTimeMillis() - olderThanMs)
+        expired.forEach { msg ->
+            try {
+                if (msg.smsId != null) {
+                    context.contentResolver.delete(
+                        android.net.Uri.parse("content://sms/${msg.smsId}"), null, null
+                    )
+                }
+            } catch (_: Exception) {
+                // Provider delete needs default-SMS role; the index row still goes.
+            }
+            db.messages().userDelete(msg.id)
+        }
+        expired.map { it.threadId }.distinct().forEach { refreshConversationSummary(it) }
+        expired.size
+    }
+
+    /** Recompute a conversation's summary after deletions; drop it if empty. */
+    private suspend fun refreshConversationSummary(threadId: Long) {
+        val conv = db.conversations().byThreadId(threadId) ?: return
+        val latest = db.messages().latestForThread(threadId)
+        if (latest == null) {
+            db.conversations().deleteByThreadId(threadId)
+        } else if (latest.timestamp != conv.lastTimestamp || latest.body != conv.lastMessage) {
+            db.conversations().upsert(
+                conv.copy(
+                    lastMessage = latest.body.ifBlank { mediaPreview(latest.mediaMimeType) },
+                    lastTimestamp = latest.timestamp,
+                )
+            )
+        }
+    }
+
     private suspend fun adjustReputation(address: String, delta: Int, notSpam: Boolean) {
         val current = db.reputation().forSender(address)
         db.reputation().upsert(
