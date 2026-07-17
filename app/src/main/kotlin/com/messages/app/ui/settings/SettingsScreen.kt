@@ -48,6 +48,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.security.AppLock
 import com.messages.core.MessageRepository
+import com.messages.core.backup.BackupManager
 import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.db.UserRuleEntity
 import kotlinx.coroutines.Dispatchers
@@ -140,6 +141,53 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         libraryInfo.value = repo.engine.libraryVersion to repo.engine.patternCount
         hasImportedPack.value = repo.hasImportedPatternPack()
     }
+
+    // ---- Backup/restore (§8.2) ----
+
+    val backupStatus = MutableStateFlow<String?>(null)
+
+    fun exportBackup(uri: Uri) = viewModelScope.launch {
+        val app = getApplication<Application>()
+        backupStatus.value = "Exporting…"
+        val result = withContext(Dispatchers.IO) {
+            runCatching {
+                val text = BackupManager.export(app)
+                app.contentResolver.openOutputStream(uri, "wt")?.use {
+                    it.write(text.toByteArray())
+                } ?: error("Couldn't open the selected location")
+            }
+        }
+        backupStatus.value = result.fold(
+            onSuccess = { "Backup saved" },
+            onFailure = { "Backup failed: ${it.message}" },
+        )
+    }
+
+    fun importBackup(uri: Uri) = viewModelScope.launch {
+        val app = getApplication<Application>()
+        backupStatus.value = "Restoring…"
+        val text = withContext(Dispatchers.IO) {
+            runCatching {
+                app.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
+            }.getOrNull()
+        }
+        if (text == null) {
+            backupStatus.value = "Couldn't read the selected file"
+            return@launch
+        }
+        BackupManager.import(app, text).fold(
+            onSuccess = { stats ->
+                backupStatus.value = "Restored ${stats.messagesRestored} messages " +
+                    "(${stats.messagesSkipped} already present), ${stats.rulesRestored} rules"
+                // Restored settings may have changed these.
+                sensitivity.value = repo.sensitivityName()
+                otpAutoDelete.value = OtpCleanup.isEnabled(app)
+                hidePreviews.value = AppLock.hidePreviews(app)
+                refreshLibraryInfo()
+            },
+            onFailure = { backupStatus.value = "Restore failed: ${it.message}" },
+        )
+    }
 }
 
 private val SENSITIVITY_STEPS = listOf("RELAXED", "DEFAULT", "STRICT")
@@ -166,6 +214,39 @@ fun SettingsScreen(
     val packPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> if (uri != null) vm.importPack(uri) }
+
+    val backupStatus by vm.backupStatus.collectAsState()
+    val backupCreator = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> if (uri != null) vm.exportBackup(uri) }
+    val backupPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> if (uri != null) vm.importBackup(uri) }
+    var confirmRestore by remember { mutableStateOf(false) }
+
+    if (confirmRestore) {
+        AlertDialog(
+            onDismissRequest = { confirmRestore = false },
+            title = { Text("Restore from backup?") },
+            text = {
+                Text(
+                    "Messages, rules, and settings from the backup will be added. " +
+                        "Nothing on this device is deleted or overwritten; duplicates are skipped."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRestore = false
+                    backupPicker.launch(
+                        arrayOf("application/json", "text/plain", "application/octet-stream")
+                    )
+                }) { Text("Choose file") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRestore = false }) { Text("Cancel") }
+            },
+        )
+    }
 
     if (addRuleKind != null) {
         AddRuleDialog(
@@ -333,6 +414,37 @@ fun SettingsScreen(
                         if (hasImportedPack) {
                             TextButton(onClick = { vm.revertPack() }) { Text("Revert to bundled") }
                         }
+                    }
+                }
+            }
+
+            // ---- Backup & restore (§8.2) ----
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                SectionHeader("Backup & restore")
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    Text(
+                        "Everything stays on this device: messages, categories, rules, " +
+                            "sender trust, and settings go into one local file.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    if (backupStatus != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            backupStatus!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Row {
+                        TextButton(onClick = {
+                            val stamp = java.text.SimpleDateFormat(
+                                "yyyy-MM-dd", java.util.Locale.US
+                            ).format(java.util.Date())
+                            backupCreator.launch("messages-backup-$stamp.json")
+                        }) { Text("Back up now") }
+                        TextButton(onClick = { confirmRestore = true }) { Text("Restore") }
                     }
                 }
                 Spacer(Modifier.height(24.dp))

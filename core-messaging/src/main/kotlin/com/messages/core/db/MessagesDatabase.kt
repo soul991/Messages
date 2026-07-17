@@ -68,6 +68,11 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE starred = 1 ORDER BY timestamp DESC")
     fun starred(): Flow<List<MessageEntity>>
 
+    // ---- Backup/restore (§8.2) ----
+
+    @Query("SELECT * FROM messages ORDER BY timestamp ASC")
+    suspend fun allMessages(): List<MessageEntity>
+
     // ---- Protection-dashboard stats (§8.2) ----
 
     @Query(
@@ -150,6 +155,9 @@ interface ConversationDao {
             "AND archived = 0 ORDER BY lastTimestamp DESC LIMIT :limit"
     )
     suspend fun recentUnreadInbox(limit: Int): List<ConversationEntity>
+
+    @Query("SELECT * FROM conversations")
+    suspend fun allConversations(): List<ConversationEntity>
 }
 
 @Dao
@@ -159,6 +167,9 @@ interface ReputationDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: SenderReputationEntity)
+
+    @Query("SELECT * FROM sender_reputation")
+    suspend fun all(): List<SenderReputationEntity>
 }
 
 @Dao
