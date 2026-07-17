@@ -5,14 +5,19 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.IconCompat
+import com.messages.app.BubbleActivity
 import com.messages.app.MessagesApp
 import com.messages.app.MainActivity
+import com.messages.app.R
 import com.messages.app.receiver.NotificationActionReceiver
 import com.messages.app.security.AppLock
+import com.messages.app.shortcut.ConversationShortcuts
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
 import com.messages.protection.Category
@@ -79,6 +84,13 @@ class MessageNotifier(private val context: Context) {
         val style = NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
             .addMessage(text, message.timestamp, person)
 
+        // Conversation shortcut (§8.2): anchor for launcher shortcuts,
+        // direct share, and bubbles. Locked conversations get none — their
+        // names must not surface outside the app.
+        val shortcutId = if (!conversationLocked) {
+            ConversationShortcuts.push(context, message.threadId, title)
+        } else null
+
         val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(android.R.drawable.sym_action_chat)
             .setContentTitle(title)
@@ -88,7 +100,29 @@ class MessageNotifier(private val context: Context) {
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .addAction(0, "Mark as read", markRead)
-            .setShortcutId("thread_${message.threadId}")
+
+        if (shortcutId != null) builder.setShortcutId(shortcutId)
+
+        // Conversation bubbles (§8.2, Android 11+). Skipped while app lock is
+        // on (a bubble would bypass the lock screen) and for locked chats.
+        if (Build.VERSION.SDK_INT >= 30 && shortcutId != null && !AppLock.isEnabled(context)) {
+            val bubbleIntent = PendingIntent.getActivity(
+                context, message.threadId.toInt(),
+                Intent(context, BubbleActivity::class.java).apply {
+                    putExtra("threadId", message.threadId)
+                    // Distinct data URI so PendingIntents don't collide across threads.
+                    data = android.net.Uri.parse("messages://bubble/${message.threadId}")
+                },
+                // Bubble intents must be mutable (the system adds bubble extras).
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+            )
+            builder.bubbleMetadata = NotificationCompat.BubbleMetadata.Builder(
+                bubbleIntent,
+                IconCompat.createWithResource(context, R.mipmap.ic_launcher),
+            )
+                .setDesiredHeight(600)
+                .build()
+        }
 
         NotificationManagerCompat.from(context).notify(message.threadId.toInt(), builder.build())
     }

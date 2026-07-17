@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Direct share (§8.2): dynamic conversation shortcuts carrying the
+    TEXT_SHARE_TARGET category appear in the system share sheet for plain
+    text. MainActivity receives ACTION_SEND + EXTRA_SHORTCUT_ID and routes to
+    that conversation with the shared text as the draft.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <share-target android:targetClass="com.messages.app.MainActivity">
+        <data android:mimeType="text/plain" />
+        <category android:name="com.messages.app.category.TEXT_SHARE_TARGET" />
+    </share-target>
+</shortcuts>

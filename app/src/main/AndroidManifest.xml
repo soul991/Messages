@@ -40,7 +40,20 @@
                 <data android:scheme="mms" />
                 <data android:scheme="mmsto" />
             </intent-filter>
+            <!-- Direct share (§8.2): conversation shortcuts as share targets -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
         </activity>
+
+        <!-- Conversation bubbles host (§8.2, Android 11+) -->
+        <activity
+            android:name=".BubbleActivity"
+            android:exported="false"
+            android:allowEmbedded="true"
+            android:resizeableActivity="true"
+            android:documentLaunchMode="always"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- Default-SMS mandatory component 1: SMS_DELIVER receiver -->
         <receiver

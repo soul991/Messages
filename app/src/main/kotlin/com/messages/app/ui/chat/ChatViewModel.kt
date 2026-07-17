@@ -62,6 +62,18 @@ class ChatViewModel(
             repo.db.messages().markThreadRead(threadId)
             repo.db.conversations().clearUnread(threadId)
             com.messages.app.widget.WidgetUpdater.requestUpdate(getApplication())
+            // Conversation shortcuts + direct-share ranking (§8.2).
+            if (conv?.locked != true) {
+                val name = contactName.value ?: address.value
+                if (name.isNotBlank()) {
+                    com.messages.app.shortcut.ConversationShortcuts.push(
+                        getApplication(), threadId, name,
+                    )
+                    com.messages.app.shortcut.ConversationShortcuts.reportUsed(
+                        getApplication(), threadId,
+                    )
+                }
+            }
             loadSimOptions()
         }
     }
@@ -195,6 +207,10 @@ class ChatViewModel(
     fun setConversationLocked(lock: Boolean) = viewModelScope.launch {
         repo.db.conversations().setLocked(threadId, lock)
         locked.value = lock
+        // Locked chats must not surface in launchers/share sheets (§8.2).
+        if (lock) {
+            com.messages.app.shortcut.ConversationShortcuts.remove(getApplication(), threadId)
+        }
         // Locking from inside the chat keeps this session open; the gate
         // applies from the next visit.
         chatUnlocked.value = lock

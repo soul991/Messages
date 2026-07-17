@@ -110,6 +110,8 @@ fun ChatScreen(
     initialSearchTerms: List<String> = emptyList(),
     /** §8.5.3: the matched message to auto-scroll to. */
     targetMessageId: Long? = null,
+    /** Direct share (§8.2): pre-filled composer text. */
+    initialDraft: String = "",
 ) {
     val context = LocalContext.current
     val vm: ChatViewModel = viewModel(
@@ -125,7 +127,7 @@ fun ChatScreen(
     val simOptions by vm.simOptions.collectAsState()
     val selectedSubId by vm.selectedSubId.collectAsState()
     var showSimMenu by remember { mutableStateOf(false) }
-    var draft by remember { mutableStateOf("") }
+    var draft by remember { mutableStateOf(initialDraft) }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
 

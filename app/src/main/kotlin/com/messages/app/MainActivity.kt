@@ -154,7 +154,7 @@ class MainActivity : FragmentActivity() {
                         )
                     }
                     composable(
-                        "chat/{threadId}?address={address}&q={q}&target={target}",
+                        "chat/{threadId}?address={address}&q={q}&target={target}&draft={draft}",
                         arguments = listOf(
                             navArgument("address") {
                                 type = NavType.StringType
@@ -171,6 +171,11 @@ class MainActivity : FragmentActivity() {
                                 nullable = true
                                 defaultValue = null
                             },
+                            navArgument("draft") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            },
                         ),
                     ) { entry ->
                         val threadId = entry.arguments?.getString("threadId")?.toLongOrNull() ?: return@composable
@@ -183,6 +188,8 @@ class MainActivity : FragmentActivity() {
                             initialSearchTerms = entry.arguments?.getString("q")
                                 ?.split(' ')?.filter { it.isNotBlank() } ?: emptyList(),
                             targetMessageId = entry.arguments?.getString("target")?.toLongOrNull(),
+                            // Direct share (§8.2): shared text lands as the draft.
+                            initialDraft = entry.arguments?.getString("draft") ?: "",
                         )
                     }
                     composable("why/{messageId}") { entry ->
@@ -227,6 +234,18 @@ class MainActivity : FragmentActivity() {
     private fun routeFor(intent: Intent): String? {
         val threadId = intent.getLongExtra("threadId", -1L)
         if (threadId != -1L) return "chat/$threadId"
+
+        // Direct share (§8.2): chooser target carries the conversation
+        // shortcut id + the shared text, which becomes the draft.
+        if (intent.action == Intent.ACTION_SEND && intent.hasExtra(Intent.EXTRA_SHORTCUT_ID)) {
+            val sharedThreadId = intent.getStringExtra(Intent.EXTRA_SHORTCUT_ID)
+                ?.removePrefix("thread_")?.toLongOrNull()
+            if (sharedThreadId != null) {
+                val draft = intent.getStringExtra(Intent.EXTRA_TEXT)
+                    ?.let { "?draft=${Uri.encode(it)}" } ?: ""
+                return "chat/$sharedThreadId$draft"
+            }
+        }
 
         val sendToAddress = intent.data
             ?.takeIf { it.scheme in listOf("sms", "smsto", "mms", "mmsto") }
