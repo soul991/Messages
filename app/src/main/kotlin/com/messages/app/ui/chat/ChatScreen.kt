@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -53,8 +55,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.messages.core.db.MessageEntity
 import com.messages.designsystem.CategoryColors
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -217,15 +221,49 @@ private fun MessageBubble(
                 .background(
                     if (isOut) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.surfaceVariant
-                )
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                ),
         ) {
-            Text(
-                msg.body,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (isOut) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column {
+                // MMS media attachment
+                if (msg.mediaUri != null) {
+                    if (msg.mediaMimeType?.startsWith("image/") == true) {
+                        AsyncImage(
+                            model = File(msg.mediaUri!!),
+                            contentDescription = "MMS image",
+                            contentScale = ContentScale.FillWidth,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Row(
+                            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Filled.Attachment, contentDescription = null,
+                                modifier = Modifier.width(18.dp),
+                                tint = if (isOut) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                msg.mediaMimeType ?: "Attachment",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isOut) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                if (msg.body.isNotBlank()) {
+                    Text(
+                        msg.body,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (isOut) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {

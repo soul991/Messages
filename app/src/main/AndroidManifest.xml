@@ -79,6 +79,18 @@
         </service>
 
         <receiver android:name=".receiver.SmsSentReceiver" android:exported="false" />
+        <receiver android:name=".receiver.MmsDownloadReceiver" android:exported="false" />
         <receiver android:name=".receiver.NotificationActionReceiver" android:exported="false" />
+
+        <!-- Hands the telephony process a writable target for downloaded MMS PDUs -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

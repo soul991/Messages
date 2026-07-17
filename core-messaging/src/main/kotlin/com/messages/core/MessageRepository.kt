@@ -9,6 +9,7 @@ import com.messages.core.db.ConversationEntity
 import com.messages.core.db.MessageEntity
 import com.messages.core.db.MessagesDatabase
 import com.messages.core.db.SenderReputationEntity
+import com.messages.core.mms.MmsPduParser
 import com.messages.protection.Category
 import com.messages.protection.PatternMatcher
 import com.messages.protection.ProtectionEngine
@@ -52,7 +53,7 @@ class MessageRepository private constructor(private val context: Context) {
             } catch (_: Exception) {
                 null
             }
-            val smsId = uri?.lastPathSegment?.toLongOrNull() ?: -1L
+            val smsId = uri?.lastPathSegment?.toLongOrNull()
             val threadId = try {
                 Telephony.Threads.getOrCreateThreadId(context, address)
             } catch (_: Exception) {
@@ -143,6 +144,152 @@ class MessageRepository private constructor(private val context: Context) {
     }
 
     /**
+     * Classify + store an incoming MMS (parsed by the receiver). Same
+     * guarantees as [onIncomingSms]: provider write first, never drops
+     * anything. Returns null when this transaction ID was already stored
+     * (carriers redeliver un-acked notifications).
+     */
+    suspend fun onIncomingMms(
+        address: String,
+        textBody: String,
+        timestamp: Long,
+        transactionId: String?,
+        attachments: List<MmsPduParser.Attachment>,
+    ): Pair<MessageEntity, Verdict>? = withContext(Dispatchers.IO) {
+        if (transactionId != null && db.messages().byMmsTransactionId(transactionId) != null) {
+            return@withContext null
+        }
+        val threadId = try {
+            Telephony.Threads.getOrCreateThreadId(context, address)
+        } catch (_: Exception) {
+            address.hashCode().toLong()
+        }
+        // Provider write first — zero message loss.
+        val mmsId = storeMmsInProvider(address, textBody, timestamp, threadId, transactionId, attachments)
+
+        // Keep the first displayable attachment as a local file for the chat UI.
+        val media = attachments.firstOrNull {
+            it.mimeType.startsWith("image/") || it.mimeType.startsWith("video/") ||
+                it.mimeType.startsWith("audio/")
+        } ?: attachments.firstOrNull()
+        val mediaPath = media?.let { saveAttachmentFile(it, timestamp) }
+
+        val verdict = classify(address, textBody)
+        val entity = MessageEntity(
+            smsId = null,
+            mmsId = mmsId,
+            mmsTransactionId = transactionId,
+            threadId = threadId,
+            address = address,
+            body = textBody,
+            timestamp = timestamp,
+            isOutgoing = false,
+            category = verdict.category.name,
+            dangerous = verdict.dangerous,
+            fraudWarning = verdict.fraudWarningBanner,
+            protectedLabel = verdict.protectedLabel.name,
+            score = verdict.score,
+            matchedPatternIds = verdict.matchedPatternIds.joinToString(","),
+            matchedComboIds = verdict.matchedComboIds.joinToString(","),
+            explanations = verdict.explanations.joinToString("\n"),
+            mediaUri = mediaPath,
+            mediaMimeType = media?.mimeType,
+        )
+        val id = db.messages().insert(entity)
+        val preview = textBody.ifBlank { mediaPreview(media?.mimeType) }
+        updateConversation(threadId, address, preview, timestamp, verdict.category.name, incrementUnread = true)
+        entity.copy(id = id) to verdict
+    }
+
+    /** Write the retrieved MMS into the Telephony MMS provider (pdu + parts + addr). */
+    private fun storeMmsInProvider(
+        address: String,
+        textBody: String,
+        timestamp: Long,
+        threadId: Long,
+        transactionId: String?,
+        attachments: List<MmsPduParser.Attachment>,
+    ): Long? {
+        try {
+            val resolver = context.contentResolver
+            val values = ContentValues().apply {
+                put(Telephony.Mms.THREAD_ID, threadId)
+                put(Telephony.Mms.DATE, timestamp / 1000) // MMS provider dates are in seconds
+                put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_INBOX)
+                put(Telephony.Mms.READ, 0)
+                put(Telephony.Mms.SEEN, 0)
+                put(Telephony.Mms.MESSAGE_TYPE, 132) // m-retrieve-conf
+                put(Telephony.Mms.MMS_VERSION, 0x12)
+                put(Telephony.Mms.CONTENT_TYPE, "application/vnd.wap.multipart.related")
+                if (transactionId != null) put(Telephony.Mms.TRANSACTION_ID, transactionId)
+            }
+            val uri = resolver.insert(Telephony.Mms.Inbox.CONTENT_URI, values) ?: return null
+            val mmsId = uri.lastPathSegment?.toLongOrNull() ?: return null
+            val partUri = android.net.Uri.parse("content://mms/$mmsId/part")
+
+            if (textBody.isNotBlank()) {
+                resolver.insert(
+                    partUri,
+                    ContentValues().apply {
+                        put(Telephony.Mms.Part.MSG_ID, mmsId)
+                        put(Telephony.Mms.Part.CONTENT_TYPE, "text/plain")
+                        put(Telephony.Mms.Part.CHARSET, 106) // utf-8
+                        put(Telephony.Mms.Part.TEXT, textBody)
+                    },
+                )
+            }
+            attachments.forEach { att ->
+                val part = resolver.insert(
+                    partUri,
+                    ContentValues().apply {
+                        put(Telephony.Mms.Part.MSG_ID, mmsId)
+                        put(Telephony.Mms.Part.CONTENT_TYPE, att.mimeType)
+                        if (att.name != null) put(Telephony.Mms.Part.NAME, att.name)
+                    },
+                )
+                if (part != null) resolver.openOutputStream(part)?.use { it.write(att.data) }
+            }
+            resolver.insert(
+                android.net.Uri.parse("content://mms/$mmsId/addr"),
+                ContentValues().apply {
+                    put(Telephony.Mms.Addr.MSG_ID, mmsId)
+                    put(Telephony.Mms.Addr.ADDRESS, address)
+                    put(Telephony.Mms.Addr.TYPE, 137) // PduHeaders.FROM
+                    put(Telephony.Mms.Addr.CHARSET, 106)
+                },
+            )
+            return mmsId
+        } catch (_: Exception) {
+            return null // Room row is still written by the caller — never lost
+        }
+    }
+
+    private fun saveAttachmentFile(att: MmsPduParser.Attachment, timestamp: Long): String? = try {
+        val ext = when {
+            att.mimeType.startsWith("image/jpeg") -> "jpg"
+            att.mimeType.startsWith("image/png") -> "png"
+            att.mimeType.startsWith("image/gif") -> "gif"
+            att.mimeType.startsWith("video/") -> "mp4"
+            att.mimeType.startsWith("audio/") -> "bin"
+            else -> "bin"
+        }
+        val dir = java.io.File(context.filesDir, "mms_media").apply { mkdirs() }
+        val file = java.io.File(dir, "${timestamp}_${att.data.size}.$ext")
+        file.writeBytes(att.data)
+        file.absolutePath
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun mediaPreview(mimeType: String?): String = when {
+        mimeType == null -> "MMS message"
+        mimeType.startsWith("image/") -> "Photo"
+        mimeType.startsWith("video/") -> "Video"
+        mimeType.startsWith("audio/") -> "Audio message"
+        else -> "Attachment"
+    }
+
+    /**
      * Resolve (or create) the system thread for an address — used by the
      * new-message compose flow before any message exists on the thread.
      */
@@ -196,7 +343,7 @@ class MessageRepository private constructor(private val context: Context) {
                 address.hashCode().toLong()
             }
             val entity = MessageEntity(
-                smsId = uri?.lastPathSegment?.toLongOrNull() ?: -1L,
+                smsId = uri?.lastPathSegment?.toLongOrNull(),
                 threadId = threadId,
                 address = address,
                 body = body,

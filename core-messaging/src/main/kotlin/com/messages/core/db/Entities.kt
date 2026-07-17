@@ -16,12 +16,18 @@ import androidx.room.PrimaryKey
         Index("category"),
         Index("timestamp"),
         Index(value = ["smsId"], unique = true),
+        Index(value = ["mmsId"], unique = true),
+        Index("mmsTransactionId"),
     ],
 )
 data class MessageEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    /** _id in the Telephony provider; -1 for drafts not yet persisted there. */
-    val smsId: Long,
+    /** _id in the Telephony SMS provider; null when unknown or for MMS rows. */
+    val smsId: Long? = null,
+    /** _id in the Telephony MMS provider (pdu table); null for SMS rows. */
+    val mmsId: Long? = null,
+    /** X-Mms-Transaction-Id — dedupes carrier redelivery of the same MMS. */
+    val mmsTransactionId: String? = null,
     val threadId: Long,
     val address: String,
     val body: String,
@@ -40,6 +46,9 @@ data class MessageEntity(
     val matchedComboIds: String = "",
     /** Human-readable explanations, newline-separated. */
     val explanations: String = "",
+    /** Local file path of the first MMS media attachment, if any. */
+    val mediaUri: String? = null,
+    val mediaMimeType: String? = null,
     val starred: Boolean = false,
     val archived: Boolean = false,
     val sendStatus: String = "NONE", // NONE | SENDING | SENT | FAILED

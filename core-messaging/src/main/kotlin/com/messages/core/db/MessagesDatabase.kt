@@ -26,6 +26,9 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE smsId = :smsId LIMIT 1")
     suspend fun bySmsId(smsId: Long): MessageEntity?
 
+    @Query("SELECT * FROM messages WHERE mmsTransactionId = :transactionId LIMIT 1")
+    suspend fun byMmsTransactionId(transactionId: String): MessageEntity?
+
     @Query("UPDATE messages SET category = :category, dangerous = 0 WHERE id = :id")
     suspend fun recategorize(id: Long, category: String)
 
@@ -117,7 +120,7 @@ interface UserRuleDao {
         MessageEntity::class, ConversationEntity::class,
         SenderReputationEntity::class, UserRuleEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class MessagesDatabase : RoomDatabase() {
