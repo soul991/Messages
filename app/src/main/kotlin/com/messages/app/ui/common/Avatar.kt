@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -32,7 +33,13 @@ fun ContactAvatar(
     val bg = palette?.container ?: MaterialTheme.colorScheme.primaryContainer
     val fg = palette?.onContainer ?: MaterialTheme.colorScheme.onPrimaryContainer
     Box(
-        modifier.size(size).clip(CircleShape).background(bg),
+        modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(bg)
+            // TalkBack: the monogram letter is decoration, not content —
+            // the row/top-bar already announces the contact name.
+            .clearAndSetSemantics {},
         contentAlignment = Alignment.Center,
     ) {
         Text(

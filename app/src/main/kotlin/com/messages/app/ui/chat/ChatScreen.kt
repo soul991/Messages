@@ -351,6 +351,11 @@ fun ChatScreen(
                                 else "${currentMatch + 1}/${matchIndices.size}",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.semantics {
+                                    contentDescription =
+                                        if (matchIndices.isEmpty()) "No matches"
+                                        else "Match ${currentMatch + 1} of ${matchIndices.size}"
+                                },
                             )
                         }
                         IconButton(
@@ -768,7 +773,7 @@ private fun CustomizeChatSheet(
                     val selected = currentBubble == preset.id
                     Box(
                         Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(fill)
                             .then(
@@ -1028,6 +1033,7 @@ private fun MessageBubble(
                 )
                 .combinedClickable(
                     onClick = {},
+                    onLongClickLabel = "Message options",
                     onLongClick = {
                         Haptics.longPress(view)
                         showMenu = true

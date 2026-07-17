@@ -84,6 +84,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -307,7 +310,14 @@ private fun FolderPane(
                             Text(label)
                             if (unread > 0) {
                                 Spacer(Modifier.width(6.dp))
-                                Badge { Text("$unread") }
+                                Badge {
+                                    Text(
+                                        "$unread",
+                                        modifier = Modifier.semantics {
+                                            contentDescription = "$unread unread"
+                                        },
+                                    )
+                                }
                             }
                         }
                     },
@@ -504,7 +514,9 @@ private fun SearchSectionHeader(label: String) {
         label,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .semantics { heading() },
     )
 }
 
@@ -708,7 +720,14 @@ private fun ConversationRow(
                 )
                 if (unread) {
                     Spacer(Modifier.width(8.dp))
-                    Badge { Text("${conv.unreadCount}") }
+                    Badge {
+                        Text(
+                            "${conv.unreadCount}",
+                            modifier = Modifier.semantics {
+                                contentDescription = "${conv.unreadCount} unread"
+                            },
+                        )
+                    }
                 }
             }
         }
