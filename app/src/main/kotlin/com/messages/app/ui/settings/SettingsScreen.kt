@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.security.AppLock
 import com.messages.core.MessageRepository
 import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.db.UserRuleEntity
@@ -70,6 +71,19 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     val hasImportedPack = MutableStateFlow(repo.hasImportedPatternPack())
     val importStatus = MutableStateFlow<String?>(null)
     val otpAutoDelete = MutableStateFlow(OtpCleanup.isEnabled(app))
+    val appLock = MutableStateFlow(AppLock.isEnabled(app))
+    val hidePreviews = MutableStateFlow(AppLock.hidePreviews(app))
+    val canAuthenticate = AppLock.canAuthenticate(app)
+
+    fun setAppLock(enabled: Boolean) {
+        AppLock.setEnabled(getApplication(), enabled)
+        appLock.value = enabled
+    }
+
+    fun setHidePreviews(hide: Boolean) {
+        AppLock.setHidePreviews(getApplication(), hide)
+        hidePreviews.value = hide
+    }
 
     fun setOtpAutoDelete(enabled: Boolean) {
         OtpCleanup.setEnabled(getApplication(), enabled)
@@ -142,6 +156,10 @@ fun SettingsScreen(
     val hasImportedPack by vm.hasImportedPack.collectAsState()
     val importStatus by vm.importStatus.collectAsState()
     val otpAutoDelete by vm.otpAutoDelete.collectAsState()
+    val appLock by vm.appLock.collectAsState()
+    val hidePreviews by vm.hidePreviews.collectAsState()
+    val activity = androidx.compose.ui.platform.LocalContext.current
+        as? androidx.fragment.app.FragmentActivity
 
     var addRuleKind by remember { mutableStateOf<String?>(null) } // ALLOW | BLOCK | CUSTOM
 
@@ -232,32 +250,60 @@ fun SettingsScreen(
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
             }
 
+            // ---- Privacy & security (§8.2) ----
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                SectionHeader("Privacy & security")
+                SettingSwitchRow(
+                    title = "App lock",
+                    subtitle = if (vm.canAuthenticate) {
+                        "Require fingerprint, face, or device PIN to open Messages."
+                    } else {
+                        "Set up a screen lock or biometrics on this device first."
+                    },
+                    checked = appLock,
+                    enabled = vm.canAuthenticate,
+                    onChange = { enable ->
+                        if (enable && activity != null) {
+                            // Prove the unlock works before turning it on.
+                            AppLock.authenticate(
+                                activity, "Confirm to enable app lock",
+                                onSuccess = { vm.setAppLock(true) },
+                            )
+                        } else {
+                            vm.setAppLock(false)
+                        }
+                    },
+                )
+                Spacer(Modifier.height(12.dp))
+                SettingSwitchRow(
+                    title = "Hide message previews",
+                    subtitle = "Notifications show \"New message\" instead of the text.",
+                    checked = hidePreviews,
+                    enabled = true,
+                    onChange = { vm.setHidePreviews(it) },
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Tip: lock individual conversations from the ⋮ menu inside a chat.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+            }
+
             // ---- OTP auto-delete (§6.5 / §8.2 — the app's only auto-delete) ----
             item {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
                 SectionHeader("Auto-delete OTPs")
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "Delete OTP messages after 24 hours",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Text(
-                            "Only OTP-labeled messages in your Inbox. Starred OTPs and " +
-                                "filtered folders are never touched.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Switch(
-                        checked = otpAutoDelete,
-                        onCheckedChange = { vm.setOtpAutoDelete(it) },
-                    )
-                }
+                SettingSwitchRow(
+                    title = "Delete OTP messages after 24 hours",
+                    subtitle = "Only OTP-labeled messages in your Inbox. Starred OTPs and " +
+                        "filtered folders are never touched.",
+                    checked = otpAutoDelete,
+                    enabled = true,
+                    onChange = { vm.setOtpAutoDelete(it) },
+                )
             }
 
             // ---- Pattern library (§7.5) ----
@@ -292,6 +338,31 @@ fun SettingsScreen(
                 Spacer(Modifier.height(24.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun SettingSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
     }
 }
 

@@ -93,6 +93,11 @@ class SnoozeWorker(
         ) return Result.success()
 
         val name = repo.displayNameFor(msg.address) ?: msg.address
+        // Respect hide-previews / locked conversations (§8.2)
+        val conversationLocked = repo.db.conversations().byThreadId(msg.threadId)?.locked == true
+        val hidden = com.messages.app.security.AppLock.hidePreviews(ctx) || conversationLocked
+        val title = if (conversationLocked) "Reminder" else "Reminder · $name"
+        val body = if (hidden) "You asked to be reminded about a message" else msg.body
         val openIntent = PendingIntent.getActivity(
             ctx, msg.threadId.toInt(),
             Intent(ctx, MainActivity::class.java).apply {
@@ -103,9 +108,9 @@ class SnoozeWorker(
         )
         val notification = NotificationCompat.Builder(ctx, MessagesApp.CH_REMINDERS)
             .setSmallIcon(android.R.drawable.ic_menu_recent_history)
-            .setContentTitle("Reminder · $name")
-            .setContentText(msg.body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(msg.body))
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(openIntent)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)

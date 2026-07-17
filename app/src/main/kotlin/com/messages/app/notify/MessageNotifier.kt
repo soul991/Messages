@@ -12,9 +12,10 @@ import androidx.core.content.ContextCompat
 import com.messages.app.MessagesApp
 import com.messages.app.MainActivity
 import com.messages.app.receiver.NotificationActionReceiver
+import com.messages.app.security.AppLock
+import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
 import com.messages.protection.Category
-import com.messages.protection.ProtectedLabel
 import com.messages.protection.Verdict
 
 /**
@@ -23,11 +24,19 @@ import com.messages.protection.Verdict
  */
 class MessageNotifier(private val context: Context) {
 
-    fun notifyFor(message: MessageEntity, verdict: Verdict, contactName: String?) {
+    suspend fun notifyFor(message: MessageEntity, verdict: Verdict, contactName: String?) {
         if (!hasPermission()) return
+        // Hide previews (§8.2): global setting, or this conversation is locked.
+        val conversationLocked = MessageRepository.get(context)
+            .db.conversations().byThreadId(message.threadId)?.locked == true
+        val hidden = AppLock.hidePreviews(context) || conversationLocked
         when (verdict.category) {
-            Category.INBOX -> postMessageNotification(message, verdict, contactName, MessagesApp.CH_PERSONAL)
-            Category.TRANSACTIONS -> postMessageNotification(message, verdict, contactName, MessagesApp.CH_TRANSACTIONS)
+            Category.INBOX -> postMessageNotification(
+                message, verdict, contactName, MessagesApp.CH_PERSONAL, hidden, conversationLocked,
+            )
+            Category.TRANSACTIONS -> postMessageNotification(
+                message, verdict, contactName, MessagesApp.CH_TRANSACTIONS, hidden, conversationLocked,
+            )
             Category.REVIEW -> postReviewNotification()
             Category.PROMOTIONS, Category.SPAM, Category.BLOCKED -> Unit // silent (§4)
         }
@@ -38,8 +47,11 @@ class MessageNotifier(private val context: Context) {
         verdict: Verdict,
         contactName: String?,
         channel: String,
+        hidden: Boolean,
+        conversationLocked: Boolean,
     ) {
-        val title = contactName ?: message.address
+        // Locked conversations hide the sender too; hide-previews keeps it.
+        val title = if (conversationLocked) "Messages" else (contactName ?: message.address)
         val openIntent = PendingIntent.getActivity(
             context, message.threadId.toInt(),
             Intent(context, MainActivity::class.java).apply {
@@ -58,15 +70,14 @@ class MessageNotifier(private val context: Context) {
         )
 
         val person = Person.Builder().setName(title).build()
-        val style = NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
-            .addMessage(message.body, message.timestamp, person)
-
         val text = when {
+            hidden -> "New message"
             verdict.fraudWarningBanner ->
                 "⚠️ Caution: contains a suspicious link — ${message.body}"
-            verdict.protectedLabel == ProtectedLabel.OTP -> message.body
             else -> message.body
         }
+        val style = NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
+            .addMessage(text, message.timestamp, person)
 
         val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(android.R.drawable.sym_action_chat)

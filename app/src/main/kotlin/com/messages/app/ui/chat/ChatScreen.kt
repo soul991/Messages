@@ -31,6 +31,8 @@ import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SimCard
@@ -109,6 +111,8 @@ fun ChatScreen(
     val messages by vm.messages.collectAsState()
     val contactName by vm.contactName.collectAsState()
     val address by vm.address.collectAsState()
+    val locked by vm.locked.collectAsState()
+    val chatUnlocked by vm.chatUnlocked.collectAsState()
     val pendingAttachment by vm.pendingAttachment.collectAsState()
     val sendError by vm.sendError.collectAsState()
     val simOptions by vm.simOptions.collectAsState()
@@ -128,6 +132,24 @@ fun ChatScreen(
     ) { ok -> if (ok) cameraTarget?.let { vm.attach(it) } }
     var showAttachSheet by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
+    var showChatMenu by remember { mutableStateOf(false) }
+
+    // Locked-conversation gate (§8.2): nothing renders until authenticated.
+    if (locked && !chatUnlocked) {
+        com.messages.app.ui.lock.LockScreen(
+            title = "This conversation is locked",
+            onRequestUnlock = {
+                (context as? androidx.fragment.app.FragmentActivity)?.let { activity ->
+                    com.messages.app.security.AppLock.authenticate(
+                        activity, "Unlock conversation",
+                        onSuccess = { vm.markChatUnlocked() },
+                        onFailure = { onBack() },
+                    )
+                } ?: vm.markChatUnlocked() // no auth host available — don't strand the user
+            },
+        )
+        return
+    }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
@@ -157,6 +179,32 @@ fun ChatScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (locked) {
+                        Icon(
+                            Icons.Filled.Lock, contentDescription = "Locked conversation",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.width(18.dp),
+                        )
+                    }
+                    Box {
+                        IconButton(onClick = { showChatMenu = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(
+                            expanded = showChatMenu,
+                            onDismissRequest = { showChatMenu = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(if (locked) "Unlock conversation" else "Lock conversation") },
+                                onClick = {
+                                    showChatMenu = false
+                                    vm.setConversationLocked(!locked)
+                                },
+                            )
+                        }
                     }
                 },
             )

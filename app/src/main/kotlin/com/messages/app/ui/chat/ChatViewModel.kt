@@ -36,6 +36,10 @@ class ChatViewModel(
     val contactName = MutableStateFlow<String?>(null)
     val address = MutableStateFlow("")
 
+    /** Locked conversation (§8.2): gate the chat UI until authenticated. */
+    val locked = MutableStateFlow(false)
+    val chatUnlocked = MutableStateFlow(false)
+
     /** Dual-SIM (§8.1): available SIMs and this chat's choice (null = system default). */
     data class SimOption(val subId: Int, val slotIndex: Int, val displayName: String)
     val simOptions = MutableStateFlow<List<SimOption>>(emptyList())
@@ -48,6 +52,7 @@ class ChatViewModel(
                 address.value = conv.address
                 contactName.value = conv.contactName
                 selectedSubId.value = conv.preferredSubId
+                locked.value = conv.locked
             } else if (!fallbackAddress.isNullOrBlank()) {
                 address.value = fallbackAddress
                 contactName.value = withContext(Dispatchers.IO) {
@@ -180,6 +185,19 @@ class ChatViewModel(
 
     fun clearSendError() {
         sendError.value = null
+    }
+
+    fun markChatUnlocked() {
+        chatUnlocked.value = true
+    }
+
+    /** Lock/unlock this conversation (§8.2). */
+    fun setConversationLocked(lock: Boolean) = viewModelScope.launch {
+        repo.db.conversations().setLocked(threadId, lock)
+        locked.value = lock
+        // Locking from inside the chat keeps this session open; the gate
+        // applies from the next visit.
+        chatUnlocked.value = lock
     }
 
     fun moveToInbox(messageId: Long) = viewModelScope.launch { repo.moveToInbox(messageId) }

@@ -244,7 +244,7 @@ private fun ConversationRow(conv: ConversationEntity, onClick: () -> Unit) {
             Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    conv.lastMessage,
+                    if (conv.locked) "🔒 Locked conversation" else conv.lastMessage,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (conv.unreadCount > 0) MaterialTheme.colorScheme.onSurface
                     else MaterialTheme.colorScheme.outline,

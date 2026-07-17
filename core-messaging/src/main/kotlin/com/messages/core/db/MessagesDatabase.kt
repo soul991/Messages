@@ -125,6 +125,9 @@ interface ConversationDao {
     @Query("UPDATE conversations SET muted = :muted WHERE threadId = :threadId")
     suspend fun setMuted(threadId: Long, muted: Boolean)
 
+    @Query("UPDATE conversations SET locked = :locked WHERE threadId = :threadId")
+    suspend fun setLocked(threadId: Long, locked: Boolean)
+
     @Query("UPDATE conversations SET unreadCount = 0 WHERE threadId = :threadId")
     suspend fun clearUnread(threadId: Long)
 
@@ -178,7 +181,7 @@ interface UserRuleDao {
         MessageEntity::class, ConversationEntity::class,
         SenderReputationEntity::class, UserRuleEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class MessagesDatabase : RoomDatabase() {

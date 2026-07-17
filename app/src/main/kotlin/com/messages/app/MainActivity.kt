@@ -6,31 +6,37 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Telephony
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.messages.app.security.AppLock
 import com.messages.app.ui.chat.ChatScreen
 import com.messages.app.ui.compose.NewMessageScreen
 import com.messages.app.ui.dashboard.DashboardScreen
 import com.messages.app.ui.home.HomeScreen
+import com.messages.app.ui.lock.LockScreen
 import com.messages.app.ui.onboarding.OnboardingScreen
 import com.messages.app.ui.settings.SettingsScreen
 import com.messages.app.ui.why.WhyFilteredScreen
 import com.messages.core.backfill.Backfill
 import com.messages.designsystem.MessagesTheme
 
-class MainActivity : ComponentActivity() {
+// FragmentActivity (not ComponentActivity) so BiometricPrompt can attach (§8.2 app lock).
+class MainActivity : FragmentActivity() {
 
     private var isDefaultSmsApp by mutableStateOf(false)
+
+    /** App lock: false until authenticated this foreground session. */
+    private var appUnlocked by mutableStateOf(false)
 
     /** Set once the NavHost is up; routes intents arriving via onNewIntent (singleTask). */
     private var intentNavigator: ((Intent) -> Unit)? = null
@@ -60,6 +66,18 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MessagesTheme {
+                // App lock gate (§8.2): everything below stays hidden until unlocked.
+                if (!appUnlocked) {
+                    LockScreen(
+                        onRequestUnlock = {
+                            AppLock.authenticate(
+                                this, "Unlock Messages",
+                                onSuccess = { appUnlocked = true },
+                            )
+                        },
+                    )
+                    return@MessagesTheme
+                }
                 val nav = rememberNavController()
                 // Route intents that arrive while this singleTask activity is alive
                 // (notification taps, ACTION_SENDTO from other apps).
@@ -141,6 +159,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // No lock configured → always unlocked; locked → wait for authentication.
+        if (!AppLock.isEnabled(this)) appUnlocked = true
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Re-lock whenever the app leaves the foreground.
+        if (AppLock.isEnabled(this)) appUnlocked = false
     }
 
     override fun onResume() {

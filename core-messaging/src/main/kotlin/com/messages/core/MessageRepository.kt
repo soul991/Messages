@@ -197,6 +197,8 @@ class MessageRepository private constructor(private val context: Context) {
                         pinned = existing?.pinned ?: false,
                         archived = existing?.archived ?: false,
                         muted = existing?.muted ?: false,
+                        locked = existing?.locked ?: false,
+                        preferredSubId = existing?.preferredSubId,
                     )
                 )
             }
@@ -644,6 +646,8 @@ class MessageRepository private constructor(private val context: Context) {
                 pinned = existing?.pinned ?: false,
                 archived = false, // new message unarchives
                 muted = existing?.muted ?: false,
+                locked = existing?.locked ?: false,
+                preferredSubId = existing?.preferredSubId,
             )
         )
     }

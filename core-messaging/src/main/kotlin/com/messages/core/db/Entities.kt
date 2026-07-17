@@ -70,6 +70,8 @@ data class ConversationEntity(
     val pinned: Boolean = false,
     val archived: Boolean = false,
     val muted: Boolean = false,
+    /** Locked conversation (§8.2): opening requires app-lock auth; previews hidden. */
+    val locked: Boolean = false,
     /** Dual-SIM: subscription ID to send from in this chat; null = system default. */
     val preferredSubId: Int? = null,
 )
