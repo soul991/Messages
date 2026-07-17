@@ -65,6 +65,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         val activeKeywords: List<String> = emptyList(),
         val results: List<SearchRowUi> = emptyList(),
         val suggestedChips: List<String> = emptyList(),
+        /** §8.5.3: conversations whose contact name / number matches a keyword. */
+        val conversationMatches: List<ConversationEntity> = emptyList(),
     )
 
     private val nameCache = HashMap<String, String?>()
@@ -83,8 +85,15 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                 val raw = repo.search.search(keywords)
                 val filtered =
                     if (label == null) raw else raw.filter { it.message.protectedLabel == label }
+                // Contact-name / number matches ("mom" → mom's conversation).
+                val convMatches = LinkedHashMap<Long, ConversationEntity>()
+                for (k in keywords) {
+                    repo.db.conversations().searchByNameOrAddress(k)
+                        .forEach { convMatches.putIfAbsent(it.threadId, it) }
+                }
                 SearchState(
                     activeKeywords = keywords,
+                    conversationMatches = convMatches.values.toList(),
                     results = filtered.take(200).map { r ->
                         SearchRowUi(
                             message = r.message,

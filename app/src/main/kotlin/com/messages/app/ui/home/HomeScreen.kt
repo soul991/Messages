@@ -213,6 +213,7 @@ fun HomeScreen(
                         vm.recordSearchUse()
                         onOpenSearchResult(msg.threadId, msg.id, searchState.activeKeywords)
                     },
+                    onOpenThread = onOpenThread,
                 )
             } else {
                 // Folder chips directly under the search bar (§9)
@@ -261,6 +262,7 @@ private fun SearchPane(
     labelFilter: String?,
     state: HomeViewModel.SearchState,
     onOpenResult: (com.messages.core.db.MessageEntity) -> Unit,
+    onOpenThread: (Long) -> Unit,
 ) {
     // Committed keyword chips — unlimited, each removable (§8.5.2).
     if (chips.isNotEmpty()) {
@@ -320,7 +322,7 @@ private fun SearchPane(
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             if (typing.isNotEmpty()) {
                 Text(
-                    "Keep typing — search starts at 3 characters",
+                    "Type at least 3 characters",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -352,7 +354,7 @@ private fun SearchPane(
         return
     }
 
-    if (state.results.isEmpty()) {
+    if (state.results.isEmpty() && state.conversationMatches.isEmpty()) {
         Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
             Text(
                 "No messages match",
@@ -369,6 +371,30 @@ private fun SearchPane(
         it.message.category == "SPAM" || it.message.category == "BLOCKED"
     }
     LazyColumn(Modifier.fillMaxSize()) {
+        // §8.5.3: conversations whose contact name / number matches ("mom").
+        if (state.conversationMatches.isNotEmpty()) {
+            item {
+                Text(
+                    "Conversations",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+            items(state.conversationMatches, key = { "conv-${it.threadId}" }) { conv ->
+                ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
+            }
+            if (state.results.isNotEmpty()) {
+                item {
+                    Text(
+                        "Messages",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+            }
+        }
         items(normal, key = { it.message.id }) { row ->
             SearchResultRow(row, state.activeKeywords, onOpenResult)
         }
@@ -384,6 +410,45 @@ private fun SearchPane(
             items(filtered, key = { it.message.id }) { row ->
                 SearchResultRow(row, state.activeKeywords, onOpenResult)
             }
+        }
+    }
+}
+
+/** A conversation whose contact name / number matched a keyword (§8.5.3). */
+@Composable
+private fun ConversationMatchRow(
+    conv: ConversationEntity,
+    keywords: List<String>,
+    onClick: () -> Unit,
+) {
+    val highlight = SpanStyle(
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold,
+        background = MaterialTheme.colorScheme.primaryContainer,
+    )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Avatar(conv.contactName ?: conv.address, conv.category)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                SearchHighlight.annotate(conv.contactName ?: conv.address, keywords, highlight),
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                conv.lastMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

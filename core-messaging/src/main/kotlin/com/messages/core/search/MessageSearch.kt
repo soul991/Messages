@@ -30,11 +30,16 @@ class MessageSearch(private val dao: MessageDao) {
         val matchedKeywords: List<String>,
     )
 
-    /** 3-character junk-fragment guard (§8.5.1) — callers enforce it too; belt & braces. */
+    /** 3-character junk-fragment guard (§8.5.1) — applies to the live-typed token. */
     fun isQueryable(keyword: String): Boolean = keyword.trim().length >= MIN_QUERY_LENGTH
 
+    /**
+     * Committed chips are deliberate, not junk keystrokes, so they query from
+     * 2 characters — a chip for "hi" must find "hi" (the §8.5.1 guard exists
+     * to suppress intermediate typing, not explicit keywords).
+     */
     suspend fun search(keywords: List<String>, limitPerKeyword: Int = 300): List<Result> {
-        val active = keywords.map { it.trim() }.filter { isQueryable(it) }.distinct()
+        val active = keywords.map { it.trim() }.filter { it.length >= MIN_CHIP_LENGTH }.distinct()
         if (active.isEmpty()) return emptyList()
 
         val byId = LinkedHashMap<Long, Pair<MessageEntity, MutableList<String>>>()
@@ -86,6 +91,7 @@ class MessageSearch(private val dao: MessageDao) {
 
     companion object {
         const val MIN_QUERY_LENGTH = 3
+        const val MIN_CHIP_LENGTH = 2
 
         private val TOKEN = Regex("[a-z0-9]+")
 

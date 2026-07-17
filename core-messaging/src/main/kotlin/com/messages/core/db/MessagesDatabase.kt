@@ -173,6 +173,16 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE archived = 1 ORDER BY lastTimestamp DESC")
     fun archived(): Flow<List<ConversationEntity>>
 
+    // §8.5.3: searching "mom" must find the conversation with the contact
+    // saved as mom — contact names are not in the message FTS index, so
+    // conversations are matched separately by name/number substring.
+    @Query(
+        "SELECT * FROM conversations WHERE (contactName LIKE '%' || :q || '%' " +
+            "OR address LIKE '%' || :q || '%') " +
+            "ORDER BY lastTimestamp DESC LIMIT 20"
+    )
+    suspend fun searchByNameOrAddress(q: String): List<ConversationEntity>
+
     @Query("UPDATE conversations SET pinned = :pinned WHERE threadId = :threadId")
     suspend fun setPinned(threadId: Long, pinned: Boolean)
 
