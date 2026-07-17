@@ -27,12 +27,15 @@ class SmsDeliverReceiver : BroadcastReceiver() {
         val address = messages.first().displayOriginatingAddress ?: return
         val body = messages.joinToString("") { it.displayMessageBody ?: "" }
         val timestamp = messages.first().timestampMillis
+        // Dual-SIM: which subscription received this (extra name predates the S constant).
+        val subId = intent.getIntExtra("android.telephony.extra.SUBSCRIPTION_INDEX",
+            intent.getIntExtra("subscription", -1)).takeIf { it >= 0 }
 
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val repo = MessageRepository.get(context)
-                val (entity, verdict) = repo.onIncomingSms(address, body, timestamp)
+                val (entity, verdict) = repo.onIncomingSms(address, body, timestamp, subId)
                 MessageNotifier(context).notifyFor(entity, verdict, repo.lookupContactName(address))
             } finally {
                 pending.finish()

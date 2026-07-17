@@ -92,7 +92,12 @@ class MessageRepository private constructor(private val context: Context) {
     }
 
     /** Classify + store an incoming message. Never drops anything (§6). */
-    suspend fun onIncomingSms(address: String, body: String, timestamp: Long): Pair<MessageEntity, Verdict> =
+    suspend fun onIncomingSms(
+        address: String,
+        body: String,
+        timestamp: Long,
+        subId: Int? = null,
+    ): Pair<MessageEntity, Verdict> =
         withContext(Dispatchers.IO) {
             // Write to the Telephony provider first — zero message loss.
             val values = ContentValues().apply {
@@ -101,6 +106,7 @@ class MessageRepository private constructor(private val context: Context) {
                 put(Telephony.Sms.DATE, timestamp)
                 put(Telephony.Sms.READ, 0)
                 put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_INBOX)
+                if (subId != null) put(Telephony.Sms.SUBSCRIPTION_ID, subId)
             }
             val uri = try {
                 context.contentResolver.insert(Telephony.Sms.Inbox.CONTENT_URI, values)
@@ -122,6 +128,7 @@ class MessageRepository private constructor(private val context: Context) {
                 body = body,
                 timestamp = timestamp,
                 isOutgoing = false,
+                subId = subId,
                 category = verdict.category.name,
                 dangerous = verdict.dangerous,
                 fraudWarning = verdict.fraudWarningBanner,
@@ -491,7 +498,12 @@ class MessageRepository private constructor(private val context: Context) {
         }
     }
 
-    suspend fun storeOutgoing(address: String, body: String, timestamp: Long): MessageEntity =
+    suspend fun storeOutgoing(
+        address: String,
+        body: String,
+        timestamp: Long,
+        subId: Int? = null,
+    ): MessageEntity =
         withContext(Dispatchers.IO) {
             val values = ContentValues().apply {
                 put(Telephony.Sms.ADDRESS, address)
@@ -499,6 +511,7 @@ class MessageRepository private constructor(private val context: Context) {
                 put(Telephony.Sms.DATE, timestamp)
                 put(Telephony.Sms.READ, 1)
                 put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_SENT)
+                if (subId != null) put(Telephony.Sms.SUBSCRIPTION_ID, subId)
             }
             val uri = try {
                 context.contentResolver.insert(Telephony.Sms.Sent.CONTENT_URI, values)
@@ -519,6 +532,7 @@ class MessageRepository private constructor(private val context: Context) {
                 isOutgoing = true,
                 read = true,
                 sendStatus = "SENDING",
+                subId = subId,
             )
             val id = db.messages().insert(entity)
             updateConversation(threadId, address, body, timestamp, category = null, incrementUnread = false)

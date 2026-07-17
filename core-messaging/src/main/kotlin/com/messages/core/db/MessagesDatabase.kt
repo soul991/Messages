@@ -87,6 +87,9 @@ interface ConversationDao {
     @Query("UPDATE conversations SET unreadCount = 0 WHERE threadId = :threadId")
     suspend fun clearUnread(threadId: Long)
 
+    @Query("UPDATE conversations SET preferredSubId = :subId WHERE threadId = :threadId")
+    suspend fun setPreferredSubId(threadId: Long, subId: Int?)
+
     @Query("SELECT COUNT(*) FROM conversations WHERE category = :category AND unreadCount > 0 AND archived = 0")
     fun unreadConversationCount(category: String): Flow<Int>
 }
@@ -120,7 +123,7 @@ interface UserRuleDao {
         MessageEntity::class, ConversationEntity::class,
         SenderReputationEntity::class, UserRuleEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class MessagesDatabase : RoomDatabase() {

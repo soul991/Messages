@@ -52,6 +52,8 @@ data class MessageEntity(
     val starred: Boolean = false,
     val archived: Boolean = false,
     val sendStatus: String = "NONE", // NONE | SENDING | SENT | FAILED
+    /** Dual-SIM: subscription this message was sent/received on, when known. */
+    val subId: Int? = null,
 )
 
 @Entity(tableName = "conversations", indices = [Index(value = ["threadId"], unique = true)])
@@ -68,6 +70,8 @@ data class ConversationEntity(
     val pinned: Boolean = false,
     val archived: Boolean = false,
     val muted: Boolean = false,
+    /** Dual-SIM: subscription ID to send from in this chat; null = system default. */
+    val preferredSubId: Int? = null,
 )
 
 @Entity(tableName = "sender_reputation", indices = [Index(value = ["address"], unique = true)])

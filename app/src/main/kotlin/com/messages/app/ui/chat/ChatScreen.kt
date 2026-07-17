@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -98,6 +99,9 @@ fun ChatScreen(
     val address by vm.address.collectAsState()
     val pendingAttachment by vm.pendingAttachment.collectAsState()
     val sendError by vm.sendError.collectAsState()
+    val simOptions by vm.simOptions.collectAsState()
+    val selectedSubId by vm.selectedSubId.collectAsState()
+    var showSimMenu by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -209,6 +213,38 @@ fun ChatScreen(
                     maxLines = 5,
                 )
                 Spacer(Modifier.width(8.dp))
+                // Dual-SIM indicator + per-chat picker (§8.1) — only with 2+ SIMs
+                if (simOptions.isNotEmpty()) {
+                    Box {
+                        IconButton(onClick = { showSimMenu = true }) {
+                            Icon(
+                                Icons.Filled.SimCard,
+                                contentDescription = "Choose SIM",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = showSimMenu,
+                            onDismissRequest = { showSimMenu = false },
+                        ) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(if (selectedSubId == null) "• Default SIM" else "Default SIM") },
+                                onClick = { vm.selectSim(null); showSimMenu = false },
+                            )
+                            simOptions.forEach { sim ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            (if (selectedSubId == sim.subId) "• " else "") +
+                                                "SIM ${sim.slotIndex + 1} — ${sim.displayName}"
+                                        )
+                                    },
+                                    onClick = { vm.selectSim(sim.subId); showSimMenu = false },
+                                )
+                            }
+                        }
+                    }
+                }
                 IconButton(
                     onClick = { vm.sendWithAttachment(draft); draft = "" },
                     enabled = draft.isNotBlank() || pendingAttachment != null,

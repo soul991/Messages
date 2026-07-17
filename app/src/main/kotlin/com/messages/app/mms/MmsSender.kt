@@ -52,6 +52,7 @@ object MmsSender {
         address: String,
         textBody: String,
         attachment: MmsPduParser.Attachment?,
+        subId: Int? = null,
     ): Long? {
         val repo = MessageRepository.get(context)
         val transactionId = "T${System.currentTimeMillis().toString(16)}"
@@ -88,8 +89,9 @@ object MmsSender {
             context.grantUriPermission(
                 "com.android.phone", contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION,
             )
-            context.getSystemService(SmsManager::class.java)
-                .sendMultimediaMessage(context, contentUri, null, null, pi)
+            val smsManager = context.getSystemService(SmsManager::class.java)
+                .let { if (subId != null) it.createForSubscriptionId(subId) else it }
+            smsManager.sendMultimediaMessage(context, contentUri, null, null, pi)
             entity.id
         } catch (_: Exception) {
             repo.onMmsSendResult(entity.id, success = false)
