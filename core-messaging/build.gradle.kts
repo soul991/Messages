@@ -19,6 +19,10 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 
+// Room schema history (JSON per version) — committed so future migrations can
+// be written and verified against the exact shipped schemas.
+ksp { arg("room.schemaLocation", "$projectDir/schemas") }
+
 dependencies {
     api(project(":protection-engine"))
     implementation(libs.androidx.core.ktx)

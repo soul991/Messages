@@ -29,7 +29,10 @@ class MessageRepository private constructor(private val context: Context) {
     val db: MessagesDatabase = Room.databaseBuilder(
         context, MessagesDatabase::class.java, "messages.db"
     ).addMigrations(*com.messages.core.db.Migrations.ALL)
-        .fallbackToDestructiveMigration()
+        // Destruction is allowed ONLY for pre-release dev schemas (<v4). From
+        // v4 forward every bump must ship a real migration in Migrations.ALL —
+        // a missing one now crashes loudly instead of silently wiping the index.
+        .fallbackToDestructiveMigrationFrom(1, 2, 3)
         .build()
 
     private val settingsPrefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)

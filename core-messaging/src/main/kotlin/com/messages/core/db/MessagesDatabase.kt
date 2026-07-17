@@ -222,7 +222,7 @@ interface UserRuleDao {
         SenderReputationEntity::class, UserRuleEntity::class,
     ],
     version = 5,
-    exportSchema = false,
+    exportSchema = true,
 )
 abstract class MessagesDatabase : RoomDatabase() {
     abstract fun messages(): MessageDao
