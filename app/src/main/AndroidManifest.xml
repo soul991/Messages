@@ -83,6 +83,24 @@
         <receiver android:name=".receiver.MmsDownloadReceiver" android:exported="false" />
         <receiver android:name=".receiver.NotificationActionReceiver" android:exported="false" />
 
+        <!-- Home-screen widgets (§8.2) -->
+        <receiver android:name=".widget.ProtectionStatsWidget" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_protection_info" />
+        </receiver>
+        <receiver android:name=".widget.UnreadWidget" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_unread_info" />
+        </receiver>
+
         <!-- Hands the telephony process a writable target for downloaded MMS PDUs -->
         <provider
             android:name="androidx.core.content.FileProvider"

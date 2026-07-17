@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Messages</string>
+    <string name="widget_protection_desc">Spam blocked this week, at a glance</string>
+    <string name="widget_unread_desc">Unread conversations at a glance</string>
 </resources>

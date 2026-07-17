@@ -67,7 +67,37 @@ interface MessageDao {
 
     @Query("SELECT * FROM messages WHERE starred = 1 ORDER BY timestamp DESC")
     fun starred(): Flow<List<MessageEntity>>
+
+    // ---- Protection-dashboard stats (§8.2) ----
+
+    @Query(
+        "SELECT category, COUNT(*) as count FROM messages WHERE category IN " +
+            "('SPAM','PROMOTIONS','BLOCKED','REVIEW') AND timestamp >= :since GROUP BY category"
+    )
+    suspend fun filteredCountsSince(since: Long): List<CategoryCount>
+
+    @Query(
+        "SELECT address, COUNT(*) as count FROM messages WHERE category IN ('SPAM','BLOCKED') " +
+            "AND timestamp >= :since GROUP BY address ORDER BY count DESC LIMIT :limit"
+    )
+    suspend fun topFilteredSenders(since: Long, limit: Int): List<SenderCount>
+
+    @Query("SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED','PROMOTIONS')")
+    suspend fun totalSilenced(): Int
+
+    @Query("SELECT COUNT(*) FROM messages WHERE dangerous = 1 AND timestamp >= :since")
+    suspend fun dangerousCountSince(since: Long): Int
+
+    @Query(
+        "SELECT matchedPatternIds FROM messages WHERE category IN " +
+            "('SPAM','PROMOTIONS','BLOCKED','REVIEW') AND timestamp >= :since " +
+            "AND matchedPatternIds != ''"
+    )
+    suspend fun filteredPatternIdsSince(since: Long): List<String>
 }
+
+data class CategoryCount(val category: String, val count: Int)
+data class SenderCount(val address: String, val count: Int)
 
 @Dao
 interface ConversationDao {
@@ -106,6 +136,17 @@ interface ConversationDao {
 
     @Query("SELECT COUNT(*) FROM conversations WHERE category = :category AND unreadCount > 0 AND archived = 0")
     fun unreadConversationCount(category: String): Flow<Int>
+
+    // ---- One-shot lookups for home-screen widgets (§8.2) ----
+
+    @Query("SELECT COUNT(*) FROM conversations WHERE category = 'INBOX' AND unreadCount > 0 AND archived = 0")
+    suspend fun unreadInboxConversations(): Int
+
+    @Query(
+        "SELECT * FROM conversations WHERE category = 'INBOX' AND unreadCount > 0 " +
+            "AND archived = 0 ORDER BY lastTimestamp DESC LIMIT :limit"
+    )
+    suspend fun recentUnreadInbox(limit: Int): List<ConversationEntity>
 }
 
 @Dao

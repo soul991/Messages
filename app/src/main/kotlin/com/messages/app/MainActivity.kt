@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.messages.app.ui.chat.ChatScreen
 import com.messages.app.ui.compose.NewMessageScreen
+import com.messages.app.ui.dashboard.DashboardScreen
 import com.messages.app.ui.home.HomeScreen
 import com.messages.app.ui.onboarding.OnboardingScreen
 import com.messages.app.ui.settings.SettingsScreen
@@ -96,7 +97,11 @@ class MainActivity : ComponentActivity() {
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
                             onCompose = { nav.navigate("compose") },
                             onSettings = { nav.navigate("settings") },
+                            onDashboard = { nav.navigate("dashboard") },
                         )
+                    }
+                    composable("dashboard") {
+                        DashboardScreen(onBack = { nav.popBackStack() })
                     }
                     composable("settings") {
                         SettingsScreen(onBack = { nav.popBackStack() })
@@ -177,6 +182,7 @@ class MainActivity : ComponentActivity() {
             folderRequest = folder
             return "home"
         }
+        if (intent.getBooleanExtra("dashboard", false)) return "dashboard"
         return null
     }
 

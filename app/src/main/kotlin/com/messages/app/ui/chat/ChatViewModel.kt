@@ -56,6 +56,7 @@ class ChatViewModel(
             }
             repo.db.messages().markThreadRead(threadId)
             repo.db.conversations().clearUnread(threadId)
+            com.messages.app.widget.WidgetUpdater.requestUpdate(getApplication())
             loadSimOptions()
         }
     }

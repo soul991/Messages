@@ -75,6 +75,7 @@ fun HomeScreen(
     onOpenThread: (Long) -> Unit,
     onCompose: () -> Unit,
     onSettings: () -> Unit,
+    onDashboard: () -> Unit,
     vm: HomeViewModel = viewModel(),
 ) {
     LaunchedEffect(initialFolder) { if (initialFolder != null) vm.setFolder(initialFolder) }
@@ -106,6 +107,9 @@ fun HomeScreen(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = onDashboard) {
+                    Icon(Icons.Filled.Shield, contentDescription = "Protection dashboard")
+                }
                 IconButton(onClick = onSettings) {
                     Icon(Icons.Filled.Settings, contentDescription = "Settings")
                 }

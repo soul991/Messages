@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import com.messages.app.notify.MessageNotifier
+import com.messages.app.widget.WidgetUpdater
 import com.messages.core.MessageRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,7 @@ class SmsDeliverReceiver : BroadcastReceiver() {
                 val repo = MessageRepository.get(context)
                 val (entity, verdict) = repo.onIncomingSms(address, body, timestamp, subId)
                 MessageNotifier(context).notifyFor(entity, verdict, repo.lookupContactName(address))
+                WidgetUpdater.requestUpdate(context)
             } finally {
                 pending.finish()
             }

@@ -56,6 +56,10 @@ class ProtectionEngine(
     val libraryVersion: Int get() = matcher.library.version
     val patternCount: Int get() = matcher.library.patterns.size
 
+    /** Pattern id → family, for stats grouping (protection dashboard §8.2). */
+    val familiesByPatternId: Map<String, String>
+        get() = matcher.library.patterns.associate { it.id to it.family }
+
     fun classify(input: Input): Verdict {
         // Stage 0 — normalization (always)
         val msg = Normalizer.normalize(input.body)

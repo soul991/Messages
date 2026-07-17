@@ -117,6 +117,7 @@ class MmsDownloadReceiver : BroadcastReceiver() {
                     conf.attachments, senderAddress = sender,
                 ) ?: return@launch // duplicate delivery
                 MessageNotifier(context).notifyFor(result.first, result.second, repo.lookupContactName(sender))
+                com.messages.app.widget.WidgetUpdater.requestUpdate(context)
             } finally {
                 pending.finish()
             }
@@ -210,6 +211,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     "spam" -> if (messageId != -1L) repo.moveToSpam(messageId)
                 }
                 androidx.core.app.NotificationManagerCompat.from(context).cancel(threadId.toInt())
+                com.messages.app.widget.WidgetUpdater.requestUpdate(context)
             } finally {
                 pending.finish()
             }

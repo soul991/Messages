@@ -197,8 +197,9 @@ All folders are searchable. All are one tap from the Inbox. Per-folder notificat
 1. The filter **never deletes anything.** Spam, Promotions, Blocked, Review — all messages are stored exactly like Inbox messages, forever, until the **user** deletes them.
 2. Every folder is fully browsable and included in global search (Spam/Blocked results appear under a separator).
 3. So if an expected message is ever mis-filed, the user opens Spam/Blocked/Review, finds it, taps **"Not spam / Move to Inbox"** — the message moves, the sender gets a local trust boost, and (optionally, one tap) an allow-list entry is created so it never happens again.
-4. Optional, **off by default**, clearly labeled: "Auto-clean Spam older than 90 days." Even when enabled, show a confirmation and never touch Review/Blocked.
-5. The ONLY auto-delete in the app is the user-enabled OTP cleanup (§8), which touches only OTP-labeled messages in the user's own Inbox — never filtered folders.
+4. **User deletions go to Trash, not oblivion.** When the user deletes a message (or thread), it is removed from the system Telephony provider (so it disappears from the phone normally) but a copy is retained in the app's own store, flagged as trash with a purge date **60 days** out. A **Trash folder** (under Settings or the folder list) lets the user browse and restore trashed messages any time within the window; after 60 days a WorkManager job purges them permanently. "Delete forever" from within Trash is available for immediate permanent deletion. Backups carry trash items *as trash* (§8.3) so a restore reproduces the same state.
+5. Optional, **off by default**, clearly labeled: "Auto-clean Spam older than 90 days." Even when enabled, show a confirmation and never touch Review/Blocked (cleaned Spam goes through Trash like any user deletion).
+6. The ONLY other auto-deletes in the app are: (a) the user-enabled OTP cleanup (§8), which touches only OTP-labeled messages in the user's own Inbox — never filtered folders (OTP cleanup bypasses Trash; expired OTPs have no recovery value), and (b) the 60-day Trash purge above.
 
 ---
 
@@ -231,8 +232,43 @@ Default-SMS role; send/receive SMS/MMS/RCS (typing indicators, read receipts, re
 - **Android platform features:** conversation bubbles (Android 11+), conversation shortcuts, direct share, home-screen widgets (unread + recent chats + "protection stats" widget showing spam blocked this week), notification channels per category.
 - **Privacy & security:** app lock (biometric/PIN), locked/private conversations, hide previews, block & report.
 - **Backup/restore:** local export/import + optional Google Drive backup (messages, settings, rules, sender reputations, pattern-pack version).
-- **Quality of life:** undo for destructive actions (snackbar), mark-all-read, unread filter, starred view, archive, swipe-action customization, text size control, accessibility (TalkBack, contrast, font scaling).
+- **Quality of life:** undo for destructive actions (snackbar), mark-all-read, unread filter, starred view, archive, **Trash folder with 60-day retention and restore (§6.4)**, swipe-action customization, text size control, accessibility (TalkBack, contrast, font scaling).
 - **Protection dashboard:** a stats screen — messages filtered this week/month by family, top blocked senders, with satisfying counters ("1,204 spam messages silenced").
+
+### 8.3 Google Drive Backup & Restore (WhatsApp-style)
+
+**Identity & storage:** Google Sign-In + Google Drive **appDataFolder** (hidden, app-private area of the user's own Drive). No app servers; the Google account IS the identity. On any device, signing in with the same Gmail lets the app discover that account's backup and offer restore. Scopes: `drive.appdata` only — never general Drive access.
+
+**What is backed up:** all messages from ALL folders (Inbox, Transactions, Promotions, Spam, Review, Blocked, Archived — the never-delete philosophy extends to backup), Trash items *flagged as trash with their purge dates*, category/label assignments, matched-pattern verdicts, user rules, allow/block lists, sender reputations, settings, and pattern-pack version. **MMS media is a separate toggle** ("Include photos/videos"), OFF by default — text always, media opt-in.
+
+**Deletion semantics:** backup mirrors the phone's state including Trash. A message the user deleted appears in the backup as a trash item until its 60-day purge, after which it leaves both. Each new backup **replaces** the previous snapshot (keep the last 2 snapshots in Drive for corruption safety; prune older).
+
+**Encryption (mandatory, passkey-first):**
+- The backup blob is always encrypted on-device before upload; Google only ever stores ciphertext.
+- **Primary method — passkey-wrapped key:** generate a random 256-bit AES data key; wrap it using a **passkey** via the Credential Manager `prf` extension where supported (Android 14+/GMS with PRF-capable authenticator). Restore on a new device = authenticate with the same passkey (synced through the user's Google Password Manager) → unwrap → decrypt. No password to remember; phishing-resistant; survives device loss because passkeys sync with the Google account.
+- **Fallback — backup password:** if the device/authenticator lacks PRF support, or as a user-selectable recovery addition, derive a wrapping key from a user-chosen password (Argon2id or PBKDF2-HMAC-SHA256, ≥600k iterations, random salt). The SAME data key may be wrapped by BOTH passkey and password — either unlocks the backup. Encourage setting the password fallback so a lost passkey ≠ lost backup.
+- Honest warning in UI: losing ALL unlock methods makes the backup permanently unrecoverable — that is the security guarantee, state it plainly at setup.
+- Format: AES-256-GCM, per-backup random nonce, versioned envelope header `{formatVersion, wrappedKeys[], salt, createdAt, checkpointAt, deviceModel, messageCount}` (header is the only plaintext metadata).
+
+**Automatic backup schedule — the checkpoint model (deterministic by design):**
+- Frequency menu, WhatsApp-style: **Automatic backups → Daily / Weekly / Monthly / Only when I tap "Back up" / Cancel.** Plus an always-available manual **"Back up now"** button (manual backups snapshot the current moment, ignoring the checkpoint).
+- **Checkpoint rule:** automatic backups always contain messages **up to the most recent 6:00 AM (device-local) checkpoint** — never beyond — regardless of when the upload physically happens. Example: message *a* arrives 5:48 → today's 6am backup includes *a*. Internet is down until 8:36 → when connectivity returns, the upload still contains only messages till 6:00. Message *b* arrived 7:49 → *b* waits for tomorrow's checkpoint. This makes every automatic backup a clean, predictable snapshot even though Android's WorkManager cannot guarantee exact execution times.
+- **Missed-checkpoint handling:** if the device stays offline across one or more checkpoints, upload ONE snapshot at the newest passed checkpoint (do not queue multiple). Weekly/Monthly use the same rule at their cadence (6am on the chosen day/date).
+- Implementation: WorkManager periodic work with `NETWORK_TYPE_UNMETERED` default constraint + persisted `lastCheckpointCovered`; retry with backoff until success; a snapshot is cut by querying `date <= checkpointAt`.
+- **Wi-Fi only by default**, with "Also use mobile data" toggle. Show last-backup status line (time, size, message count) exactly like WhatsApp.
+
+**Restore flow (fresh install):**
+1. First-open popup → set as default SMS app (§8.4 — restore REQUIRES the default role; without it Android forbids writing to the SMS provider).
+2. "Restore from backup?" step in onboarding: Google Sign-In → look up appDataFolder → if found, show card: "Backup found — last backup: <date> 6:00 AM · <n> messages · <size>. Restore?"
+3. Unlock via passkey (or password fallback) → download → decrypt → **merge** into the provider + Room index (skip messages already present by (address, timestamp, body-hash); never overwrite; restore original timestamps; restore folder/label assignments and trash flags).
+4. Then normal backfill classification runs only for messages NOT covered by restored verdicts.
+5. Settings/rules restore is offered as a separate checkbox ("Also restore rules & settings").
+- Restore is **copy, not sync**: state plainly in UI that two devices using the same account do not stay live-synced; the backup belongs to whichever device backed up last (single-active-device model; a different device performing a backup takes over the snapshot slot with a confirmation warning).
+
+### 8.4 First-open default-app gate (Google Messages behavior)
+- On very first open: immediately show the system default-SMS-app prompt (RoleManager).
+- **If denied:** the app stays usable as a viewer shell only — the conversation area shows an empty state with a single **"Set as default SMS app"** card/button (mirroring Google Messages' behavior) that re-triggers the role request. No messaging features, no backup, no protection until granted; re-prompt contextually (banner) rather than nagging with popups.
+- If granted: proceed to onboarding → restore offer (§8.3) → backfill.
 
 ---
 
@@ -277,7 +313,7 @@ Default-SMS role; send/receive SMS/MMS/RCS (typing indicators, read receipts, re
 - **M1 — Core messenger:** default-SMS role, send/receive SMS/MMS, list + chat UI (already at §9 quality bar), notifications, contacts, search.
 - **M2 — Protection engine:** normalizer, sender analyzer, full seed pattern library + combos + scoring, folders, per-category channels, "Why filtered?", reclassify actions, backfill, never-delete guarantee.
 - **M3 — Library expansion + hardening:** Claude Code's §7 expansion pass, labeled corpus + CI gates, sensitivity slider, rules/allow/block UI, pattern-pack import.
-- **M4 — Modern extras:** OTP auto-delete + copy chip, scheduled send, labels/chips, widgets, bubbles, backup/restore, protection dashboard, app lock.
+- **M4 — Modern extras:** OTP auto-delete + copy chip, scheduled send, labels/chips, widgets, bubbles, **Trash with 60-day retention (§6.4)**, **Drive backup & restore with checkpoint scheduling and passkey/password encryption (§8.3)**, **first-open default-app gate (§8.4)**, protection dashboard, app lock.
 - **M5 — Polish & parity:** RCS features, per-chat customization, animations pass, accessibility pass, dual-SIM refinement, Play submission prep.
 
 ---
