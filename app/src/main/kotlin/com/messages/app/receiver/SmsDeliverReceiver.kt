@@ -39,6 +39,10 @@ class SmsDeliverReceiver : BroadcastReceiver() {
                 val (entity, verdict) = repo.onIncomingSms(address, body, timestamp, subId)
                 MessageNotifier(context).notifyFor(entity, verdict, repo.lookupContactName(address))
                 WidgetUpdater.requestUpdate(context)
+            } catch (t: Throwable) {
+                // The provider write inside onIncomingSms happens first, so the
+                // message itself is safe; never crash the process over the rest.
+                android.util.Log.e("SmsDeliverReceiver", "receive pipeline failed", t)
             } finally {
                 pending.finish()
             }

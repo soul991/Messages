@@ -59,6 +59,15 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         refreshDefaultState()
         requestCorePermissions()
+        // Safety net: the permission callback above only fires when a dialog was
+        // actually shown. If READ_SMS is already granted (role granted in an
+        // earlier session) and the backfill hasn't completed — e.g. its one
+        // previous run failed — re-enqueue it here on every launch.
+        if (checkSelfPermission(android.Manifest.permission.READ_SMS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            Backfill.ensureScheduled(this)
+        }
 
         val initialRoute = routeFor(intent)
         folderRequest = intent.getStringExtra("folder")

@@ -457,6 +457,43 @@ fun SettingsScreen(
                 Spacer(Modifier.height(24.dp))
             }
 
+            // ---- Message import (BUG-1 safety net: §10 backfill re-run) ----
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                SectionHeader("Message import")
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val backfillInfos by com.messages.core.backfill.Backfill
+                        .progressFlow(context).collectAsState(initial = emptyList())
+                    val running = backfillInfos.firstOrNull()
+                        ?.takeIf { it.state == androidx.work.WorkInfo.State.RUNNING }
+                    Text(
+                        "If your existing messages are missing from the app, import them " +
+                            "again from the phone's SMS store. Already-imported messages are skipped.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    if (running != null) {
+                        val processed = running.progress.getInt(
+                            com.messages.core.backfill.BackfillWorker.KEY_PROCESSED, 0)
+                        val total = running.progress.getInt(
+                            com.messages.core.backfill.BackfillWorker.KEY_TOTAL, 0)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            if (total > 0) "Importing… $processed of $total messages"
+                            else "Importing…",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    TextButton(
+                        onClick = { com.messages.core.backfill.Backfill.reimport(context) },
+                        enabled = running == null,
+                    ) { Text("Re-import messages") }
+                }
+                Spacer(Modifier.height(24.dp))
+            }
+
             // ---- Trash (§6.4) ----
             item {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))

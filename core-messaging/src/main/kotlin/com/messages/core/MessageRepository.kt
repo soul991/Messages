@@ -137,7 +137,13 @@ class MessageRepository private constructor(private val context: Context) {
                 address.hashCode().toLong()
             }
 
-            val verdict = classify(address, body)
+            // §14.2: a classification failure must never make a message invisible.
+            // Fall back to Inbox with a normal notification — annoying at worst,
+            // never lost. (runCatching catches Throwable, incl. engine-init Errors.)
+            val verdict = runCatching { classify(address, body) }.getOrElse { t ->
+                android.util.Log.e("MessageRepository", "classify failed — defaulting to Inbox", t)
+                Verdict(Category.INBOX, explanations = listOf("Classification unavailable — defaulted to Inbox"))
+            }
             val entity = MessageEntity(
                 smsId = smsId,
                 threadId = threadId,
@@ -179,7 +185,13 @@ class MessageRepository private constructor(private val context: Context) {
         read: Boolean,
     ): Boolean = withContext(Dispatchers.IO) {
         if (db.messages().bySmsId(smsId) != null) return@withContext false
-        val verdict = if (isOutgoing) null else classify(address, body)
+        // Same never-lose fallback as onIncomingSms: a broken classifier must
+        // not keep history out of the index (it made the whole backfill vanish
+        // on-device once). Backfilled fallbacks stay quiet — no notification.
+        val verdict = if (isOutgoing) null else runCatching { classify(address, body) }.getOrElse { t ->
+            android.util.Log.e("MessageRepository", "classify failed during backfill — indexing as Inbox", t)
+            Verdict(Category.INBOX, explanations = listOf("Classification unavailable — defaulted to Inbox"))
+        }
         val entity = MessageEntity(
             smsId = smsId,
             threadId = threadId,

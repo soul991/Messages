@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.Telephony
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -51,21 +52,29 @@ class BackfillWorker(
             prefs.edit().putInt(KEY_TOTAL, total).apply()
         }
 
+        var rowFailures = 0
         try {
             while (true) {
                 val batch = queryBatch(ctx, checkpointDate, checkpointId)
                 if (batch.isEmpty()) break
                 for (row in batch) {
                     if (row.address.isNotBlank() && row.body.isNotBlank()) {
-                        repo.indexHistorical(
-                            smsId = row.id,
-                            threadId = row.threadId,
-                            address = row.address,
-                            body = row.body,
-                            timestamp = row.date,
-                            isOutgoing = row.type == Telephony.Sms.MESSAGE_TYPE_SENT,
-                            read = row.read,
-                        )
+                        try {
+                            repo.indexHistorical(
+                                smsId = row.id,
+                                threadId = row.threadId,
+                                address = row.address,
+                                body = row.body,
+                                timestamp = row.date,
+                                isOutgoing = row.type == Telephony.Sms.MESSAGE_TYPE_SENT,
+                                read = row.read,
+                            )
+                        } catch (t: Throwable) {
+                            // One poison message must not kill the whole import
+                            // (§14.2 never-lose). Log it, keep going.
+                            Log.e(TAG, "indexHistorical failed for sms ${row.id}", t)
+                            rowFailures++
+                        }
                     }
                 }
                 processed += batch.size
@@ -78,10 +87,14 @@ class BackfillWorker(
                     .apply()
                 setProgress(workDataOf(KEY_PROCESSED to processed, KEY_TOTAL to total))
             }
-        } catch (_: Exception) {
+        } catch (t: Throwable) {
+            // Throwable, not Exception: an Error here previously marked the work
+            // FAILED with no retry and the import silently never happened.
+            Log.e(TAG, "backfill batch failed at checkpoint $checkpointDate/$checkpointId — retrying", t)
             return Result.retry() // resumes from the checkpoint
         }
 
+        if (rowFailures > 0) Log.w(TAG, "backfill finished with $rowFailures unindexed messages of $total")
         prefs.edit().putBoolean(KEY_DONE, true).apply()
         return Result.success()
     }
@@ -142,6 +155,7 @@ class BackfillWorker(
         )?.use { it.count } ?: 0
 
     companion object {
+        private const val TAG = "BackfillWorker"
         const val PREFS = "backfill"
         const val KEY_DONE = "done"
         const val KEY_PROCESSED = "processed"
@@ -173,4 +187,20 @@ object Backfill {
     /** Live (processed, total) for the onboarding counter (§9). */
     fun progressFlow(context: Context) =
         WorkManager.getInstance(context).getWorkInfosForUniqueWorkFlow(WORK_NAME)
+
+    /**
+     * Settings → "Re-import messages" (safety net for a failed/partial first
+     * run): clear the done flag + checkpoint and start over. Already-indexed
+     * messages are skipped via the unique smsId index, so re-running is
+     * additive and idempotent — never a data risk.
+     */
+    fun reimport(context: Context) {
+        context.getSharedPreferences(BackfillWorker.PREFS, Context.MODE_PRIVATE)
+            .edit().clear().apply()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            OneTimeWorkRequestBuilder<BackfillWorker>().build(),
+        )
+    }
 }
