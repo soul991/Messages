@@ -1,12 +1,12 @@
 # PROGRESS — "Messages" (Android SMS app with deterministic spam/scam protection)
 
-_Last updated: 2026-07-17 (late evening — compose flow, MMS receive, M3 settings UI). Source spec: `PRD_Messages.md` (v2)._
+_Last updated: 2026-07-17 (night — onNewIntent fix, MMS send, dual-SIM, group messaging, CI). Source spec: `PRD_Messages.md` (v2)._
 
 ## Current state at a glance
 
 - **Toolchain**: installed on this Mac (OpenJDK 17 via Homebrew at `/opt/homebrew/opt/openjdk@17`, Gradle 8.9 wrapper, Android SDK cmdline-tools + platform 35 + build-tools 35 installing to `~/Library/Android/sdk`).
 - **Protection engine (`:protection-engine`)**: implemented, pure Kotlin/JVM, **48 of 48 tests passing** incl. all corpus CI gates. Corpus: **506 entries**, pattern library **121 patterns** (v1). Sensitivity + library both hot-swappable.
-- **Android app**: **compiles** (`:app:assembleDebug` green; `local.properties` with `sdk.dir` required). Compose flow, real MMS receive, Settings (sensitivity/rules/pattern-pack) are in.
+- **Android app**: **compiles** (`:app:assembleDebug` green; `local.properties` with `sdk.dir` required). Compose flow, MMS send+receive, group messaging, dual-SIM send, Settings (sensitivity/rules/pattern-pack) are in. M1/M2/M3 complete; GitHub Actions CI committed.
 - Run engine tests: `export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && ./gradlew :protection-engine:test`
 
 ## Done
@@ -40,7 +40,14 @@ _Last updated: 2026-07-17 (late evening — compose flow, MMS receive, M3 settin
 
 _(nothing mid-flight)_
 
-### Recently completed (2026-07-17, this session — commits `fc757ce`, `63ff679`, `84cdf00`)
+### Recently completed (2026-07-17, this session — commits `faf073b`, `21d1b0b`, `b6d0314`, `901b79b`, `4b0b1f9`)
+- **onNewIntent navigation fix** (`MainActivity`): intent→route mapping extracted to `routeFor()` (threadId extra / sms-family data URI / folder extra), shared by onCreate start-destination and a `DisposableEffect`-registered navigator invoked from `onNewIntent` — notification taps and SENDTO now navigate while the singleTask activity is alive; folder extra flows through compose state so a Review tap re-selects the chip on a live Home.
+- **MMS send** (`MmsPduBuilder` in core-messaging/mms, `MmsSender` in app/mms): m-send-req WSP encoder (counterpart of the parser), provider-write-first via `repo.storeOutgoingMms` (Mms Outbox pdu+parts+addr → Sent/Failed box on result), image downscale/recompress to ≤1MB/≤1440px JPEG, `SmsManager.sendMultimediaMessage` with MUTABLE status PI + `MmsSentReceiver`. Composer: attach button → bottom sheet (Gallery photo picker / Camera via TakePicture into FileProvider cache), preview with remove, snackbar errors; failed-MMS resend rebuilds from the saved local media file.
+- **Dual-SIM send**: `ConversationEntity.preferredSubId` + `MessageEntity.subId` (Room v3); SmsDeliverReceiver stores the receiving subscription; per-chat SIM dropdown in the composer (only with 2+ active SIMs, READ_PHONE_STATE-guarded); SMS + MMS send via `createForSubscriptionId`.
+- **Group messaging**: group address = `;`-joined recipients; `resolveThreadId` uses the set overload of getOrCreateThreadId; group SMS = one provider Sent row per recipient pinned to the group thread + send fan-out; group MMS = one PDU addressed to all; incoming group MMS threads on sender+co-recipients (To/CC now parsed; own numbers dropped by last-10-digit match) while the entity keeps the real sender for classification. NewMessageScreen "New group" mode with staged InputChips and ✓-to-start (≥2).
+- **M3 CI** (`.github/workflows/ci.yml`): engine tests (corpus gates) on JVM + `:app:assembleDebug` on the runner SDK; reports uploaded on failure.
+
+### Previously completed (2026-07-17, earlier session — commits `fc757ce`, `63ff679`, `84cdf00`)
 - **New-message compose flow** (`app/ui/compose/NewMessageScreen.kt`): FAB → recipient picker (contacts from the Contacts provider, deduped, name/number filter, "Send to \<number\>" row for raw numbers) → `repo.threadIdFor` resolves/creates the system thread → `chat/{threadId}?address={address}`; ChatViewModel takes a fallback address for threads with no conversation row (the row is created on first send, so no empty threads in the list). ACTION_SENDTO `sms:/smsto:/mms:/mmsto:` intent data now honored (was silently ignored).
 - **Real MMS receive** (replaced the stub): `MmsPduParser` (core-messaging/mms/, minimal WSP/MMS binary parser for m-notification-ind + m-retrieve-conf, generic header-skip for carrier quirks) → `SmsManager.downloadMultimediaMessage` into a FileProvider cache file → `MmsDownloadReceiver` parses, `repo.onIncomingMms` writes Telephony.Mms provider first (pdu+parts+addr), dedupes by transaction ID, classifies the text part, notifies. Undownloadable MMS stored as a placeholder (never-lose). First media attachment saved to filesDir; ChatScreen renders images via Coil. Room bumped to v2: nullable `smsId` (fixes latent unique(-1) collision), `mmsId`/`mmsTransactionId`/`mediaUri`/`mediaMimeType`.
 - **M3 settings UI** (`app/ui/settings/SettingsScreen.kt`, gear on Home): 3-step sensitivity slider wired to `Sensitivity` presets (persisted in prefs, hot-applied via new `engine.updateSensitivity`); allow/block/custom-rules management (add dialog with target/category chips, delete, Flow-backed); pattern-pack import via SAF (validate → persist `patterns_imported.json` → `engine.updateLibrary`) with revert-to-bundled. `SensitivityUpdateTest` added (48 tests).
@@ -55,11 +62,7 @@ _(nothing mid-flight)_
 
 ## Next (per PRD §12 milestones)
 
-- **Finish M1/M2 (immediate):**
-  1. MMS **send** (receive is done) and dual-SIM send.
-  2. Group messaging.
-- **M3 — remaining:** GitHub Actions CI running the corpus gates (slider/rules/import UI done).
-- **M4 — extras:** OTP auto-delete after 24h (opt-in, `expiredOtps` DAO query already exists), scheduled send, snooze, protection-stats dashboard + widget, app lock (biometric dep already declared), backup/restore, conversation bubbles/shortcuts.
+- **M4 — extras (next up):** OTP auto-delete after 24h (opt-in, `expiredOtps` DAO query already exists), scheduled send, snooze, protection-stats dashboard + widget, app lock (biometric dep already declared), backup/restore, conversation bubbles/shortcuts.
 - **M5 — polish/parity:** RCS via available Android APIs, per-chat customization, animation pass (spring transitions, 120Hz), accessibility pass, Play Store SMS-permission declaration + privacy policy.
 
 ## Decisions made that are not in the PRD
@@ -75,11 +78,15 @@ _(nothing mid-flight)_
 9. **Versions**: minSdk 26, targetSdk/compileSdk 35, Kotlin 2.0.20, AGP 8.5.2 with Gradle 8.9 (system Gradle 9.6 is incompatible with AGP 8.5 — always use `./gradlew`).
 10. **MMS receive**: hand-rolled minimal WSP/MMS PDU parser (`MmsPduParser`) instead of a library — parses only the two PDUs a receiver sees (m-notification-ind, m-retrieve-conf), skips unknown headers via the generic WSP rule. No m-notifyresp-ind ack is sent; carrier redelivery is handled by transaction-ID dedupe instead. MMS **send** still pending.
 11. **Sensitivity setting** lives in SharedPreferences `"settings"` (key `sensitivity` = DEFAULT|RELAXED|STRICT); an imported pattern pack is persisted as `filesDir/patterns_imported.json` and wholesale-replaces the bundled library at engine creation (revert deletes the file and hot-reloads bundled).
+12. **MMS send**: hand-rolled `MmsPduBuilder` (m-send-req only), symmetric with the parser. From-header uses insert-address-token (MMSC fills our number). Images are recompressed to ≤1MB/≤1440px JPEG before send; oversized non-images are rejected with a snackbar rather than sent and carrier-bounced.
+13. **Group thread convention**: a group is addressed as `;`-joined recipient numbers in `ConversationEntity.address` / `MessageEntity` fallback routes; `recipientsOf()` splits it everywhere. Incoming group MMS identifies co-recipients from To/CC and drops our own numbers by comparing the last 10 digits (SubscriptionManager numbers are often blank — then the group thread degrades to 1:1 with the sender, acceptable).
+14. **Dual-SIM**: per-chat choice persisted on the conversation row (`preferredSubId`, null = system default); the picker only renders with ≥2 active subscriptions. Sends go through `SmsManager.createForSubscriptionId`; group SMS status still shares one PendingIntent (same debt as multipart, below).
 
 ## Known gaps / debt
 
-- `SmsSentReceiver` multipart send reuses one PendingIntent for all parts (fine for status, not per-part accounting).
-- No delivery reports, drafts, scheduled send, MMS send, group-MMS, or dual-SIM send yet.
-- MMS: no m-notifyresp-ind ack (dedupe covers redelivery); only the first attachment is surfaced in the chat UI (all parts are in the provider); audio/video attachments show as a mime-label row, not players.
-- `MainActivity` is `singleTask` but has no `onNewIntent` — notification taps and SENDTO while the activity is alive don't navigate.
+- `SmsSentReceiver` multipart send reuses one PendingIntent for all parts (fine for status, not per-part accounting); group SMS likewise shares one sent-PI across recipients, so one failure marks the whole message FAILED.
+- No delivery reports, drafts, scheduled send yet.
+- MMS: no m-notifyresp-ind ack (dedupe covers redelivery); only the first attachment is surfaced in the chat UI (all parts are in the provider); audio/video attachments show as a mime-label row, not players; composer attaches one image per message (gallery picker is single-select, no multi-attachment).
+- Group MMS receive: if SubscriptionManager can't report our own number (common), a group's incoming messages thread against sender+co-recipients minus nothing — our number may appear as a phantom member in the thread address.
 - App icon is a placeholder vector.
+- CI workflow is untested against a live GitHub remote (no remote configured yet).
