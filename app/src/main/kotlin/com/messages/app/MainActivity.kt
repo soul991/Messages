@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.provider.Telephony
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -42,6 +43,15 @@ import com.messages.core.backfill.Backfill
 import com.messages.designsystem.MessagesTheme
 import com.messages.designsystem.ThemeMode
 
+/**
+ * App-lock state with the correct lifetime: a ViewModel survives configuration
+ * changes (rotation must not re-prompt for auth) but dies with the process, so
+ * a cold start is always locked when App lock is enabled.
+ */
+class AppLockStateViewModel : androidx.lifecycle.ViewModel() {
+    var unlocked by mutableStateOf(false)
+}
+
 /** Scopes route content so shared elements can find their nav animation scope. */
 @Composable
 private fun ProvideNavScope(scope: AnimatedVisibilityScope, content: @Composable () -> Unit) {
@@ -54,8 +64,12 @@ class MainActivity : FragmentActivity() {
 
     private var isDefaultSmsApp by mutableStateOf(false)
 
-    /** App lock: false until authenticated this foreground session. */
-    private var appUnlocked by mutableStateOf(false)
+    /** App lock: false until authenticated this foreground session. Held in a
+     *  ViewModel so rotation doesn't force re-authentication (see AppLockStateViewModel). */
+    private val lockState: AppLockStateViewModel by viewModels()
+    private var appUnlocked: Boolean
+        get() = lockState.unlocked
+        set(value) { lockState.unlocked = value }
 
     /** Set once the NavHost is up; routes intents arriving via onNewIntent (singleTask). */
     private var intentNavigator: ((Intent) -> Unit)? = null
@@ -289,8 +303,10 @@ class MainActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // Re-lock whenever the app leaves the foreground.
-        if (AppLock.isEnabled(this)) appUnlocked = false
+        // Re-lock whenever the app truly leaves the foreground. A configuration
+        // change (rotation, fold, locale) also passes through onStop but must
+        // not throw the user back to the biometric prompt.
+        if (AppLock.isEnabled(this) && !isChangingConfigurations) appUnlocked = false
     }
 
     override fun onResume() {

@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import com.messages.core.cleanup.OtpCleanup
+import com.messages.core.cleanup.SpamCleanup
 import com.messages.core.search.FtsBackfill
 import com.messages.core.trash.TrashRetention
 
@@ -16,6 +17,7 @@ class MessagesApp : Application() {
         com.messages.app.ui.home.SwipeActions.init(this)
         com.messages.app.ui.common.DraftStore.init(this)
         OtpCleanup.ensureScheduled(this)
+        SpamCleanup.ensureScheduled(this)
         TrashRetention.ensureScheduled(this)
         FtsBackfill.ensureScheduled(this)
         com.messages.app.drive.DriveBackup.reschedule(this)
@@ -37,7 +39,10 @@ class MessagesApp : Application() {
                 NotificationChannel(CH_REMINDERS, "Reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = "Snoozed message reminders"
                 },
-                // Promotions/Spam/Blocked have NO channel — they are silent, badge only (§4)
+                NotificationChannel(CH_PROMOTIONS, "Promotions", NotificationManager.IMPORTANCE_LOW).apply {
+                    description = "Optional alerts for promotional messages"
+                },
+                // Spam/Blocked have NO channel — they are silent, badge only (§4)
             )
         )
     }
@@ -45,6 +50,7 @@ class MessagesApp : Application() {
     companion object {
         const val CH_PERSONAL = "personal"
         const val CH_TRANSACTIONS = "transactions"
+        const val CH_PROMOTIONS = "promotions"
         const val CH_REVIEW = "review"
         const val CH_REMINDERS = "reminders"
     }

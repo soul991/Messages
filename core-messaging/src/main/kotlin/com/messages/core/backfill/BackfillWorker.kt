@@ -70,6 +70,9 @@ class BackfillWorker(
                                 read = row.read,
                             )
                         } catch (t: Throwable) {
+                            // Cancellation is not a row failure: WorkManager is
+                            // stopping us; the checkpoint lets the retry resume.
+                            if (t is kotlin.coroutines.cancellation.CancellationException) throw t
                             // One poison message must not kill the whole import
                             // (§14.2 never-lose). Log it, keep going.
                             Log.e(TAG, "indexHistorical failed for sms ${row.id}", t)
@@ -88,6 +91,9 @@ class BackfillWorker(
                 setProgress(workDataOf(KEY_PROCESSED to processed, KEY_TOTAL to total))
             }
         } catch (t: Throwable) {
+            // Let cancellation propagate so a stopped worker actually stops
+            // instead of being reported as a retryable batch failure.
+            if (t is kotlin.coroutines.cancellation.CancellationException) throw t
             // Throwable, not Exception: an Error here previously marked the work
             // FAILED with no retry and the import silently never happened.
             Log.e(TAG, "backfill batch failed at checkpoint $checkpointDate/$checkpointId — retrying", t)

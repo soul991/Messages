@@ -258,9 +258,13 @@ class SmsSentReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = com.messages.core.MessageRepository.get(context).db
+                val repo = com.messages.core.MessageRepository.get(context)
+                val db = repo.db
+                if (ok) db.messages().markSent(messageId)
+                else db.messages().markFailed(messageId)
+                
                 val msg = db.messages().byId(messageId)
-                if (msg != null) db.messages().update(msg.copy(sendStatus = if (ok) "SENT" else "FAILED"))
+                if (msg != null) repo.refreshConversationSummary(msg.threadId)
             } finally {
                 pending.finish()
             }
@@ -281,10 +285,7 @@ class SmsDeliveredReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = com.messages.core.MessageRepository.get(context).db
-                val msg = db.messages().byId(messageId)
-                if (msg != null && msg.sendStatus != "FAILED") {
-                    db.messages().update(msg.copy(sendStatus = "DELIVERED"))
-                }
+                db.messages().markDelivered(messageId)
             } finally {
                 pending.finish()
             }

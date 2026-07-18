@@ -41,6 +41,15 @@ interface MessageDao {
     @Query("UPDATE messages SET starred = :starred WHERE id = :id")
     suspend fun setStarred(id: Long, starred: Boolean)
 
+    @Query("UPDATE messages SET sendStatus = 'FAILED' WHERE id = :id")
+    suspend fun markFailed(id: Long)
+
+    @Query("UPDATE messages SET sendStatus = 'SENT' WHERE id = :id AND sendStatus != 'FAILED'")
+    suspend fun markSent(id: Long)
+
+    @Query("UPDATE messages SET sendStatus = 'DELIVERED' WHERE id = :id AND sendStatus != 'FAILED'")
+    suspend fun markDelivered(id: Long)
+
     // User-initiated only — the filter itself never calls delete (§6). Normal
     // user deletions go through the Trash flags below (§6.4); the permitted
     // hard-delete callers are: "Delete forever" in Trash, the 60-day trash
@@ -118,6 +127,12 @@ interface MessageDao {
             "AND starred = 0 AND trashed = 0 AND timestamp < :olderThan"
     )
     suspend fun expiredOtps(olderThan: Long): List<MessageEntity>
+
+    @Query(
+        "SELECT * FROM messages WHERE category IN ('SPAM', 'BLOCKED') " +
+            "AND starred = 0 AND trashed = 0 AND timestamp < :olderThan"
+    )
+    suspend fun expiredSpam(olderThan: Long): List<MessageEntity>
 
     @Query("SELECT * FROM messages WHERE starred = 1 AND trashed = 0 ORDER BY timestamp DESC")
     fun starred(): Flow<List<MessageEntity>>
