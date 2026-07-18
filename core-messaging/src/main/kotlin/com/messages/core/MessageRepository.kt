@@ -139,11 +139,9 @@ class MessageRepository private constructor(private val context: Context) {
 
             // §14.2: a classification failure must never make a message invisible.
             // Fall back to Inbox with a normal notification — annoying at worst,
-            // never lost. (runCatching catches Throwable, incl. engine-init Errors.)
-            val verdict = runCatching { classify(address, body) }.getOrElse { t ->
-                android.util.Log.e("MessageRepository", "classify failed — defaulting to Inbox", t)
-                Verdict(Category.INBOX, explanations = listOf("Classification unavailable — defaulted to Inbox"))
-            }
+            // never lost. This is shared with MMS and backfill so every intake
+            // path preserves the same guarantee.
+            val verdict = classifyIncomingOrInbox(address, body, source = "SMS")
             val entity = MessageEntity(
                 smsId = smsId,
                 threadId = threadId,
@@ -188,10 +186,7 @@ class MessageRepository private constructor(private val context: Context) {
         // Same never-lose fallback as onIncomingSms: a broken classifier must
         // not keep history out of the index (it made the whole backfill vanish
         // on-device once). Backfilled fallbacks stay quiet — no notification.
-        val verdict = if (isOutgoing) null else runCatching { classify(address, body) }.getOrElse { t ->
-            android.util.Log.e("MessageRepository", "classify failed during backfill — indexing as Inbox", t)
-            Verdict(Category.INBOX, explanations = listOf("Classification unavailable — defaulted to Inbox"))
-        }
+        val verdict = if (isOutgoing) null else classifyIncomingOrInbox(address, body, source = "backfill")
         val entity = MessageEntity(
             smsId = smsId,
             threadId = threadId,
@@ -266,7 +261,11 @@ class MessageRepository private constructor(private val context: Context) {
         } ?: attachments.firstOrNull()
         val mediaPath = media?.let { saveAttachmentFile(it, timestamp) }
 
-        val verdict = classify(senderAddress, textBody)
+        // MMS must have the exact same failure posture as SMS. The provider
+        // write above already preserved the raw message; this fallback also
+        // ensures the Room index, folders, and notification stay reachable if
+        // a pattern-pack or classifier bug appears at runtime.
+        val verdict = classifyIncomingOrInbox(senderAddress, textBody, source = "MMS")
         val entity = MessageEntity(
             smsId = null,
             mmsId = mmsId,
@@ -367,7 +366,9 @@ class MessageRepository private constructor(private val context: Context) {
             else -> "bin"
         }
         val dir = java.io.File(context.filesDir, "mms_media").apply { mkdirs() }
-        val file = java.io.File(dir, "${timestamp}_${att.data.size}.$ext")
+        // Timestamp + byte-count collides for two attachments received in the
+        // same millisecond. A random suffix preserves both files.
+        val file = java.io.File(dir, "${timestamp}_${java.util.UUID.randomUUID()}.$ext")
         file.writeBytes(att.data)
         file.absolutePath
     } catch (_: Exception) {
@@ -425,6 +426,17 @@ class MessageRepository private constructor(private val context: Context) {
         }
         return engine.classify(ProtectionEngine.Input(body, senderInfo, allow, block, custom))
     }
+
+    /**
+     * A filter outage must never hide a received message. This deliberately
+     * catches [Throwable] as engine initialization can fail before Kotlin has
+     * an [Exception] (for example, an Android-only regex compilation error).
+     */
+    private suspend fun classifyIncomingOrInbox(address: String, body: String, source: String): Verdict =
+        runCatching { classify(address, body) }.getOrElse { t ->
+            android.util.Log.e("MessageRepository", "$source classification failed — defaulting to Inbox", t)
+            Verdict(Category.INBOX, explanations = listOf("Classification unavailable — defaulted to Inbox"))
+        }
 
     private fun matchesRule(pattern: String, address: String): Boolean =
         runCatching { Regex(pattern, RegexOption.IGNORE_CASE).containsMatchIn(address) }

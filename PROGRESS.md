@@ -1,13 +1,13 @@
 # PROGRESS — "Messages" (Android SMS app with deterministic spam/scam protection)
 
-_Last updated: 2026-07-18 (M5 polish session: §9 animation + UI pass, real app icon, per-chat customization, accessibility, in-chat search normalization, swipe/undo/drafts/delivery reports). Source spec: `PRD_Messages.md` (v2)._
+_Last updated: 2026-07-18 (M5 reliability + appearance session: MMS never-lose hardening, persisted theme picker, release documentation). Source spec: `PRD_Messages.md` (v2)._
 
 ## Current state at a glance
 
 - **Toolchain**: installed on this Mac (OpenJDK 17 via Homebrew at `/opt/homebrew/opt/openjdk@17`, Gradle 8.9 wrapper, Android SDK cmdline-tools + platform 35 + build-tools 35 installing to `~/Library/Android/sdk`).
-- **Protection engine (`:protection-engine`)**: implemented, pure Kotlin/JVM, **48 of 48 tests passing** incl. all corpus CI gates. Corpus: **506 entries**, pattern library **121 patterns** (v1). Sensitivity + library both hot-swappable.
-- **Android app**: **compiles** (`:app:assembleDebug` green; `local.properties` with `sdk.dir` required). M1–M3 complete; **M4 complete**: OTP auto-delete, scheduled send + snooze, dashboard + widgets, app lock, local backup/restore, §6.4 Trash, real Room migrations (v4+), §8.5 FTS search everywhere, §8.4 default-SMS gate, bubbles/shortcuts/direct-share, §8.3 Google Drive backup (functional; needs one-time Cloud Console OAuth registration — `docs/DRIVE_BACKUP_SETUP.md`). `:core-messaging` now has its own JVM unit tests (search + backup crypto/checkpoints): `./gradlew :core-messaging:testDebugUnitTest`.
-- Run engine tests: `export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && ./gradlew :protection-engine:test`
+- **Protection engine (`:protection-engine`)**: implemented, pure Kotlin/JVM. Corpus: **506 entries**; pattern library: **121 patterns** (v1); corpus gates are green. Sensitivity and the library are both hot-swappable.
+- **Android app**: compiles (`:app:assembleDebug` green; `local.properties` with `sdk.dir` required). M1–M4 are complete; M5 is in polish and device-verification work. The app, core, and engine JVM test tasks plus the debug build were verified locally in this session.
+- Run the full local verification: `export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && ./gradlew :protection-engine:test :core-messaging:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug`
 
 ## Done
 
@@ -22,15 +22,15 @@ _Last updated: 2026-07-18 (M5 polish session: §9 animation + UI pass, real app 
 - `LinkAnalyzer.kt` — §5.6 in code: shorteners, suspicious TLDs, brand-impersonation domains (with official-domain whitelist), IP-literal, punycode, `.apk` links, wa.me/t.me + money words, format signals (CAPS ratio, `!!`, emoji stuffing, forward-chains).
 - `ComboRules.kt` — all 10 combination rules C1–C10 from §5.8.
 - `ProtectionEngine.kt` — full pipeline: user rules → Protected (Stage 2, incl. fake-OTP-phishing warning-banner exception) → contact short-circuit (unless fraud combo) → weighted scoring → thresholds with `Sensitivity` presets (DEFAULT/RELAXED/STRICT) for the slider.
-- **Pattern library** `protection-engine/src/main/resources/patterns.json` — v1, **107 patterns** across all §5 families **plus §7 additions**: charity scams, romance/gift/customs, wrong-number openers, inheritance/419, FASTag/e-challan, fake-APK prompts, screen-share apps (AnyDesk/TeamViewer, weight 12), betting apps, family-emergency money, unusual-activity baits, Hinglish variants throughout. Every pattern has ≥1 positive example; non-protected patterns also have ≥1 near-miss negative (CI-enforced).
+- **Pattern library** `protection-engine/src/main/resources/patterns.json` — v1, **121 patterns** across all §5 families **plus §7 additions**: charity scams, romance/gift/customs, wrong-number openers, inheritance/419, FASTag/e-challan, fake-APK prompts, screen-share apps (AnyDesk/TeamViewer, weight 12), betting apps, family-emergency money, unusual-activity baits, Hinglish variants throughout. Every pattern has ≥1 positive example; non-protected patterns also have ≥1 near-miss negative (CI-enforced).
 
 ### Engine tests — `protection-engine/src/test/`
 - `OTP_and_bank_alerts_can_never_be_filtered` (the §13 named non-negotiable) — OTPs pass from *any* sender incl. international; fake-OTP phishing gets Inbox + red banner, never buried.
 - Normalizer obfuscation corpus (leet, dotted, spaced, zero-width, homoglyph, repetition), sender analyzer, combo rules, scam/promo/genuine classification, explainability (matched IDs present), pattern integrity (compiles + own examples pass).
 - `CorpusRegressionTest` with the §7.4/§11 CI gates: **gate1** zero protected filtered, **gate2** ≥95% scam caught, **gate3** promos silent, **gate4** genuine never in Spam, **gate5** median <50ms, corpus-size floor.
-- Labeled corpus `src/test/resources/corpus.json`: 166 entries (scam / promo / genuine / protected). At last full run all classification gates were green (catch rate ≥95%, zero protected filtered, zero genuine spammed); only the corpus-size floor fails.
+- Labeled corpus `src/test/resources/corpus.json`: **506 entries** (scam / promo / genuine / protected). The classification gates are green: ≥95% scam catch rate, zero Protected messages filtered, zero genuine messages sent to Spam, promotions silent, and the corpus-size floor met.
 
-### Android app (milestone M1/M2, written but NOT yet compiled)
+### Android app (M1–M5 implementation)
 - `app/` manifest with all 4 mandatory default-SMS components (§10): `SmsDeliverReceiver` (receive→store→classify→notify with goAsync), `MmsDeliverReceiver` (full download/parse pipeline, see below), send-to activity intent filters on `MainActivity` (data URI honored), `HeadlessSmsSendService`; RoleManager default-SMS request flow in `MainActivity`.
 - `:core-messaging`: Room DB (messages index with category/labels/matched-pattern-IDs, conversations, sender reputation, user rules), `MessageRepository` — writes incoming SMS to the system Telephony provider FIRST (zero message loss), then classifies (loads `patterns.json` from assets), updates conversation; `moveToInbox`/`moveToSpam` with reputation adjustment (§6.3); user-delete-only DAO (filter never deletes, §6).
 - `MessageNotifier`: channels personal/transactions/review only — Promotions/Spam/Blocked have **no channel** (silent, badge-only per §4); Review gets one quiet batched notification; fraud-warning text on dangerous messages.
@@ -39,6 +39,12 @@ _Last updated: 2026-07-18 (M5 polish session: §9 animation + UI pass, real app 
 ## In progress
 
 _(nothing mid-flight)_
+
+### Recently completed (2026-07-18, current session) — reliability, appearance, and release clarity
+- **MMS never-lose hardening (§6 / §10)**: the incoming MMS path now shares the SMS classifier-failure fallback to Inbox, so a broken pattern pack or Android-only regex error cannot omit the Room index, folders, or notification. WAP PDU parse failures, download failures, missing callback file paths, missing sender metadata, and receiver exceptions now produce a visible recoverable placeholder (under `Unknown MMS sender` only when the carrier supplied no sender) instead of a silent return. First-media filenames use a UUID to prevent same-millisecond attachment collisions. `MmsReceiveFallbackTest` covers the pure fallback policy.
+- **Theme mode picker (§8.2 / §9)**: Settings → Appearance now offers System default, Light, Dark, and AMOLED black. The choice persists in settings and switches the root Material theme immediately; it is no longer a dormant `MessagesTheme` capability.
+- **Release documentation**: added root `README.md` with trust guarantees, the PRD-required honest limitation, build command, module map, and the remaining Drive/device-release gates.
+- **Verification**: `:app:testDebugUnitTest`, `:core-messaging:testDebugUnitTest`, `:protection-engine:test`, and `:app:assembleDebug` pass locally after these changes.
 
 ### Recently completed (2026-07-17/18, M5 polish session — commits `3a0a566`, `4c515f6`, `52ecc97`, `49396ea`, `fa3c41c`)
 - **§9 animation + UI pass** (`3a0a566`) — the mandated on-device-quality fix, built with the frontend-design / compose-expert / material-3 skills:
@@ -114,7 +120,7 @@ _(nothing mid-flight)_
 
 - **§8.3 unblockers (owner action)**: register the Android OAuth client in Google Cloud Console (`docs/DRIVE_BACKUP_SETUP.md` §1–3), then end-to-end test sign-in → back up now → restore on a second profile/device. Optional later: passkey-PRF wrap (needs an owner-hosted RP domain, doc §5), snapshot chooser, transfer progress UI.
 - **Deferred from §6.5**: optional auto-clean of Spam >90 days old (deliberately not built yet; Trash/OTP cleanup landed first).
-- **M5 — remaining:** on-device verification of `fa3c41c` (swipes/undo/drafts/Delivered — device dropped before install); RCS via available Android APIs; dual-SIM refinement; per-folder notification behavior config; Play Store SMS-permission declaration + privacy policy; theme mode picker UI (AMOLED/light/dark exist in `MessagesTheme` but no Settings control); conversation-bubbles/shortcuts polish. Done this session: §9 animation+UI pass, app icon, per-chat customization, accessibility, in-chat search normalization, swipe/undo/drafts/delivery reports.
+- **M5 — remaining:** on-device verification of `fa3c41c` (swipes/undo/drafts/Delivered — device dropped before install); RCS via available Android APIs; dual-SIM refinement; per-folder notification behavior config; Play Store SMS-permission declaration + privacy policy; conversation-bubbles/shortcuts polish. Done this session: §9 animation+UI pass, app icon, per-chat customization, accessibility, in-chat search normalization, swipe/undo/drafts/delivery reports, MMS never-lose hardening, and the theme mode picker.
 
 ## Decisions made that are not in the PRD
 
@@ -127,7 +133,7 @@ _(nothing mid-flight)_
 7. **Thresholds**: Sensitivity presets RELAXED (18/13/7) and STRICT (12/8/4) around the PRD's DEFAULT (15/10/5). C10 promo-pileup routes to Promotions even when raw score < review threshold.
 8. **`fallbackToDestructiveMigration()`** on the Room index during development — acceptable only because the Telephony provider holds the real data; must be replaced with real migrations before release.
 9. **Versions**: minSdk 26, targetSdk/compileSdk 35, Kotlin 2.0.20, AGP 8.5.2 with Gradle 8.9 (system Gradle 9.6 is incompatible with AGP 8.5 — always use `./gradlew`).
-10. **MMS receive**: hand-rolled minimal WSP/MMS PDU parser (`MmsPduParser`) instead of a library — parses only the two PDUs a receiver sees (m-notification-ind, m-retrieve-conf), skips unknown headers via the generic WSP rule. No m-notifyresp-ind ack is sent; carrier redelivery is handled by transaction-ID dedupe instead. MMS **send** still pending.
+10. **MMS receive**: hand-rolled minimal WSP/MMS PDU parser (`MmsPduParser`) instead of a library — parses only the two PDUs a receiver sees (m-notification-ind, m-retrieve-conf), skips unknown headers via the generic WSP rule, and now records a recoverable placeholder for malformed or unavailable deliveries. No m-notifyresp-ind ack is sent; carrier redelivery is handled by transaction-ID dedupe instead. MMS send is implemented separately in `MmsPduBuilder`/`MmsSender`.
 11. **Sensitivity setting** lives in SharedPreferences `"settings"` (key `sensitivity` = DEFAULT|RELAXED|STRICT); an imported pattern pack is persisted as `filesDir/patterns_imported.json` and wholesale-replaces the bundled library at engine creation (revert deletes the file and hot-reloads bundled).
 12. **MMS send**: hand-rolled `MmsPduBuilder` (m-send-req only), symmetric with the parser. From-header uses insert-address-token (MMSC fills our number). Images are recompressed to ≤1MB/≤1440px JPEG before send; oversized non-images are rejected with a snackbar rather than sent and carrier-bounced.
 13. **Group thread convention**: a group is addressed as `;`-joined recipient numbers in `ConversationEntity.address` / `MessageEntity` fallback routes; `recipientsOf()` splits it everywhere. Incoming group MMS identifies co-recipients from To/CC and drops our own numbers by comparing the last 10 digits (SubscriptionManager numbers are often blank — then the group thread degrades to 1:1 with the sender, acceptable).
@@ -146,14 +152,12 @@ _(nothing mid-flight)_
 ## Known gaps / debt
 
 - `SmsSentReceiver` multipart send reuses one PendingIntent for all parts (fine for status, not per-part accounting); group SMS likewise shares one sent-PI across recipients, so one failure marks the whole message FAILED.
-- No delivery reports or drafts yet (scheduled send now exists).
 - MMS: no m-notifyresp-ind ack (dedupe covers redelivery); only the first attachment is surfaced in the chat UI (all parts are in the provider); audio/video attachments show as a mime-label row, not players; composer attaches one image per message (gallery picker is single-select, no multi-attachment). MMS media is in Drive backups only when the §8.3 media toggle is on (≤5MB/file); the local JSON backup remains text-only.
 - Group MMS receive: if SubscriptionManager can't report our own number (common), a group's incoming messages thread against sender+co-recipients minus nothing — our number may appear as a phantom member in the thread address.
 - Snooze reminders don't survive the message being moved to another thread/category (they re-check existence only). One-shot works clamp to `initialDelay`, so a device reboot mid-delay resumes correctly via WorkManager.
 - Dashboard family rollup parses `matchedPatternIds` CSV in Kotlin per refresh (fine at SMS scale; revisit if slow on 10k+ filtered messages).
 - CI workflow is untested against a live GitHub remote (no remote configured yet).
 - Drive backup (§8.3) is code-complete but **not yet runnable end-to-end**: Google sign-in returns DEVELOPER_ERROR until the owner registers the Android OAuth client (see `docs/DRIVE_BACKUP_SETUP.md`); no on-device test has been possible. Passkey-PRF unlock is format-reserved only. Restore offers the newest snapshot only; no transfer progress UI.
-- In-chat search matches on raw `body` contains (not the normalized FTS text), so an obfuscated term findable in global search may not hit in-conversation next/prev — acceptable for v1, revisit with the M5 polish pass.
 - Saved-search recording uses `System.currentTimeMillis()` at result-open; combos are capped at 20 and never expire.
 - M5 additions (2026-07-18): `Motion.kt` hardcodes expressive spring values (BOM 2024.09 predates `MotionScheme`) — migrate when material3 ≥1.4; per-chat `chat_style`/`drafts`/swipe prefs are device-local and not in backups; photo wallpapers are not backed up; swipe-delete undo window is the snackbar duration (after that, restore via Settings → Trash as usual); group-SMS "Delivered" reflects the last recipient ack (shared PI, same debt as multipart accounting).
 - App icon is no longer a placeholder (real adaptive icon since `4c515f6`).

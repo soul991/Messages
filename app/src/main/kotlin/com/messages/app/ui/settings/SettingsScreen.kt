@@ -55,6 +55,7 @@ import com.messages.core.MessageRepository
 import com.messages.core.backup.BackupManager
 import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.db.UserRuleEntity
+import com.messages.designsystem.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -205,6 +206,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenTrash: () -> Unit = {},
     onOpenDriveBackup: () -> Unit = {},
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChange: (ThemeMode) -> Unit = {},
     vm: SettingsViewModel = viewModel(),
 ) {
     val rules by vm.rules.collectAsState()
@@ -282,8 +285,18 @@ fun SettingsScreen(
     ) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {
 
+            // ---- Appearance (§8.2 / §9) ----
+            item {
+                SectionHeader("Appearance")
+                ThemeModePickerRow(
+                    selected = themeMode,
+                    onSelect = onThemeModeChange,
+                )
+            }
+
             // ---- Protection sensitivity (§3 Stage 5) ----
             item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
                 SectionHeader("Protection sensitivity")
                 val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
                 Column(Modifier.padding(horizontal = 20.dp)) {
@@ -556,6 +569,57 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+/** Persisted theme choice; changing it updates the root Material theme immediately. */
+@Composable
+private fun ThemeModePickerRow(
+    selected: ThemeMode,
+    onSelect: (ThemeMode) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { expanded = true }
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Theme", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Choose how Messages looks across the app.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Box {
+            Text(
+                selected.displayName(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                ThemeMode.values().forEach { mode ->
+                    DropdownMenuItem(
+                        text = { Text(mode.displayName()) },
+                        onClick = {
+                            expanded = false
+                            onSelect(mode)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun ThemeMode.displayName(): String = when (this) {
+    ThemeMode.SYSTEM -> "System default"
+    ThemeMode.LIGHT -> "Light"
+    ThemeMode.DARK -> "Dark"
+    ThemeMode.AMOLED -> "AMOLED black"
 }
 
 /** Picker row for a swipe direction's action (§8.2). */

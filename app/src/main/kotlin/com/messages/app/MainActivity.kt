@@ -40,6 +40,7 @@ import com.messages.app.ui.settings.SettingsScreen
 import com.messages.app.ui.why.WhyFilteredScreen
 import com.messages.core.backfill.Backfill
 import com.messages.designsystem.MessagesTheme
+import com.messages.designsystem.ThemeMode
 
 /** Scopes route content so shared elements can find their nav animation scope. */
 @Composable
@@ -62,6 +63,9 @@ class MainActivity : FragmentActivity() {
     /** Folder to show on Home (e.g. Review notification tap); observed by HomeScreen. */
     private var folderRequest by mutableStateOf<String?>(null)
 
+    /** Resolved from settings before composition, then updated live from Settings. */
+    private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
+
     private val roleRequest = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { refreshDefaultState() }
@@ -75,6 +79,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        themeMode = ThemePreferences.current(this)
         refreshDefaultState()
         requestCorePermissions()
         // Safety net: the permission callback above only fires when a dialog was
@@ -101,7 +106,7 @@ class MainActivity : FragmentActivity() {
         }
 
         setContent {
-            MessagesTheme {
+            MessagesTheme(mode = themeMode) {
                 // App lock gate (§8.2): everything below stays hidden until unlocked.
                 if (!appUnlocked) {
                     LockScreen(
@@ -189,6 +194,11 @@ class MainActivity : FragmentActivity() {
                             onBack = { nav.popBackStack() },
                             onOpenTrash = { nav.navigate("trash") },
                             onOpenDriveBackup = { nav.navigate("drive_backup") },
+                            themeMode = themeMode,
+                            onThemeModeChange = { mode ->
+                                ThemePreferences.set(this@MainActivity, mode)
+                                themeMode = mode
+                            },
                         )
                     }
                     composable("drive_backup") {

@@ -27,14 +27,31 @@ class MmsDeliverReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.WAP_PUSH_DELIVER_ACTION) return
-        val pdu = intent.getByteArrayExtra("data") ?: return
+        val pdu = intent.getByteArrayExtra("data")
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
+                if (pdu == null) {
+                    storeUndownloadable(context, null, null, MmsReceiveFallback.PARSE_FAILURE)
+                    return@launch
+                }
                 val notification = MmsPduParser.parseNotificationInd(pdu)
                 val location = notification?.contentLocation
-                if (notification == null || location.isNullOrBlank()) return@launch
-                downloadOrFallback(context, notification, location)
+                if (notification == null || location.isNullOrBlank()) {
+                    // A carrier-specific or malformed WAP PDU must still leave
+                    // a visible, recoverable trace instead of disappearing.
+                    storeUndownloadable(
+                        context,
+                        notification?.from,
+                        notification?.transactionId,
+                        MmsReceiveFallback.PARSE_FAILURE,
+                    )
+                } else {
+                    downloadOrFallback(context, notification, location)
+                }
+            } catch (t: Throwable) {
+                android.util.Log.e("MmsDeliverReceiver", "MMS notification pipeline failed", t)
+                storeUndownloadable(context, null, null, MmsReceiveFallback.PARSE_FAILURE)
             } finally {
                 pending.finish()
             }
@@ -70,8 +87,14 @@ class MmsDeliverReceiver : BroadcastReceiver() {
             )
             context.getSystemService(SmsManager::class.java)
                 .downloadMultimediaMessage(context, location, contentUri, null, pi)
-        } catch (_: Exception) {
-            storeUndownloadable(context, notification.from, notification.transactionId)
+        } catch (t: Throwable) {
+            android.util.Log.e("MmsDeliverReceiver", "MMS download could not start", t)
+            storeUndownloadable(
+                context,
+                notification.from,
+                notification.transactionId,
+                MmsReceiveFallback.DOWNLOAD_FAILURE,
+            )
         }
     }
 }
@@ -80,9 +103,25 @@ class MmsDeliverReceiver : BroadcastReceiver() {
 class MmsDownloadReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val filePath = intent.getStringExtra("filePath") ?: return
         val fallbackAddress = intent.getStringExtra("address")
         val transactionId = intent.getStringExtra("transactionId")
+        val filePath = intent.getStringExtra("filePath")
+        if (filePath == null) {
+            val pending = goAsync()
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                try {
+                    storeUndownloadable(
+                        context,
+                        fallbackAddress,
+                        transactionId,
+                        MmsReceiveFallback.PROCESSING_FAILURE,
+                    )
+                } finally {
+                    pending.finish()
+                }
+            }
+            return
+        }
         val ok = resultCode == Activity.RESULT_OK
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
@@ -94,10 +133,15 @@ class MmsDownloadReceiver : BroadcastReceiver() {
                 file.delete()
 
                 if (conf == null) {
-                    storeUndownloadable(context, fallbackAddress, transactionId)
+                    storeUndownloadable(
+                        context,
+                        fallbackAddress,
+                        transactionId,
+                        MmsReceiveFallback.DOWNLOAD_FAILURE,
+                    )
                     return@launch
                 }
-                val sender = conf.from ?: fallbackAddress ?: return@launch
+                val sender = MmsReceiveFallback.addressOrUnknown(conf.from ?: fallbackAddress)
                 // Group MMS: other recipients besides us → thread on the whole
                 // group (sender + co-recipients), matching the send-side convention.
                 val ownNumbers = ownNumbers(context)
@@ -118,6 +162,14 @@ class MmsDownloadReceiver : BroadcastReceiver() {
                 ) ?: return@launch // duplicate delivery
                 MessageNotifier(context).notifyFor(result.first, result.second, repo.lookupContactName(sender))
                 com.messages.app.widget.WidgetUpdater.requestUpdate(context)
+            } catch (t: Throwable) {
+                android.util.Log.e("MmsDownloadReceiver", "MMS receive pipeline failed", t)
+                storeUndownloadable(
+                    context,
+                    fallbackAddress,
+                    transactionId,
+                    MmsReceiveFallback.PROCESSING_FAILURE,
+                )
             } finally {
                 pending.finish()
             }
@@ -141,18 +193,42 @@ private fun sameNumber(a: String, b: String): Boolean {
     return da.isNotEmpty() && da == db
 }
 
-/** Never-lose fallback: record that an MMS arrived even when we can't fetch it. */
-private suspend fun storeUndownloadable(context: Context, address: String?, transactionId: String?) {
-    if (address.isNullOrBlank()) return // sender unknown — nothing actionable to store
-    val repo = MessageRepository.get(context)
-    val result = repo.onIncomingMms(
-        address,
-        "[MMS message — couldn't be downloaded]",
-        System.currentTimeMillis(),
-        transactionId,
-        emptyList(),
-    ) ?: return
-    MessageNotifier(context).notifyFor(result.first, result.second, repo.lookupContactName(address))
+/** Never-lose fallback: record an MMS even when its metadata or body is unavailable. */
+private suspend fun storeUndownloadable(
+    context: Context,
+    address: String?,
+    transactionId: String?,
+    reason: String,
+) {
+    val safeAddress = MmsReceiveFallback.addressOrUnknown(address)
+    try {
+        val repo = MessageRepository.get(context)
+        val result = repo.onIncomingMms(
+            safeAddress,
+            MmsReceiveFallback.placeholderBody(reason),
+            System.currentTimeMillis(),
+            transactionId,
+            emptyList(),
+        ) ?: return
+        MessageNotifier(context).notifyFor(result.first, result.second, repo.lookupContactName(safeAddress))
+    } catch (t: Throwable) {
+        // This is the final line of defense. The raw WAP PDU was received, so
+        // log loudly for diagnostics rather than crashing the telephony process.
+        android.util.Log.e("MmsReceiveFallback", "Could not index MMS fallback", t)
+    }
+}
+
+/** Pure, testable fallback policy for malformed/unavailable MMS deliveries. */
+internal object MmsReceiveFallback {
+    const val UNKNOWN_SENDER = "Unknown MMS sender"
+    const val PARSE_FAILURE = "notification could not be read"
+    const val DOWNLOAD_FAILURE = "couldn't be downloaded"
+    const val PROCESSING_FAILURE = "couldn't be processed"
+
+    fun addressOrUnknown(address: String?): String =
+        address?.trim()?.takeIf { it.isNotEmpty() } ?: UNKNOWN_SENDER
+
+    fun placeholderBody(reason: String): String = "[MMS message — $reason]"
 }
 
 /** Result of SmsManager.sendMultimediaMessage — finalize status + provider box. */
