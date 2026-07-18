@@ -888,8 +888,22 @@ class MessageRepository private constructor(private val context: Context) {
         expired.size
     }
 
+    /**
+     * User-ENABLED Spam cleanup: delete Spam/Blocked messages older than [olderThanMs].
+     * Bypasses Trash, permanently deleting them.
+     */
+    suspend fun cleanupExpiredSpam(olderThanMs: Long): Int = withContext(Dispatchers.IO) {
+        val expired = db.messages().expiredSpam(System.currentTimeMillis() - olderThanMs)
+        expired.forEach { msg ->
+            deleteProviderRow(msg)
+            db.messages().userDelete(msg.id)
+        }
+        expired.map { it.threadId }.distinct().forEach { refreshConversationSummary(it) }
+        expired.size
+    }
+
     /** Recompute a conversation's summary after deletions; drop it if empty. */
-    private suspend fun refreshConversationSummary(threadId: Long) {
+    suspend fun refreshConversationSummary(threadId: Long) {
         val conv = db.conversations().byThreadId(threadId) ?: return
         val latest = db.messages().latestForThread(threadId)
         if (latest == null) {

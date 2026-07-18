@@ -34,29 +34,47 @@ object SmsRadio {
             val base = context.getSystemService(SmsManager::class.java)
             val sms = entity.subId?.let { base.createForSubscriptionId(it) } ?: base
             val parts = sms.divideMessage(entity.body)
-            val sentIntent = PendingIntent.getBroadcast(
-                context, entity.id.toInt(),
-                Intent(context, SmsSentReceiver::class.java).putExtra("messageId", entity.id),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-            // Delivery reports (§8.1): opt-out via Settings; the carrier's
-            // delivery ack flips the bubble status to DELIVERED.
             val wantDelivery = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
                 .getBoolean("delivery_reports", true)
-            val deliveredIntent = if (!wantDelivery) null else PendingIntent.getBroadcast(
-                context, entity.id.toInt(),
-                Intent(context, com.messages.app.receiver.SmsDeliveredReceiver::class.java)
-                    .putExtra("messageId", entity.id),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
             repo.recipientsOf(entity.address).forEach { recipient ->
                 if (parts.size == 1) {
+                    val sentIntent = PendingIntent.getBroadcast(
+                        context, entity.id.toInt(),
+                        Intent(context, SmsSentReceiver::class.java).putExtra("messageId", entity.id),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+                    val deliveredIntent = if (!wantDelivery) null else PendingIntent.getBroadcast(
+                        context, entity.id.toInt(),
+                        Intent(context, com.messages.app.receiver.SmsDeliveredReceiver::class.java)
+                            .putExtra("messageId", entity.id),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
                     sms.sendTextMessage(recipient, null, entity.body, sentIntent, deliveredIntent)
                 } else {
+                    val sentIntents = ArrayList<PendingIntent>()
+                    val deliveredIntents = if (!wantDelivery) null else ArrayList<PendingIntent>()
+                    parts.forEachIndexed { index, _ ->
+                        val requestCode = (entity.id * 100 + index).toInt()
+                        sentIntents.add(
+                            PendingIntent.getBroadcast(
+                                context, requestCode,
+                                Intent(context, SmsSentReceiver::class.java).putExtra("messageId", entity.id),
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                            )
+                        )
+                        if (wantDelivery) {
+                            deliveredIntents?.add(
+                                PendingIntent.getBroadcast(
+                                    context, requestCode,
+                                    Intent(context, com.messages.app.receiver.SmsDeliveredReceiver::class.java)
+                                        .putExtra("messageId", entity.id),
+                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                                )
+                            )
+                        }
+                    }
                     sms.sendMultipartTextMessage(
-                        recipient, null, parts,
-                        ArrayList(parts.map { sentIntent }),
-                        deliveredIntent?.let { ArrayList(parts.map { _ -> it }) },
+                        recipient, null, parts, sentIntents, deliveredIntents
                     )
                 }
             }

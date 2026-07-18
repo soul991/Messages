@@ -76,6 +76,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     val hasImportedPack = MutableStateFlow(repo.hasImportedPatternPack())
     val importStatus = MutableStateFlow<String?>(null)
     val otpAutoDelete = MutableStateFlow(OtpCleanup.isEnabled(app))
+    val spamAutoClean = MutableStateFlow(com.messages.core.cleanup.SpamCleanup.isEnabled(app))
     val appLock = MutableStateFlow(AppLock.isEnabled(app))
     val hidePreviews = MutableStateFlow(AppLock.hidePreviews(app))
     val canAuthenticate = AppLock.canAuthenticate(app)
@@ -96,6 +97,45 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setOtpAutoDelete(enabled: Boolean) {
         OtpCleanup.setEnabled(getApplication(), enabled)
         otpAutoDelete.value = enabled
+    }
+
+    fun setSpamAutoClean(enabled: Boolean) {
+        com.messages.core.cleanup.SpamCleanup.setEnabled(getApplication(), enabled)
+        spamAutoClean.value = enabled
+    }
+
+    val themeMode = MutableStateFlow(
+        com.messages.designsystem.ThemeMode.valueOf(
+            app.getSharedPreferences("settings", Context.MODE_PRIVATE).getString("theme_mode", "SYSTEM") ?: "SYSTEM"
+        )
+    )
+
+    fun setThemeMode(mode: com.messages.designsystem.ThemeMode) {
+        getApplication<Application>().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .edit().putString("theme_mode", mode.name).apply()
+        themeMode.value = mode
+    }
+
+    val notifyTransactions = MutableStateFlow(app.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("notify_transactions", true))
+    val notifyPromotions = MutableStateFlow(app.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("notify_promotions", false))
+    val notifyReview = MutableStateFlow(app.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("notify_review", true))
+
+    fun setNotifyTransactions(enabled: Boolean) {
+        getApplication<Application>().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .edit().putBoolean("notify_transactions", enabled).apply()
+        notifyTransactions.value = enabled
+    }
+
+    fun setNotifyPromotions(enabled: Boolean) {
+        getApplication<Application>().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .edit().putBoolean("notify_promotions", enabled).apply()
+        notifyPromotions.value = enabled
+    }
+
+    fun setNotifyReview(enabled: Boolean) {
+        getApplication<Application>().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .edit().putBoolean("notify_review", enabled).apply()
+        notifyReview.value = enabled
     }
 
     fun setSensitivity(name: String) {
@@ -213,8 +253,13 @@ fun SettingsScreen(
     val hasImportedPack by vm.hasImportedPack.collectAsState()
     val importStatus by vm.importStatus.collectAsState()
     val otpAutoDelete by vm.otpAutoDelete.collectAsState()
+    val spamAutoClean by vm.spamAutoClean.collectAsState()
     val appLock by vm.appLock.collectAsState()
     val hidePreviews by vm.hidePreviews.collectAsState()
+    val themeMode by vm.themeMode.collectAsState()
+    val notifyTransactions by vm.notifyTransactions.collectAsState()
+    val notifyPromotions by vm.notifyPromotions.collectAsState()
+    val notifyReview by vm.notifyReview.collectAsState()
     val activity = androidx.compose.ui.platform.LocalContext.current
         as? androidx.fragment.app.FragmentActivity
 
@@ -340,6 +385,47 @@ fun SettingsScreen(
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
             }
 
+            // ---- Notifications ----
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                SectionHeader("Notifications")
+                SettingSwitchRow(
+                    title = "Transactions",
+                    subtitle = "Notify for bank alerts, receipts, and bills.",
+                    checked = notifyTransactions,
+                    enabled = true,
+                    onChange = { vm.setNotifyTransactions(it) },
+                )
+                Spacer(Modifier.height(12.dp))
+                SettingSwitchRow(
+                    title = "Promotions",
+                    subtitle = "Notify for offers and marketing messages.",
+                    checked = notifyPromotions,
+                    enabled = true,
+                    onChange = { vm.setNotifyPromotions(it) },
+                )
+                Spacer(Modifier.height(12.dp))
+                SettingSwitchRow(
+                    title = "Review folder",
+                    subtitle = "Get a quiet, batched notification when messages arrive here.",
+                    checked = notifyReview,
+                    enabled = true,
+                    onChange = { vm.setNotifyReview(it) },
+                )
+            }
+
+            // ---- Appearance ----
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                SectionHeader("Appearance")
+                ThemeModePickerRow(
+                    title = "App theme",
+                    subtitle = "Choose the overall look of the app.",
+                    selectedMode = themeMode,
+                    onSelect = { vm.setThemeMode(it) },
+                )
+            }
+
             // ---- Privacy & security (§8.2) ----
             item {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
@@ -421,10 +507,10 @@ fun SettingsScreen(
                 )
             }
 
-            // ---- OTP auto-delete (§6.5 / §8.2 — the app's only auto-delete) ----
+            // ---- Auto-clean features ----
             item {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Auto-delete OTPs")
+                SectionHeader("Auto-clean features")
                 SettingSwitchRow(
                     title = "Delete OTP messages after 24 hours",
                     subtitle = "Only OTP-labeled messages in your Inbox. Starred OTPs and " +
@@ -432,6 +518,14 @@ fun SettingsScreen(
                     checked = otpAutoDelete,
                     enabled = true,
                     onChange = { vm.setOtpAutoDelete(it) },
+                )
+                Spacer(Modifier.height(12.dp))
+                SettingSwitchRow(
+                    title = "Delete Spam after 90 days",
+                    subtitle = "Automatically delete messages in the Spam and Blocked folders that are older than 90 days.",
+                    checked = spamAutoClean,
+                    enabled = true,
+                    onChange = { vm.setSpamAutoClean(it) },
                 )
             }
 
@@ -596,6 +690,51 @@ private fun SwipeActionPickerRow(
                         onClick = {
                             expanded = false
                             onSelect(id)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeModePickerRow(
+    title: String,
+    subtitle: String,
+    selectedMode: com.messages.designsystem.ThemeMode,
+    onSelect: (com.messages.designsystem.ThemeMode) -> Unit,
+) {
+    var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { expanded = true }
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Box {
+            Text(
+                selectedMode.name.lowercase().replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                com.messages.designsystem.ThemeMode.entries.forEach { mode ->
+                    DropdownMenuItem(
+                        text = { Text(mode.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                        onClick = {
+                            expanded = false
+                            onSelect(mode)
                         },
                     )
                 }

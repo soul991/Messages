@@ -35,15 +35,29 @@ class MessageNotifier(private val context: Context) {
         val conversationLocked = MessageRepository.get(context)
             .db.conversations().byThreadId(message.threadId)?.locked == true
         val hidden = AppLock.hidePreviews(context) || conversationLocked
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val notifyTransactions = prefs.getBoolean("notify_transactions", true)
+        val notifyPromotions = prefs.getBoolean("notify_promotions", false)
+        val notifyReview = prefs.getBoolean("notify_review", true)
+
         when (verdict.category) {
             Category.INBOX -> postMessageNotification(
                 message, verdict, contactName, MessagesApp.CH_PERSONAL, hidden, conversationLocked,
             )
-            Category.TRANSACTIONS -> postMessageNotification(
-                message, verdict, contactName, MessagesApp.CH_TRANSACTIONS, hidden, conversationLocked,
-            )
-            Category.REVIEW -> postReviewNotification()
-            Category.PROMOTIONS, Category.SPAM, Category.BLOCKED -> Unit // silent (§4)
+            Category.TRANSACTIONS -> if (notifyTransactions) {
+                postMessageNotification(
+                    message, verdict, contactName, MessagesApp.CH_TRANSACTIONS, hidden, conversationLocked,
+                )
+            }
+            Category.REVIEW -> if (notifyReview) {
+                postReviewNotification()
+            }
+            Category.PROMOTIONS -> if (notifyPromotions) {
+                postMessageNotification(
+                    message, verdict, contactName, MessagesApp.CH_PROMOTIONS, hidden, conversationLocked,
+                )
+            }
+            Category.SPAM, Category.BLOCKED -> Unit // silent (§4)
         }
     }
 

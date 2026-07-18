@@ -101,7 +101,25 @@ class MainActivity : FragmentActivity() {
         }
 
         setContent {
-            MessagesTheme {
+            val prefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
+            var themeMode by androidx.compose.runtime.remember {
+                androidx.compose.runtime.mutableStateOf(
+                    com.messages.designsystem.ThemeMode.valueOf(
+                        prefs.getString("theme_mode", "SYSTEM") ?: "SYSTEM"
+                    )
+                )
+            }
+            androidx.compose.runtime.DisposableEffect(Unit) {
+                val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { p, key ->
+                    if (key == "theme_mode") {
+                        themeMode = com.messages.designsystem.ThemeMode.valueOf(p.getString(key, "SYSTEM") ?: "SYSTEM")
+                    }
+                }
+                prefs.registerOnSharedPreferenceChangeListener(listener)
+                onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+            }
+
+            MessagesTheme(mode = themeMode) {
                 // App lock gate (§8.2): everything below stays hidden until unlocked.
                 if (!appUnlocked) {
                     LockScreen(
