@@ -10,6 +10,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import com.messages.designsystem.Motion
@@ -30,6 +35,14 @@ val LocalNavAnimatedVisibilityScope = staticCompositionLocalOf<AnimatedVisibilit
 fun Modifier.sharedThreadAvatar(threadId: Long): Modifier {
     val sts = LocalSharedTransitionScope.current ?: return this
     val scope = LocalNavAnimatedVisibilityScope.current ?: return this
+    // A sharedElement taking part in the very first lookahead pass — before the
+    // SharedTransitionLayout root has been placed — crashes with "Uninitialized
+    // LayoutCoordinates" (hit when a notification tap cold-starts straight into
+    // a chat, making it the start destination). Sit out the first frame; the
+    // list→chat spring runs ~380ms, so joining at frame 2 still animates.
+    var pastFirstFrame by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { pastFirstFrame = true }
+    if (!pastFirstFrame) return this
     return with(sts) {
         this@sharedThreadAvatar.sharedElement(
             rememberSharedContentState(key = "avatar-$threadId"),

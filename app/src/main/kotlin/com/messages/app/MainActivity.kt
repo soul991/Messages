@@ -25,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.messages.app.security.AppLock
+import com.messages.app.security.LockGrace
 import com.messages.app.ui.common.LocalNavAnimatedVisibilityScope
 import com.messages.app.ui.common.LocalSharedTransitionScope
 import com.messages.app.ui.common.fadeThroughEnter
@@ -50,6 +51,13 @@ import com.messages.designsystem.ThemeMode
  */
 class AppLockStateViewModel : androidx.lifecycle.ViewModel() {
     var unlocked by mutableStateOf(false)
+
+    /** elapsedRealtime stamp of the last true background trip (0 = none). */
+    var backgroundedAt: Long = 0L
+
+    /** elapsedRealtime stamp of an app-initiated startActivityForResult launch
+     *  (camera, pickers, system dialogs); suppresses re-locking on return. */
+    var externalLaunchAt: Long = 0L
 }
 
 /** Scopes route content so shared elements can find their nav animation scope. */
@@ -80,6 +88,23 @@ class MainActivity : FragmentActivity() {
     /** Resolved from settings before composition, then updated live from Settings. */
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
 
+    /** Keeps FLAG_SECURE in sync with the App lock toggle while Settings is
+     *  open in this same activity. Field-held: SharedPreferences only keeps a
+     *  weak reference to registered listeners. */
+    private val secureFlagListener =
+        android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "app_lock") applyFlagSecure()
+        }
+
+    /** Screenshots + Recents preview blocked while app lock is enabled (§8.2). */
+    private fun applyFlagSecure() {
+        if (AppLock.isEnabled(this)) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
     private val roleRequest = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { refreshDefaultState() }
@@ -93,6 +118,9 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyFlagSecure()
+        getSharedPreferences("settings", MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(secureFlagListener)
         themeMode = ThemePreferences.current(this)
         refreshDefaultState()
         requestCorePermissions()
@@ -139,7 +167,14 @@ class MainActivity : FragmentActivity() {
                 DisposableEffect(nav) {
                     intentNavigator = { newIntent ->
                         routeFor(newIntent)?.let { route ->
-                            nav.navigate(route) { launchSingleTop = true }
+                            // launchSingleTop would silently keep the OLD nav
+                            // arguments when the target route pattern matches the
+                            // current top (chat→chat via a notification tap for a
+                            // different thread). Pop back to home instead so the
+                            // stack stays home→chat and the new args always apply.
+                            nav.navigate(route) {
+                                popUpTo("home")
+                            }
                         }
                     }
                     onDispose { intentNavigator = null }
@@ -281,8 +316,16 @@ class MainActivity : FragmentActivity() {
                             targetMessageId = entry.arguments?.getString("target")?.toLongOrNull(),
                             // Direct share (§8.2): shared text lands as the draft.
                             initialDraft = entry.arguments?.getString("draft") ?: "",
+                            onOpenContact = { nav.navigate("contactDetail/$threadId") },
                         )
                         }
+                    }
+                    composable("contactDetail/{threadId}") { entry ->
+                        val threadId = entry.arguments?.getString("threadId")?.toLongOrNull() ?: return@composable
+                        com.messages.app.ui.contact.ContactDetailScreen(
+                            threadId = threadId,
+                            onBack = { nav.popBackStack() },
+                        )
                     }
                     composable("why/{messageId}") { entry ->
                         val messageId = entry.arguments?.getString("messageId")?.toLongOrNull() ?: return@composable
@@ -295,23 +338,70 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    /** All ActivityResult launches (camera, pickers, SAF, role/permission
+     *  dialogs, Drive sign-in) funnel through here — arm the suppression stamp
+     *  so an app-initiated round trip never throws up the lock on return. */
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        lockState.externalLaunchAt = android.os.SystemClock.elapsedRealtime()
+        super.startActivityForResult(intent, requestCode, options)
+    }
+
     override fun onStart() {
         super.onStart()
+        // Contact names: register the observer (no-op until READ_CONTACTS is
+        // granted) and heal stale cached names on every foreground (throttled).
+        com.messages.core.contacts.ContactSync.ensureObserver(this)
+        com.messages.core.contacts.ContactSync.refreshOnForeground(this)
         // No lock configured → always unlocked; locked → wait for authentication.
-        if (!AppLock.isEnabled(this)) appUnlocked = true
+        if (!AppLock.isEnabled(this)) {
+            appUnlocked = true
+            return
+        }
+        val now = android.os.SystemClock.elapsedRealtime()
+        val externalTrip = LockGrace.externalTripActive(lockState.externalLaunchAt, now)
+        // "Lock after" grace (§8.2): a session left unlocked at onStop re-locks
+        // only if the background trip exceeded the configured grace. An
+        // app-initiated external-result trip (camera/picker/dialog) suppresses
+        // re-locking entirely, regardless of the Lock-after setting.
+        if (appUnlocked && !externalTrip &&
+            LockGrace.shouldRelock(AppLock.lockAfterMs(this), lockState.backgroundedAt, now)
+        ) {
+            appUnlocked = false
+        }
+        lockState.backgroundedAt = 0L
+        lockState.externalLaunchAt = 0L
     }
 
     override fun onStop() {
         super.onStop()
         // Re-lock whenever the app truly leaves the foreground. A configuration
         // change (rotation, fold, locale) also passes through onStop but must
-        // not throw the user back to the biometric prompt.
-        if (AppLock.isEnabled(this) && !isChangingConfigurations) appUnlocked = false
+        // not throw the user back to the biometric prompt. With a "Lock after"
+        // grace configured — or an app-initiated external launch in flight —
+        // only stamp the trip; onStart decides. FLAG_SECURE keeps the Recents
+        // preview blank in the meantime.
+        if (AppLock.isEnabled(this) && !isChangingConfigurations) {
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (LockGrace.externalTripActive(lockState.externalLaunchAt, now)) {
+                lockState.backgroundedAt = now
+            } else if (AppLock.lockAfterMs(this) <= 0L) {
+                appUnlocked = false
+            } else {
+                lockState.backgroundedAt = now
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
         refreshDefaultState()
+    }
+
+    override fun onDestroy() {
+        getSharedPreferences("settings", MODE_PRIVATE)
+            .unregisterOnSharedPreferenceChangeListener(secureFlagListener)
+        super.onDestroy()
     }
 
     // singleTask: notification taps and SENDTO while alive land here, not onCreate.
