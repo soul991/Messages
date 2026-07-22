@@ -43,8 +43,9 @@ error 10 (`DEVELOPER_ERROR`).
 ## 4. Verify on device
 
 Settings → Google Drive backup → *Choose Google account*. The account chooser
-should appear and complete without error. Then set a backup password and tap
-*Back up now*.
+should appear and complete without error. Then tap *Back up now* — no backup
+password is needed: the Google account is the access control (the encryption
+master key lives in a key file in the same app-private Drive area).
 
 Troubleshooting:
 - **Error 10 / DEVELOPER_ERROR** — package name or SHA-1 mismatch (wrong
@@ -67,6 +68,17 @@ name + SHA-256 cert fingerprint. When such a domain exists:
    `wrappedKeys[]` — old backups stay readable, and either the passkey or the
    password can unlock new ones.
 
-Until then, backups use the password wrap only (PBKDF2-HMAC-SHA256, 600k
-iterations, AES-256-GCM), which is the PRD's mandated always-available
-fallback.
+Today, backups use the `account-plain` wrap: the snapshot data key is wrapped
+(AES-256-GCM) under a master key stored as a key file in the same
+app-private `appDataFolder` — signing in to the Google account IS the access
+control, WhatsApp-style. Legacy snapshots made under the earlier mandatory
+password model (`password` wrap, PBKDF2-HMAC-SHA256 600k iterations) are
+detected by their header and still prompt for that password on restore.
+
+Restore UX: "Restore" lists the kept snapshots (the last 2). With one
+snapshot it goes straight to the confirm dialog; with two, a chooser shows
+date, source device, message count, size, and a "needs password" marker for
+legacy snapshots — headers are read via a small Range request, so listing
+never downloads full snapshots. Both backup and restore show live progress
+(preparing n/m, encrypting, upload % / download %, decrypting, adding
+messages).

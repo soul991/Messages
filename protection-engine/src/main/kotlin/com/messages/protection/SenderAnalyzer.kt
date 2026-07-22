@@ -73,4 +73,24 @@ object SenderAnalyzer {
         SenderType.REGISTERED_PROMOTIONAL -> true
         else -> false
     }
+
+    /**
+     * Can this sender receive an SMS reply? Alphanumeric sender IDs (DLT
+     * headers like `VM-HDFCBK`, unregistered alpha headers, email gateways)
+     * are one-way — the network cannot route a reply back, so the chat UI
+     * hides the composer and notifications must not offer inline reply.
+     * Numeric senders (personal, international, short codes) are replyable.
+     * Group addresses are the caller's concern (check each recipient).
+     */
+    fun canReceiveReplies(rawAddress: String): Boolean =
+        when (analyze(rawAddress, isContact = false).type) {
+            SenderType.PERSONAL_NUMBER,
+            SenderType.INTERNATIONAL_NUMBER,
+            SenderType.SHORT_CODE -> true
+            // Odd-but-numeric formats (10-digit long codes starting 1–5,
+            // '+'-less international) bucket as ALPHANUMERIC_UNKNOWN for
+            // scoring but are still routable destinations.
+            else -> Regex("""^\+?\d{3,15}$""")
+                .matches(rawAddress.trim().replace(Regex("""[\s\-()]"""), ""))
+        }
 }

@@ -11,6 +11,23 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MessageDao {
+    /** Latest INCOMING message's badge-relevant fields per thread (verified-
+     *  sender badges: fraud suppression + protected-lane elevation). */
+    data class LatestIncomingMeta(
+        val threadId: Long,
+        val dangerous: Boolean,
+        val fraudWarning: Boolean,
+        val protectedLabel: String,
+    )
+
+    @Query(
+        "SELECT threadId, dangerous, fraudWarning, protectedLabel FROM messages m " +
+            "WHERE trashed = 0 AND isOutgoing = 0 AND timestamp = (" +
+            "SELECT MAX(timestamp) FROM messages WHERE threadId = m.threadId " +
+            "AND trashed = 0 AND isOutgoing = 0) GROUP BY threadId"
+    )
+    fun latestIncomingMeta(): Flow<List<LatestIncomingMeta>>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(message: MessageEntity): Long
 
@@ -218,6 +235,9 @@ interface ConversationDao {
 
     @Query("UPDATE conversations SET preferredSubId = :subId WHERE threadId = :threadId")
     suspend fun setPreferredSubId(threadId: Long, subId: Int?)
+
+    @Query("UPDATE conversations SET contactName = :name WHERE threadId = :threadId")
+    suspend fun setContactName(threadId: Long, name: String?)
 
     @Query("DELETE FROM conversations WHERE threadId = :threadId")
     suspend fun deleteByThreadId(threadId: Long)

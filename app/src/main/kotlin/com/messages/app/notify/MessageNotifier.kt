@@ -61,6 +61,17 @@ class MessageNotifier(private val context: Context) {
         }
     }
 
+    /** Contact photo thumbnail as an icon; null for no contact / no photo. */
+    private fun contactPhotoIcon(address: String): IconCompat? = try {
+        MessageRepository.get(context).lookupContact(address)?.photoUri?.let { uriStr ->
+            context.contentResolver.openInputStream(android.net.Uri.parse(uriStr))?.use {
+                android.graphics.BitmapFactory.decodeStream(it)
+            }?.let { bmp -> IconCompat.createWithBitmap(bmp) }
+        }
+    } catch (_: Exception) {
+        null
+    }
+
     private fun postMessageNotification(
         message: MessageEntity,
         verdict: Verdict,
@@ -88,7 +99,11 @@ class MessageNotifier(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val person = Person.Builder().setName(title).build()
+        val person = Person.Builder().setName(title).apply {
+            // Contact photo on the notification (never for locked chats —
+            // their identity must not surface outside the app).
+            if (!conversationLocked) contactPhotoIcon(message.address)?.let { setIcon(it) }
+        }.build()
         val text = when {
             hidden -> "New message"
             verdict.fraudWarningBanner ->
@@ -105,6 +120,16 @@ class MessageNotifier(private val context: Context) {
             ConversationShortcuts.push(context, message.threadId, title)
         } else null
 
+        // Verified-sender badge (Phase 2): engine-decided; the verdict's
+        // dangerous/fraud-warning state suppresses it absolutely, and locked
+        // conversations show no sender identity at all.
+        val badge = if (conversationLocked) null else com.messages.protection.SenderBadges.badgeFor(
+            address = message.address,
+            isContact = contactName != null,
+            dangerous = verdict.dangerous || verdict.fraudWarningBanner,
+            protectedLabel = verdict.protectedLabel.name,
+        )
+
         val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(android.R.drawable.sym_action_chat)
             .setContentTitle(title)
@@ -116,6 +141,14 @@ class MessageNotifier(private val context: Context) {
             .addAction(0, "Mark as read", markRead)
 
         if (shortcutId != null) builder.setShortcutId(shortcutId)
+
+        when (badge) {
+            com.messages.protection.SenderBadges.Badge.VERIFIED ->
+                builder.setSubText("Verified sender ✓")
+            com.messages.protection.SenderBadges.Badge.BUSINESS ->
+                builder.setSubText("Business")
+            null -> Unit
+        }
 
         // Conversation bubbles (§8.2, Android 11+). Skipped while app lock is
         // on (a bubble would bypass the lock screen) and for locked chats.

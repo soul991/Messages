@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import android.util.Log
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -34,12 +35,16 @@ import javax.crypto.spec.GCMParameterSpec
 /**
  * §8.3 Google Drive backup orchestration.
  *
- * Key model: when the user sets the backup password we mint ONE random data
- * key. It is (a) wrapped by the password and stored in prefs — this wrap is
- * embedded in every uploaded envelope, so on a new device the password alone
- * restores; (b) encrypted under an Android Keystore key locally, so the
- * scheduled worker can encrypt automatic backups without ever storing the
- * password itself.
+ * Key model (WhatsApp-style, account-as-access-control): a random master key
+ * lives in a key file in the same Drive appDataFolder as the snapshots —
+ * whoever can sign in to the Google account can restore, no password needed.
+ * Every snapshot gets a fresh random data key, wrapped under the master key
+ * ("account-plain" in BackupCrypto's versioned wrappedKeys[]). The payload
+ * stays AES-256-GCM end-to-end; only key custody changed. The master key is
+ * also cached locally (Android-Keystore-encrypted) so scheduled backups skip
+ * the extra Drive read when possible. Legacy password-wrapped snapshots
+ * (detected via BackupCrypto.requiresPassword) still restore with their
+ * password.
  *
  * Checkpoint model: snapshots contain messages up to the most recent 6:00 AM
  * device-local checkpoint (Checkpoints.lastCheckpoint) — deterministic
@@ -48,14 +53,14 @@ import javax.crypto.spec.GCMParameterSpec
  */
 object DriveBackup {
 
+    private const val TAG = "DriveBackup"
     private const val PREFS = "drive_backup"
     private const val KEY_FREQUENCY = "frequency" // DAILY|WEEKLY|MONTHLY|MANUAL
     private const val KEY_WIFI_ONLY = "wifi_only"
     private const val KEY_INCLUDE_MEDIA = "include_media"
     private const val KEY_SPAM_MODE = "spam_mode" // ON|OFF|CUSTOM
     private const val KEY_SPAM_CUSTOM_IDS = "spam_custom_ids"
-    private const val KEY_WRAPPED_BY_PASSWORD = "wrapped_by_password" // JSON of BackupCrypto.WrappedKey
-    private const val KEY_DATA_KEY_LOCAL = "data_key_local" // keystore-encrypted data key
+    private const val KEY_MASTER_KEY_LOCAL = "master_key_local" // keystore-encrypted Drive master key
     private const val KEY_LAST_COVERED = "last_checkpoint_covered"
     private const val KEY_LAST_BACKUP_AT = "last_backup_at"
     private const val KEY_LAST_BACKUP_SIZE = "last_backup_size"
@@ -66,6 +71,10 @@ object DriveBackup {
     private const val WORK_PERIODIC = "drive_backup_periodic"
     private const val WORK_MANUAL = "drive_backup_manual"
 
+    /** Master-key file kept alongside snapshots in appDataFolder (never pruned
+     *  — the prune filter only touches `.mbk` snapshot files). */
+    private const val KEY_FILE_NAME = "messages-backup-key.bin"
+
     fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -74,7 +83,13 @@ object DriveBackup {
     fun signInClient(context: Context): GoogleSignInClient =
         GoogleSignIn.getClient(
             context,
+            // DEFAULT_SIGN_IN alone only guarantees a stable ID + basic
+            // profile (name/photo) — email is null unless requested
+            // explicitly, and without it GMS also can't resolve the
+            // underlying system Account that DriveClient/GoogleAuthUtil
+            // need, breaking backups even after a "successful" sign-in.
             GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
                 .requestScopes(Scope(DriveClient.SCOPE))
                 .build(),
         )
@@ -82,6 +97,14 @@ object DriveBackup {
     fun signedInAccount(context: Context): GoogleSignInAccount? =
         GoogleSignIn.getLastSignedInAccount(context)
             ?.takeIf { GoogleSignIn.hasPermissions(it, Scope(DriveClient.SCOPE)) }
+
+    /** account.email can be null on a silent re-auth even when fully signed
+     *  in with the drive.appdata scope granted — account.account.name (the
+     *  underlying system Account, same one used for GoogleAuthUtil.getToken)
+     *  is the reliable fallback so the UI never gets stuck showing "not
+     *  signed in" for a genuinely signed-in account. */
+    fun signedInEmail(context: Context): String? =
+        signedInAccount(context)?.let { it.email ?: it.account?.name }
 
     fun driveClient(context: Context): DriveClient? {
         val account = signedInAccount(context)?.account ?: return null
@@ -133,43 +156,46 @@ object DriveBackup {
             .apply()
     }
 
-    // ---- Encryption setup ----
+    // ---- Master key (account-plain access model) ----
 
-    /** True once a backup password has been configured. */
-    fun isEncryptionConfigured(context: Context): Boolean =
-        prefs(context).contains(KEY_WRAPPED_BY_PASSWORD) &&
-            prefs(context).contains(KEY_DATA_KEY_LOCAL)
+    private fun cachedMasterKey(context: Context): ByteArray? =
+        prefs(context).getString(KEY_MASTER_KEY_LOCAL, null)?.let {
+            runCatching { keystoreDecrypt(it) }.getOrNull()
+        }?.takeIf { it.size == 32 }
 
-    /**
-     * Set (or change) the backup password. Mints a fresh data key — older
-     * snapshots keep their old key and password.
-     */
-    fun setPassword(context: Context, password: CharArray) {
-        val dataKey = BackupCrypto.newDataKey()
-        val wrap = BackupCrypto.wrapWithPassword(dataKey, password)
-        val wrapJson = kotlinx.serialization.json.Json.encodeToString(
-            BackupCrypto.WrappedKey.serializer(), wrap,
-        )
-        prefs(context).edit()
-            .putString(KEY_WRAPPED_BY_PASSWORD, wrapJson)
-            .putString(KEY_DATA_KEY_LOCAL, keystoreEncrypt(dataKey))
-            .remove(KEY_LAST_COVERED) // next run re-uploads under the new key
-            .apply()
+    private fun cacheMasterKey(context: Context, key: ByteArray) {
+        prefs(context).edit().putString(KEY_MASTER_KEY_LOCAL, keystoreEncrypt(key)).apply()
     }
 
-    private fun storedWrap(context: Context): BackupCrypto.WrappedKey? =
-        prefs(context).getString(KEY_WRAPPED_BY_PASSWORD, null)?.let {
-            runCatching {
-                kotlinx.serialization.json.Json.decodeFromString(
-                    BackupCrypto.WrappedKey.serializer(), it,
-                )
-            }.getOrNull()
+    /**
+     * The master key every backup must be wrapped under. The Drive key file
+     * is authoritative (a future restore on another device will read it);
+     * if none exists yet, re-upload the local cache or mint a fresh key.
+     * Blocking — call on Dispatchers.IO.
+     */
+    private fun ensureMasterKey(context: Context, client: DriveClient): ByteArray {
+        val remote = client.list().firstOrNull { it.name == KEY_FILE_NAME }
+        if (remote != null) {
+            val key = client.download(remote.id)
+            require(key.size == 32) { "Corrupt backup key file in Google Drive" }
+            cacheMasterKey(context, key)
+            return key
         }
+        val key = cachedMasterKey(context) ?: BackupCrypto.newMasterKey()
+        client.upload(KEY_FILE_NAME, key)
+        cacheMasterKey(context, key)
+        return key
+    }
 
-    private fun localDataKey(context: Context): ByteArray? =
-        prefs(context).getString(KEY_DATA_KEY_LOCAL, null)?.let {
-            runCatching { keystoreDecrypt(it) }.getOrNull()
-        }
+    /** Master key for restore: Drive key file first, local cache as fallback. */
+    private fun masterKeyForRestore(context: Context, client: DriveClient): ByteArray? {
+        val remote = client.list().firstOrNull { it.name == KEY_FILE_NAME }
+            ?: return cachedMasterKey(context)
+        val key = client.download(remote.id)
+        if (key.size != 32) return cachedMasterKey(context)
+        cacheMasterKey(context, key)
+        return key
+    }
 
     // ---- Backup ----
 
@@ -179,6 +205,14 @@ object DriveBackup {
         val messageCount: Int,
         val lastError: String?,
     )
+
+    enum class BackupStage { PREPARING, ENCRYPTING, UPLOADING }
+
+    /** Live progress for a manual backup-now run (§8.3 popup). [total] == 0
+     *  means indeterminate — no meaningful denominator yet (e.g. mid-encrypt). */
+    data class BackupProgress(val stage: BackupStage, val done: Long = 0, val total: Long = 0) {
+        val fraction: Float? get() = if (total <= 0) null else (done.toFloat() / total).coerceIn(0f, 1f)
+    }
 
     fun status(context: Context): Status = prefs(context).let {
         Status(
@@ -194,13 +228,15 @@ object DriveBackup {
      * scheduled runs use the frequency's last 6 AM checkpoint and skip when
      * that window is already covered.
      */
-    suspend fun backupNow(context: Context, manual: Boolean): Result<Status> =
+    suspend fun backupNow(
+        context: Context,
+        manual: Boolean,
+        onProgress: ((BackupProgress) -> Unit)? = null,
+    ): Result<Status> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val client = driveClient(context)
                     ?: error("Not signed in to Google")
-                val wrap = storedWrap(context) ?: error("Backup password not set")
-                val dataKey = localDataKey(context) ?: error("Backup key unavailable — set the password again")
 
                 val freq = if (manual) Checkpoints.Frequency.MANUAL else frequency(context)
                 val checkpointAt = Checkpoints.lastCheckpoint(System.currentTimeMillis(), freq)
@@ -216,19 +252,31 @@ object DriveBackup {
                         customSpamIds = customSpamIds(context),
                         includeMedia = includeMedia(context),
                     ),
+                    onMessageProgress = { done, total ->
+                        onProgress?.invoke(BackupProgress(BackupStage.PREPARING, done.toLong(), total.toLong()))
+                    },
                 )
+                onProgress?.invoke(BackupProgress(BackupStage.ENCRYPTING))
+                val masterKey = ensureMasterKey(context, client)
+                val dataKey = BackupCrypto.newDataKey()
                 val count = MessageRepository.get(context).db.messages().allMessages()
                     .count { !it.trashed && it.sendStatus != "SCHEDULED" && it.timestamp <= checkpointAt }
                 val blob = BackupCrypto.seal(
                     payloadJson = payload,
                     dataKey = dataKey,
-                    wrappedKeys = listOf(wrap),
+                    wrappedKeys = listOf(BackupCrypto.wrapWithMasterKey(dataKey, masterKey)),
                     createdAt = System.currentTimeMillis(),
                     checkpointAt = checkpointAt,
                     deviceModel = android.os.Build.MODEL ?: "Android",
                     messageCount = count,
                 )
-                client.upload("messages-snapshot-$checkpointAt.mbk", blob)
+                client.upload(
+                    "messages-snapshot-$checkpointAt.mbk",
+                    blob,
+                    onProgress = { sent, total ->
+                        onProgress?.invoke(BackupProgress(BackupStage.UPLOADING, sent, total))
+                    },
+                )
 
                 // Keep the last 2 snapshots (§8.3).
                 client.list()
@@ -245,6 +293,7 @@ object DriveBackup {
                     .apply()
                 status(context)
             }.onFailure { e ->
+                Log.w(TAG, "backupNow failed", e)
                 prefs(context).edit()
                     .putString(KEY_LAST_ERROR, e.message ?: e.javaClass.simpleName)
                     .apply()
@@ -258,36 +307,88 @@ object DriveBackup {
         val name: String,
         val sizeBytes: Long,
         val header: BackupCrypto.Header,
-    )
+    ) {
+        /** Legacy password-wrapped snapshot → the restore UI must prompt. */
+        val needsPassword: Boolean get() = BackupCrypto.requiresPassword(header)
+    }
 
-    /** Newest available snapshot with its readable (plaintext) header. */
-    suspend fun latestSnapshot(context: Context): Result<RemoteSnapshot?> =
+    /** Restore-outcome copy (§ restore idempotency UI states). Pure, JVM-tested. */
+    fun restoreResultMessage(restored: Int, skipped: Int): String = when {
+        restored == 0 && skipped > 0 ->
+            "Nothing to restore — all messages are already on this device"
+        restored == 0 -> "Backup contained no messages"
+        restored == 1 -> "Restored 1 new message"
+        else -> "Restored $restored new messages"
+    }
+
+    /** Range-request size that comfortably covers the plaintext JSON header. */
+    private const val HEADER_PROBE_BYTES = 8 * 1024
+
+    /**
+     * All available snapshots, newest first (§8.3 keeps the last 2 — the
+     * chooser lets the user pick either). Headers are read via a small Range
+     * request so a media-heavy snapshot isn't fully downloaded just to be
+     * listed; unreadable/corrupt snapshots are skipped rather than failing
+     * the whole listing.
+     */
+    suspend fun listSnapshots(context: Context): Result<List<RemoteSnapshot>> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val client = driveClient(context) ?: error("Not signed in to Google")
-                val file = client.list().firstOrNull { it.name.endsWith(".mbk") }
-                    ?: return@runCatching null
-                // Header is at the front; a full download is fine at SMS sizes.
-                val blob = client.download(file.id)
-                RemoteSnapshot(file.id, file.name, blob.size.toLong(), BackupCrypto.readHeader(blob))
-            }
+                client.list()
+                    .filter { it.name.endsWith(".mbk") }
+                    .mapNotNull { file ->
+                        runCatching {
+                            val head = client.downloadPrefix(file.id, HEADER_PROBE_BYTES)
+                            RemoteSnapshot(file.id, file.name, file.size, BackupCrypto.readHeader(head))
+                        }.recoverCatching {
+                            // Oversized header or a server that ignored Range —
+                            // fall back to the full blob before giving up.
+                            val blob = client.download(file.id)
+                            RemoteSnapshot(file.id, file.name, file.size, BackupCrypto.readHeader(blob))
+                        }.getOrNull()
+                    }
+            }.onFailure { e -> Log.w(TAG, "listSnapshots failed", e) }
         }
 
     /**
-     * Download, decrypt with [password] and merge-import (§8.3: restore is
-     * additive — never deletes or overwrites what's on the device).
+     * Download, decrypt and merge-import (§8.3: restore is additive — never
+     * deletes or overwrites what's on the device). Account-plain snapshots
+     * need no input; [password] is only required for legacy password-wrapped
+     * snapshots (BackupCrypto.requiresPassword on the header).
      */
+    enum class RestoreStage { DOWNLOADING, DECRYPTING, IMPORTING }
+
+    /** Live progress for a restore run. [total] <= 0 means indeterminate. */
+    data class RestoreProgress(val stage: RestoreStage, val done: Long = 0, val total: Long = 0) {
+        val fraction: Float? get() = if (total <= 0) null else (done.toFloat() / total).coerceIn(0f, 1f)
+    }
+
     suspend fun restore(
         context: Context,
         fileId: String,
-        password: CharArray,
+        password: CharArray? = null,
+        onProgress: ((RestoreProgress) -> Unit)? = null,
     ): Result<BackupManager.ImportStats> = withContext(Dispatchers.IO) {
         runCatching {
             val client = driveClient(context) ?: error("Not signed in to Google")
-            val blob = client.download(fileId)
-            val payload = BackupCrypto.openWithPassword(blob, password)
+            onProgress?.invoke(RestoreProgress(RestoreStage.DOWNLOADING))
+            val blob = client.download(fileId) { got, total ->
+                onProgress?.invoke(RestoreProgress(RestoreStage.DOWNLOADING, got, total))
+            }
+            onProgress?.invoke(RestoreProgress(RestoreStage.DECRYPTING))
+            val header = BackupCrypto.readHeader(blob)
+            val payload = if (BackupCrypto.requiresPassword(header)) {
+                requireNotNull(password) { "This backup needs its backup password" }
+                BackupCrypto.openWithPassword(blob, password)
+            } else {
+                val masterKey = masterKeyForRestore(context, client)
+                    ?: error("Backup key file is missing from Google Drive")
+                BackupCrypto.openWithMasterKey(blob, masterKey)
+            }
+            onProgress?.invoke(RestoreProgress(RestoreStage.IMPORTING))
             BackupManager.import(context, payload).getOrThrow()
-        }
+        }.onFailure { e -> Log.w(TAG, "restore failed", e) }
     }
 
     // ---- Scheduling ----
@@ -296,7 +397,7 @@ object DriveBackup {
     fun reschedule(context: Context) {
         val wm = WorkManager.getInstance(context)
         if (frequency(context) == Checkpoints.Frequency.MANUAL ||
-            !isEncryptionConfigured(context) || signedInAccount(context) == null
+            signedInAccount(context) == null
         ) {
             wm.cancelUniqueWork(WORK_PERIODIC)
             return
@@ -382,8 +483,22 @@ class DriveBackupWorker(
         val result = DriveBackup.backupNow(applicationContext, manual = manual)
         return when {
             result.isSuccess -> Result.success()
-            runAttemptCount < 3 -> Result.retry()
-            else -> Result.failure()
+            runAttemptCount < 3 -> {
+                Log.w(
+                    "DriveBackup",
+                    "worker attempt $runAttemptCount failed, retrying",
+                    result.exceptionOrNull(),
+                )
+                Result.retry()
+            }
+            else -> {
+                Log.w(
+                    "DriveBackup",
+                    "worker giving up after $runAttemptCount attempts",
+                    result.exceptionOrNull(),
+                )
+                Result.failure()
+            }
         }
     }
 }

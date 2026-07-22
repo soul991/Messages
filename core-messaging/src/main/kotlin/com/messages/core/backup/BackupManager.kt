@@ -126,6 +126,7 @@ object BackupManager {
     suspend fun export(
         context: Context,
         options: ExportOptions = ExportOptions(),
+        onMessageProgress: ((done: Int, total: Int) -> Unit)? = null,
     ): String = withContext(Dispatchers.IO) {
         val repo = MessageRepository.get(context)
         val db = repo.db
@@ -181,7 +182,8 @@ object BackupManager {
             conversationPrefs = db.conversations().allConversations()
                 .filter { it.pinned || it.archived || it.muted || it.locked }
                 .map { BackupConversationPrefs(it.address, it.pinned, it.archived, it.muted, it.locked) },
-            messages = included.map {
+            messages = included.mapIndexed { index, it ->
+                onMessageProgress?.invoke(index + 1, included.size)
                 BackupMessage(
                     it.address, it.body, it.timestamp, it.isOutgoing, it.read,
                     it.category, it.dangerous, it.fraudWarning, it.protectedLabel,
@@ -255,13 +257,9 @@ object BackupManager {
                 // Messages: skip anything already present (address+time+direction+body).
                 val existingKeys = db.messages().allMessages()
                     .mapTo(HashSet()) { messageKey(it.address, it.timestamp, it.isOutgoing, it.body) }
+                val (toInsert, skipped) = dedupeForImport(existingKeys, backup.messages)
                 var restored = 0
-                var skipped = 0
-                backup.messages.forEach { m ->
-                    if (!existingKeys.add(messageKey(m.address, m.timestamp, m.isOutgoing, m.body))) {
-                        skipped++
-                        return@forEach
-                    }
+                toInsert.forEach { m ->
                     val threadId = repo.threadIdFor(m.address)
                     // Best-effort provider write (needs default-SMS role); the
                     // index row below keeps the message either way. Trash items
@@ -348,8 +346,31 @@ object BackupManager {
             }
         }
 
-    private fun messageKey(address: String, timestamp: Long, isOutgoing: Boolean, body: String) =
+    /** §6 dedupe key: address + timestamp + direction + body-hash. */
+    internal fun messageKey(address: String, timestamp: Long, isOutgoing: Boolean, body: String) =
         "$address|$timestamp|$isOutgoing|${body.hashCode()}"
+
+    /**
+     * Pure restore-idempotency core (JVM-testable): given the keys of every
+     * message already on the device, split [incoming] into the messages to
+     * insert and the count skipped as duplicates. Also dedupes within the
+     * backup itself. A second import of the same backup yields zero inserts.
+     */
+    internal fun dedupeForImport(
+        existingKeys: MutableSet<String>,
+        incoming: List<BackupMessage>,
+    ): Pair<List<BackupMessage>, Int> {
+        val toInsert = ArrayList<BackupMessage>(incoming.size)
+        var skipped = 0
+        incoming.forEach { m ->
+            if (existingKeys.add(messageKey(m.address, m.timestamp, m.isOutgoing, m.body))) {
+                toInsert.add(m)
+            } else {
+                skipped++
+            }
+        }
+        return toInsert to skipped
+    }
 
     private suspend fun rebuildConversations(repo: MessageRepository) {
         val db = repo.db

@@ -23,3 +23,8 @@ captures/
 
 # Kotlin
 .kotlin/
+
+# Local design reference material (user-supplied, 98MB) — never committed
+design-refs/
+/*.zip
+/TRUECALLER_ANALYSIS.md

@@ -118,10 +118,13 @@ class ChatViewModelFactory(
     private val app: Application,
     private val threadId: Long,
     private val fallbackAddress: String? = null,
-) : ViewModelProvider.Factory {
+) : androidx.lifecycle.AbstractSavedStateViewModelFactory() {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        ChatViewModel(app, threadId, fallbackAddress) as T
+    override fun <T : ViewModel> create(
+        key: String,
+        modelClass: Class<T>,
+        handle: androidx.lifecycle.SavedStateHandle,
+    ): T = ChatViewModel(app, threadId, fallbackAddress, handle) as T
 }
 
 /**
@@ -187,6 +190,8 @@ fun ChatScreen(
     targetMessageId: Long? = null,
     /** Direct share (§8.2): pre-filled composer text. */
     initialDraft: String = "",
+    /** Tap on the top-bar name/number → contact detail page. */
+    onOpenContact: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -209,6 +214,19 @@ fun ChatScreen(
     val wallpaperVersion by vm.wallpaperVersion.collectAsState()
     var showSimMenu by remember { mutableStateOf(false) }
     var showCustomizeSheet by remember { mutableStateOf(false) }
+    // Verified-sender badge (Phase 2): decided by the engine from the sender
+    // type + the LATEST INCOMING message's fraud/protected state — a scam
+    // impersonating a bank suppresses all trust chrome.
+    var showBadgeSheet by remember { mutableStateOf(false) }
+    val senderBadge = remember(messages, address, contactName) {
+        val latestIn = messages.lastOrNull { !it.isOutgoing }
+        com.messages.protection.SenderBadges.badgeFor(
+            address = address,
+            isContact = contactName != null,
+            dangerous = latestIn?.dangerous == true || latestIn?.fraudWarning == true,
+            protectedLabel = latestIn?.protectedLabel,
+        )
+    }
     // Drafts (§8.1): restore the saved draft unless direct-share provided one.
     var draft by remember {
         mutableStateOf(
@@ -240,10 +258,12 @@ fun ChatScreen(
     val wallpaperPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> if (uri != null) vm.importWallpaper(uri) }
-    var cameraTarget by remember { mutableStateOf<android.net.Uri?>(null) }
+    // Camera target lives in the VM's SavedStateHandle: the camera app kills
+    // our process at will, and TakePicture only reports success — the URI must
+    // survive so the result can still be attached after a cold restart.
     val cameraCapture = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
-    ) { ok -> if (ok) cameraTarget?.let { vm.attach(it) } }
+    ) { ok -> if (ok) vm.cameraTarget.value?.let { vm.attach(it) } }
     var showAttachSheet by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
     var showChatMenu by remember { mutableStateOf(false) }
@@ -402,7 +422,11 @@ fun ChatScreen(
             } else {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        // Google-Messages-style: header tap opens contact detail.
+                        modifier = Modifier.clickable(onClick = onOpenContact),
+                    ) {
                         // Shared element with the list row's avatar (§9).
                         ContactAvatar(
                             contactName ?: address,
@@ -410,10 +434,20 @@ fun ChatScreen(
                             size = 38.dp,
                             textStyle = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.sharedThreadAvatar(threadId),
+                            photoUri = com.messages.app.ui.common.rememberContactPhoto(address.ifBlank { null }),
                         )
                         Spacer(Modifier.width(12.dp))
                         Column {
-                            Text(contactName ?: address, style = MaterialTheme.typography.titleMedium)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(contactName ?: address, style = MaterialTheme.typography.titleMedium)
+                                senderBadge?.let { b ->
+                                    Spacer(Modifier.width(4.dp))
+                                    com.messages.app.ui.common.SenderBadgeIcon(
+                                        b,
+                                        onClick = { showBadgeSheet = true },
+                                    )
+                                }
+                            }
                             if (contactName != null) {
                                 Text(
                                     address, style = MaterialTheme.typography.bodySmall,
@@ -569,8 +603,33 @@ fun ChatScreen(
                 }
             }
 
+            // Replyability (SenderAnalyzer): alphanumeric sender IDs are
+            // one-way — no composer, explain instead (Google Messages parity).
+            val canReply = remember(address) {
+                address.isBlank() || address.split(";").all { recipient ->
+                    runCatching {
+                        com.messages.protection.SenderAnalyzer.canReceiveReplies(recipient)
+                    }.getOrDefault(true)
+                }
+            }
+            if (!canReply) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        "You can't reply to this conversation",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                    )
+                }
+            }
             // Pending attachment preview
-            if (pendingAttachment != null) {
+            if (canReply && pendingAttachment != null) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -592,7 +651,7 @@ fun ChatScreen(
             }
 
             // Composer — pill field, spring-scaled send button (§9).
-            Row(
+            if (canReply) Row(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
@@ -679,6 +738,13 @@ fun ChatScreen(
             }
         }
 
+        if (showBadgeSheet && senderBadge != null) {
+            com.messages.app.ui.common.SenderBadgeSheet(
+                senderBadge,
+                onDismiss = { showBadgeSheet = false },
+            )
+        }
+
         if (showScheduleDialog) {
             ScheduleSendDialog(
                 onDismiss = { showScheduleDialog = false },
@@ -748,7 +814,7 @@ fun ChatScreen(
                         val uri = androidx.core.content.FileProvider.getUriForFile(
                             context, "${context.packageName}.fileprovider", file,
                         )
-                        cameraTarget = uri
+                        vm.setCameraTarget(uri)
                         cameraCapture.launch(uri)
                     }
                 }

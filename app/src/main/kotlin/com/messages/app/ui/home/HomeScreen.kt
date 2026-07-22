@@ -296,6 +296,11 @@ fun HomeScreen(
                 )
             }
 
+            // Contacts access banner: without READ_CONTACTS every thread shows
+            // raw numbers. Dismissible; graceful denial (re-triggerable, falls
+            // back to app settings when permanently denied).
+            if (!searchActive) ContactsPermissionBanner()
+
             AnimatedContent(
                 targetState = searchActive,
                 transitionSpec = {
@@ -347,6 +352,10 @@ private fun FolderPane(
     val rightAction by SwipeActions.right.collectAsState()
     val leftAction by SwipeActions.left.collectAsState()
     val drafts by com.messages.app.ui.common.DraftStore.drafts.collectAsState()
+    // Badge-tap explanation sheet (Phase 2).
+    var badgeSheet by remember {
+        mutableStateOf<com.messages.protection.SenderBadges.Badge?>(null)
+    }
     Column(Modifier.fillMaxSize()) {
         // Folder chips directly under the search bar (§9)
         LazyRow(
@@ -395,6 +404,10 @@ private fun FolderPane(
         ) { targetFolder ->
             val conversations by remember(targetFolder) { vm.conversationsFor(targetFolder) }
                 .collectAsState()
+            // Verified-sender badges (Phase 2): latest incoming message's
+            // fraud/protected state per thread; eligibility is decided by the
+            // engine's SenderBadges, never re-detected in the UI.
+            val badgeMeta by vm.latestIncomingMeta.collectAsState()
             when {
                 conversations == null -> Box(Modifier.fillMaxSize()) // first load, no flash
                 conversations.orEmpty().isEmpty() -> EmptyFolderState(targetFolder)
@@ -402,6 +415,15 @@ private fun FolderPane(
                     val listState = rememberLazyListState()
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                         items(conversations.orEmpty(), key = { it.threadId }) { conv ->
+                            val meta = badgeMeta[conv.threadId]
+                            val badge = remember(conv.address, conv.contactName, meta) {
+                                com.messages.protection.SenderBadges.badgeFor(
+                                    address = conv.address,
+                                    isContact = conv.contactName != null,
+                                    dangerous = meta?.dangerous == true || meta?.fraudWarning == true,
+                                    protectedLabel = meta?.protectedLabel,
+                                )
+                            }
                             SwipeableConversationRow(
                                 conv = conv,
                                 draft = drafts[conv.threadId],
@@ -414,12 +436,17 @@ private fun FolderPane(
                                     placementSpec = Motion.spatialDefault(),
                                     fadeOutSpec = Motion.effectsFast(),
                                 ),
+                                badge = badge,
+                                onBadgeTap = { badgeSheet = it },
                             )
                         }
                     }
                 }
             }
         }
+    }
+    badgeSheet?.let { b ->
+        com.messages.app.ui.common.SenderBadgeSheet(b, onDismiss = { badgeSheet = null })
     }
 }
 
@@ -596,7 +623,10 @@ private fun ConversationMatchRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ContactAvatar(conv.contactName ?: conv.address, conv.category)
+        ContactAvatar(
+            conv.contactName ?: conv.address, conv.category,
+            photoUri = com.messages.app.ui.common.rememberContactPhoto(conv.address),
+        )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
@@ -635,7 +665,10 @@ private fun SearchResultRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ContactAvatar(row.displayName ?: msg.address, msg.category)
+        ContactAvatar(
+            row.displayName ?: msg.address, msg.category,
+            photoUri = com.messages.app.ui.common.rememberContactPhoto(msg.address),
+        )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -669,6 +702,79 @@ private fun SearchResultRow(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Contextual READ_CONTACTS request: a dismissible "Show contact names" card.
+ * Grant → contact names refresh immediately; denial keeps the card (tap
+ * again re-requests); permanent denial routes to the app-settings page.
+ */
+@Composable
+private fun ContactsPermissionBanner() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember {
+        context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+    }
+    var granted by remember {
+        mutableStateOf(
+            context.checkSelfPermission(android.Manifest.permission.READ_CONTACTS) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var dismissed by remember {
+        mutableStateOf(prefs.getBoolean("contacts_banner_dismissed", false))
+    }
+    if (granted || dismissed) return
+    val activity = context as? android.app.Activity
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { ok ->
+        granted = ok
+        if (ok) {
+            com.messages.core.contacts.ContactSync.ensureObserver(context)
+            com.messages.core.contacts.ContactSync.refreshOnForeground(context)
+        } else if (activity != null &&
+            !activity.shouldShowRequestPermissionRationale(android.Manifest.permission.READ_CONTACTS)
+        ) {
+            // "Don't ask again" — the system dialog will never show; take the
+            // user to the app-settings page instead.
+            runCatching {
+                context.startActivity(
+                    android.content.Intent(
+                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.fromParts("package", context.packageName, null),
+                    )
+                )
+            }
+        }
+    }
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Row(
+            Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Show contact names", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Allow Contacts access so people show up by name and photo, not number.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                androidx.compose.material3.TextButton(
+                    onClick = { launcher.launch(android.Manifest.permission.READ_CONTACTS) },
+                ) { Text("Allow") }
+            }
+            IconButton(onClick = {
+                dismissed = true
+                prefs.edit().putBoolean("contacts_banner_dismissed", true).apply()
+            }) {
+                Icon(Icons.Filled.Close, contentDescription = "Dismiss")
             }
         }
     }
@@ -734,6 +840,8 @@ private fun SwipeableConversationRow(
     onAction: (String, ConversationEntity) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    badge: com.messages.protection.SenderBadges.Badge? = null,
+    onBadgeTap: (com.messages.protection.SenderBadges.Badge) -> Unit = {},
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -754,7 +862,10 @@ private fun SwipeableConversationRow(
         modifier = modifier,
     ) {
         Box(Modifier.background(MaterialTheme.colorScheme.surface)) {
-            ConversationRow(conv = conv, draft = draft, onClick = onClick)
+            ConversationRow(
+                conv = conv, draft = draft, onClick = onClick,
+                badge = badge, onBadgeTap = onBadgeTap,
+            )
         }
     }
 }
@@ -822,6 +933,8 @@ private fun ConversationRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     draft: String? = null,
+    badge: com.messages.protection.SenderBadges.Badge? = null,
+    onBadgeTap: (com.messages.protection.SenderBadges.Badge) -> Unit = {},
 ) {
     val unread = conv.unreadCount > 0
     Row(
@@ -835,18 +948,35 @@ private fun ConversationRow(
             conv.contactName ?: conv.address,
             conv.category,
             modifier = Modifier.sharedThreadAvatar(conv.threadId),
+            // Locked chats keep their masked row anonymous — monogram only.
+            photoUri = if (conv.locked) null
+            else com.messages.app.ui.common.rememberContactPhoto(conv.address),
         )
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    conv.contactName ?: conv.address,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
+                Row(
+                    Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        conv.contactName ?: conv.address,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        // fill=false: short names keep the badge hugging them,
+                        // long names still ellipsize before the badge.
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (badge != null) {
+                        Spacer(Modifier.width(4.dp))
+                        com.messages.app.ui.common.SenderBadgeIcon(
+                            badge,
+                            onClick = { onBadgeTap(badge) },
+                        )
+                    }
+                }
                 if (conv.pinned) {
                     Icon(
                         Icons.Outlined.PushPin, contentDescription = "Pinned",

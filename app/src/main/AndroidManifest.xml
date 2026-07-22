@@ -14,6 +14,13 @@
     <!-- Google Drive backup (§8.3) only — classification never touches the network -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Package visibility (API 30+): without this, ContentResolver.query on the
+         contacts provider returns a null cursor SILENTLY even with READ_CONTACTS
+         granted — root cause of contact names never resolving on-device. -->
+    <queries>
+        <provider android:authorities="com.android.contacts" />
+    </queries>
+
     <application
         android:name=".MessagesApp"
         android:allowBackup="true"

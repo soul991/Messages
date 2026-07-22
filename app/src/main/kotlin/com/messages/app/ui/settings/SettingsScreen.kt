@@ -80,6 +80,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     val otpAutoDelete = MutableStateFlow(OtpCleanup.isEnabled(app))
     val spamAutoClean = MutableStateFlow(com.messages.core.cleanup.SpamCleanup.isEnabled(app))
     val appLock = MutableStateFlow(AppLock.isEnabled(app))
+    val lockAfterMs = MutableStateFlow(AppLock.lockAfterMs(app))
     val hidePreviews = MutableStateFlow(AppLock.hidePreviews(app))
     val canAuthenticate = AppLock.canAuthenticate(app)
 
@@ -94,6 +95,11 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setHidePreviews(hide: Boolean) {
         AppLock.setHidePreviews(getApplication(), hide)
         hidePreviews.value = hide
+    }
+
+    fun setLockAfter(ms: Long) {
+        AppLock.setLockAfterMs(getApplication(), ms)
+        lockAfterMs.value = ms
     }
 
     fun setOtpAutoDelete(enabled: Boolean) {
@@ -247,6 +253,7 @@ fun SettingsScreen(
     val otpAutoDelete by vm.otpAutoDelete.collectAsState()
     val spamAutoClean by vm.spamAutoClean.collectAsState()
     val appLock by vm.appLock.collectAsState()
+    val lockAfterMs by vm.lockAfterMs.collectAsState()
     val hidePreviews by vm.hidePreviews.collectAsState()
     val notifyTransactions by vm.notifyTransactions.collectAsState()
     val notifyPromotions by vm.notifyPromotions.collectAsState()
@@ -429,17 +436,27 @@ fun SettingsScreen(
                     checked = appLock,
                     enabled = vm.canAuthenticate,
                     onChange = { enable ->
-                        if (enable && activity != null) {
-                            // Prove the unlock works before turning it on.
+                        // Both directions demand a successful auth: enabling
+                        // proves the unlock works; disabling must not be a
+                        // free action for whoever is holding an unlocked
+                        // phone. Cancel/failure leaves the switch as-is.
+                        if (activity != null) {
                             AppLock.authenticate(
-                                activity, "Confirm to enable app lock",
-                                onSuccess = { vm.setAppLock(true) },
+                                activity,
+                                if (enable) "Confirm to enable app lock"
+                                else "Confirm to turn off app lock",
+                                onSuccess = { vm.setAppLock(enable) },
                             )
-                        } else {
-                            vm.setAppLock(false)
                         }
                     },
                 )
+                if (appLock) {
+                    Spacer(Modifier.height(12.dp))
+                    LockAfterPickerRow(
+                        selectedMs = lockAfterMs,
+                        onSelect = { vm.setLockAfter(it) },
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
                 SettingSwitchRow(
                     title = "Hide message previews",
@@ -730,6 +747,49 @@ private fun SwipeActionPickerRow(
                         onClick = {
                             expanded = false
                             onSelect(id)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LockAfterPickerRow(
+    selectedMs: Long,
+    onSelect: (Long) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { expanded = true }
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Lock after", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Skip re-unlock when returning within this window.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Box {
+            Text(
+                com.messages.app.security.LockGrace.label(selectedMs),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                com.messages.app.security.LockGrace.options.forEach { (ms, label) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            expanded = false
+                            onSelect(ms)
                         },
                     )
                 }

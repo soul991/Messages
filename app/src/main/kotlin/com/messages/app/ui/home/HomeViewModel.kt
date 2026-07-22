@@ -43,6 +43,13 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun folderUnread(category: String) = repo.db.messages().unreadCount(category)
 
+    /** Verified-sender badges: latest incoming message's fraud/protected-lane
+     *  state per thread — drives badge suppression + elevation in list rows. */
+    val latestIncomingMeta: StateFlow<Map<Long, com.messages.core.db.MessageDao.LatestIncomingMeta>> =
+        repo.db.messages().latestIncomingMeta()
+            .map { list -> list.associateBy { it.threadId } }
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
     fun setFolder(f: String) { folder.value = f }
 
     fun togglePin(threadId: Long, pinned: Boolean) = viewModelScope.launch {

@@ -18,6 +18,7 @@ object AppLock {
     private const val PREFS = "settings"
     private const val KEY_APP_LOCK = "app_lock"
     private const val KEY_HIDE_PREVIEWS = "hide_previews"
+    private const val KEY_LOCK_AFTER = "app_lock_after_ms"
 
     private const val AUTHENTICATORS = BIOMETRIC_WEAK or DEVICE_CREDENTIAL
 
@@ -29,6 +30,14 @@ object AppLock {
 
     fun setEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_APP_LOCK, enabled).apply()
+    }
+
+    /** Grace period before re-locking after backgrounding; 0 = immediately. */
+    fun lockAfterMs(context: Context): Long =
+        prefs(context).getLong(KEY_LOCK_AFTER, LockGrace.IMMEDIATELY)
+
+    fun setLockAfterMs(context: Context, ms: Long) {
+        prefs(context).edit().putLong(KEY_LOCK_AFTER, ms).apply()
     }
 
     fun hidePreviews(context: Context): Boolean =

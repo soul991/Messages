@@ -28,6 +28,8 @@ fun ContactAvatar(
     modifier: Modifier = Modifier,
     size: Dp = 48.dp,
     textStyle: TextStyle = MaterialTheme.typography.titleLarge,
+    /** Contact photo (thumbnail URI); monogram renders beneath as fallback. */
+    photoUri: String? = null,
 ) {
     val palette = categoryPalette(category)
     val bg = palette?.container ?: MaterialTheme.colorScheme.primaryContainer
@@ -48,5 +50,13 @@ fun ContactAvatar(
             style = textStyle,
             color = fg,
         )
+        if (photoUri != null) {
+            coil.compose.AsyncImage(
+                model = photoUri,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.size(size).clip(CircleShape),
+            )
+        }
     }
 }

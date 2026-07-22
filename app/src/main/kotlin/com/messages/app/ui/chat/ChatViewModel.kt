@@ -25,6 +25,10 @@ class ChatViewModel(
     private val threadId: Long,
     /** Recipient for a brand-new thread with no conversation row yet (compose flow). */
     private val fallbackAddress: String? = null,
+    /** Survives process death: staged attachment + in-flight camera target —
+     *  Android routinely kills us while the camera app is foreground. */
+    private val savedState: androidx.lifecycle.SavedStateHandle =
+        androidx.lifecycle.SavedStateHandle(),
 ) : AndroidViewModel(app) {
 
     private val repo = MessageRepository.get(app)
@@ -195,12 +199,22 @@ class ChatViewModel(
         }
     }
 
-    /** Attachment picked in the composer, pending send. */
-    val pendingAttachment = MutableStateFlow<Uri?>(null)
+    /** Attachment picked in the composer, pending send (process-death safe). */
+    val pendingAttachment: StateFlow<Uri?> =
+        savedState.getStateFlow("pending_attachment", null)
+
+    /** FileProvider target of an in-flight camera capture (process-death safe:
+     *  TakePicture only returns a boolean — we must remember where it wrote). */
+    val cameraTarget: StateFlow<Uri?> = savedState.getStateFlow("camera_target", null)
+
     val sendError = MutableStateFlow<String?>(null)
 
     fun attach(uri: Uri?) {
-        pendingAttachment.value = uri
+        savedState["pending_attachment"] = uri
+    }
+
+    fun setCameraTarget(uri: Uri?) {
+        savedState["camera_target"] = uri
     }
 
     /** Send text + pending attachment as MMS (falls back to plain SMS when no attachment). */
@@ -212,7 +226,7 @@ class ChatViewModel(
         }
         val to = address.value
         if (to.isBlank()) return
-        pendingAttachment.value = null
+        savedState["pending_attachment"] = null
         viewModelScope.launch(Dispatchers.IO) {
             val ctx = getApplication<Application>()
             val attachment = MmsSender.prepareAttachment(ctx, uri)

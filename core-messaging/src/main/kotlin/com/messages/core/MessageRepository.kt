@@ -215,7 +215,7 @@ class MessageRepository private constructor(private val context: Context) {
                         id = existing?.id ?: 0,
                         threadId = threadId,
                         address = address,
-                        contactName = existing?.contactName ?: lookupContactName(address),
+                        contactName = existing?.contactName ?: displayNameFor(address),
                         lastMessage = body,
                         lastTimestamp = timestamp,
                         unreadCount = existing?.unreadCount ?: 0,
@@ -706,16 +706,55 @@ class MessageRepository private constructor(private val context: Context) {
         return recipients.joinToString(", ") { lookupContactName(it) ?: it }
     }
 
-    fun lookupContactName(address: String): String? = try {
+    fun lookupContactName(address: String): String? = lookupContact(address)?.name
+
+    /** Name + photo + lookup key in one PhoneLookup query (photo for avatars,
+     *  lookup key for the "View in Contacts" intent on the detail page). */
+    data class ContactHit(val name: String, val photoUri: String?, val lookupKey: String?)
+
+    fun lookupContact(address: String): ContactHit? = try {
         val uri = android.net.Uri.withAppendedPath(
             ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
             android.net.Uri.encode(address),
         )
         context.contentResolver.query(
-            uri, arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME), null, null, null
-        )?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            uri,
+            arrayOf(
+                ContactsContract.PhoneLookup.DISPLAY_NAME,
+                ContactsContract.PhoneLookup.PHOTO_THUMBNAIL_URI,
+                ContactsContract.PhoneLookup.LOOKUP_KEY,
+            ),
+            null, null, null,
+        )?.use { c ->
+            if (c.moveToFirst() && c.getString(0) != null) {
+                ContactHit(c.getString(0), c.getString(1), c.getString(2))
+            } else null
+        }
     } catch (_: Exception) {
         null
+    }
+
+    /**
+     * Re-resolve contact names for every conversation row (newly saved,
+     * renamed, or deleted contacts must update existing threads). Called on
+     * app foreground and from the ContactsContract observer. Names cached on
+     * rows before READ_CONTACTS was effective (or before the contacts-provider
+     * visibility fix) heal here. Returns the number of rows changed.
+     */
+    suspend fun refreshContactNames(): Int = withContext(Dispatchers.IO) {
+        var changed = 0
+        for (conv in db.conversations().allConversations()) {
+            val fresh = try {
+                displayNameFor(conv.address)
+            } catch (_: Exception) {
+                continue
+            }
+            if (fresh != conv.contactName) {
+                db.conversations().setContactName(conv.threadId, fresh)
+                changed++
+            }
+        }
+        changed
     }
 
     /** "Not spam / Move to Inbox" — reclassify + local trust boost (§6.3). */

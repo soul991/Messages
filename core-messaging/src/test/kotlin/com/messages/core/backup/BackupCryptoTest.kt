@@ -58,6 +58,149 @@ class BackupCryptoTest {
         val blob = sealRoundTrip("""{"secret":"NOLEAK_MARKER"}""", "pw")
         assertTrue(String(blob, Charsets.ISO_8859_1).indexOf("NOLEAK_MARKER") == -1)
     }
+
+    @Test
+    fun `readHeader works on a truncated prefix of the blob`() {
+        // The snapshot chooser probes only the first few KB via a Range
+        // request — the plaintext header must parse from that prefix alone.
+        val blob = sealRoundTrip("""{"messages":[{"body":"large payload elided"}]}""", "pw")
+        val headerLen = java.nio.ByteBuffer.wrap(blob, 4, 4).int
+        val prefix = blob.copyOfRange(0, minOf(blob.size, 8 + headerLen + 16))
+        val header = BackupCrypto.readHeader(prefix)
+        assertEquals(BackupCrypto.readHeader(blob).messageCount, header.messageCount)
+        assertEquals(BackupCrypto.readHeader(blob).createdAt, header.createdAt)
+    }
+
+    // ---- account-plain (WhatsApp-style, key file in Drive appDataFolder) ----
+
+    private fun sealAccountPlain(payload: String, masterKey: ByteArray): ByteArray {
+        val dataKey = BackupCrypto.newDataKey()
+        return BackupCrypto.seal(
+            payloadJson = payload,
+            dataKey = dataKey,
+            wrappedKeys = listOf(BackupCrypto.wrapWithMasterKey(dataKey, masterKey)),
+            createdAt = 1_700_000_000_000,
+            checkpointAt = 1_699_999_000_000,
+            deviceModel = "TestDevice",
+            messageCount = 7,
+        )
+    }
+
+    @Test
+    fun `account-plain seal then open with master key round-trips without any password`() {
+        val masterKey = BackupCrypto.newMasterKey()
+        val payload = """{"messages":[{"body":"no password needed"}]}"""
+        val blob = sealAccountPlain(payload, masterKey)
+        assertEquals(payload, BackupCrypto.openWithMasterKey(blob, masterKey))
+    }
+
+    @Test
+    fun `wrong master key is rejected`() {
+        val blob = sealAccountPlain("""{"x":1}""", BackupCrypto.newMasterKey())
+        assertThrows(BackupCrypto.WrongMasterKeyException::class.java) {
+            BackupCrypto.openWithMasterKey(blob, BackupCrypto.newMasterKey())
+        }
+    }
+
+    @Test
+    fun `account-plain envelope does not require a password`() {
+        val blob = sealAccountPlain("""{"x":1}""", BackupCrypto.newMasterKey())
+        val header = BackupCrypto.readHeader(blob)
+        assertEquals(BackupCrypto.METHOD_ACCOUNT, header.wrappedKeys.single().method)
+        assertTrue(!BackupCrypto.requiresPassword(header))
+    }
+
+    @Test
+    fun `legacy password-only envelope is detected as requiring a password`() {
+        val blob = sealRoundTrip("""{"x":1}""", "old password")
+        assertTrue(BackupCrypto.requiresPassword(BackupCrypto.readHeader(blob)))
+        // And it still opens with that password (backward compatibility).
+        assertEquals("""{"x":1}""", BackupCrypto.openWithPassword(blob, "old password".toCharArray()))
+    }
+
+    @Test
+    fun `envelope carrying both wrap methods opens with either`() {
+        val masterKey = BackupCrypto.newMasterKey()
+        val dataKey = BackupCrypto.newDataKey()
+        val payload = """{"both":"methods"}"""
+        val blob = BackupCrypto.seal(
+            payloadJson = payload,
+            dataKey = dataKey,
+            wrappedKeys = listOf(
+                BackupCrypto.wrapWithMasterKey(dataKey, masterKey),
+                BackupCrypto.wrapWithPassword(dataKey, "belt and braces".toCharArray()),
+            ),
+            createdAt = 1L, checkpointAt = 1L, deviceModel = "T", messageCount = 1,
+        )
+        assertTrue(!BackupCrypto.requiresPassword(BackupCrypto.readHeader(blob)))
+        assertEquals(payload, BackupCrypto.openWithMasterKey(blob, masterKey))
+        assertEquals(payload, BackupCrypto.openWithPassword(blob, "belt and braces".toCharArray()))
+    }
+}
+
+/** §6/§8.3 restore idempotency: the dedupe core `import()` runs on. */
+class RestoreDedupeTest {
+
+    private fun msg(
+        address: String = "AX-HDFCBK-S",
+        body: String = "Your a/c was credited",
+        timestamp: Long = 1_700_000_000_000,
+        outgoing: Boolean = false,
+    ) = BackupManager.BackupMessage(
+        address = address, body = body, timestamp = timestamp, isOutgoing = outgoing,
+        read = true, category = "TRANSACTIONS", dangerous = false, fraudWarning = false,
+        protectedLabel = "Bank", score = 0, matchedPatternIds = "", matchedComboIds = "",
+        explanations = "", starred = false,
+    )
+
+    private val backup = listOf(
+        msg(),
+        msg(address = "+919812345678", body = "hi", timestamp = 1_700_000_100_000),
+        msg(body = "OTP is 482913", timestamp = 1_700_000_200_000, outgoing = false),
+    )
+
+    private fun keysOf(messages: List<BackupManager.BackupMessage>): MutableSet<String> =
+        messages.mapTo(HashSet()) {
+            BackupManager.messageKey(it.address, it.timestamp, it.isOutgoing, it.body)
+        }
+
+    @Test
+    fun `first restore into an empty device inserts everything`() {
+        val (toInsert, skipped) = BackupManager.dedupeForImport(HashSet(), backup)
+        assertEquals(backup, toInsert)
+        assertEquals(0, skipped)
+    }
+
+    @Test
+    fun `double restore inserts zero rows`() {
+        // First restore lands all 3 messages on the device…
+        val deviceKeys = keysOf(backup)
+        // …then the SAME backup is restored again.
+        val (toInsert, skipped) = BackupManager.dedupeForImport(deviceKeys, backup)
+        assertEquals(emptyList<BackupManager.BackupMessage>(), toInsert)
+        assertEquals(backup.size, skipped)
+    }
+
+    @Test
+    fun `duplicates inside one backup are inserted only once`() {
+        val (toInsert, skipped) = BackupManager.dedupeForImport(HashSet(), backup + backup)
+        assertEquals(backup, toInsert)
+        assertEquals(backup.size, skipped)
+    }
+
+    @Test
+    fun `dedupe key distinguishes address timestamp direction and body`() {
+        val base = msg()
+        val variants = listOf(
+            base.copy(address = "VM-OTHER"),
+            base.copy(timestamp = base.timestamp + 1),
+            base.copy(isOutgoing = true),
+            base.copy(body = base.body + "!"),
+        )
+        val (toInsert, skipped) = BackupManager.dedupeForImport(keysOf(listOf(base)), variants)
+        assertEquals(variants, toInsert)
+        assertEquals(0, skipped)
+    }
 }
 
 class CheckpointsTest {
