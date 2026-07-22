@@ -71,6 +71,11 @@ class ContactDetailViewModel(
     val muted = MutableStateFlow(false)
     val locked = MutableStateFlow(false)
 
+    /** Whether a per-conversation notification channel exists (Phase 4 item 4). */
+    val hasCustomChannel = MutableStateFlow(
+        com.messages.app.notify.ConversationChannels.exists(app, threadId)
+    )
+
     /** Contacts-app lookup URI when the number is saved (View in Contacts). */
     val contactLookupKey = MutableStateFlow<String?>(null)
 
@@ -110,7 +115,25 @@ class ContactDetailViewModel(
         locked.value = lock
         if (lock) {
             com.messages.app.shortcut.ConversationShortcuts.remove(getApplication(), threadId)
+            // The channel name would leak the sender into system settings.
+            com.messages.app.notify.ConversationChannels.remove(getApplication(), threadId)
+            hasCustomChannel.value = false
         }
+    }
+
+    /** Creates the per-conversation channel and returns its id for the system sheet. */
+    fun ensureCustomChannel(): String {
+        val id = com.messages.app.notify.ConversationChannels.ensure(
+            getApplication(), threadId,
+            contactName.value ?: address.value.ifBlank { "Conversation" },
+        )
+        hasCustomChannel.value = true
+        return id
+    }
+
+    fun removeCustomChannel() {
+        com.messages.app.notify.ConversationChannels.remove(getApplication(), threadId)
+        hasCustomChannel.value = false
     }
 
     fun setBlocked(block: Boolean) = viewModelScope.launch {
@@ -160,6 +183,7 @@ fun ContactDetailScreen(threadId: Long, onBack: () -> Unit) {
     val locked by vm.locked.collectAsState()
     val blocked by vm.blocked.collectAsState()
     val lookupKey by vm.contactLookupKey.collectAsState()
+    val hasCustomChannel by vm.hasCustomChannel.collectAsState()
 
     val isGroup = address.contains(';')
     val saved = lookupKey != null
@@ -270,6 +294,54 @@ fun ContactDetailScreen(threadId: Long, onBack: () -> Unit) {
                 checked = locked,
                 onChange = { vm.setLocked(it) },
             )
+
+            // Per-conversation tone (Phase 4 item 4): a dedicated notification
+            // channel, customized through the system sheet. Locked chats can't
+            // have one — the channel name would surface in system settings.
+            if (!locked) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val channelId = vm.ensureCustomChannel()
+                            runCatching {
+                                context.startActivity(
+                                    Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                                        putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                        putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
+                                    }
+                                )
+                            }
+                        }
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Notification sound & style", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            if (hasCustomChannel) "Customized for this conversation."
+                            else "Pick a custom sound just for this conversation.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (hasCustomChannel) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { vm.removeCustomChannel() }
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "Reset to default notifications",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 

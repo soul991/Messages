@@ -293,12 +293,27 @@ class SmsDeliveredReceiver : BroadcastReceiver() {
     }
 }
 
-/** Handles notification inline actions: mark read, move to inbox/spam. */
+/** Handles notification actions: mark read, copy OTP, inline reply, move to inbox/spam. */
 class NotificationActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val messageId = intent.getLongExtra("messageId", -1L)
         val threadId = intent.getLongExtra("threadId", -1L)
         val action = intent.getStringExtra("action") ?: return
+
+        // Clipboard + toast need the main thread and no coroutine hop; the
+        // notification stays up (the code may be needed again).
+        if (action == "copy_otp") {
+            intent.getStringExtra("otp")?.let {
+                com.messages.app.notify.OtpClipboard.copy(context, it, toast = true)
+            }
+            return
+        }
+
+        // Inline reply text arrives via RemoteInput on the fired intent.
+        val replyText = androidx.core.app.RemoteInput.getResultsFromIntent(intent)
+            ?.getCharSequence(com.messages.app.notify.MessageNotifier.KEY_REPLY)
+            ?.toString()?.trim()
+
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -307,6 +322,20 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     "mark_read" -> if (threadId != -1L) {
                         repo.db.messages().markThreadRead(threadId)
                         repo.db.conversations().clearUnread(threadId)
+                    }
+                    "reply" -> if (threadId != -1L && !replyText.isNullOrBlank()) {
+                        val conv = repo.db.conversations().byThreadId(threadId)
+                        if (conv != null) {
+                            // Same path as the composer: provider-first store,
+                            // then radio send on the conversation's chosen SIM.
+                            val entity = repo.storeOutgoing(
+                                conv.address, replyText,
+                                System.currentTimeMillis(), conv.preferredSubId,
+                            )
+                            com.messages.app.schedule.SmsRadio.send(context, repo, entity)
+                            repo.db.messages().markThreadRead(threadId)
+                            repo.db.conversations().clearUnread(threadId)
+                        }
                     }
                     "not_spam" -> if (messageId != -1L) repo.moveToInbox(messageId)
                     "spam" -> if (messageId != -1L) repo.moveToSpam(messageId)

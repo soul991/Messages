@@ -979,8 +979,6 @@ private fun AttachOption(
     }
 }
 
-private val OTP_EXTRACT = Regex("""\b(\d{4,8})\b""")
-
 /** Quick time presets shared by schedule-send and snooze ("this evening" = 18:00). */
 private fun timePresets(): List<Pair<String, Long>> {
     val now = System.currentTimeMillis()
@@ -1245,9 +1243,9 @@ private fun MessageBubble(
             }
         }
 
-        // One-tap OTP copy chip (§8.2)
+        // One-tap OTP copy chip (§8.2); same extractor as the notification action.
         if (msg.protectedLabel == "OTP") {
-            OTP_EXTRACT.find(msg.body)?.groupValues?.get(1)?.let { code ->
+            com.messages.protection.OtpExtractor.extract(msg.body)?.let { code ->
                 AssistChip(
                     onClick = { clipboard.setText(AnnotatedString(code)) },
                     label = { Text("Copy OTP $code") },

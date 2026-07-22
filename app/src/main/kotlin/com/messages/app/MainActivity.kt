@@ -238,11 +238,17 @@ class MainActivity : FragmentActivity() {
                     composable("dashboard") {
                         DashboardScreen(onBack = { nav.popBackStack() })
                     }
+                    composable("notification_settings") {
+                        com.messages.app.ui.settings.NotificationSettingsScreen(
+                            onBack = { nav.popBackStack() },
+                        )
+                    }
                     composable("settings") {
                         SettingsScreen(
                             onBack = { nav.popBackStack() },
                             onOpenTrash = { nav.navigate("trash") },
                             onOpenDriveBackup = { nav.navigate("drive_backup") },
+                            onOpenNotificationSettings = { nav.navigate("notification_settings") },
                             themeMode = themeMode,
                             onThemeModeChange = { mode ->
                                 ThemePreferences.set(this@MainActivity, mode)

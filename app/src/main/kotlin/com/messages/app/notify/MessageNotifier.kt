@@ -9,6 +9,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
+import androidx.core.app.RemoteInput
+import com.messages.protection.SenderAnalyzer
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.messages.app.BubbleActivity
@@ -30,10 +32,24 @@ import com.messages.protection.Verdict
 class MessageNotifier(private val context: Context) {
 
     suspend fun notifyFor(message: MessageEntity, verdict: Verdict, contactName: String?) {
+        val conversation = MessageRepository.get(context)
+            .db.conversations().byThreadId(message.threadId)
+        val conversationLocked = conversation?.locked == true
+
+        // OTP auto-copy (Phase 4 item 1, opt-in): runs before the permission
+        // gate so it works even with notifications denied. Locked chats are
+        // excluded — their content must not leave the app's auth gate.
+        if (verdict.protectedLabel == com.messages.protection.ProtectedLabel.OTP &&
+            !conversationLocked && OtpClipboard.autoCopyEnabled(context)
+        ) {
+            com.messages.protection.OtpExtractor.extract(message.body)
+                ?.let { OtpClipboard.copy(context, it, toast = false) }
+        }
+
         if (!hasPermission()) return
+        // Muted conversations: no alerts of any kind; unread badges still count.
+        if (conversation?.muted == true) return
         // Hide previews (§8.2): global setting, or this conversation is locked.
-        val conversationLocked = MessageRepository.get(context)
-            .db.conversations().byThreadId(message.threadId)?.locked == true
         val hidden = AppLock.hidePreviews(context) || conversationLocked
         val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
         val notifyTransactions = prefs.getBoolean("notify_transactions", true)
@@ -130,7 +146,13 @@ class MessageNotifier(private val context: Context) {
             protectedLabel = verdict.protectedLabel.name,
         )
 
-        val builder = NotificationCompat.Builder(context, channel)
+        // Per-conversation channel (Phase 4 item 4): only exists if the user
+        // customized this conversation from its detail page. Locked chats
+        // always post on the category channel (no identity in system settings).
+        val effectiveChannel = if (conversationLocked) channel
+        else ConversationChannels.channelFor(context, message.threadId, channel)
+
+        val builder = NotificationCompat.Builder(context, effectiveChannel)
             .setSmallIcon(android.R.drawable.sym_action_chat)
             .setContentTitle(title)
             .setContentText(text)
@@ -139,6 +161,49 @@ class MessageNotifier(private val context: Context) {
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .addAction(0, "Mark as read", markRead)
+
+        // One-tap OTP copy on the notification itself (Phase 4 item 1).
+        // Never when the preview is hidden — the code IS the content.
+        if (verdict.protectedLabel == com.messages.protection.ProtectedLabel.OTP && !hidden) {
+            com.messages.protection.OtpExtractor.extract(message.body)?.let { code ->
+                val copyOtp = PendingIntent.getBroadcast(
+                    context, (message.threadId * 10 + 2).toInt(),
+                    Intent(context, NotificationActionReceiver::class.java).apply {
+                        putExtra("action", "copy_otp")
+                        putExtra("threadId", message.threadId)
+                        putExtra("otp", code)
+                    },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+                builder.addAction(0, "Copy $code", copyOtp)
+            }
+        }
+
+        // Inline reply (Phase 4 item 2): only for senders that can actually
+        // receive SMS (never DLT/alpha headers — §canReceiveReplies, same rule
+        // as the composer) and never for locked conversations. Groups reply
+        // only when every recipient is replyable, matching ChatScreen.
+        val replyable = !conversationLocked &&
+            message.address.split(';').all { it.isNotBlank() && SenderAnalyzer.canReceiveReplies(it) }
+        if (replyable) {
+            val remoteInput = RemoteInput.Builder(KEY_REPLY).setLabel("Reply").build()
+            val replyIntent = PendingIntent.getBroadcast(
+                context, (message.threadId * 10 + 3).toInt(),
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    putExtra("action", "reply")
+                    putExtra("threadId", message.threadId)
+                },
+                // RemoteInput results are appended by the system → must be mutable.
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+            )
+            builder.addAction(
+                NotificationCompat.Action.Builder(0, "Reply", replyIntent)
+                    .addRemoteInput(remoteInput)
+                    .setAllowGeneratedReplies(false)
+                    .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+                    .build()
+            )
+        }
 
         if (shortcutId != null) builder.setShortcutId(shortcutId)
 
@@ -198,5 +263,8 @@ class MessageNotifier(private val context: Context) {
 
     companion object {
         private const val REVIEW_ID = -100
+
+        /** RemoteInput result key for the inline reply action. */
+        const val KEY_REPLY = "key_reply_text"
     }
 }

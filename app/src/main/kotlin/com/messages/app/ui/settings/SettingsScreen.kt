@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -110,6 +111,13 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setSpamAutoClean(enabled: Boolean) {
         com.messages.core.cleanup.SpamCleanup.setEnabled(getApplication(), enabled)
         spamAutoClean.value = enabled
+    }
+
+    val otpAutoCopy = MutableStateFlow(com.messages.app.notify.OtpClipboard.autoCopyEnabled(app))
+
+    fun setOtpAutoCopy(enabled: Boolean) {
+        com.messages.app.notify.OtpClipboard.setAutoCopy(getApplication(), enabled)
+        otpAutoCopy.value = enabled
     }
 
     val notifyTransactions = MutableStateFlow(app.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("notify_transactions", true))
@@ -241,6 +249,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenTrash: () -> Unit = {},
     onOpenDriveBackup: () -> Unit = {},
+    onOpenNotificationSettings: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     vm: SettingsViewModel = viewModel(),
@@ -255,9 +264,6 @@ fun SettingsScreen(
     val appLock by vm.appLock.collectAsState()
     val lockAfterMs by vm.lockAfterMs.collectAsState()
     val hidePreviews by vm.hidePreviews.collectAsState()
-    val notifyTransactions by vm.notifyTransactions.collectAsState()
-    val notifyPromotions by vm.notifyPromotions.collectAsState()
-    val notifyReview by vm.notifyReview.collectAsState()
     val activity = androidx.compose.ui.platform.LocalContext.current
         as? androidx.fragment.app.FragmentActivity
 
@@ -393,33 +399,31 @@ fun SettingsScreen(
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
             }
 
-            // ---- Notifications ----
+            // ---- Notifications (Phase 4 item 3: full per-folder screen) ----
             item {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
                 SectionHeader("Notifications")
-                SettingSwitchRow(
-                    title = "Transactions",
-                    subtitle = "Notify for bank alerts, receipts, and bills.",
-                    checked = notifyTransactions,
-                    enabled = true,
-                    onChange = { vm.setNotifyTransactions(it) },
-                )
-                Spacer(Modifier.height(12.dp))
-                SettingSwitchRow(
-                    title = "Promotions",
-                    subtitle = "Notify for offers and marketing messages.",
-                    checked = notifyPromotions,
-                    enabled = true,
-                    onChange = { vm.setNotifyPromotions(it) },
-                )
-                Spacer(Modifier.height(12.dp))
-                SettingSwitchRow(
-                    title = "Review folder",
-                    subtitle = "Get a quiet, batched notification when messages arrive here.",
-                    checked = notifyReview,
-                    enabled = true,
-                    onChange = { vm.setNotifyReview(it) },
-                )
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpenNotificationSettings)
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Notification behavior", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Per-folder alerts, sounds, and OTP copy options.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             // ---- Privacy & security (§8.2) ----
@@ -799,7 +803,7 @@ private fun LockAfterPickerRow(
 }
 
 @Composable
-private fun SettingSwitchRow(
+internal fun SettingSwitchRow(
     title: String,
     subtitle: String,
     checked: Boolean,
@@ -824,7 +828,7 @@ private fun SettingSwitchRow(
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+internal fun SectionHeader(title: String) {
     Text(
         title,
         style = MaterialTheme.typography.titleMedium,
