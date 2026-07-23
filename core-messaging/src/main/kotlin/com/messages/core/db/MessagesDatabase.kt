@@ -62,8 +62,8 @@ interface MessageDao {
     @Query("UPDATE messages SET starred = :starred WHERE id = :id")
     suspend fun setStarred(id: Long, starred: Boolean)
 
-    @Query("UPDATE messages SET sendStatus = 'FAILED' WHERE id = :id")
-    suspend fun markFailed(id: Long)
+    @Query("UPDATE messages SET sendStatus = 'FAILED', sendResultCode = :resultCode WHERE id = :id")
+    suspend fun markFailed(id: Long, resultCode: Int?)
 
     @Query("UPDATE messages SET sendStatus = 'SENT' WHERE id = :id AND sendStatus != 'FAILED'")
     suspend fun markSent(id: Long)
@@ -320,7 +320,7 @@ interface UserRuleDao {
         SenderReputationEntity::class, UserRuleEntity::class,
         MessageFtsEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class MessagesDatabase : RoomDatabase() {

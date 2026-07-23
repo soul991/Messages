@@ -255,13 +255,16 @@ class SmsSentReceiver : BroadcastReceiver() {
         val messageId = intent.getLongExtra("messageId", -1L)
         if (messageId == -1L) return
         val ok = resultCode == Activity.RESULT_OK
+        // On failure the resultCode IS the SmsManager.RESULT_* value — stored
+        // raw for debugging, mapped to the user-facing reason by SendFailure.
+        val failureCode = if (ok) null else resultCode
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val repo = com.messages.core.MessageRepository.get(context)
                 val db = repo.db
                 if (ok) db.messages().markSent(messageId)
-                else db.messages().markFailed(messageId)
+                else db.messages().markFailed(messageId, failureCode)
                 
                 val msg = db.messages().byId(messageId)
                 if (msg != null) repo.refreshConversationSummary(msg.threadId)

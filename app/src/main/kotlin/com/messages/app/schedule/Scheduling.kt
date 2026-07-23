@@ -79,7 +79,9 @@ object SmsRadio {
                 }
             }
         } catch (_: Exception) {
-            repo.db.messages().update(entity.copy(sendStatus = "FAILED"))
+            repo.db.messages().markFailed(
+                entity.id, com.messages.core.send.SendFailure.LOCAL_SEND_ERROR,
+            )
         }
     }
 }

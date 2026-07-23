@@ -61,6 +61,12 @@ data class MessageEntity(
     val starred: Boolean = false,
     val archived: Boolean = false,
     val sendStatus: String = "NONE", // NONE | SENDING | SENT | FAILED
+    /**
+     * Raw platform result code (SmsManager.RESULT_*) when sendStatus is
+     * FAILED — powers the human-readable failure reason (SendFailure) and
+     * kept for debugging. Null for successful sends and legacy rows.
+     */
+    val sendResultCode: Int? = null,
     /** Dual-SIM: subscription this message was sent/received on, when known. */
     val subId: Int? = null,
     /**
