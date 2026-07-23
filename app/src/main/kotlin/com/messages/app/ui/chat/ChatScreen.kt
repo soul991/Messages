@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,6 +45,8 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -95,7 +98,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
@@ -419,6 +425,28 @@ fun ChatScreen(
             vm.clearSendError()
         }
     }
+    // Failed-send feedback: when a message flips to FAILED while this chat is
+    // open, surface the mapped reason immediately. The first emission seeds
+    // the baseline so pre-existing failures don't re-announce on entry.
+    val failedIds = remember(messages) {
+        messages.filter { it.sendStatus == "FAILED" }.map { it.id }.toSet()
+    }
+    var seenFailedIds by remember { mutableStateOf<Set<Long>?>(null) }
+    LaunchedEffect(failedIds) {
+        val baseline = seenFailedIds
+        seenFailedIds = failedIds
+        if (baseline == null) return@LaunchedEffect
+        val freshId = (failedIds - baseline).maxOrNull() ?: return@LaunchedEffect
+        val fresh = messages.firstOrNull { it.id == freshId } ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = com.messages.core.send.SendFailure.reasonFor(fresh.sendResultCode),
+            actionLabel = "Resend",
+            withDismissAction = true,
+        )
+        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+            vm.resend(fresh)
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -551,12 +579,26 @@ fun ChatScreen(
                     },
                 )
             } else {
+            // One-time "tap for contact info" hint (plan §2, WA affordance):
+            // shown as the subtitle until the header is tapped once, ever.
+            val hintPrefs = remember {
+                context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+            }
+            var contactHintDone by remember {
+                mutableStateOf(hintPrefs.getBoolean("contact_info_hint_done", false))
+            }
             TopAppBar(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         // Google-Messages-style: header tap opens contact detail.
-                        modifier = Modifier.clickable(onClick = onOpenContact),
+                        modifier = Modifier.clickable {
+                            if (!contactHintDone) {
+                                contactHintDone = true
+                                hintPrefs.edit().putBoolean("contact_info_hint_done", true).apply()
+                            }
+                            onOpenContact()
+                        },
                     ) {
                         // Shared element with the list row's avatar (§9).
                         ContactAvatar(
@@ -568,9 +610,17 @@ fun ChatScreen(
                             photoUri = com.messages.app.ui.common.rememberContactPhoto(address.ifBlank { null }),
                         )
                         Spacer(Modifier.width(12.dp))
-                        Column {
+                        Column(Modifier.weight(1f, fill = false)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(contactName ?: address, style = MaterialTheme.typography.titleMedium)
+                                // Single line + ellipsis so the badge never
+                                // wraps the header (queued Phase 2 cosmetic).
+                                Text(
+                                    contactName ?: address,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false),
+                                )
                                 senderBadge?.let { b ->
                                     Spacer(Modifier.width(4.dp))
                                     com.messages.app.ui.common.SenderBadgeIcon(
@@ -579,8 +629,13 @@ fun ChatScreen(
                                     )
                                 }
                             }
-                            if (contactName != null) {
-                                Text(
+                            when {
+                                !contactHintDone -> Text(
+                                    "Tap here for contact info",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                contactName != null -> Text(
                                     address, style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -864,27 +919,13 @@ fun ChatScreen(
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
-                // Quick-reply templates (Phase 4 item 8).
-                IconButton(onClick = { showQuickReplies = true }) {
-                    Icon(
-                        Icons.Filled.Bolt,
-                        contentDescription = "Quick replies",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                TextField(
+                // Refs' pill anatomy (plan §2): 40dp rx-18 field with the ⚡
+                // quick-replies button living inside the pill's right edge.
+                ComposerField(
                     value = draft,
                     onValueChange = { draft = it },
-                    placeholder = { Text("Text message") },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ),
+                    onQuickReplies = { showQuickReplies = true },
                     modifier = Modifier.weight(1f),
-                    maxLines = 5,
                 )
                 // Scheduled send (§8.2) — text-only, so hidden while an attachment is staged
                 if (draft.isNotBlank() && pendingAttachment == null) {
@@ -1134,6 +1175,61 @@ fun ChatScreen(
             }
         }
     }
+}
+
+/**
+ * Composer pill (plan §2): 40dp-min rx-18 field on surfaceContainerHigh,
+ * growing to 5 lines; the ⚡ quick-replies affordance sits inside the pill's
+ * right edge (the refs' sticker-icon slot) so it reads native, not bolted-on.
+ */
+@Composable
+private fun ComposerField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onQuickReplies: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(18.dp)
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(
+            color = MaterialTheme.colorScheme.onSurface,
+        ),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        maxLines = 5,
+        modifier = modifier,
+        decorationBox = { inner ->
+            Row(
+                Modifier
+                    .clip(shape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .heightIn(min = 40.dp)
+                    .padding(start = 14.dp, end = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f).padding(vertical = 8.dp)) {
+                    if (value.isEmpty()) {
+                        Text(
+                            "Text message",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                    inner()
+                }
+                IconButton(onClick = onQuickReplies, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Filled.Bolt,
+                        contentDescription = "Quick replies",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        },
+    )
 }
 
 /** Per-chat customization sheet (§8.2): bubble color swatches + wallpapers. */
@@ -1386,6 +1482,8 @@ private fun MessageBubble(
     var showSelectDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     val fraudPalette = categoryPalette("SPAM")
+    // Refs' bubble grid (plan §2): bubbles cap at ~76% of screen width.
+    val maxBubbleWidth = (LocalConfiguration.current.screenWidthDp * 0.76f).dp
 
     // Smart text actions (Phase 4 item 5): platform TextClassifier entities,
     // NEVER on Spam/Blocked or Dangerous/fraud-flagged messages.
@@ -1423,8 +1521,8 @@ private fun MessageBubble(
         if (msg.fraudWarning || msg.dangerous) {
             Row(
                 Modifier
-                    .widthIn(max = 320.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .widthIn(max = maxBubbleWidth)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(fraudPalette?.container ?: MaterialTheme.colorScheme.errorContainer)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1447,7 +1545,7 @@ private fun MessageBubble(
 
         Box(
             Modifier
-                .widthIn(max = 320.dp)
+                .widthIn(max = maxBubbleWidth)
                 .clip(bubbleShape)
                 .background(
                     if (isOut) outBubbleColors.first
@@ -1539,12 +1637,34 @@ private fun MessageBubble(
                         fontSize = baseStyle.fontSize * textScale,
                         lineHeight = baseStyle.lineHeight * textScale,
                     )
-                    Text(
-                        bodyText,
-                        style = scaledStyle,
+                    // Plan §2: 12×8dp inner grid; timestamp + delivery status
+                    // live INSIDE the bubble, bottom-right (both refs).
+                    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Text(
+                            bodyText,
+                            style = scaledStyle,
+                            color = if (isOut) outBubbleColors.second
+                            else MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (!isScheduled) {
+                            Spacer(Modifier.height(2.dp))
+                            BubbleMetaRow(
+                                msg = msg, isOut = isOut,
+                                color = if (isOut) outBubbleColors.second
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.align(Alignment.End),
+                            )
+                        }
+                    }
+                } else if (!isScheduled) {
+                    // Media-only bubble: the timestamp still lives inside.
+                    BubbleMetaRow(
+                        msg = msg, isOut = isOut,
                         color = if (isOut) outBubbleColors.second
-                        else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                     )
                 }
             }
@@ -1601,31 +1721,28 @@ private fun MessageBubble(
             }
         }
 
-        // Meta line: only at group edges (§9 grouped messages), always for
-        // failures/scheduled so status is never hidden.
-        if (lastInGroup || isScheduled || msg.sendStatus == "FAILED") {
+        // The old below-group meta line is gone (plan §2) — time/status live
+        // inside the bubble. Scheduled and failed sends keep a line below so
+        // their status (and its actions) is never hidden.
+        if (isScheduled) {
+            Text(
+                "Scheduled · " + SCHEDULED_FMT.format(Date(msg.timestamp)),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+            )
+        }
+        if (msg.sendStatus == "FAILED") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    when {
-                        isScheduled -> "Scheduled · " + SCHEDULED_FMT.format(Date(msg.timestamp))
-                        else -> SimpleDateFormat("HH:mm", Locale.US).format(Date(msg.timestamp)) +
-                            when (msg.sendStatus) {
-                                "FAILED" -> " · Failed"
-                                "DELIVERED" -> " · Delivered"
-                                else -> ""
-                            }
-                    },
+                    com.messages.core.send.SendFailure.reasonFor(msg.sendResultCode),
                     style = MaterialTheme.typography.labelSmall,
-                    color = when {
-                        isScheduled -> MaterialTheme.colorScheme.primary
-                        msg.sendStatus == "FAILED" -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .padding(start = 4.dp),
                 )
-                if (msg.sendStatus == "FAILED") {
-                    TextButton(onClick = onResend) { Text("Resend") }
-                }
+                TextButton(onClick = onResend) { Text("Resend") }
             }
         }
         if (isScheduled) {
@@ -1681,20 +1798,62 @@ private fun MessageBubble(
             }
         }
 
-        // Filtered-message actions
+        // Filtered-message actions — compact row in the banner's visual
+        // language (plan §2), not full-height buttons.
         if (msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED")) {
-            Row {
-                TextButton(onClick = onNotSpam) { Text("Not spam") }
-                TextButton(onClick = onWhy) { Text("Why?") }
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                CompactAction("Not spam", onNotSpam)
+                CompactAction("Why?", onWhy)
                 // Carrier spam reporting (Phase 4 item 17): incoming spam only.
                 if (msg.category == "SPAM" && !isOut) {
-                    TextButton(onClick = { showReportDialog = true }) { Text("Report") }
+                    CompactAction("Report") { showReportDialog = true }
                 }
             }
         }
 
         if (showReportDialog) {
             CarrierReportDialog(msg = msg, onDismiss = { showReportDialog = false })
+        }
+    }
+}
+
+private val BUBBLE_TIME_FMT = SimpleDateFormat("HH:mm", Locale.US)
+
+/**
+ * In-bubble time + delivery status (plan §2), bottom-right like both refs:
+ * 11sp time, then a single tick for Sent and a double tick for Delivered.
+ * Failed status is NOT shown here — it keeps its louder line below the bubble.
+ */
+@Composable
+private fun BubbleMetaRow(
+    msg: MessageEntity,
+    isOut: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            BUBBLE_TIME_FMT.format(Date(msg.timestamp)),
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+        )
+        if (isOut) {
+            when (msg.sendStatus) {
+                "DELIVERED" -> {
+                    Spacer(Modifier.width(3.dp))
+                    Icon(
+                        Icons.Filled.DoneAll, contentDescription = "Delivered",
+                        tint = color, modifier = Modifier.size(14.dp),
+                    )
+                }
+                "SENT" -> {
+                    Spacer(Modifier.width(3.dp))
+                    Icon(
+                        Icons.Filled.Done, contentDescription = "Sent",
+                        tint = color, modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
         }
     }
 }
@@ -1763,6 +1922,16 @@ private fun ScheduleSendDialog(
     }
 }
 
+/** Compact 32dp text action under filtered bubbles (plan §2). */
+@Composable
+private fun CompactAction(label: String, onClick: () -> Unit) {
+    TextButton(
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+        modifier = Modifier.heightIn(min = 32.dp, max = 32.dp),
+    ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+}
+
 /** Small OG-scrape card under an Inbox bubble (Phase 4 item 9, opt-in). */
 @Composable
 private fun LinkPreviewCard(url: String) {
@@ -1776,7 +1945,7 @@ private fun LinkPreviewCard(url: String) {
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier
             .padding(top = 2.dp)
-            .widthIn(max = 320.dp)
+            .widthIn(max = (LocalConfiguration.current.screenWidthDp * 0.76f).dp)
             .clickable {
                 runCatching {
                     context.startActivity(
@@ -1938,6 +2107,10 @@ private fun MessageInfoSheet(
             )
             if (msg.isOutgoing && msg.sendStatus != "NONE") {
                 InfoRow("Status", msg.sendStatus.lowercase().replaceFirstChar { it.uppercase() })
+            }
+            if (msg.isOutgoing && msg.sendStatus == "FAILED") {
+                // Raw code included for debugging (null for legacy/MMS rows).
+                InfoRow("Reason", com.messages.core.send.SendFailure.detailFor(msg.sendResultCode))
             }
             InfoRow(if (msg.isOutgoing) "To" else "From", msg.address)
             if (msg.subId != null || msg.isOutgoing) InfoRow("SIM", simName)

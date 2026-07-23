@@ -28,9 +28,12 @@ object ChatStyle {
         val darkContainer: Color, val darkOn: Color,
     )
 
-    /** "default" = theme primary/onPrimary (dynamic color). */
+    /** "default" = the theme's sentBubbleContainer role (dynamic color). */
     val bubblePresets = listOf(
         BubblePreset("default", "Dynamic", Color.Unspecified, Color.Unspecified, Color.Unspecified, Color.Unspecified),
+        // The classic messenger green (Phase 5 §2): shipped as a preset, never
+        // the default — refs-adjacent hues, AA-paired in both themes.
+        BubblePreset("green", "Green", Color(0xFFDCF7C5), Color(0xFF12351A), Color(0xFF1F5423), Color(0xFFDCF7C5)),
         BubblePreset("ocean", "Ocean", Color(0xFF00629E), Color.White, Color(0xFF99CBFF), Color(0xFF003355)),
         BubblePreset("forest", "Forest", Color(0xFF1B6C31), Color.White, Color(0xFF88D896), Color(0xFF00391A)),
         BubblePreset("sunset", "Sunset", Color(0xFFA83C22), Color.White, Color(0xFFFFB59B), Color(0xFF5B1A00)),
@@ -110,7 +113,8 @@ object ChatStyle {
     @Composable
     fun bubbleColors(id: String): Pair<Color, Color> {
         val preset = bubblePresets.firstOrNull { it.id == id && it.id != "default" }
-            ?: return MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+            ?: return com.messages.designsystem.LocalSentBubble.current
+                .let { it.container to it.onContainer }
         return if (LocalDarkTheme.current) preset.darkContainer to preset.darkOn
         else preset.lightContainer to preset.lightOn
     }

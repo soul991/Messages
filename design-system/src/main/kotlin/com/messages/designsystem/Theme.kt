@@ -22,6 +22,19 @@ import androidx.compose.ui.unit.sp
 val LocalDarkTheme = staticCompositionLocalOf { false }
 
 /**
+ * Sent-bubble color role (Phase 5 §2): the outgoing bubble's container/on
+ * pair. Defaults to the scheme's primary/onPrimary — Material You dynamic
+ * color is the app's identity, deliberately not the messengers' green.
+ * ChatStyle presets (including the green family) override it per chat.
+ */
+@Immutable
+data class SentBubbleColors(val container: Color, val onContainer: Color)
+
+val LocalSentBubble = staticCompositionLocalOf {
+    SentBubbleColors(Color.Unspecified, Color.Unspecified)
+}
+
+/**
  * Category hue triple (§9: fraud = red, promo = amber, protected = green).
  * `tint` is the icon/accent color, `container`/`onContainer` are an
  * AA-contrast pair for avatar and banner fills in the active theme.
@@ -135,7 +148,10 @@ fun MessagesTheme(
         darkTheme -> DarkScheme
         else -> LightScheme
     }
-    CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+    CompositionLocalProvider(
+        LocalDarkTheme provides darkTheme,
+        LocalSentBubble provides SentBubbleColors(scheme.primary, scheme.onPrimary),
+    ) {
         MaterialTheme(
             colorScheme = scheme,
             typography = MessagesTypography,

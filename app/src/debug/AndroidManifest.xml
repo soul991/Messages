@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- DEBUG-ONLY: test harness receiver for driving the incoming-SMS pipeline
+         from adb (system-protected SMS_DELIVER can't be broadcast). Merged only
+         into debug builds; never present in release. -->
+    <application>
+        <receiver
+            android:name=".debug.InjectSmsReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.messages.app.DEBUG_INJECT_SMS" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

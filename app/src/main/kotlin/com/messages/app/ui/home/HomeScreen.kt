@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,6 +68,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -126,6 +128,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
+
+// Phase 5 §1 row grid (REFS §1): 54dp avatar + 16dp gap ≈ 76dp rows.
+private val ROW_AVATAR = 54.dp
+private val ROW_GAP = 16.dp
+// Divider prototype toggle (plan §1): true = inset dividers starting at the
+// text column; false = divider-free Telegram-style spacing.
+private const val INSET_DIVIDERS = false
 
 private val FOLDERS = listOf(
     "INBOX" to "Inbox",
@@ -359,7 +368,12 @@ fun HomeScreen(
                     value = typing,
                     onValueChange = { vm.setTyping(it); searchActive = true },
                     placeholder = {
-                        Text(if (chips.isEmpty()) "Search messages" else "Add another keyword")
+                        Text(
+                            if (chips.isEmpty()) "Search messages" else "Add another keyword",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
                     },
                     leadingIcon = {
                         if (!searchActive) Icon(Icons.Filled.Search, contentDescription = null)
@@ -383,6 +397,9 @@ fun HomeScreen(
                     ),
                     modifier = Modifier
                         .weight(1f)
+                        // Refs' pill height (~52dp vs the M3 56dp default); the
+                        // single-line field centers fine at this height.
+                        .height(52.dp)
                         .onFocusChanged { if (it.isFocused) searchActive = true },
                 )
             }
@@ -539,7 +556,10 @@ private fun FolderPane(
                 else -> {
                     val listState = rememberLazyListState()
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                        items(conversations.orEmpty(), key = { it.threadId }) { conv ->
+                        itemsIndexed(
+                            conversations.orEmpty(),
+                            key = { _, it -> it.threadId },
+                        ) { index, conv ->
                             val meta = badgeMeta[conv.threadId]
                             val badge = remember(conv.address, conv.contactName, meta) {
                                 com.messages.protection.SenderBadges.badgeFor(
@@ -573,6 +593,18 @@ private fun FolderPane(
                                     vm.toggleSelected(conv.threadId)
                                 },
                             )
+                            // Inset divider starting at the text column (plan
+                            // §1 prototype) — never after the last row.
+                            if (INSET_DIVIDERS &&
+                                index < conversations.orEmpty().lastIndex
+                            ) {
+                                HorizontalDivider(
+                                    modifier = Modifier
+                                        .padding(start = 16.dp + ROW_AVATAR + ROW_GAP),
+                                    color = MaterialTheme.colorScheme.outlineVariant
+                                        .copy(alpha = 0.5f),
+                                )
+                            }
                         }
                     }
                 }
@@ -1101,18 +1133,20 @@ private fun ConversationRow(
                 onLongClick = onLongClick,
                 onLongClickLabel = if (onLongClick != null) "Select conversation" else null,
             )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            // 54dp avatar + 11dp vertical padding ≈ the refs' 74–76pt row.
+            .padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ContactAvatar(
             conv.contactName ?: conv.address,
             conv.category,
             modifier = Modifier.sharedThreadAvatar(conv.threadId),
+            size = ROW_AVATAR,
             // Locked chats keep their masked row anonymous — monogram only.
             photoUri = if (conv.locked) null
             else com.messages.app.ui.common.rememberContactPhoto(conv.address),
         )
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(ROW_GAP))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(
@@ -1136,19 +1170,21 @@ private fun ConversationRow(
                             onClick = { onBadgeTap(badge) },
                         )
                     }
+                    if (conv.muted) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            Icons.Outlined.NotificationsOff,
+                            contentDescription = "Muted",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-                if (conv.pinned) {
-                    Icon(
-                        Icons.Outlined.PushPin, contentDescription = "Pinned",
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.width(4.dp))
-                }
+                Spacer(Modifier.width(8.dp))
                 Text(
                     formatTime(conv.lastTimestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (unread) MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (unread && !conv.muted) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -1174,14 +1210,41 @@ private fun ConversationRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                if (unread) {
-                    Spacer(Modifier.width(8.dp))
-                    Badge {
-                        Text(
-                            "${conv.unreadCount}",
-                            modifier = Modifier.semantics {
-                                contentDescription = "${conv.unreadCount} unread"
-                            },
+                // Single trailing-indicator slot (plan §1): unread badge wins
+                // over the pin glyph; never both. Muted chats keep their count
+                // in a calm gray badge instead of the loud primary one.
+                when {
+                    unread -> {
+                        Spacer(Modifier.width(8.dp))
+                        if (conv.muted) {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ) {
+                                Text(
+                                    "${conv.unreadCount}",
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "${conv.unreadCount} unread, muted"
+                                    },
+                                )
+                            }
+                        } else {
+                            Badge {
+                                Text(
+                                    "${conv.unreadCount}",
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "${conv.unreadCount} unread"
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    conv.pinned -> {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            Icons.Outlined.PushPin, contentDescription = "Pinned",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
