@@ -5,7 +5,10 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,27 +18,41 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.AutoDelete
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.CleaningServices
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DoneAll
+import androidx.compose.material.icons.outlined.FormatSize
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.SwipeLeft
+import androidx.compose.material.icons.outlined.SwipeRight
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -48,6 +65,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
@@ -58,7 +81,9 @@ import com.messages.core.MessageRepository
 import com.messages.core.backup.BackupManager
 import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.db.UserRuleEntity
+import com.messages.designsystem.AccentSeed
 import com.messages.designsystem.ThemeMode
+import com.messages.designsystem.schemeForSeed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -264,6 +289,8 @@ fun SettingsScreen(
     onOpenNotificationSettings: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {},
+    accent: AccentSeed = AccentSeed.DYNAMIC,
+    onAccentChange: (AccentSeed) -> Unit = {},
     vm: SettingsViewModel = viewModel(),
 ) {
     val rules by vm.rules.collectAsState()
@@ -343,21 +370,25 @@ fun SettingsScreen(
     ) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {
 
-            // ---- Appearance (§8.2 / §9) ----
+            // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
             item {
-                SectionHeader("Appearance")
-                ThemeModePickerRow(
-                    selected = themeMode,
+                SettingsSectionHeader("Appearance")
+                SettingsDropdownRow(
+                    icon = Icons.Outlined.DarkMode,
+                    title = "Theme",
+                    subtitle = "Choose how Messages looks across the app.",
+                    value = themeMode.displayName(),
+                    options = ThemeMode.values().map { it to it.displayName() },
                     onSelect = onThemeModeChange,
                 )
-                Spacer(Modifier.height(12.dp))
+                AccentPickerRow(selected = accent, onSelect = onAccentChange)
                 MessageTextSizeRow()
             }
 
             // ---- Protection sensitivity (§3 Stage 5) ----
             item {
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Protection sensitivity")
+                SettingsSectionDivider()
+                SettingsSectionHeader("Protection sensitivity")
                 val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     Slider(
@@ -392,7 +423,8 @@ fun SettingsScreen(
 
             // ---- Rules (§3 Stage 1) ----
             item {
-                SectionHeader("Your rules")
+                SettingsSectionDivider()
+                SettingsSectionHeader("Your rules")
                 Text(
                     "Rules outrank everything, including the pattern library.",
                     style = MaterialTheme.typography.bodySmall,
@@ -415,36 +447,22 @@ fun SettingsScreen(
 
             // ---- Notifications (Phase 4 item 3: full per-folder screen) ----
             item {
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Notifications")
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onOpenNotificationSettings)
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Notification behavior", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            "Per-folder alerts, sounds, and OTP copy options.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                SettingsSectionDivider()
+                SettingsSectionHeader("Notifications")
+                SettingsNavRow(
+                    icon = Icons.Outlined.Notifications,
+                    title = "Notification behavior",
+                    subtitle = "Per-folder alerts, sounds, and OTP copy options.",
+                    onClick = onOpenNotificationSettings,
+                )
             }
 
             // ---- Privacy & security (§8.2) ----
             item {
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Privacy & security")
-                SettingSwitchRow(
+                SettingsSectionDivider()
+                SettingsSectionHeader("Privacy & security")
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.Lock,
                     title = "App lock",
                     subtitle = if (vm.canAuthenticate) {
                         "Require fingerprint, face, or device PIN to open Messages."
@@ -469,109 +487,111 @@ fun SettingsScreen(
                     },
                 )
                 if (appLock) {
-                    Spacer(Modifier.height(12.dp))
-                    LockAfterPickerRow(
-                        selectedMs = lockAfterMs,
+                    SettingsDropdownRow(
+                        icon = Icons.Outlined.Timer,
+                        title = "Lock after",
+                        subtitle = "Skip re-unlock when returning within this window.",
+                        value = com.messages.app.security.LockGrace.label(lockAfterMs),
+                        options = com.messages.app.security.LockGrace.options.map { it.first to it.second },
                         onSelect = { vm.setLockAfter(it) },
                     )
                 }
-                Spacer(Modifier.height(12.dp))
-                SettingSwitchRow(
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.VisibilityOff,
                     title = "Hide message previews",
                     subtitle = "Notifications show \"New message\" instead of the text.",
                     checked = hidePreviews,
-                    enabled = true,
                     onChange = { vm.setHidePreviews(it) },
                 )
-                Spacer(Modifier.height(4.dp))
                 Text(
                     "Tip: lock individual conversations from the ⋮ menu inside a chat.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                 )
             }
 
             // ---- Conversations (§8.1/§8.2): swipe actions + delivery reports ----
             item {
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Conversations")
+                SettingsSectionDivider()
+                SettingsSectionHeader("Conversations")
                 val ctx = androidx.compose.ui.platform.LocalContext.current
                 val rightAction by com.messages.app.ui.home.SwipeActions.right.collectAsState()
                 val leftAction by com.messages.app.ui.home.SwipeActions.left.collectAsState()
-                SwipeActionPickerRow(
+                SettingsDropdownRow(
+                    icon = Icons.Outlined.SwipeRight,
                     title = "Swipe right",
                     subtitle = "Left-to-right swipe on a conversation",
-                    selectedId = rightAction,
+                    value = com.messages.app.ui.home.SwipeActions.label(rightAction),
+                    options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
                     onSelect = { com.messages.app.ui.home.SwipeActions.setRight(ctx, it) },
                 )
-                SwipeActionPickerRow(
+                SettingsDropdownRow(
+                    icon = Icons.Outlined.SwipeLeft,
                     title = "Swipe left",
                     subtitle = "Right-to-left swipe on a conversation",
-                    selectedId = leftAction,
+                    value = com.messages.app.ui.home.SwipeActions.label(leftAction),
+                    options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
                     onSelect = { com.messages.app.ui.home.SwipeActions.setLeft(ctx, it) },
                 )
-                Spacer(Modifier.height(12.dp))
                 var deliveryReports by remember {
                     mutableStateOf(
                         ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
                             .getBoolean("delivery_reports", true)
                     )
                 }
-                SettingSwitchRow(
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.DoneAll,
                     title = "Delivery reports",
                     subtitle = "Show \"Delivered\" on sent messages when the carrier confirms.",
                     checked = deliveryReports,
-                    enabled = true,
                     onChange = {
                         deliveryReports = it
                         ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
                             .edit().putBoolean("delivery_reports", it).apply()
                     },
                 )
-                Spacer(Modifier.height(12.dp))
                 // Link previews (Phase 4 item 9) — the one opt-in network
                 // feature for message content; scope stated in the subtitle.
                 var linkPreviews by remember {
                     mutableStateOf(com.messages.app.ui.chat.LinkPreview.enabled(ctx))
                 }
-                SettingSwitchRow(
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.Link,
                     title = "Link previews",
                     subtitle = "Show a small preview card for links in Inbox messages. " +
                         "Never for filtered folders or dangerous messages; no cookies are sent.",
                     checked = linkPreviews,
-                    enabled = true,
                     onChange = {
                         linkPreviews = it
                         com.messages.app.ui.chat.LinkPreview.setEnabled(ctx, it)
                     },
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 // Quick-reply templates (Phase 4 item 8).
                 QuickRepliesEditor(ctx)
             }
 
             // ---- Auto-clean features ----
             item {
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Auto-clean features")
-                SettingSwitchRow(
+                SettingsSectionDivider()
+                SettingsSectionHeader("Auto-clean features")
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.AutoDelete,
                     title = "Delete OTP messages after 24 hours",
                     subtitle = "Only OTP-labeled messages in your Inbox. Starred OTPs and " +
                         "filtered folders are never touched.",
                     checked = otpAutoDelete,
-                    enabled = true,
                     onChange = { vm.setOtpAutoDelete(it) },
                 )
-                Spacer(Modifier.height(12.dp))
                 // §6.5: opt-in, confirmation required, Spam only, via Trash.
                 var confirmSpamClean by remember { mutableStateOf(false) }
-                SettingSwitchRow(
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.CleaningServices,
                     title = "Auto-clean Spam older than 90 days",
                     subtitle = "Old Spam moves to Trash (restorable for 60 days). " +
                         "Starred messages, Review, and Blocked are never touched.",
                     checked = spamAutoClean,
-                    enabled = true,
                     onChange = { enable ->
                         if (enable) confirmSpamClean = true
                         else vm.setSpamAutoClean(false)
@@ -604,8 +624,8 @@ fun SettingsScreen(
 
             // ---- Pattern library (§7.5) ----
             item {
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Pattern library")
+                SettingsSectionDivider()
+                SettingsSectionHeader("Pattern library")
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     Text(
                         "Version ${libraryInfo.first} — ${libraryInfo.second} patterns" +
@@ -635,8 +655,8 @@ fun SettingsScreen(
 
             // ---- Backup & restore (§8.2) ----
             item {
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Backup & restore")
+                SettingsSectionDivider()
+                SettingsSectionHeader("Backup & restore")
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     Text(
                         "Everything stays on this device: messages, categories, rules, " +
@@ -669,8 +689,8 @@ fun SettingsScreen(
 
             // ---- Message import (BUG-1 safety net: §10 backfill re-run) ----
             item {
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Message import")
+                SettingsSectionDivider()
+                SettingsSectionHeader("Message import")
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     val context = androidx.compose.ui.platform.LocalContext.current
                     val backfillInfos by com.messages.core.backfill.Backfill
@@ -706,198 +726,117 @@ fun SettingsScreen(
 
             // ---- Trash (§6.4) ----
             item {
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                SectionHeader("Trash")
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    Text(
-                        "Deleted messages are kept for 60 days and can be restored.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    val trashCount by vm.trashCount.collectAsState(initial = 0)
-                    TextButton(onClick = onOpenTrash) {
-                        Text(if (trashCount > 0) "Open Trash ($trashCount)" else "Open Trash")
-                    }
-                }
+                SettingsSectionDivider()
+                val trashCount by vm.trashCount.collectAsState(initial = 0)
+                SettingsNavRow(
+                    icon = Icons.Outlined.Delete,
+                    title = if (trashCount > 0) "Trash ($trashCount)" else "Trash",
+                    subtitle = "Deleted messages are kept for 60 days and can be restored.",
+                    onClick = onOpenTrash,
+                )
                 Spacer(Modifier.height(24.dp))
             }
         }
     }
 }
 
-/** Persisted theme choice; changing it updates the root Material theme immediately. */
-@Composable
-private fun ThemeModePickerRow(
-    selected: ThemeMode,
-    onSelect: (ThemeMode) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable { expanded = true }
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("Theme", style = MaterialTheme.typography.bodyMedium)
-            Text(
-                "Choose how Messages looks across the app.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Box {
-            Text(
-                selected.displayName(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                ThemeMode.values().forEach { mode ->
-                    DropdownMenuItem(
-                        text = { Text(mode.displayName()) },
-                        onClick = {
-                            expanded = false
-                            onSelect(mode)
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun ThemeMode.displayName(): String = when (this) {
+internal fun ThemeMode.displayName(): String = when (this) {
     ThemeMode.SYSTEM -> "System default"
     ThemeMode.LIGHT -> "Light"
     ThemeMode.DARK -> "Dark"
     ThemeMode.AMOLED -> "AMOLED black"
 }
 
-/** Picker row for a swipe direction's action (§8.2). */
+/**
+ * Phase 5 §4 accent picker: Material You dynamic first, then the eight
+ * curated seeds as tone-40 swatches. Swatches are decorative (the selection
+ * state is carried by the check + row subtitle), so no AA pair is required
+ * on the swatch fill itself.
+ */
 @Composable
-private fun SwipeActionPickerRow(
-    title: String,
-    subtitle: String,
-    selectedId: String,
-    onSelect: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable { expanded = true }
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+private fun AccentPickerRow(selected: AccentSeed, onSelect: (AccentSeed) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.Palette, contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
             )
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text("App color", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    if (selected == AccentSeed.DYNAMIC) "Dynamic — follows your wallpaper"
+                    else selected.displayName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        Spacer(Modifier.width(12.dp))
-        Box {
-            Text(
-                com.messages.app.ui.home.SwipeActions.label(selectedId),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                com.messages.app.ui.home.SwipeActions.options.forEach { (id, label) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = {
-                            expanded = false
-                            onSelect(id)
-                        },
-                    )
-                }
+        Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(start = 40.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            AccentSeed.values().forEach { seed ->
+                AccentSwatch(seed, selected == seed) { onSelect(seed) }
             }
         }
     }
 }
 
 @Composable
-private fun LockAfterPickerRow(
-    selectedMs: Long,
-    onSelect: (Long) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Row(
+private fun AccentSwatch(seed: AccentSeed, selected: Boolean, onClick: () -> Unit) {
+    val dynamic = seed == AccentSeed.DYNAMIC
+    val fill = if (dynamic) {
+        // The dynamic swatch previews the CURRENT dynamic primary; on pre-S
+        // devices it shows the static fallback blue, which is equally honest.
+        Brush.sweepGradient(
+            listOf(
+                MaterialTheme.colorScheme.primary,
+                MaterialTheme.colorScheme.tertiary,
+                MaterialTheme.colorScheme.secondary,
+                MaterialTheme.colorScheme.primary,
+            )
+        )
+    } else {
+        SolidColor(schemeForSeed(seed, dark = false).primary)
+    }
+    Box(
         Modifier
-            .fillMaxWidth()
-            .clickable { expanded = true }
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(fill)
+            .then(
+                if (selected) Modifier.border(
+                    3.dp, MaterialTheme.colorScheme.onSurface, CircleShape,
+                ) else Modifier
+            )
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "${seed.displayName} accent" },
+        contentAlignment = Alignment.Center,
     ) {
-        Column(Modifier.weight(1f)) {
-            Text("Lock after", style = MaterialTheme.typography.bodyMedium)
-            Text(
-                "Skip re-unlock when returning within this window.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Box {
-            Text(
-                com.messages.app.security.LockGrace.label(selectedMs),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                com.messages.app.security.LockGrace.options.forEach { (ms, label) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = {
-                            expanded = false
-                            onSelect(ms)
-                        },
-                    )
-                }
+        if (selected) {
+            // Scrim badge keeps the check readable on ANY fill — dynamic
+            // swatches can be near-white pastels.
+            Box(
+                Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Check, contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }
-}
-
-@Composable
-internal fun SettingSwitchRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    enabled: Boolean,
-    onChange: (Boolean) -> Unit,
-) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
-    }
-}
-
-@Composable
-internal fun SectionHeader(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
-    )
 }
 
 /** In-app message text size (Phase 4 item 15) — applies to chat bubbles. */
@@ -911,15 +850,31 @@ private fun MessageTextSizeRow() {
                 .getFloat("message_text_scale", 1f)
         )
     }
-    Column(Modifier.padding(horizontal = 20.dp)) {
-        Text("Message text size", style = MaterialTheme.typography.bodyLarge)
-        Text(
-            "Size of message text in conversations.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Column(Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.FormatSize, contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text("Message text size", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Size of message text in conversations.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(start = 40.dp),
+        ) {
             options.forEach { (label, value) ->
                 FilterChip(
                     selected = scale == value,
@@ -942,51 +897,63 @@ private fun QuickRepliesEditor(ctx: android.content.Context) {
     var newTemplate by remember { mutableStateOf("") }
 
     Column(Modifier.padding(horizontal = 20.dp)) {
-        Text("Quick replies", style = MaterialTheme.typography.bodyLarge)
-        Text(
-            "One-tap templates offered by the ⚡ button in the composer.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        templates.forEach { template ->
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.Bolt, contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text("Quick replies", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "One-tap templates offered by the ⚡ button in the composer.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Column(Modifier.padding(start = 40.dp)) {
+            templates.forEach { template ->
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        template,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = {
+                        com.messages.app.ui.chat.QuickReplies.remove(ctx, template)
+                    }) {
+                        Icon(
+                            Icons.Filled.Delete, contentDescription = "Delete template",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
             Row(
                 Modifier.fillMaxWidth().padding(top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    template,
-                    style = MaterialTheme.typography.bodyMedium,
+                OutlinedTextField(
+                    value = newTemplate,
+                    onValueChange = { newTemplate = it },
+                    placeholder = { Text("New quick reply") },
+                    singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = {
-                    com.messages.app.ui.chat.QuickReplies.remove(ctx, template)
-                }) {
-                    Icon(
-                        Icons.Filled.Delete, contentDescription = "Delete template",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                IconButton(
+                    onClick = {
+                        com.messages.app.ui.chat.QuickReplies.add(ctx, newTemplate)
+                        newTemplate = ""
+                    },
+                    enabled = newTemplate.isNotBlank(),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add template")
                 }
-            }
-        }
-        Row(
-            Modifier.fillMaxWidth().padding(top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = newTemplate,
-                onValueChange = { newTemplate = it },
-                placeholder = { Text("New quick reply") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(
-                onClick = {
-                    com.messages.app.ui.chat.QuickReplies.add(ctx, newTemplate)
-                    newTemplate = ""
-                },
-                enabled = newTemplate.isNotBlank(),
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add template")
             }
         }
     }

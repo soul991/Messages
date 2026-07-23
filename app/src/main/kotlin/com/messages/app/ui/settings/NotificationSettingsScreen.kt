@@ -2,22 +2,22 @@ package com.messages.app.ui.settings
 
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.GppMaybe
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.RateReview
+import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +27,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -39,7 +38,8 @@ import com.messages.app.MessagesApp
  * notification behavior is user-configurable"). The app-level switches decide
  * WHETHER a folder notifies; the system channel rows decide HOW (sound,
  * vibration, importance). Spam and Blocked are hard-silent by design and are
- * shown as facts, not options.
+ * shown as facts, not options. Phase 5 §4: built from the shared settings
+ * list language so this screen reads as one system with the main Settings.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,132 +78,109 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(Modifier.height(8.dp))
-            SectionHeader("Folders")
-            Spacer(Modifier.height(4.dp))
+            SettingsSectionHeader("Folders")
 
-            ChannelLinkRow(
+            SettingsNavRow(
+                icon = Icons.Outlined.Inbox,
                 title = "Inbox",
                 subtitle = "Personal and important messages always notify. " +
                     "Tap to pick sound and style.",
                 onClick = { openChannelSettings(MessagesApp.CH_PERSONAL) },
+                external = true,
             )
-            Spacer(Modifier.height(12.dp))
 
-            SettingSwitchRow(
+            SettingsSwitchRow(
+                icon = Icons.Outlined.Receipt,
                 title = "Transactions",
                 subtitle = "Notify for bank alerts, receipts, and bills.",
                 checked = notifyTransactions,
-                enabled = true,
                 onChange = { vm.setNotifyTransactions(it) },
             )
             if (notifyTransactions) {
-                ChannelLinkRow(
-                    title = null,
-                    subtitle = "Sound & style for Transactions",
+                SettingsNavRow(
+                    icon = null,
+                    title = "Sound & style for Transactions",
+                    subtitle = null,
                     onClick = { openChannelSettings(MessagesApp.CH_TRANSACTIONS) },
+                    external = true,
+                    indented = true,
                 )
             }
-            Spacer(Modifier.height(12.dp))
 
-            SettingSwitchRow(
+            SettingsSwitchRow(
+                icon = Icons.Outlined.LocalOffer,
                 title = "Promotions",
                 subtitle = "Notify for offers and marketing messages. Off keeps them badge-only.",
                 checked = notifyPromotions,
-                enabled = true,
                 onChange = { vm.setNotifyPromotions(it) },
             )
             if (notifyPromotions) {
-                ChannelLinkRow(
-                    title = null,
-                    subtitle = "Sound & style for Promotions",
+                SettingsNavRow(
+                    icon = null,
+                    title = "Sound & style for Promotions",
+                    subtitle = null,
                     onClick = { openChannelSettings(MessagesApp.CH_PROMOTIONS) },
+                    external = true,
+                    indented = true,
                 )
             }
-            Spacer(Modifier.height(12.dp))
 
-            SettingSwitchRow(
+            SettingsSwitchRow(
+                icon = Icons.Outlined.RateReview,
                 title = "Review folder",
                 subtitle = "One quiet, batched notification when messages arrive here.",
                 checked = notifyReview,
-                enabled = true,
                 onChange = { vm.setNotifyReview(it) },
             )
             if (notifyReview) {
-                ChannelLinkRow(
-                    title = null,
-                    subtitle = "Sound & style for Review",
+                SettingsNavRow(
+                    icon = null,
+                    title = "Sound & style for Review",
+                    subtitle = null,
                     onClick = { openChannelSettings(MessagesApp.CH_REVIEW) },
+                    external = true,
+                    indented = true,
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
             Text(
                 "Spam and Blocked never notify — they stay silent with badge counts only.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
             )
 
-            HorizontalDivider(Modifier.padding(vertical = 16.dp))
-            SectionHeader("Protection")
-            Spacer(Modifier.height(4.dp))
+            SettingsSectionDivider()
+            SettingsSectionHeader("Protection")
             val warnDangerous by vm.warnDangerous.collectAsState()
-            SettingSwitchRow(
+            SettingsSwitchRow(
+                icon = Icons.Outlined.GppMaybe,
                 title = "Warn me about dangerous messages",
                 subtitle = "A red warning notification when a message looks like fraud. " +
                     "It stays until you dismiss it. Ordinary spam never notifies.",
                 checked = warnDangerous,
-                enabled = true,
                 onChange = { vm.setWarnDangerous(it) },
             )
 
-            HorizontalDivider(Modifier.padding(vertical = 16.dp))
-            SectionHeader("OTP codes")
-            Spacer(Modifier.height(4.dp))
-            SettingSwitchRow(
+            SettingsSectionDivider()
+            SettingsSectionHeader("OTP codes")
+            SettingsSwitchRow(
+                icon = Icons.Outlined.ContentCopy,
                 title = "Auto-copy OTP codes",
                 subtitle = "Copy the code to the clipboard the moment an OTP arrives. " +
                     "Android may show a clipboard notice each time.",
                 checked = otpAutoCopy,
-                enabled = true,
                 onChange = { vm.setOtpAutoCopy(it) },
             )
-            Spacer(Modifier.height(4.dp))
             Text(
                 "OTP notifications always include a one-tap Copy button.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
             )
             Spacer(Modifier.height(24.dp))
         }
-    }
-}
-
-@Composable
-private fun ChannelLinkRow(title: String?, subtitle: String, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            if (title != null) Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Icon(
-            Icons.AutoMirrored.Filled.OpenInNew,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }

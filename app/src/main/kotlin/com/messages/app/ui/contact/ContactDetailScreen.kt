@@ -4,8 +4,10 @@ import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,17 +15,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAddAlt
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PersonAddAlt
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,8 +47,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
@@ -164,14 +176,20 @@ class ContactDetailViewModelFactory(
 }
 
 /**
- * Google-Messages-style contact detail page, opened from the chat top bar:
- * identity (photo/name/number), Call / Add-to-contacts / View-in-Contacts
- * intents, and the per-conversation controls (mute, lock, block). Custom
- * notification tone lands with per-conversation channels (Phase 4).
+ * Contact detail page, opened from the chat top bar (Phase 5 §4, REFS §6b):
+ * photo hero, circular tonal action trio (message / call / save), the
+ * Starred-messages and Search-in-conversation rows, and the per-conversation
+ * controls (mute, lock, tone, block) in the tonal-icon row language.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContactDetailScreen(threadId: Long, onBack: () -> Unit) {
+fun ContactDetailScreen(
+    threadId: Long,
+    onBack: () -> Unit,
+    onMessage: () -> Unit = onBack,
+    onOpenStarred: () -> Unit = {},
+    onSearchInChat: () -> Unit = {},
+) {
     val context = LocalContext.current
     val vm: ContactDetailViewModel = viewModel(
         factory = ContactDetailViewModelFactory(context.applicationContext as Application, threadId)
@@ -191,7 +209,7 @@ fun ContactDetailScreen(threadId: Long, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Conversation details") },
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -207,132 +225,148 @@ fun ContactDetailScreen(threadId: Long, onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(24.dp))
+            // ---- Photo hero (REFS §6b) ----
+            Spacer(Modifier.height(8.dp))
             ContactAvatar(
                 contactName ?: address,
                 category,
-                size = 96.dp,
-                textStyle = MaterialTheme.typography.displaySmall,
+                size = 120.dp,
+                textStyle = MaterialTheme.typography.displayMedium,
                 photoUri = if (isGroup) null else rememberContactPhoto(address.ifBlank { null }),
             )
             Spacer(Modifier.height(16.dp))
             Text(
                 contactName ?: address.ifBlank { "Conversation" },
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 24.dp),
             )
             if (contactName != null || isGroup) {
                 Spacer(Modifier.height(4.dp))
                 Text(
                     if (isGroup) address.replace(";", ", ") else address,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
-            if (!isGroup && address.isNotBlank()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Numeric senders can be called; alphanumeric headers can't.
-                    if (address.any { it.isDigit() } && address.none { it.isLetter() }) {
-                        FilledTonalButton(onClick = {
+            // ---- Circular tonal action trio (REFS §6b) ----
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                HeroAction(
+                    icon = Icons.AutoMirrored.Outlined.Chat,
+                    label = "Message",
+                    onClick = onMessage,
+                )
+                // Numeric senders can be called; alphanumeric headers can't.
+                if (!isGroup && address.any { it.isDigit() } && address.none { it.isLetter() }) {
+                    HeroAction(
+                        icon = Icons.Outlined.Call,
+                        label = "Call",
+                        onClick = {
                             runCatching {
                                 context.startActivity(
                                     Intent(Intent.ACTION_DIAL, Uri.parse("tel:$address"))
                                 )
                             }
-                        }) {
-                            Icon(Icons.Filled.Call, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Call")
-                        }
-                    }
+                        },
+                    )
+                }
+                if (!isGroup && address.isNotBlank()) {
                     if (saved) {
-                        FilledTonalButton(onClick = {
-                            runCatching {
-                                val uri = Uri.withAppendedPath(
-                                    ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookupKey,
-                                )
-                                context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                            }
-                        }) {
-                            Icon(Icons.Filled.Person, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("View contact")
-                        }
+                        HeroAction(
+                            icon = Icons.Outlined.Person,
+                            label = "Contact",
+                            onClick = {
+                                runCatching {
+                                    val uri = Uri.withAppendedPath(
+                                        ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookupKey,
+                                    )
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                                }
+                            },
+                        )
                     } else {
-                        FilledTonalButton(onClick = {
-                            runCatching {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_INSERT_OR_EDIT).apply {
-                                        type = ContactsContract.Contacts.CONTENT_ITEM_TYPE
-                                        putExtra(ContactsContract.Intents.Insert.PHONE, address)
-                                    }
-                                )
-                            }
-                        }) {
-                            Icon(Icons.Filled.PersonAddAlt, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Add contact")
-                        }
+                        HeroAction(
+                            icon = Icons.Outlined.PersonAddAlt,
+                            label = "Save",
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_INSERT_OR_EDIT).apply {
+                                            type = ContactsContract.Contacts.CONTENT_ITEM_TYPE
+                                            putExtra(ContactsContract.Intents.Insert.PHONE, address)
+                                        }
+                                    )
+                                }
+                            },
+                        )
                     }
                 }
-                Spacer(Modifier.height(24.dp))
             }
+            Spacer(Modifier.height(24.dp))
 
-            HorizontalDivider()
+            // ---- Feature rows (REFS §6b: colored-icon rows) ----
+            DetailRow(
+                icon = Icons.Outlined.StarOutline,
+                title = "Starred messages",
+                subtitle = "Messages you starred in this conversation.",
+                onClick = onOpenStarred,
+            )
+            DetailRow(
+                icon = Icons.Outlined.Search,
+                title = "Search in conversation",
+                subtitle = "Find a message in this chat.",
+                onClick = onSearchInChat,
+            )
 
-            DetailSwitchRow(
+            SectionGap()
+
+            DetailRow(
+                icon = Icons.Outlined.NotificationsOff,
                 title = "Mute notifications",
                 subtitle = "No alerts for this conversation.",
-                checked = muted,
-                onChange = { vm.setMuted(it) },
+                onClick = { vm.setMuted(!muted) },
+                trailing = { Switch(checked = muted, onCheckedChange = { vm.setMuted(it) }) },
             )
-            DetailSwitchRow(
+            DetailRow(
+                icon = Icons.Outlined.Lock,
                 title = "Lock conversation",
                 subtitle = "Require unlock to open; previews hidden.",
-                checked = locked,
-                onChange = { vm.setLocked(it) },
+                onClick = { vm.setLocked(!locked) },
+                trailing = { Switch(checked = locked, onCheckedChange = { vm.setLocked(it) }) },
             )
 
             // Per-conversation tone (Phase 4 item 4): a dedicated notification
             // channel, customized through the system sheet. Locked chats can't
             // have one — the channel name would surface in system settings.
             if (!locked) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            val channelId = vm.ensureCustomChannel()
-                            runCatching {
-                                context.startActivity(
-                                    Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
-                                        putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                        putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
-                                    }
-                                )
-                            }
+                DetailRow(
+                    icon = Icons.Outlined.MusicNote,
+                    title = "Notification sound & style",
+                    subtitle = if (hasCustomChannel) "Customized for this conversation."
+                    else "Pick a custom sound just for this conversation.",
+                    onClick = {
+                        val channelId = vm.ensureCustomChannel()
+                        runCatching {
+                            context.startActivity(
+                                Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                                    putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
+                                }
+                            )
                         }
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Notification sound & style", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            if (hasCustomChannel) "Customized for this conversation."
-                            else "Pick a custom sound just for this conversation.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                    },
+                )
                 if (hasCustomChannel) {
                     Row(
                         Modifier
                             .fillMaxWidth()
                             .clickable { vm.removeCustomChannel() }
-                            .padding(horizontal = 20.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                            // Aligns with row titles: 20 + 40dp slot + 16 gap.
+                            .padding(start = 76.dp, end = 20.dp, top = 2.dp, bottom = 10.dp),
                     ) {
                         Text(
                             "Reset to default notifications",
@@ -343,61 +377,91 @@ fun ContactDetailScreen(threadId: Long, onBack: () -> Unit) {
                 }
             }
 
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SectionGap()
 
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { vm.setBlocked(!blocked) }
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Filled.Block, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                )
-                Spacer(Modifier.width(16.dp))
-                Column {
-                    Text(
-                        if (blocked) "Unblock sender" else "Block sender",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                    Text(
-                        if (blocked) "Messages will arrive normally again."
-                        else "Future messages land in Blocked, silently. Nothing is deleted.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            DetailRow(
+                icon = Icons.Outlined.Block,
+                title = if (blocked) "Unblock sender" else "Block sender",
+                subtitle = if (blocked) "Messages will arrive normally again."
+                else "Future messages land in Blocked, silently. Nothing is deleted.",
+                onClick = { vm.setBlocked(!blocked) },
+                iconContainer = MaterialTheme.colorScheme.errorContainer,
+                iconTint = MaterialTheme.colorScheme.onErrorContainer,
+                titleColor = MaterialTheme.colorScheme.error,
+            )
             Spacer(Modifier.height(24.dp))
         }
     }
 }
 
+/** Circular tonal action with a label beneath (REFS §6b trio). */
 @Composable
-private fun DetailSwitchRow(
+private fun HeroAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        FilledTonalIconButton(onClick = onClick, modifier = Modifier.size(60.dp)) {
+            Icon(icon, contentDescription = label, modifier = Modifier.size(26.dp))
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun SectionGap() {
+    HorizontalDivider(
+        Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+}
+
+/** Detail row: 40dp tonal icon container + title/subtitle + optional trailing. */
+@Composable
+private fun DetailRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    checked: Boolean,
-    onChange: (Boolean) -> Unit,
+    onClick: () -> Unit,
+    trailing: (@Composable () -> Unit)? = null,
+    iconContainer: Color = MaterialTheme.colorScheme.secondaryContainer,
+    iconTint: Color = MaterialTheme.colorScheme.onSecondaryContainer,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     Row(
         Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(iconContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = titleColor)
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onChange)
+        if (trailing != null) {
+            Spacer(Modifier.width(12.dp))
+            trailing()
+        }
     }
 }

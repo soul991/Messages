@@ -198,6 +198,9 @@ fun ChatScreen(
     fallbackAddress: String? = null,
     /** §8.5.3: terms to highlight when opened from a search result. */
     initialSearchTerms: List<String> = emptyList(),
+    /** Phase 5 §4: open with the in-conversation search bar active and empty
+     *  (ContactDetail "Search in conversation" row). */
+    initialSearchActive: Boolean = false,
     /** §8.5.3: the matched message to auto-scroll to. */
     targetMessageId: Long? = null,
     /** Direct share (§8.2): pre-filled composer text. */
@@ -343,7 +346,7 @@ fun ChatScreen(
     }
 
     // ---- In-conversation search (§8.5.3) ----
-    var chatSearchActive by remember { mutableStateOf(initialSearchTerms.isNotEmpty()) }
+    var chatSearchActive by remember { mutableStateOf(initialSearchTerms.isNotEmpty() || initialSearchActive) }
     var chatSearchQuery by remember { mutableStateOf(initialSearchTerms.joinToString(" ")) }
     // The 3-char guard applies to the whole typed query (§8.5.1).
     val searchTerms = remember(chatSearchQuery) {
@@ -426,13 +429,15 @@ fun ChatScreen(
         }
     }
     // Failed-send feedback: when a message flips to FAILED while this chat is
-    // open, surface the mapped reason immediately. The first emission seeds
-    // the baseline so pre-existing failures don't re-announce on entry.
-    val failedIds = remember(messages) {
-        messages.filter { it.sendStatus == "FAILED" }.map { it.id }.toSet()
-    }
+    // open, surface the mapped reason immediately. The baseline seeds from the
+    // first NON-EMPTY emission — the flow's initial value is an empty list, and
+    // seeding from it made every pre-existing failure look fresh on entry
+    // (race observed on-device 2026-07-23). An empty chat has nothing to
+    // announce, so waiting for content is always safe.
     var seenFailedIds by remember { mutableStateOf<Set<Long>?>(null) }
-    LaunchedEffect(failedIds) {
+    LaunchedEffect(messages) {
+        if (messages.isEmpty() && seenFailedIds == null) return@LaunchedEffect
+        val failedIds = messages.filter { it.sendStatus == "FAILED" }.map { it.id }.toSet()
         val baseline = seenFailedIds
         seenFailedIds = failedIds
         if (baseline == null) return@LaunchedEffect

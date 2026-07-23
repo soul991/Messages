@@ -159,6 +159,10 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE starred = 1 AND trashed = 0 ORDER BY timestamp DESC")
     fun starred(): Flow<List<MessageEntity>>
 
+    // Phase 5 §4: ContactDetail "Starred messages" row scopes to one thread.
+    @Query("SELECT * FROM messages WHERE starred = 1 AND trashed = 0 AND threadId = :threadId ORDER BY timestamp DESC")
+    fun starredForThread(threadId: Long): Flow<List<MessageEntity>>
+
     // ---- Backup/restore (§8.2) ----
 
     @Query("SELECT * FROM messages ORDER BY timestamp ASC")

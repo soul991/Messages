@@ -45,22 +45,35 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class StarredViewModel(app: Application) : AndroidViewModel(app) {
+class StarredViewModel(app: Application, threadId: Long? = null) : AndroidViewModel(app) {
 
     private val repo = MessageRepository.get(app)
     private val nameCache = HashMap<String, String?>()
 
     data class Row(val message: MessageEntity, val displayName: String?)
 
-    val rows: StateFlow<List<Row>> = repo.db.messages().starred()
-        .map { list ->
-            list.map { m ->
-                Row(m, nameCache.getOrPut(m.address) { repo.displayNameFor(m.address) })
+    // Phase 5 §4: null = global list (Home entry); a threadId scopes the list
+    // to one conversation (ContactDetail "Starred messages" row).
+    val rows: StateFlow<List<Row>> =
+        (if (threadId == null) repo.db.messages().starred()
+        else repo.db.messages().starredForThread(threadId))
+            .map { list ->
+                list.map { m ->
+                    Row(m, nameCache.getOrPut(m.address) { repo.displayNameFor(m.address) })
+                }
             }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun unstar(id: Long) = viewModelScope.launch { repo.db.messages().setStarred(id, false) }
+}
+
+class StarredViewModelFactory(
+    private val app: Application,
+    private val threadId: Long?,
+) : androidx.lifecycle.ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
+        StarredViewModel(app, threadId) as T
 }
 
 private val STARRED_FMT = SimpleDateFormat("d MMM yyyy", Locale.US)
@@ -71,7 +84,14 @@ private val STARRED_FMT = SimpleDateFormat("d MMM yyyy", Locale.US)
 fun StarredScreen(
     onBack: () -> Unit,
     onOpenMessage: (threadId: Long, messageId: Long) -> Unit,
-    vm: StarredViewModel = viewModel(),
+    threadId: Long? = null,
+    vm: StarredViewModel = viewModel(
+        key = "starred-${threadId ?: "all"}",
+        factory = StarredViewModelFactory(
+            androidx.compose.ui.platform.LocalContext.current.applicationContext as Application,
+            threadId,
+        ),
+    ),
 ) {
     val rows by vm.rows.collectAsState()
 
@@ -99,7 +119,8 @@ fun StarredScreen(
                         modifier = Modifier.size(48.dp),
                     )
                     Text(
-                        "No starred messages",
+                        if (threadId == null) "No starred messages"
+                        else "No starred messages in this conversation",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(top = 12.dp),
                     )

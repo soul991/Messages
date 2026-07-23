@@ -12,5 +12,13 @@
                 <action android:name="com.messages.app.DEBUG_INJECT_SMS" />
             </intent-filter>
         </receiver>
+        <!-- DEBUG-ONLY: removes InjectSmsReceiver residue from provider + index. -->
+        <receiver
+            android:name=".debug.CleanupTestResidueReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.messages.app.DEBUG_CLEANUP_RESIDUE" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

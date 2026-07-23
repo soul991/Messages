@@ -89,6 +89,7 @@ class MainActivity : FragmentActivity() {
 
     /** Resolved from settings before composition, then updated live from Settings. */
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
+    private var accentSeed by mutableStateOf(com.messages.designsystem.AccentSeed.DYNAMIC)
 
     /** Keeps FLAG_SECURE in sync with the App lock toggle while Settings is
      *  open in this same activity. Field-held: SharedPreferences only keeps a
@@ -124,6 +125,7 @@ class MainActivity : FragmentActivity() {
         getSharedPreferences("settings", MODE_PRIVATE)
             .registerOnSharedPreferenceChangeListener(secureFlagListener)
         themeMode = ThemePreferences.current(this)
+        accentSeed = ThemePreferences.currentAccent(this)
         refreshDefaultState()
         requestCorePermissions()
         // Safety net: the permission callback above only fires when a dialog was
@@ -150,7 +152,7 @@ class MainActivity : FragmentActivity() {
         }
 
         setContent {
-            MessagesTheme(mode = themeMode) {
+            MessagesTheme(mode = themeMode, accent = accentSeed) {
                 // App lock gate (§8.2): everything below stays hidden until unlocked.
                 if (!appUnlocked) {
                     LockScreen(
@@ -255,12 +257,22 @@ class MainActivity : FragmentActivity() {
                     composable("dashboard") {
                         DashboardScreen(onBack = { nav.popBackStack() })
                     }
-                    composable("starred") {
+                    composable(
+                        "starred?thread={thread}",
+                        arguments = listOf(
+                            navArgument("thread") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            },
+                        ),
+                    ) { entry ->
                         com.messages.app.ui.starred.StarredScreen(
                             onBack = { nav.popBackStack() },
                             onOpenMessage = { threadId, messageId ->
                                 nav.navigate("chat/$threadId?target=$messageId")
                             },
+                            threadId = entry.arguments?.getString("thread")?.toLongOrNull(),
                         )
                     }
                     composable("notification_settings") {
@@ -275,6 +287,11 @@ class MainActivity : FragmentActivity() {
                             onOpenDriveBackup = { nav.navigate("drive_backup") },
                             onOpenNotificationSettings = { nav.navigate("notification_settings") },
                             themeMode = themeMode,
+                            accent = accentSeed,
+                            onAccentChange = { seed ->
+                                ThemePreferences.setAccent(this@MainActivity, seed)
+                                accentSeed = seed
+                            },
                             onThemeModeChange = { mode ->
                                 ThemePreferences.set(this@MainActivity, mode)
                                 themeMode = mode
@@ -306,7 +323,7 @@ class MainActivity : FragmentActivity() {
                         )
                     }
                     composable(
-                        "chat/{threadId}?address={address}&q={q}&target={target}&draft={draft}",
+                        "chat/{threadId}?address={address}&q={q}&target={target}&draft={draft}&search={search}",
                         enterTransition = { fadeThroughEnter() },
                         exitTransition = { fadeThroughExit() },
                         popEnterTransition = { fadeThroughEnter() },
@@ -332,6 +349,11 @@ class MainActivity : FragmentActivity() {
                                 nullable = true
                                 defaultValue = null
                             },
+                            navArgument("search") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            },
                         ),
                     ) { entry ->
                         val threadId = entry.arguments?.getString("threadId")?.toLongOrNull() ?: return@composable
@@ -344,6 +366,7 @@ class MainActivity : FragmentActivity() {
                             // §8.5.3: opened from search — highlight terms + jump to the match.
                             initialSearchTerms = entry.arguments?.getString("q")
                                 ?.split(' ')?.filter { it.isNotBlank() } ?: emptyList(),
+                            initialSearchActive = entry.arguments?.getString("search") == "1",
                             targetMessageId = entry.arguments?.getString("target")?.toLongOrNull(),
                             // Direct share (§8.2): shared text lands as the draft.
                             initialDraft = entry.arguments?.getString("draft") ?: "",
@@ -360,6 +383,15 @@ class MainActivity : FragmentActivity() {
                         com.messages.app.ui.contact.ContactDetailScreen(
                             threadId = threadId,
                             onBack = { nav.popBackStack() },
+                            // Trio "Message" = return to the chat beneath.
+                            onMessage = { nav.popBackStack() },
+                            onOpenStarred = { nav.navigate("starred?thread=$threadId") },
+                            // Fresh chat entry with search active; popUpTo keeps
+                            // the stack home→chat (no duplicate chat entries —
+                            // see the nav-cluster fix notes).
+                            onSearchInChat = {
+                                nav.navigate("chat/$threadId?search=1") { popUpTo("home") }
+                            },
                         )
                     }
                     composable("why/{messageId}") { entry ->

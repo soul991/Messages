@@ -76,7 +76,96 @@ object CategoryColors {
     val ReviewContainer = Color(0xFFD9E3F8)
 }
 
-private val LightScheme = lightColorScheme(
+// ---- Curated accent seeds (Phase 5 §4) ----------------------------------
+//
+// Material You dynamic color stays the default identity; these eight seeds
+// give non-dynamic devices (and brand screenshots) a full scheme each. Colors
+// are generated at exact CIELAB tones — tone == L*, the same axis M3's HCT
+// uses — so every on/container pair lands at the tone distances that make
+// WCAG AA hold by construction (T100-on-T40, T10-on-T90, T20-on-T80,
+// T90-on-T30). `AccentSchemesContrastTest` in :app asserts the ratios.
+
+/** A selectable app accent. DYNAMIC = Material You (falls back to BLUE pre-S). */
+enum class AccentSeed(val displayName: String, internal val hue: Double, internal val chroma: Double) {
+    DYNAMIC("Dynamic", 0.0, 0.0),
+    BLUE("Blue", 262.0, 36.0),
+    TEAL("Teal", 193.0, 28.0),
+    GREEN("Green", 135.0, 42.0),
+    AMBER("Amber", 84.0, 46.0),
+    CORAL("Coral", 42.0, 46.0),
+    PINK("Pink", 356.0, 38.0),
+    PURPLE("Purple", 310.0, 38.0),
+    GRAPHITE("Graphite", 262.0, 5.0),
+}
+
+/** CIELAB (D65) → sRGB; returns null when the color is out of gamut. */
+private fun labToSrgbOrNull(l: Double, aStar: Double, bStar: Double): Color? {
+    val fy = (l + 16.0) / 116.0
+    val fx = fy + aStar / 500.0
+    val fz = fy - bStar / 200.0
+    fun finv(t: Double): Double {
+        val t3 = t * t * t
+        return if (t3 > 0.008856) t3 else (t - 16.0 / 116.0) / 7.787
+    }
+    val x = finv(fx) * 0.95047
+    val y = finv(fy) * 1.0
+    val z = finv(fz) * 1.08883
+    val rl = 3.2404542 * x - 1.5371385 * y - 0.4985314 * z
+    val gl = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z
+    val bl = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z
+    val eps = 1e-4
+    if (rl < -eps || rl > 1 + eps || gl < -eps || gl > 1 + eps || bl < -eps || bl > 1 + eps) return null
+    fun encode(c: Double): Float {
+        val v = c.coerceIn(0.0, 1.0)
+        return (if (v <= 0.0031308) v * 12.92 else 1.055 * Math.pow(v, 1 / 2.4) - 0.055).toFloat()
+    }
+    return Color(encode(rl), encode(gl), encode(bl))
+}
+
+/**
+ * Color at an exact tone (L*), desaturating toward gray until sRGB can
+ * represent it — tone is never sacrificed, so contrast pairs stay honest.
+ */
+fun accentTone(hue: Double, chroma: Double, tone: Double): Color {
+    val rad = Math.toRadians(hue)
+    var c = chroma
+    while (c >= 1.0) {
+        labToSrgbOrNull(tone, c * Math.cos(rad), c * Math.sin(rad))?.let { return it }
+        c -= 1.0
+    }
+    return labToSrgbOrNull(tone, 0.0, 0.0) ?: Color.Black
+}
+
+/** Full light/dark scheme for a non-dynamic seed, M3 tone mapping throughout. */
+fun schemeForSeed(seed: AccentSeed, dark: Boolean): ColorScheme {
+    val h = seed.hue
+    val c = seed.chroma
+    val sec = c / 3.0          // M3: secondary is the seed hue at a third chroma
+    val terH = (h + 60.0) % 360.0
+    val terC = c * 0.6
+    fun t(chroma: Double, tone: Double, hue: Double = h) = accentTone(hue, chroma, tone)
+    return if (!dark) LightBase.copy(
+        primary = t(c, 40.0), onPrimary = Color.White,
+        primaryContainer = t(c, 90.0), onPrimaryContainer = t(c, 10.0),
+        inversePrimary = t(c, 80.0), surfaceTint = t(c, 40.0),
+        secondary = t(sec, 40.0), onSecondary = Color.White,
+        secondaryContainer = t(sec, 90.0), onSecondaryContainer = t(sec, 10.0),
+        tertiary = t(terC, 40.0, terH), onTertiary = Color.White,
+        tertiaryContainer = t(terC, 90.0, terH), onTertiaryContainer = t(terC, 10.0, terH),
+    ) else DarkBase.copy(
+        primary = t(c, 80.0), onPrimary = t(c, 20.0),
+        primaryContainer = t(c, 30.0), onPrimaryContainer = t(c, 90.0),
+        inversePrimary = t(c, 40.0), surfaceTint = t(c, 80.0),
+        secondary = t(sec, 80.0), onSecondary = t(sec, 20.0),
+        secondaryContainer = t(sec, 30.0), onSecondaryContainer = t(sec, 90.0),
+        tertiary = t(terC, 80.0, terH), onTertiary = t(terC, 20.0, terH),
+        tertiaryContainer = t(terC, 30.0, terH), onTertiaryContainer = t(terC, 90.0, terH),
+    )
+}
+
+// Shared neutral surfaces — accents restyle the color roles, not the canvas,
+// so switching accents never shifts the app's background feel.
+private val LightBase = lightColorScheme(
     primary = Color(0xFF00629E),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFCFE5FF),
@@ -88,7 +177,7 @@ private val LightScheme = lightColorScheme(
     background = Color(0xFFF8F9FC),
 )
 
-private val DarkScheme = darkColorScheme(
+private val DarkBase = darkColorScheme(
     primary = Color(0xFF99CBFF),
     onPrimary = Color(0xFF003355),
     primaryContainer = Color(0xFF004A79),
@@ -99,6 +188,11 @@ private val DarkScheme = darkColorScheme(
     surfaceVariant = Color(0xFF42474E),
     background = Color(0xFF101418),
 )
+
+// The pre-accent static schemes were the BLUE seed's values; BLUE reproduces
+// them via the generator, and these bases remain the pre-S dynamic fallback.
+private val LightScheme = LightBase
+private val DarkScheme = DarkBase
 
 private val AmoledScheme = DarkScheme.copy(
     surface = Color.Black,
@@ -130,7 +224,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 @Composable
 fun MessagesTheme(
     mode: ThemeMode = ThemeMode.SYSTEM,
-    dynamicColor: Boolean = true,
+    accent: AccentSeed = AccentSeed.DYNAMIC,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = when (mode) {
@@ -139,15 +233,18 @@ fun MessagesTheme(
         ThemeMode.DARK, ThemeMode.AMOLED -> true
     }
     val context = LocalContext.current
-    val scheme: ColorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val dynamic = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            if (mode == ThemeMode.AMOLED) dynamic.copy(surface = Color.Black, background = Color.Black) else dynamic
-        }
-        mode == ThemeMode.AMOLED -> AmoledScheme
-        darkTheme -> DarkScheme
-        else -> LightScheme
+    val base: ColorScheme = when {
+        accent == AccentSeed.DYNAMIC && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        accent == AccentSeed.DYNAMIC ->
+            if (darkTheme) DarkScheme else LightScheme
+        else -> schemeForSeed(accent, darkTheme)
     }
+    // AMOLED tier (deliberate differentiator — refs' dark is #1C1C1E, ours is
+    // true black) overlays every accent path identically.
+    val scheme = if (mode == ThemeMode.AMOLED) {
+        base.copy(surface = Color.Black, background = Color.Black)
+    } else base
     CompositionLocalProvider(
         LocalDarkTheme provides darkTheme,
         LocalSentBubble provides SentBubbleColors(scheme.primary, scheme.onPrimary),
