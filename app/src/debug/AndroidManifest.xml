@@ -20,5 +20,6 @@
                 <action android:name="com.messages.app.DEBUG_CLEANUP_RESIDUE" />
             </intent-filter>
         </receiver>
+
     </application>
 </manifest>
