@@ -232,11 +232,20 @@ class MainActivity : FragmentActivity() {
                             onCompose = { nav.navigate("compose") },
                             onSettings = { nav.navigate("settings") },
                             onDashboard = { nav.navigate("dashboard") },
+                            onOpenStarred = { nav.navigate("starred") },
                         )
                         }
                     }
                     composable("dashboard") {
                         DashboardScreen(onBack = { nav.popBackStack() })
+                    }
+                    composable("starred") {
+                        com.messages.app.ui.starred.StarredScreen(
+                            onBack = { nav.popBackStack() },
+                            onOpenMessage = { threadId, messageId ->
+                                nav.navigate("chat/$threadId?target=$messageId")
+                            },
+                        )
                     }
                     composable("notification_settings") {
                         com.messages.app.ui.settings.NotificationSettingsScreen(
@@ -323,6 +332,10 @@ class MainActivity : FragmentActivity() {
                             // Direct share (§8.2): shared text lands as the draft.
                             initialDraft = entry.arguments?.getString("draft") ?: "",
                             onOpenContact = { nav.navigate("contactDetail/$threadId") },
+                            // Phase 4 item 14: forward → target chat with the text as draft.
+                            onForward = { targetThread, text ->
+                                nav.navigate("chat/$targetThread?draft=${Uri.encode(text)}")
+                            },
                         )
                         }
                     }

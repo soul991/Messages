@@ -55,6 +55,10 @@ interface MessageDao {
     @Query("UPDATE messages SET read = 1 WHERE threadId = :threadId")
     suspend fun markThreadRead(threadId: Long)
 
+    /** Mark-all-read for one folder (Phase 4 item 12). */
+    @Query("UPDATE messages SET read = 1 WHERE category = :category AND trashed = 0")
+    suspend fun markCategoryRead(category: String)
+
     @Query("UPDATE messages SET starred = :starred WHERE id = :id")
     suspend fun setStarred(id: Long, starred: Boolean)
 
@@ -232,6 +236,20 @@ interface ConversationDao {
 
     @Query("UPDATE conversations SET unreadCount = 0 WHERE threadId = :threadId")
     suspend fun clearUnread(threadId: Long)
+
+    /** Mark-all-read for one folder (Phase 4 item 12). */
+    @Query("UPDATE conversations SET unreadCount = 0 WHERE category = :category")
+    suspend fun clearUnreadForCategory(category: String)
+
+    /**
+     * Mark-as-unread (Phase 4 item 13): a UI-level unread marker, exactly like
+     * Google Messages — message rows stay read; only the badge count changes.
+     */
+    @Query(
+        "UPDATE conversations SET unreadCount = " +
+            "CASE WHEN unreadCount = 0 THEN 1 ELSE unreadCount END WHERE threadId = :threadId"
+    )
+    suspend fun markUnread(threadId: Long)
 
     @Query("UPDATE conversations SET preferredSubId = :subId WHERE threadId = :threadId")
     suspend fun setPreferredSubId(threadId: Long, subId: Int?)

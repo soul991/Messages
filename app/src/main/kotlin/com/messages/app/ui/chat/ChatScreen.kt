@@ -37,11 +37,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -51,7 +53,9 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SimCard
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -194,10 +198,13 @@ fun ChatScreen(
     initialDraft: String = "",
     /** Tap on the top-bar name/number → contact detail page. */
     onOpenContact: () -> Unit = {},
+    /** Phase 4 item 14: forward selected text into another conversation. */
+    onForward: (threadId: Long, text: String) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
+    val clipboardManager = LocalClipboardManager.current
     val vm: ChatViewModel = viewModel(
         factory = ChatViewModelFactory(context.applicationContext as Application, threadId, fallbackAddress)
     )
@@ -271,6 +278,38 @@ fun ChatScreen(
     var showChatMenu by remember { mutableStateOf(false) }
     var showDeleteThreadConfirm by remember { mutableStateOf(false) }
     var showQuickReplies by remember { mutableStateOf(false) }
+
+    // ---- Message multi-select (Phase 4 item 14) ----
+    var selectedMsgIds by remember { mutableStateOf(setOf<Long>()) }
+    val msgSelectionActive = selectedMsgIds.isNotEmpty()
+    var showForwardPicker by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = msgSelectionActive) {
+        selectedMsgIds = emptySet()
+    }
+    fun selectedTexts(): String = messages
+        .filter { it.id in selectedMsgIds }
+        .sortedBy { it.timestamp }
+        .joinToString("\n") { it.body }
+        .trim()
+
+    // Conversation export (Phase 4 item 16).
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) vm.exportConversation(uri) { ok ->
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    if (ok) "Conversation exported" else "Export failed"
+                )
+            }
+        }
+    }
+
+    // In-app message text size (Phase 4 item 15).
+    val textScale = remember {
+        context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+            .getFloat("message_text_scale", 1f)
+    }
 
     // Link previews (Phase 4 item 9): opt-in, read once per screen entry.
     val linkPreviewsEnabled = remember { LinkPreview.enabled(context) }
@@ -384,7 +423,71 @@ fun ChatScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (chatSearchActive) {
+            if (msgSelectionActive) {
+                // Message multi-select bar (Phase 4 item 14).
+                TopAppBar(
+                    title = { Text("${selectedMsgIds.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { selectedMsgIds = emptySet() }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Clear selection")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            val text = selectedTexts()
+                            if (text.isNotBlank()) {
+                                clipboardManager.setText(AnnotatedString(text))
+                            }
+                            selectedMsgIds = emptySet()
+                        }) {
+                            Icon(Icons.Filled.ContentCopy, contentDescription = "Copy")
+                        }
+                        IconButton(onClick = {
+                            selectedMsgIds.forEach { vm.star(it, true) }
+                            selectedMsgIds = emptySet()
+                        }) {
+                            Icon(Icons.Filled.Star, contentDescription = "Star")
+                        }
+                        IconButton(
+                            onClick = { showForwardPicker = true },
+                            enabled = selectedTexts().isNotBlank(),
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = "Forward")
+                        }
+                        IconButton(onClick = {
+                            val text = selectedTexts()
+                            if (text.isNotBlank()) {
+                                runCatching {
+                                    context.startActivity(
+                                        android.content.Intent.createChooser(
+                                            android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                            },
+                                            "Share messages",
+                                        )
+                                    )
+                                }
+                            }
+                            selectedMsgIds = emptySet()
+                        }) {
+                            Icon(Icons.Filled.Share, contentDescription = "Share")
+                        }
+                        IconButton(onClick = {
+                            selectedMsgIds.forEach { vm.delete(it) }
+                            val n = selectedMsgIds.size
+                            selectedMsgIds = emptySet()
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "$n message${if (n == 1) "" else "s"} moved to Trash"
+                                )
+                            }
+                        }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Delete")
+                        }
+                    },
+                )
+            } else if (chatSearchActive) {
                 // In-conversation search bar (§8.5.3): live query, match count,
                 // next/previous arrows.
                 TopAppBar(
@@ -524,6 +627,16 @@ fun ChatScreen(
                                 },
                             )
                             DropdownMenuItem(
+                                text = { Text("Export conversation") },
+                                onClick = {
+                                    showChatMenu = false
+                                    val safeName = (contactName ?: address).replace(
+                                        Regex("""[^A-Za-z0-9+_-]"""), "_",
+                                    ).take(40)
+                                    exportLauncher.launch("Messages-$safeName.txt")
+                                },
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Delete conversation") },
                                 onClick = {
                                     showChatMenu = false
@@ -655,6 +768,15 @@ fun ChatScreen(
                                 },
                                 linkPreviewsEnabled = linkPreviewsEnabled,
                                 simNameFor = simNameFor,
+                                textScale = textScale,
+                                selectionMode = msgSelectionActive,
+                                selected = item.m.id in selectedMsgIds,
+                                onToggleSelect = {
+                                    Haptics.tick(view)
+                                    selectedMsgIds =
+                                        if (item.m.id in selectedMsgIds) selectedMsgIds - item.m.id
+                                        else selectedMsgIds + item.m.id
+                                },
                                 modifier = itemModifier,
                             )
                         }
@@ -881,6 +1003,70 @@ fun ChatScreen(
                 },
                 onDismiss = { showCustomizeSheet = false },
             )
+        }
+
+        // Forward-to-conversation picker (Phase 4 item 14): recents + search.
+        if (showForwardPicker) {
+            androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showForwardPicker = false }) {
+                var query by remember { mutableStateOf("") }
+                val candidates by androidx.compose.runtime.produceState(
+                    initialValue = emptyList<com.messages.core.db.ConversationEntity>(), query,
+                ) {
+                    value = vm.conversationsForForward(query)
+                }
+                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+                    Text("Forward to…", style = MaterialTheme.typography.titleLarge)
+                    Spacer(Modifier.height(12.dp))
+                    TextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = { Text("Search conversations") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    candidates.forEach { conv ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val text = selectedTexts()
+                                    showForwardPicker = false
+                                    selectedMsgIds = emptySet()
+                                    if (text.isNotBlank()) onForward(conv.threadId, text)
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            ContactAvatar(
+                                conv.contactName ?: conv.address,
+                                conv.category,
+                                size = 40.dp,
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                conv.contactName ?: conv.address,
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    if (candidates.isEmpty()) {
+                        Text(
+                            "No conversations found",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 12.dp),
+                        )
+                    }
+                }
+            }
         }
 
         // Quick-reply templates sheet (Phase 4 item 8): tap fills the composer.
@@ -1181,6 +1367,12 @@ private fun MessageBubble(
     linkPreviewsEnabled: Boolean = false,
     /** SIM display name for the info sheet; null subId = default SIM. */
     simNameFor: (Int?) -> String = { "Default" },
+    /** In-app message text size (Phase 4 item 15); 1.0 = default. */
+    textScale: Float = 1f,
+    /** Multi-select (Phase 4 item 14): taps toggle instead of opening menus. */
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onToggleSelect: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val clipboard = LocalClipboardManager.current
@@ -1260,12 +1452,17 @@ private fun MessageBubble(
                     if (isOut) outBubbleColors.first
                     else MaterialTheme.colorScheme.surfaceContainerHigh
                 )
+                .then(
+                    if (selected) Modifier.border(
+                        2.dp, MaterialTheme.colorScheme.primary, bubbleShape,
+                    ) else Modifier
+                )
                 .combinedClickable(
-                    onClick = {},
+                    onClick = { if (selectionMode) onToggleSelect() },
                     onLongClickLabel = "Message options",
                     onLongClick = {
                         Haptics.longPress(view)
-                        showMenu = true
+                        if (selectionMode) onToggleSelect() else showMenu = true
                     },
                 ),
         ) {
@@ -1335,9 +1532,15 @@ private fun MessageBubble(
                             )
                         }
                     }
+                    // In-app text size (Phase 4 item 15) — bubble text only.
+                    val baseStyle = MaterialTheme.typography.bodyLarge
+                    val scaledStyle = if (textScale == 1f) baseStyle else baseStyle.copy(
+                        fontSize = baseStyle.fontSize * textScale,
+                        lineHeight = baseStyle.lineHeight * textScale,
+                    )
                     Text(
                         bodyText,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = scaledStyle,
                         color = if (isOut) outBubbleColors.second
                         else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -1360,6 +1563,10 @@ private fun MessageBubble(
                         onClick = { showMenu = false; showSelectDialog = true },
                     )
                 }
+                DropdownMenuItem(
+                    text = { Text("Select messages") },
+                    onClick = { showMenu = false; onToggleSelect() },
+                )
                 DropdownMenuItem(
                     text = { Text(if (msg.starred) "Unstar" else "Star") },
                     onClick = { onStar(); showMenu = false },

@@ -273,4 +273,31 @@ class ChatViewModel(
         repo.moveThreadToTrash(threadId)
         onDone()
     }
+
+    /** Phase 4 item 16: plain-text export of this conversation to a SAF uri. */
+    fun exportConversation(uri: android.net.Uri, onDone: (Boolean) -> Unit) =
+        viewModelScope.launch {
+            val ok = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    val text = com.messages.core.export.ConversationExporter.format(
+                        messages.value.filter { it.sendStatus != "SCHEDULED" },
+                        conversationName = contactName.value ?: address.value.ifBlank { "Unknown" },
+                    )
+                    getApplication<Application>().contentResolver.openOutputStream(uri)?.use {
+                        it.write(text.toByteArray(Charsets.UTF_8))
+                    } != null
+                }.getOrDefault(false)
+            }
+            onDone(ok)
+        }
+
+    /** Phase 4 item 14: conversations for the forward picker (blank query = recents). */
+    suspend fun conversationsForForward(query: String): List<com.messages.core.db.ConversationEntity> =
+        withContext(kotlinx.coroutines.Dispatchers.IO) {
+            // '' LIKE-matches everything → recents by lastTimestamp. Locked
+            // conversations are excluded: forwarding into them from an
+            // unauthenticated picker would leak their existence.
+            repo.db.conversations().searchByNameOrAddress(query.trim())
+                .filter { !it.locked }
+        }
 }

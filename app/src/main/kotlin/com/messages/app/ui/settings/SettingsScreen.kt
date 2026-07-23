@@ -339,6 +339,8 @@ fun SettingsScreen(
                     selected = themeMode,
                     onSelect = onThemeModeChange,
                 )
+                Spacer(Modifier.height(12.dp))
+                MessageTextSizeRow()
             }
 
             // ---- Protection sensitivity (§3 Stage 5) ----
@@ -858,8 +860,42 @@ internal fun SectionHeader(title: String) {
     )
 }
 
-/** Quick-reply template manager (Phase 4 item 8): list + add + delete. */
+/** In-app message text size (Phase 4 item 15) — applies to chat bubbles. */
 @Composable
+private fun MessageTextSizeRow() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val options = listOf("Small" to 0.85f, "Default" to 1f, "Large" to 1.15f, "Extra large" to 1.3f)
+    var scale by remember {
+        mutableStateOf(
+            ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                .getFloat("message_text_scale", 1f)
+        )
+    }
+    Column(Modifier.padding(horizontal = 20.dp)) {
+        Text("Message text size", style = MaterialTheme.typography.bodyLarge)
+        Text(
+            "Size of message text in conversations.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { (label, value) ->
+                FilterChip(
+                    selected = scale == value,
+                    onClick = {
+                        scale = value
+                        ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                            .edit().putFloat("message_text_scale", value).apply()
+                    },
+                    label = { Text(label) },
+                )
+            }
+        }
+    }
+}
+
+/** Quick-reply template manager (Phase 4 item 8): list + add + delete. */@Composable
 private fun QuickRepliesEditor(ctx: android.content.Context) {
     val templates by com.messages.app.ui.chat.QuickReplies.templates.collectAsState()
     LaunchedEffect(Unit) { com.messages.app.ui.chat.QuickReplies.load(ctx) }

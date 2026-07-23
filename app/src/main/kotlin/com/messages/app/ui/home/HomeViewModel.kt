@@ -80,6 +80,61 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         repo.db.conversations().clearUnread(threadId)
     }
 
+    /** Phase 4 item 13: UI-level unread marker (rows stay read, badge returns). */
+    fun markThreadUnread(threadId: Long) = viewModelScope.launch {
+        repo.db.conversations().markUnread(threadId)
+    }
+
+    /** Phase 4 item 12: mark the whole current folder read. */
+    fun markFolderRead(category: String) = viewModelScope.launch {
+        repo.db.messages().markCategoryRead(category)
+        repo.db.conversations().clearUnreadForCategory(category)
+    }
+
+    // ---- Phase 4 item 12: unread-only filter ----
+
+    val unreadOnly = MutableStateFlow(false)
+
+    fun setUnreadOnly(on: Boolean) { unreadOnly.value = on }
+
+    // ---- Phase 4 item 14: conversation multi-select ----
+
+    val selectedThreads = MutableStateFlow<Set<Long>>(emptySet())
+
+    fun toggleSelected(threadId: Long) {
+        selectedThreads.value =
+            if (threadId in selectedThreads.value) selectedThreads.value - threadId
+            else selectedThreads.value + threadId
+    }
+
+    fun clearSelection() { selectedThreads.value = emptySet() }
+
+    /** Bulk trash for multi-select; returns the cut timestamp for undo. */
+    fun trashThreads(ids: Set<Long>): Long {
+        val at = System.currentTimeMillis()
+        viewModelScope.launch { ids.forEach { repo.moveThreadToTrash(it) } }
+        return at
+    }
+
+    fun undoTrashThreads(ids: Set<Long>, trashedAfter: Long) = viewModelScope.launch {
+        ids.forEach { repo.restoreThreadFromTrash(it, trashedAfter) }
+    }
+
+    fun markThreadsRead(ids: Set<Long>) = viewModelScope.launch {
+        ids.forEach {
+            repo.db.messages().markThreadRead(it)
+            repo.db.conversations().clearUnread(it)
+        }
+    }
+
+    fun markThreadsUnread(ids: Set<Long>) = viewModelScope.launch {
+        ids.forEach { repo.db.conversations().markUnread(it) }
+    }
+
+    fun archiveThreads(ids: Set<Long>) = viewModelScope.launch {
+        ids.forEach { repo.db.conversations().setArchived(it, true) }
+    }
+
     fun toggleMute(threadId: Long, muted: Boolean) = viewModelScope.launch {
         repo.db.conversations().setMuted(threadId, muted)
     }

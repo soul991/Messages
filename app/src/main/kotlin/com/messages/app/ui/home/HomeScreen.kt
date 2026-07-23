@@ -11,8 +11,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,9 +39,14 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Drafts
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MarkEmailUnread
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
@@ -75,6 +82,9 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -146,6 +156,7 @@ fun HomeScreen(
     onCompose: () -> Unit,
     onSettings: () -> Unit,
     onDashboard: () -> Unit,
+    onOpenStarred: () -> Unit = {},
     vm: HomeViewModel = viewModel(),
 ) {
     LaunchedEffect(initialFolder) { if (initialFolder != null) vm.setFolder(initialFolder) }
@@ -159,6 +170,9 @@ fun HomeScreen(
     val chips by vm.chips.collectAsState()
     val labelFilter by vm.labelFilter.collectAsState()
     val searchState by vm.searchState.collectAsState()
+    val selectedThreads by vm.selectedThreads.collectAsState()
+    val selectionActive = selectedThreads.isNotEmpty()
+    var showHomeMenu by remember { mutableStateOf(false) }
 
     // §9: large-title collapsing app bar; its collapse fraction also drives
     // the FAB shrinking to icon-only as the list scrolls.
@@ -172,6 +186,7 @@ fun HomeScreen(
         vm.clearSearch()
     }
     BackHandler(enabled = searchActive) { exitSearch() }
+    BackHandler(enabled = selectionActive) { vm.clearSelection() }
 
     // Swipe actions (§8.2) with undo snackbars for the destructive ones.
     fun onSwipeAction(action: String, conv: ConversationEntity) {
@@ -200,7 +215,11 @@ fun HomeScreen(
                 }
             }
             SwipeActions.PIN -> vm.togglePin(conv.threadId, !conv.pinned)
-            SwipeActions.READ -> vm.markThreadRead(conv.threadId)
+            // Read swipe is a toggle (Phase 4 item 13): unread → read,
+            // read → marked unread (Google Messages behavior).
+            SwipeActions.READ ->
+                if (conv.unreadCount > 0) vm.markThreadRead(conv.threadId)
+                else vm.markThreadUnread(conv.threadId)
             SwipeActions.MUTE -> vm.toggleMute(conv.threadId, !conv.muted)
         }
     }
@@ -209,6 +228,53 @@ fun HomeScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
+            // Multi-select contextual bar (Phase 4 item 14).
+            if (selectionActive) {
+                TopAppBar(
+                    title = { Text("${selectedThreads.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { vm.clearSelection() }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Clear selection")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            vm.markThreadsRead(selectedThreads)
+                            vm.clearSelection()
+                        }) {
+                            Icon(Icons.Filled.Drafts, contentDescription = "Mark read")
+                        }
+                        IconButton(onClick = {
+                            vm.markThreadsUnread(selectedThreads)
+                            vm.clearSelection()
+                        }) {
+                            Icon(Icons.Filled.MarkEmailUnread, contentDescription = "Mark unread")
+                        }
+                        IconButton(onClick = {
+                            vm.archiveThreads(selectedThreads)
+                            vm.clearSelection()
+                        }) {
+                            Icon(Icons.Filled.Archive, contentDescription = "Archive")
+                        }
+                        IconButton(onClick = {
+                            val ids = selectedThreads
+                            val at = vm.trashThreads(ids)
+                            vm.clearSelection()
+                            scope.launch {
+                                val r = snackbarHostState.showSnackbar(
+                                    "${ids.size} conversation${if (ids.size == 1) "" else "s"} moved to Trash",
+                                    actionLabel = "Undo", withDismissAction = true,
+                                )
+                                if (r == SnackbarResult.ActionPerformed) {
+                                    vm.undoTrashThreads(ids, at - 1_000)
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Delete")
+                        }
+                    },
+                )
+            } else {
             AnimatedVisibility(
                 visible = !searchActive,
                 enter = expandVertically(Motion.spatialDefault()) + fadeIn(Motion.effectsDefault()),
@@ -223,9 +289,34 @@ fun HomeScreen(
                         IconButton(onClick = onSettings) {
                             Icon(Icons.Filled.Settings, contentDescription = "Settings")
                         }
+                        Box {
+                            IconButton(onClick = { showHomeMenu = true }) {
+                                Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(
+                                expanded = showHomeMenu,
+                                onDismissRequest = { showHomeMenu = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Starred messages") },
+                                    onClick = { showHomeMenu = false; onOpenStarred() },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Mark all as read") },
+                                    onClick = {
+                                        showHomeMenu = false
+                                        vm.markFolderRead(folder)
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Folder marked as read")
+                                        }
+                                    },
+                                )
+                            }
+                        }
                     },
                     scrollBehavior = scrollBehavior,
                 )
+            }
             }
         },
         floatingActionButton = {
@@ -352,6 +443,10 @@ private fun FolderPane(
     val rightAction by SwipeActions.right.collectAsState()
     val leftAction by SwipeActions.left.collectAsState()
     val drafts by com.messages.app.ui.common.DraftStore.drafts.collectAsState()
+    val unreadOnly by vm.unreadOnly.collectAsState()
+    val selectedThreads by vm.selectedThreads.collectAsState()
+    val selectionActive = selectedThreads.isNotEmpty()
+    val rowView = LocalView.current
     // Badge-tap explanation sheet (Phase 2).
     var badgeSheet by remember {
         mutableStateOf<com.messages.protection.SenderBadges.Badge?>(null)
@@ -362,6 +457,22 @@ private fun FolderPane(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         ) {
+            // Unread-only filter (Phase 4 item 12) — orthogonal to folders.
+            item {
+                FilterChip(
+                    selected = unreadOnly,
+                    onClick = { vm.setUnreadOnly(!unreadOnly) },
+                    label = { Text("Unread") },
+                    leadingIcon = if (unreadOnly) {
+                        {
+                            Icon(
+                                Icons.Filled.Close, contentDescription = "Clear unread filter",
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    } else null,
+                )
+            }
             items(FOLDERS) { (key, label) ->
                 val unread by vm.folderUnread(key).collectAsState(initial = 0)
                 FilterChip(
@@ -402,15 +513,29 @@ private fun FolderPane(
             },
             label = "folder-switch",
         ) { targetFolder ->
-            val conversations by remember(targetFolder) { vm.conversationsFor(targetFolder) }
+            val conversationsRaw by remember(targetFolder) { vm.conversationsFor(targetFolder) }
                 .collectAsState()
+            // Unread-only filter (Phase 4 item 12).
+            val conversations = remember(conversationsRaw, unreadOnly) {
+                if (!unreadOnly) conversationsRaw
+                else conversationsRaw?.filter { it.unreadCount > 0 }
+            }
             // Verified-sender badges (Phase 2): latest incoming message's
             // fraud/protected state per thread; eligibility is decided by the
             // engine's SenderBadges, never re-detected in the UI.
             val badgeMeta by vm.latestIncomingMeta.collectAsState()
             when {
                 conversations == null -> Box(Modifier.fillMaxSize()) // first load, no flash
-                conversations.orEmpty().isEmpty() -> EmptyFolderState(targetFolder)
+                conversations.orEmpty().isEmpty() ->
+                    if (unreadOnly) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                "No unread conversations",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else EmptyFolderState(targetFolder)
                 else -> {
                     val listState = rememberLazyListState()
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
@@ -430,7 +555,10 @@ private fun FolderPane(
                                 rightAction = rightAction,
                                 leftAction = leftAction,
                                 onAction = onSwipeAction,
-                                onClick = { onOpenThread(conv.threadId) },
+                                onClick = {
+                                    if (selectionActive) vm.toggleSelected(conv.threadId)
+                                    else onOpenThread(conv.threadId)
+                                },
                                 modifier = Modifier.animateItem(
                                     fadeInSpec = Motion.effectsDefault(),
                                     placementSpec = Motion.spatialDefault(),
@@ -438,6 +566,12 @@ private fun FolderPane(
                                 ),
                                 badge = badge,
                                 onBadgeTap = { badgeSheet = it },
+                                selectionActive = selectionActive,
+                                selected = conv.threadId in selectedThreads,
+                                onLongClick = {
+                                    Haptics.longPress(rowView)
+                                    vm.toggleSelected(conv.threadId)
+                                },
                             )
                         }
                     }
@@ -842,7 +976,21 @@ private fun SwipeableConversationRow(
     modifier: Modifier = Modifier,
     badge: com.messages.protection.SenderBadges.Badge? = null,
     onBadgeTap: (com.messages.protection.SenderBadges.Badge) -> Unit = {},
+    selectionActive: Boolean = false,
+    selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
+    // In selection mode swipes are disabled — taps toggle, long-press extends.
+    if (selectionActive) {
+        Box(modifier.background(MaterialTheme.colorScheme.surface)) {
+            ConversationRow(
+                conv = conv, draft = draft, onClick = onClick,
+                badge = badge, onBadgeTap = onBadgeTap,
+                selected = selected, onLongClick = onLongClick,
+            )
+        }
+        return
+    }
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             when (value) {
@@ -865,6 +1013,7 @@ private fun SwipeableConversationRow(
             ConversationRow(
                 conv = conv, draft = draft, onClick = onClick,
                 badge = badge, onBadgeTap = onBadgeTap,
+                onLongClick = onLongClick,
             )
         }
     }
@@ -927,6 +1076,7 @@ private fun SwipeActionBackground(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ConversationRow(
     conv: ConversationEntity,
@@ -935,12 +1085,22 @@ private fun ConversationRow(
     draft: String? = null,
     badge: com.messages.protection.SenderBadges.Badge? = null,
     onBadgeTap: (com.messages.protection.SenderBadges.Badge) -> Unit = {},
+    selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val unread = conv.unreadCount > 0
     Row(
         modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .background(
+                if (selected) MaterialTheme.colorScheme.secondaryContainer
+                else Color.Transparent
+            )
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+                onLongClickLabel = if (onLongClick != null) "Select conversation" else null,
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
