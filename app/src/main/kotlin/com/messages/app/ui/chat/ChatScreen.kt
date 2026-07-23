@@ -39,6 +39,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Image
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SimCard
@@ -268,6 +270,32 @@ fun ChatScreen(
     var showScheduleDialog by remember { mutableStateOf(false) }
     var showChatMenu by remember { mutableStateOf(false) }
     var showDeleteThreadConfirm by remember { mutableStateOf(false) }
+    var showQuickReplies by remember { mutableStateOf(false) }
+
+    // Link previews (Phase 4 item 9): opt-in, read once per screen entry.
+    val linkPreviewsEnabled = remember { LinkPreview.enabled(context) }
+
+    // Pinned messages (Phase 4 item 6): local-only ids from PinStore.
+    val allPins by PinStore.pins.collectAsState()
+    LaunchedEffect(Unit) { PinStore.pinsFor(context, threadId) } // triggers initial load
+    val pinnedIds = allPins[threadId].orEmpty()
+    val pinnedMessages = remember(messages, pinnedIds) {
+        messages.filter { it.id in pinnedIds }
+    }
+    // Which pinned message the banner currently points to (tap cycles).
+    var pinnedCursor by remember { mutableStateOf(0) }
+
+    // SIM name resolver for the per-message info sheet (Phase 4 item 7).
+    val simNameFor: (Int?) -> String = remember(simOptions) {
+        { subId ->
+            when {
+                subId == null -> "Default"
+                else -> simOptions.firstOrNull { it.subId == subId }
+                    ?.let { "SIM ${it.slotIndex + 1} — ${it.displayName}" }
+                    ?: "SIM (id $subId)"
+            }
+        }
+    }
 
     // ---- In-conversation search (§8.5.3) ----
     var chatSearchActive by remember { mutableStateOf(initialSearchTerms.isNotEmpty()) }
@@ -510,6 +538,48 @@ fun ChatScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().imePadding()) {
+            // Pinned-messages banner (Phase 4 item 6): tap scrolls to the
+            // pinned message and cycles when several are pinned. Local-only.
+            if (pinnedMessages.isNotEmpty()) {
+                val current = pinnedMessages[pinnedCursor.coerceIn(pinnedMessages.indices)]
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val idx = items.indexOfFirst { (it as? ChatItem.Msg)?.m?.id == current.id }
+                            if (idx >= 0) scope.launch { listState.animateScrollToItem(idx) }
+                            pinnedCursor = (pinnedCursor + 1) % pinnedMessages.size
+                        },
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Filled.PushPin, contentDescription = "Pinned message",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            current.body.ifBlank { "Pinned message" },
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (pinnedMessages.size > 1) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "${(pinnedCursor % pinnedMessages.size) + 1}/${pinnedMessages.size}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
             // Per-chat wallpaper (§8.2): gradient preset or an imported photo
             // under a soft surface scrim so bubbles stay legible.
             val wallpaperBrush = ChatStyle.wallpaperBrush(wallpaperId)
@@ -575,6 +645,16 @@ fun ChatScreen(
                                 onSnooze = { remindAt -> vm.snooze(item.m.id, remindAt) },
                                 onStar = { vm.star(item.m.id, !item.m.starred) },
                                 onDelete = { vm.delete(item.m.id) },
+                                pinned = item.m.id in pinnedIds,
+                                onPinToggle = {
+                                    Haptics.tick(view)
+                                    PinStore.setPinned(
+                                        context, threadId, item.m.id,
+                                        pinned = item.m.id !in pinnedIds,
+                                    )
+                                },
+                                linkPreviewsEnabled = linkPreviewsEnabled,
+                                simNameFor = simNameFor,
                                 modifier = itemModifier,
                             )
                         }
@@ -659,6 +739,14 @@ fun ChatScreen(
                     Icon(
                         Icons.Filled.Attachment,
                         contentDescription = "Attach",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                // Quick-reply templates (Phase 4 item 8).
+                IconButton(onClick = { showQuickReplies = true }) {
+                    Icon(
+                        Icons.Filled.Bolt,
+                        contentDescription = "Quick replies",
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -793,6 +881,45 @@ fun ChatScreen(
                 },
                 onDismiss = { showCustomizeSheet = false },
             )
+        }
+
+        // Quick-reply templates sheet (Phase 4 item 8): tap fills the composer.
+        if (showQuickReplies) {
+            androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showQuickReplies = false }) {
+                val templates by QuickReplies.templates.collectAsState()
+                LaunchedEffect(Unit) { QuickReplies.load(context) }
+                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+                    Text("Quick replies", style = MaterialTheme.typography.titleLarge)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Manage templates in Settings → Conversations.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    templates.forEach { template ->
+                        Text(
+                            template,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    draft = if (draft.isBlank()) template else "$draft $template"
+                                    showQuickReplies = false
+                                }
+                                .padding(vertical = 12.dp),
+                        )
+                    }
+                    if (templates.isEmpty()) {
+                        Text(
+                            "No templates yet — add some in Settings → Conversations.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 12.dp),
+                        )
+                    }
+                }
+            }
         }
 
         if (showAttachSheet) {
@@ -1049,15 +1176,34 @@ private fun MessageBubble(
     onSnooze: (Long) -> Unit,
     onStar: () -> Unit,
     onDelete: () -> Unit,
+    pinned: Boolean = false,
+    onPinToggle: () -> Unit = {},
+    linkPreviewsEnabled: Boolean = false,
+    /** SIM display name for the info sheet; null subId = default SIM. */
+    simNameFor: (Int?) -> String = { "Default" },
     modifier: Modifier = Modifier,
 ) {
     val clipboard = LocalClipboardManager.current
     val view = LocalView.current
+    val context = LocalContext.current
     val isOut = msg.isOutgoing
     val isScheduled = msg.sendStatus == "SCHEDULED"
     var showMenu by remember { mutableStateOf(false) }
     var showSnoozeMenu by remember { mutableStateOf(false) }
+    var showInfoSheet by remember { mutableStateOf(false) }
+    var showSelectDialog by remember { mutableStateOf(false) }
     val fraudPalette = categoryPalette("SPAM")
+
+    // Smart text actions (Phase 4 item 5): platform TextClassifier entities,
+    // NEVER on Spam/Blocked or Dangerous/fraud-flagged messages.
+    val smartEligible = SmartText.eligible(msg.category, msg.dangerous, msg.fraudWarning)
+    val smartSpans by androidx.compose.runtime.produceState(
+        initialValue = emptyList<SmartText.Span>(), msg.id, smartEligible,
+    ) {
+        value = if (smartEligible && msg.body.isNotBlank()) {
+            SmartText.spansFor(context, msg.id, msg.body)
+        } else emptyList()
+    }
 
     // Grouped-bubble corners (§9): big outer corners, tight corners between
     // group neighbours, and a tail corner on the group's last bubble.
@@ -1156,7 +1302,7 @@ private fun MessageBubble(
                 }
                 if (msg.body.isNotBlank()) {
                     // §8.5.3: in-conversation search highlights terms inside the bubble.
-                    val bodyText = if (highlightTerms.isEmpty()) AnnotatedString(msg.body)
+                    val highlighted = if (highlightTerms.isEmpty()) AnnotatedString(msg.body)
                     else com.messages.app.ui.search.SearchHighlight.annotate(
                         msg.body, highlightTerms,
                         androidx.compose.ui.text.SpanStyle(
@@ -1165,6 +1311,30 @@ private fun MessageBubble(
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                         ),
                     )
+                    // Smart spans layer tappable actions on top (Phase 4 item 5).
+                    val linkColor = if (isOut) outBubbleColors.second
+                    else MaterialTheme.colorScheme.primary
+                    val bodyText = if (smartSpans.isEmpty()) highlighted
+                    else androidx.compose.ui.text.buildAnnotatedString {
+                        append(highlighted)
+                        smartSpans.forEach { span ->
+                            val end = minOf(span.end, msg.body.length)
+                            if (span.start >= end) return@forEach
+                            addStyle(
+                                androidx.compose.ui.text.SpanStyle(
+                                    color = linkColor,
+                                    textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                                ),
+                                span.start, end,
+                            )
+                            addLink(
+                                androidx.compose.ui.text.LinkAnnotation.Clickable(span.type) {
+                                    SmartText.performAction(context, msg.body, span)
+                                },
+                                span.start, end,
+                            )
+                        }
+                    }
                     Text(
                         bodyText,
                         style = MaterialTheme.typography.bodyLarge,
@@ -1175,7 +1345,7 @@ private fun MessageBubble(
                 }
             }
 
-            // Long-press actions: copy, star, snooze (§8.2), delete
+            // Long-press actions: copy, select, star, pin, snooze, info, delete
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 DropdownMenuItem(
                     text = { Text("Copy text") },
@@ -1184,16 +1354,30 @@ private fun MessageBubble(
                         showMenu = false
                     },
                 )
+                if (msg.body.isNotBlank()) {
+                    DropdownMenuItem(
+                        text = { Text("Select text") },
+                        onClick = { showMenu = false; showSelectDialog = true },
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text(if (msg.starred) "Unstar" else "Star") },
                     onClick = { onStar(); showMenu = false },
                 )
                 if (!isScheduled) {
                     DropdownMenuItem(
+                        text = { Text(if (pinned) "Unpin" else "Pin") },
+                        onClick = { onPinToggle(); showMenu = false },
+                    )
+                    DropdownMenuItem(
                         text = { Text("Remind me…") },
                         onClick = { showMenu = false; showSnoozeMenu = true },
                     )
                 }
+                DropdownMenuItem(
+                    text = { Text("Info") },
+                    onClick = { showMenu = false; showInfoSheet = true },
+                )
                 DropdownMenuItem(
                     text = { Text("Delete") },
                     onClick = { onDelete(); showMenu = false },
@@ -1241,6 +1425,39 @@ private fun MessageBubble(
                 TextButton(onClick = onSendNow) { Text("Send now") }
                 TextButton(onClick = onCancelScheduled) { Text("Cancel") }
             }
+        }
+
+        // Opt-in link preview (Phase 4 item 9): Inbox messages only, never
+        // filtered folders, never Dangerous/fraud-flagged — even when enabled.
+        if (linkPreviewsEnabled && msg.category == "INBOX" &&
+            !msg.dangerous && !msg.fraudWarning
+        ) {
+            LinkPreview.firstUrl(msg.body)?.let { url ->
+                LinkPreviewCard(url)
+            }
+        }
+
+        if (showSelectDialog) {
+            AlertDialog(
+                onDismissRequest = { showSelectDialog = false },
+                title = { Text("Select text") },
+                text = {
+                    androidx.compose.foundation.text.selection.SelectionContainer {
+                        Text(msg.body, style = MaterialTheme.typography.bodyLarge)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showSelectDialog = false }) { Text("Done") }
+                },
+            )
+        }
+
+        if (showInfoSheet) {
+            MessageInfoSheet(
+                msg = msg,
+                simName = simNameFor(msg.subId),
+                onDismiss = { showInfoSheet = false },
+            )
         }
 
         // One-tap OTP copy chip (§8.2); same extractor as the notification action.
@@ -1327,5 +1544,106 @@ private fun ScheduleSendDialog(
             },
             dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
         )
+    }
+}
+
+/** Small OG-scrape card under an Inbox bubble (Phase 4 item 9, opt-in). */
+@Composable
+private fun LinkPreviewCard(url: String) {
+    val context = LocalContext.current
+    val preview by androidx.compose.runtime.produceState<LinkPreviewParser.Preview?>(null, url) {
+        value = LinkPreview.fetch(url)
+    }
+    val p = preview ?: return
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier
+            .padding(top = 2.dp)
+            .widthIn(max = 320.dp)
+            .clickable {
+                runCatching {
+                    context.startActivity(
+                        android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse(p.url),
+                        )
+                    )
+                }
+            },
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (p.imageUrl != null) {
+                AsyncImage(
+                    model = p.imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
+                )
+            }
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Text(
+                    p.title,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+                Text(
+                    p.siteName ?: runCatching { java.net.URL(p.url).host }.getOrDefault(p.url),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+private val INFO_FMT = SimpleDateFormat("EEE, d MMM yyyy · h:mm:ss a", Locale.US)
+
+/** Per-message info sheet (Phase 4 item 7): timestamps, SIM, type, status. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MessageInfoSheet(
+    msg: MessageEntity,
+    simName: String,
+    onDismiss: () -> Unit,
+) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+            Text("Message info", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(16.dp))
+            InfoRow("Type", buildString {
+                append(if (msg.mmsId != null) "MMS" else "SMS")
+                append(if (msg.isOutgoing) " · Sent" else " · Received")
+            })
+            InfoRow(
+                if (msg.isOutgoing) "Sent" else "Received",
+                INFO_FMT.format(Date(msg.timestamp)),
+            )
+            if (msg.isOutgoing && msg.sendStatus != "NONE") {
+                InfoRow("Status", msg.sendStatus.lowercase().replaceFirstChar { it.uppercase() })
+            }
+            InfoRow(if (msg.isOutgoing) "To" else "From", msg.address)
+            if (msg.subId != null || msg.isOutgoing) InfoRow("SIM", simName)
+            InfoRow("Folder", msg.category.lowercase().replaceFirstChar { it.uppercase() })
+            if (msg.protectedLabel.isNotBlank() && msg.protectedLabel != "NONE") {
+                InfoRow("Label", msg.protectedLabel)
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(96.dp),
+        )
+        Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }

@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -515,6 +516,26 @@ fun SettingsScreen(
                             .edit().putBoolean("delivery_reports", it).apply()
                     },
                 )
+                Spacer(Modifier.height(12.dp))
+                // Link previews (Phase 4 item 9) — the one opt-in network
+                // feature for message content; scope stated in the subtitle.
+                var linkPreviews by remember {
+                    mutableStateOf(com.messages.app.ui.chat.LinkPreview.enabled(ctx))
+                }
+                SettingSwitchRow(
+                    title = "Link previews",
+                    subtitle = "Show a small preview card for links in Inbox messages. " +
+                        "Never for filtered folders or dangerous messages; no cookies are sent.",
+                    checked = linkPreviews,
+                    enabled = true,
+                    onChange = {
+                        linkPreviews = it
+                        com.messages.app.ui.chat.LinkPreview.setEnabled(ctx, it)
+                    },
+                )
+                Spacer(Modifier.height(12.dp))
+                // Quick-reply templates (Phase 4 item 8).
+                QuickRepliesEditor(ctx)
             }
 
             // ---- Auto-clean features ----
@@ -835,6 +856,64 @@ internal fun SectionHeader(title: String) {
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
     )
+}
+
+/** Quick-reply template manager (Phase 4 item 8): list + add + delete. */
+@Composable
+private fun QuickRepliesEditor(ctx: android.content.Context) {
+    val templates by com.messages.app.ui.chat.QuickReplies.templates.collectAsState()
+    LaunchedEffect(Unit) { com.messages.app.ui.chat.QuickReplies.load(ctx) }
+    var newTemplate by remember { mutableStateOf("") }
+
+    Column(Modifier.padding(horizontal = 20.dp)) {
+        Text("Quick replies", style = MaterialTheme.typography.bodyLarge)
+        Text(
+            "One-tap templates offered by the ⚡ button in the composer.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        templates.forEach { template ->
+            Row(
+                Modifier.fillMaxWidth().padding(top = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    template,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = {
+                    com.messages.app.ui.chat.QuickReplies.remove(ctx, template)
+                }) {
+                    Icon(
+                        Icons.Filled.Delete, contentDescription = "Delete template",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(top = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = newTemplate,
+                onValueChange = { newTemplate = it },
+                placeholder = { Text("New quick reply") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(
+                onClick = {
+                    com.messages.app.ui.chat.QuickReplies.add(ctx, newTemplate)
+                    newTemplate = ""
+                },
+                enabled = newTemplate.isNotBlank(),
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Add template")
+            }
+        }
+    }
 }
 
 @Composable
