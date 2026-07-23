@@ -43,6 +43,13 @@ class MessagesApp : Application() {
                 NotificationChannel(CH_PROMOTIONS, "Promotions", NotificationManager.IMPORTANCE_LOW).apply {
                     description = "Optional alerts for promotional messages"
                 },
+                // Phase 4 item 19 (Truecaller report rec A4): fraud warnings are
+                // the ONE exception to "filtered folders stay silent" — ordinary
+                // spam still never notifies; this channel is only for Dangerous
+                // verdicts and is governed by the default-on warn setting.
+                NotificationChannel(CH_FRAUD, "Fraud warnings", NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = "Warnings about dangerous, likely-fraudulent messages"
+                },
                 // Spam/Blocked have NO channel — they are silent, badge only (§4)
             )
         )
@@ -54,5 +61,6 @@ class MessagesApp : Application() {
         const val CH_PROMOTIONS = "promotions"
         const val CH_REVIEW = "review"
         const val CH_REMINDERS = "reminders"
+        const val CH_FRAUD = "fraud_warnings"
     }
 }

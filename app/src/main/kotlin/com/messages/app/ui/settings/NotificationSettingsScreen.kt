@@ -148,6 +148,19 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
             )
 
             HorizontalDivider(Modifier.padding(vertical = 16.dp))
+            SectionHeader("Protection")
+            Spacer(Modifier.height(4.dp))
+            val warnDangerous by vm.warnDangerous.collectAsState()
+            SettingSwitchRow(
+                title = "Warn me about dangerous messages",
+                subtitle = "A red warning notification when a message looks like fraud. " +
+                    "It stays until you dismiss it. Ordinary spam never notifies.",
+                checked = warnDangerous,
+                enabled = true,
+                onChange = { vm.setWarnDangerous(it) },
+            )
+
+            HorizontalDivider(Modifier.padding(vertical = 16.dp))
             SectionHeader("OTP codes")
             Spacer(Modifier.height(4.dp))
             SettingSwitchRow(

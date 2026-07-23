@@ -32,6 +32,14 @@ data class SenderInfo(
     val isContact: Boolean = false,
     /** Local reputation from the user's own actions. Negative = distrusted. */
     val reputationScore: Int = 0,
+    /**
+     * Phase 4 item 21 (Truecaller report rec B3): true when the local index
+     * holds ZERO prior messages from this sender. A first-time sender pushing
+     * scam-family content is riskier than a long-history one; scam-family
+     * pattern weights get ×1.25. Deterministic, local, and explained in the
+     * Why? screen ("First message from this sender").
+     */
+    val firstContact: Boolean = false,
 )
 
 /** Where a classified message lands. */

@@ -1384,6 +1384,7 @@ private fun MessageBubble(
     var showSnoozeMenu by remember { mutableStateOf(false) }
     var showInfoSheet by remember { mutableStateOf(false) }
     var showSelectDialog by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
     val fraudPalette = categoryPalette("SPAM")
 
     // Smart text actions (Phase 4 item 5): platform TextClassifier entities,
@@ -1685,7 +1686,15 @@ private fun MessageBubble(
             Row {
                 TextButton(onClick = onNotSpam) { Text("Not spam") }
                 TextButton(onClick = onWhy) { Text("Why?") }
+                // Carrier spam reporting (Phase 4 item 17): incoming spam only.
+                if (msg.category == "SPAM" && !isOut) {
+                    TextButton(onClick = { showReportDialog = true }) { Text("Report") }
+                }
             }
+        }
+
+        if (showReportDialog) {
+            CarrierReportDialog(msg = msg, onDismiss = { showReportDialog = false })
         }
     }
 }
@@ -1808,6 +1817,104 @@ private fun LinkPreviewCard(url: String) {
 }
 
 private val INFO_FMT = SimpleDateFormat("EEE, d MMM yyyy · h:mm:ss a", Locale.US)
+
+/**
+ * Carrier spam reporting (Phase 4 item 17). India (SIM country "in"): the
+ * official TRAI path — SMS to 1909 as `<text>, <sender>, dd/mm/yy`; older
+ * than 3 days becomes a "report" rather than an actionable complaint, said
+ * plainly. Everywhere (incl. India as a second option): GSMA 7726. The exact
+ * outgoing text is shown before anything is sent; standard SMS rates note.
+ */
+@Composable
+private fun CarrierReportDialog(msg: MessageEntity, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val india = remember { com.messages.app.report.CarrierReport.isIndia(context) }
+    val withinWindow = remember {
+        com.messages.app.report.CarrierReportFormat.withinTraiComplaintWindow(
+            msg.timestamp, System.currentTimeMillis(),
+        )
+    }
+    // null = choosing a path; otherwise the picked (shortCode, outgoing text).
+    var picked by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    fun send(shortCode: String, text: String) {
+        val ok = com.messages.app.report.CarrierReport.send(context, shortCode, text, msg.subId)
+        android.widget.Toast.makeText(
+            context,
+            if (ok) "Report sent to $shortCode" else "Couldn't send the report",
+            android.widget.Toast.LENGTH_SHORT,
+        ).show()
+        onDismiss()
+    }
+
+    val current = picked
+    if (current == null) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Report to carrier") },
+            text = {
+                Column {
+                    Text(
+                        "Reporting forwards this message to your carrier's spam " +
+                            "service by SMS. Standard SMS rates may apply.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    if (india) {
+                        TextButton(onClick = {
+                            picked = com.messages.app.report.CarrierReportFormat.TRAI_SHORT_CODE to
+                                com.messages.app.report.CarrierReportFormat.traiComplaint(
+                                    msg.body, msg.address, msg.timestamp,
+                                )
+                        }) { Text("Report to 1909 (TRAI DND)") }
+                        if (!withinWindow) {
+                            Text(
+                                "This message is older than 3 days, so TRAI treats it " +
+                                    "as an intelligence report rather than an actionable complaint.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    TextButton(onClick = {
+                        picked = com.messages.app.report.CarrierReportFormat.GSMA_SHORT_CODE to
+                            com.messages.app.report.CarrierReportFormat.gsmaReport(msg.body)
+                    }) { Text("Forward to 7726 (SPAM)") }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        )
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Send to ${current.first}?") },
+            text = {
+                Column {
+                    Text(
+                        "This exact message will be sent:",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(8.dp),
+                    ) {
+                        Text(
+                            current.second,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(10.dp),
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { send(current.first, current.second) }) { Text("Send report") }
+            },
+            dismissButton = { TextButton(onClick = { picked = null }) { Text("Back") } },
+        )
+    }
+}
 
 /** Per-message info sheet (Phase 4 item 7): timestamps, SIM, type, status. */
 @OptIn(ExperimentalMaterial3Api::class)

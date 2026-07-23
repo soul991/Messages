@@ -121,6 +121,17 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         otpAutoCopy.value = enabled
     }
 
+    /** Phase 4 item 19: persistent fraud warning for Dangerous verdicts — default ON. */
+    val warnDangerous = MutableStateFlow(
+        app.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("warn_dangerous", true)
+    )
+
+    fun setWarnDangerous(enabled: Boolean) {
+        getApplication<Application>().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .edit().putBoolean("warn_dangerous", enabled).apply()
+        warnDangerous.value = enabled
+    }
+
     val notifyTransactions = MutableStateFlow(app.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("notify_transactions", true))
     val notifyPromotions = MutableStateFlow(app.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("notify_promotions", false))
     val notifyReview = MutableStateFlow(app.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("notify_review", true))
@@ -553,13 +564,42 @@ fun SettingsScreen(
                     onChange = { vm.setOtpAutoDelete(it) },
                 )
                 Spacer(Modifier.height(12.dp))
+                // §6.5: opt-in, confirmation required, Spam only, via Trash.
+                var confirmSpamClean by remember { mutableStateOf(false) }
                 SettingSwitchRow(
-                    title = "Delete Spam after 90 days",
-                    subtitle = "Automatically delete messages in the Spam and Blocked folders that are older than 90 days.",
+                    title = "Auto-clean Spam older than 90 days",
+                    subtitle = "Old Spam moves to Trash (restorable for 60 days). " +
+                        "Starred messages, Review, and Blocked are never touched.",
                     checked = spamAutoClean,
                     enabled = true,
-                    onChange = { vm.setSpamAutoClean(it) },
+                    onChange = { enable ->
+                        if (enable) confirmSpamClean = true
+                        else vm.setSpamAutoClean(false)
+                    },
                 )
+                if (confirmSpamClean) {
+                    AlertDialog(
+                        onDismissRequest = { confirmSpamClean = false },
+                        title = { Text("Auto-clean old Spam?") },
+                        text = {
+                            Text(
+                                "Spam messages older than 90 days will be moved to " +
+                                    "Trash automatically (once a week) and stay " +
+                                    "restorable there for 60 days. Review and Blocked " +
+                                    "folders are never cleaned."
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                confirmSpamClean = false
+                                vm.setSpamAutoClean(true)
+                            }) { Text("Turn on") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { confirmSpamClean = false }) { Text("Cancel") }
+                        },
+                    )
+                }
             }
 
             // ---- Pattern library (§7.5) ----

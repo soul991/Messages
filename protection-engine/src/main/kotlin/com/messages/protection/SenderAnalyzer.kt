@@ -21,6 +21,7 @@ object SenderAnalyzer {
         isContact: Boolean,
         reputationScore: Int = 0,
         homeCountryCode: String = "+91",
+        firstContact: Boolean = false,
     ): SenderInfo {
         val addr = rawAddress.trim()
         val type = when {
@@ -37,7 +38,7 @@ object SenderAnalyzer {
             ALPHA_HEADER.matches(addr) -> SenderType.ALPHANUMERIC_UNKNOWN
             else -> SenderType.ALPHANUMERIC_UNKNOWN
         }
-        return SenderInfo(addr, type, isContact, reputationScore)
+        return SenderInfo(addr, type, isContact, reputationScore, firstContact)
     }
 
     private fun dltSuffix(addr: String): Char? {
@@ -63,8 +64,17 @@ object SenderAnalyzer {
             info.reputationScore >= 3 -> 0.5
             else -> 1.0
         }
-        return base * reputation
+        return base * reputation * firstContactMultiplier(info, family)
     }
+
+    /**
+     * Phase 4 item 21 (Truecaller rec B3): ×1.25 on SCAM-family weights when
+     * the sender has zero prior messages in the local index. Never applies to
+     * promo or protected families — a first newsletter must not be punished,
+     * and Protected can't be filtered anyway. Never for saved contacts.
+     */
+    fun firstContactMultiplier(info: SenderInfo, family: String): Double =
+        if (info.firstContact && !info.isContact && family in Families.SCAM) 1.25 else 1.0
 
     /** True for DLT-registered / known business headers (trust for Stage 2). */
     fun isRegisteredHeader(info: SenderInfo): Boolean = when (info.type) {

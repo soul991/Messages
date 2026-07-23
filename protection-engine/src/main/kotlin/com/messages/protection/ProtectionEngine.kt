@@ -112,11 +112,20 @@ class ProtectionEngine(
         var score = 0.0
         val explanations = mutableListOf<String>()
         val matchedIds = mutableListOf<String>()
+        var firstContactApplied = false
         for (m in patternMatches) {
             val w = m.pattern.weight * SenderAnalyzer.spamMultiplier(sender, m.pattern.family)
             score += w
             matchedIds += m.pattern.id
             explanations += m.pattern.description
+            if (SenderAnalyzer.firstContactMultiplier(sender, m.pattern.family) > 1.0) {
+                firstContactApplied = true
+            }
+        }
+        // Phase 4 item 21 (rec B3): surface the first-contact bump once, plainly.
+        if (firstContactApplied) {
+            matchedIds += "first-contact"
+            explanations += "First message from this sender"
         }
         for (s in linkSignals) {
             score += s.weight

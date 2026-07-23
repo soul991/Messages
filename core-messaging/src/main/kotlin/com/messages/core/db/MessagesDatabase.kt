@@ -149,8 +149,9 @@ interface MessageDao {
     )
     suspend fun expiredOtps(olderThan: Long): List<MessageEntity>
 
+    // §6.5: SPAM only — Review and Blocked are NEVER auto-cleaned.
     @Query(
-        "SELECT * FROM messages WHERE category IN ('SPAM', 'BLOCKED') " +
+        "SELECT * FROM messages WHERE category = 'SPAM' " +
             "AND starred = 0 AND trashed = 0 AND timestamp < :olderThan"
     )
     suspend fun expiredSpam(olderThan: Long): List<MessageEntity>
@@ -182,6 +183,14 @@ interface MessageDao {
 
     @Query("SELECT COUNT(*) FROM messages WHERE dangerous = 1 AND timestamp >= :since AND trashed = 0")
     suspend fun dangerousCountSince(since: Long): Int
+
+    /**
+     * Phase 4 item 21 (rec B3): count of messages already stored from this
+     * exact address (incl. trashed — a trashed history still means the sender
+     * is not brand-new). Zero → first-contact multiplier applies.
+     */
+    @Query("SELECT COUNT(*) FROM messages WHERE address = :address")
+    suspend fun countForAddress(address: String): Int
 
     @Query(
         "SELECT matchedPatternIds FROM messages WHERE category IN " +

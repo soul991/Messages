@@ -412,7 +412,8 @@ class MessageRepository private constructor(private val context: Context) {
     suspend fun classify(address: String, body: String): Verdict {
         val isContact = lookupContactName(address) != null
         val reputation = db.reputation().forSender(address)?.score ?: 0
-        val senderInfo = SenderAnalyzer.analyze(address, isContact, reputation)
+        val firstContact = db.messages().countForAddress(address) == 0
+        val senderInfo = SenderAnalyzer.analyze(address, isContact, reputation, firstContact = firstContact)
         val rules = db.userRules().all()
         val allow = rules.any { it.kind == "ALLOW" && matchesRule(it.pattern, address) }
         val block = rules.any { it.kind == "BLOCK" && matchesRule(it.pattern, address) }
@@ -943,11 +944,17 @@ class MessageRepository private constructor(private val context: Context) {
      * User-ENABLED Spam cleanup: delete Spam/Blocked messages older than [olderThanMs].
      * Bypasses Trash, permanently deleting them.
      */
+    /**
+     * §6.5 auto-clean: expired Spam goes THROUGH TRASH like any user deletion
+     * (60-day restore window), never straight to oblivion. The DAO query is
+     * scoped to SPAM only — Review/Blocked untouchable — and skips starred.
+     */
     suspend fun cleanupExpiredSpam(olderThanMs: Long): Int = withContext(Dispatchers.IO) {
         val expired = db.messages().expiredSpam(System.currentTimeMillis() - olderThanMs)
+        val now = System.currentTimeMillis()
         expired.forEach { msg ->
             deleteProviderRow(msg)
-            db.messages().userDelete(msg.id)
+            db.messages().moveToTrash(msg.id, now)
         }
         expired.map { it.threadId }.distinct().forEach { refreshConversationSummary(it) }
         expired.size

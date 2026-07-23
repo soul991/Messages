@@ -10,8 +10,9 @@ import com.messages.core.MessageRepository
 import java.util.concurrent.TimeUnit
 
 /**
- * Optional auto-clean of Spam > 90 days old.
- * Runs weekly to delete expired spam from Spam/Blocked folders.
+ * Optional auto-clean of Spam > 90 days old (§6.5): OFF by default, cleaned
+ * spam goes through Trash like any user deletion (60-day restore window),
+ * and only the Spam folder is touched — never Review or Blocked.
  */
 class SpamCleanupWorker(
     context: Context,

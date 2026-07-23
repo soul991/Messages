@@ -33,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -117,6 +118,12 @@ fun WhyFilteredScreen(
         ) {
             VerdictHeader(msg)
             MessageCard(msg)
+            // Phase 4 item 20 (Truecaller rec A5): links in Dangerous messages
+            // do nothing in the chat; the ONLY way to a flagged link is this
+            // deliberate reveal, and even then it never becomes tappable.
+            if (msg.dangerous || msg.fraudWarning) {
+                DangerousLinksSection(msg)
+            }
             ExplanationList(msg)
             if (msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED")) {
                 Button(onClick = vm::moveToInbox, modifier = Modifier.fillMaxWidth()) {
@@ -174,9 +181,69 @@ private fun VerdictHeader(msg: MessageEntity) {
     }
 }
 
+/**
+ * Links in a Dangerous/fraud-flagged message (Phase 4 item 20). Hidden by
+ * default behind a per-link "Show link" unlock; revealed links render as
+ * selectable text with a red warning — they are never made tappable.
+ */
 @Composable
-private fun MessageCard(msg: MessageEntity) {
-    Surface(
+private fun DangerousLinksSection(msg: MessageEntity) {
+    val urls = androidx.compose.runtime.remember(msg.id) {
+        runCatching {
+            com.messages.protection.Normalizer.normalize(msg.body).urls.distinct()
+        }.getOrDefault(emptyList())
+    }
+    if (urls.isEmpty()) return
+    var revealed by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(setOf<String>())
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Links in this message", style = MaterialTheme.typography.titleSmall)
+        Text(
+            "Links are disabled everywhere for this message. Revealing one below " +
+                "makes it readable, never tappable. Do not visit it.",
+            style = MaterialTheme.typography.bodySmall,
+            color = CategoryColors.Fraud,
+        )
+        urls.forEach { url ->
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = CategoryColors.FraudContainer,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (url in revealed) {
+                        androidx.compose.foundation.text.selection.SelectionContainer(
+                            Modifier.weight(1f)
+                        ) {
+                            Text(
+                                url,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CategoryColors.Fraud,
+                            )
+                        }
+                    } else {
+                        Text(
+                            "Hidden dangerous link",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CategoryColors.Fraud,
+                            modifier = Modifier.weight(1f),
+                        )
+                        androidx.compose.material3.TextButton(
+                            onClick = { revealed = revealed + url },
+                        ) { Text("Show link") }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MessageCard(msg: MessageEntity) {    Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth(),

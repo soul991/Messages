@@ -73,7 +73,17 @@ class MessageNotifier(private val context: Context) {
                     message, verdict, contactName, MessagesApp.CH_PROMOTIONS, hidden, conversationLocked,
                 )
             }
-            Category.SPAM, Category.BLOCKED -> Unit // silent (§4)
+            Category.SPAM -> {
+                // Phase 4 item 19 (Truecaller rec A4): a persistent red warning
+                // for DANGEROUS verdicts only — fraud combos / dangerous
+                // threshold. Ordinary spam and promos stay silent forever.
+                if (verdict.dangerous &&
+                    prefs.getBoolean("warn_dangerous", true)
+                ) {
+                    postFraudWarning(message, contactName, hidden, conversationLocked)
+                }
+            }
+            Category.BLOCKED -> Unit // silent (§4)
         }
     }
 
@@ -239,9 +249,52 @@ class MessageNotifier(private val context: Context) {
         NotificationManagerCompat.from(context).notify(message.threadId.toInt(), builder.build())
     }
 
-    /** One quiet, batched low-priority notification for the Review folder. */
-    private fun postReviewNotification() {
+    /**
+     * Persistent red fraud warning (Phase 4 item 19): does not auto-clear on
+     * tap (setAutoCancel false) but IS user-dismissable — never setOngoing.
+     * Red is reserved for fraud; ordinary spam never triggers this.
+     */
+    private fun postFraudWarning(
+        message: MessageEntity,
+        contactName: String?,
+        hidden: Boolean,
+        conversationLocked: Boolean,
+    ) {
+        val sender = if (conversationLocked) "a locked conversation"
+        else contactName ?: message.address
         val openIntent = PendingIntent.getActivity(
+            context, (FRAUD_ID_BASE - message.threadId).toInt(),
+            Intent(context, MainActivity::class.java).apply {
+                putExtra("threadId", message.threadId)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val body = if (hidden) {
+            "A message was flagged as likely fraud and filed in Spam. " +
+                "Don't tap its links or share codes."
+        } else {
+            "Likely fraud from $sender — filed in Spam. Don't tap links, call back, " +
+                "or share OTPs, PINs, or card details."
+        }
+        val builder = NotificationCompat.Builder(context, MessagesApp.CH_FRAUD)
+            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setContentTitle("⚠️ Dangerous message blocked")
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(openIntent)
+            // Persistent until the user swipes it away (Truecaller pattern):
+            // tapping opens the chat but the warning stays.
+            .setAutoCancel(false)
+            .setColor(0xFFD32F2F.toInt())
+            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+        NotificationManagerCompat.from(context)
+            .notify((FRAUD_ID_BASE - message.threadId).toInt(), builder.build())
+    }
+
+    /** One quiet, batched low-priority notification for the Review folder. */
+    private fun postReviewNotification() {        val openIntent = PendingIntent.getActivity(
             context, REVIEW_ID,
             Intent(context, MainActivity::class.java).apply { putExtra("folder", "REVIEW") },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -263,6 +316,9 @@ class MessageNotifier(private val context: Context) {
 
     companion object {
         private const val REVIEW_ID = -100
+
+        /** Fraud-warning ids live far below thread-id space (item 19). */
+        private const val FRAUD_ID_BASE = -1_000_000L
 
         /** RemoteInput result key for the inline reply action. */
         const val KEY_REPLY = "key_reply_text"
