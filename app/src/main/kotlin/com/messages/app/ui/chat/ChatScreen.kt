@@ -438,10 +438,11 @@ fun ChatScreen(
         if (baseline == null) return@LaunchedEffect
         val freshId = (failedIds - baseline).maxOrNull() ?: return@LaunchedEffect
         val fresh = messages.firstOrNull { it.id == freshId } ?: return@LaunchedEffect
+        // Short = standard M3 auto-dismiss (~4s); swipe still dismisses early.
         val result = snackbarHostState.showSnackbar(
             message = com.messages.core.send.SendFailure.reasonFor(fresh.sendResultCode),
             actionLabel = "Resend",
-            withDismissAction = true,
+            duration = androidx.compose.material3.SnackbarDuration.Short,
         )
         if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
             vm.resend(fresh)
@@ -1733,7 +1734,13 @@ private fun MessageBubble(
             )
         }
         if (msg.sendStatus == "FAILED") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Metadata under the failed bubble, never a full-width row — an
+            // unconstrained Row here stretches edge-to-edge and reads as a
+            // separate message entry between bubbles.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.widthIn(max = maxBubbleWidth),
+            ) {
                 Text(
                     com.messages.core.send.SendFailure.reasonFor(msg.sendResultCode),
                     style = MaterialTheme.typography.labelSmall,

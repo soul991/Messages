@@ -162,31 +162,51 @@ class MessageNotifier(private val context: Context) {
         val effectiveChannel = if (conversationLocked) channel
         else ConversationChannels.channelFor(context, message.threadId, channel)
 
+        // Phase 5: extracted-datum heroes. Never when the preview is hidden or
+        // the chat is locked — the code/amount IS the content (hidden covers
+        // both). Deterministic only: OTP needs an extracted code; Transactions
+        // need exactly one distinct amount, anything else degrades to plain.
+        val otpCode = if (
+            verdict.protectedLabel == com.messages.protection.ProtectedLabel.OTP && !hidden
+        ) com.messages.protection.OtpExtractor.extract(message.body) else null
+        val heroTitle = when {
+            otpCode != null -> "$otpCode — $title"
+            channel == MessagesApp.CH_TRANSACTIONS && !hidden ->
+                com.messages.protection.Normalizer.normalize(message.body)
+                    .amounts.distinct().singleOrNull()?.let { "$it — $title" }
+            else -> null
+        }
+
         val builder = NotificationCompat.Builder(context, effectiveChannel)
-            .setSmallIcon(android.R.drawable.sym_action_chat)
-            .setContentTitle(title)
+            .setSmallIcon(R.drawable.ic_notif_message)
+            .setContentTitle(heroTitle ?: title)
             .setContentText(text)
-            .setStyle(style)
             .setContentIntent(openIntent)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .addAction(0, "Mark as read", markRead)
 
+        // MessagingStyle renders its own sender line, which would override the
+        // hero title — hero notifications use BigTextStyle instead (the body
+        // stays readable, de-emphasized under the code/amount).
+        if (heroTitle != null) {
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(text))
+        } else {
+            builder.setStyle(style)
+        }
+
         // One-tap OTP copy on the notification itself (Phase 4 item 1).
-        // Never when the preview is hidden — the code IS the content.
-        if (verdict.protectedLabel == com.messages.protection.ProtectedLabel.OTP && !hidden) {
-            com.messages.protection.OtpExtractor.extract(message.body)?.let { code ->
-                val copyOtp = PendingIntent.getBroadcast(
-                    context, (message.threadId * 10 + 2).toInt(),
-                    Intent(context, NotificationActionReceiver::class.java).apply {
-                        putExtra("action", "copy_otp")
-                        putExtra("threadId", message.threadId)
-                        putExtra("otp", code)
-                    },
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                )
-                builder.addAction(0, "Copy $code", copyOtp)
-            }
+        if (otpCode != null) {
+            val copyOtp = PendingIntent.getBroadcast(
+                context, (message.threadId * 10 + 2).toInt(),
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    putExtra("action", "copy_otp")
+                    putExtra("threadId", message.threadId)
+                    putExtra("otp", otpCode)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(0, "Copy $otpCode", copyOtp)
         }
 
         // Inline reply (Phase 4 item 2): only for senders that can actually
@@ -270,15 +290,16 @@ class MessageNotifier(private val context: Context) {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        // Advice-first copy (Phase 5): what to do leads, attribution follows.
         val body = if (hidden) {
-            "A message was flagged as likely fraud and filed in Spam. " +
-                "Don't tap its links or share codes."
+            "Don't tap links or share codes. A message was flagged as likely " +
+                "fraud and filed in Spam."
         } else {
-            "Likely fraud from $sender — filed in Spam. Don't tap links, call back, " +
-                "or share OTPs, PINs, or card details."
+            "Don't tap links, call back, or share OTPs, PINs, or card details. " +
+                "Likely fraud from $sender — filed in Spam."
         }
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_FRAUD)
-            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setSmallIcon(R.drawable.ic_notif_fraud)
             .setContentTitle("⚠️ Dangerous message blocked")
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -300,7 +321,7 @@ class MessageNotifier(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_REVIEW)
-            .setSmallIcon(android.R.drawable.sym_action_email)
+            .setSmallIcon(R.drawable.ic_notif_review)
             .setContentTitle("Messages to review")
             .setContentText("New messages are waiting in your Review folder")
             .setContentIntent(openIntent)

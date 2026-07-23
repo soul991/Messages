@@ -138,7 +138,7 @@ class SnoozeWorker(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(ctx, MessagesApp.CH_REMINDERS)
-            .setSmallIcon(android.R.drawable.ic_menu_recent_history)
+            .setSmallIcon(com.messages.app.R.drawable.ic_notif_reminder)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

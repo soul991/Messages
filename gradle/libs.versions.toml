@@ -10,6 +10,8 @@ workManager = "2.9.1"
 kotlinxSerialization = "1.7.3"
 kotlinxCoroutines = "1.9.0"
 junit = "4.13.2"
+robolectric = "4.13"
+androidxTestCore = "1.6.1"
 navigationCompose = "2.8.2"
 datastore = "1.1.1"
 coil = "2.7.0"
@@ -46,6 +48,8 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

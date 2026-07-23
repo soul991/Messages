@@ -15,8 +15,10 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavType
@@ -179,15 +181,29 @@ class MainActivity : FragmentActivity() {
                     }
                     onDispose { intentNavigator = null }
                 }
+                // Cold-start deep links (notification tap with the process
+                // dead) must NOT become the start destination — a chat with
+                // nothing underneath breaks every back affordance (top-bar
+                // arrow no-ops, system back closes the app, and warm intent
+                // routing's popUpTo("home") finds no home to pop to). Home is
+                // always the graph root; the deep link navigates on top of it
+                // once. rememberSaveable: after process death the restored nav
+                // stack already contains the destination — never re-navigate.
+                var deepLinkConsumed by rememberSaveable { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    if (!deepLinkConsumed) {
+                        deepLinkConsumed = true
+                        initialRoute?.let { route ->
+                            nav.navigate(route) { popUpTo("home") }
+                        }
+                    }
+                }
                 SharedTransitionLayout {
                     CompositionLocalProvider(LocalSharedTransitionScope provides this) {
                 NavHost(
                     navController = nav,
-                    startDestination = when {
-                        initialRoute != null -> initialRoute
-                        !onboardingPrefs.getBoolean("done", false) -> "onboarding"
-                        else -> "home"
-                    },
+                    startDestination =
+                        if (!onboardingPrefs.getBoolean("done", false)) "onboarding" else "home",
                     // §9 motion: shared-axis X between sibling screens by
                     // default; the list↔chat pair overrides with fade-through
                     // so the shared avatar element carries the transition.
