@@ -1,0 +1,4 @@
+home_fling     frames=506   janky=0 (0.00%) p50=9ms p90=11ms p95=12ms p99=12ms
+folder_switch  frames=420   janky=9 (2.14%) p50=14ms p90=16ms p95=18ms p99=30ms
+open_chat      frames=371   janky=19 (5.12%) p50=16ms p90=18ms p95=22ms p99=57ms
+chat_scroll    frames=772   janky=0 (0.00%) p50=9ms p90=11ms p95=11ms p99=12ms

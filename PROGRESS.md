@@ -1,13 +1,39 @@
 # PROGRESS — "Messages" (Android SMS app with deterministic spam/scam protection)
 
-_Last updated: 2026-07-24 (Phase 6 butter pass, session 1: Home-list jank root-caused and fixed with on-device before/after numbers — fling p50 61ms→16ms; 3 commits). Source spec: `PRD_Messages.md` (v2)._
+_Last updated: 2026-07-24 evening (WRAP-UP SESSION: work order CLOSED — Archived screen, registered-header-abuse engine fix from live false negatives, release build with R8+signing+baseline profile, release re-measurement: 0% janky fling. App is feature-complete for personal use). Source spec: `PRD_Messages.md` (v2)._
+
+## Work order status: CLOSED (Phases 0–6 complete + wrap-up)
+
+| Phase | What | Status |
+|---|---|---|
+| 0 | App-lock hardening (grace period, FLAG_SECURE) | done 2026-07-22 |
+| fix | Contacts visibility root cause, camera+lock, replyability | done 2026-07-22 |
+| 1 | Drive backup WhatsApp-style account model + restore idempotency + progress/chooser | done 2026-07-22 |
+| 2 | Verified-sender badges (engine-pure, fraud-suppressed) | done 2026-07-22 |
+| 3 | Truecaller research + design-refs analysis (gated) | done 2026-07-22 |
+| 4 | Feature parity, 21 items in groups A–D + device verification | done 2026-07-23 |
+| 5 | UI overhaul, 5 steps, all user-approved on-device + app icon | done 2026-07-23 |
+| 6 | Performance butter pass (debug) + release build re-measurement | done 2026-07-24 |
+| wrap | Archived screen, live-scam engine fix, Mark-as-spam, release signing/R8/baseline profile, jump-to-top | done 2026-07-24 |
+
+### Final numbers — debug (after Phase 6 fixes) vs RELEASE (R8 + baseline profile), RMX3092 60Hz
+
+| scenario | debug baseline (pre-P6) | debug after P6 fixes | **release** |
+|---|---|---|---|
+| home fling | p50 61ms, 78% janky | p50 16ms, 31–37% janky, p90 ~85ms | **p50 9ms, 0.00% janky, p90 11ms, p99 12–13ms** |
+| folder switch | 21% janky, p90 77ms | 7% janky, p90 ~20ms | **~2% janky, p50 14–15ms, p99 30ms** |
+| open chat | 7.8% janky, p99 133ms | 9–11% janky, p99 93ms | **~5% janky, p50 16ms, p99 53–57ms** |
+| chat scroll | p50 17ms, 11% janky | p50 16ms, ~11% janky | **p50 9ms, 0.00% janky, p99 12–18ms** |
+
+Release numbers are 3 consecutive `/tmp/p6/measure.sh` runs (`results-release-run1..3.txt`), variance run-to-run was negligible (unlike debug). The debug home-fling tail Phase 6 session 1 couldn't remove ("bursts of intrinsic row composition on a debug build") **was** debug-build overhead: R8 + baseline profile eliminated it entirely. This is the WhatsApp-class target met. Measurement caveat: runs happened at 17→12% battery, battery saver confirmed OFF throughout; consistency across runs says throttling wasn't a factor.
 
 ## Current state at a glance
 
 - **Toolchain**: installed on this Mac (OpenJDK 17 via Homebrew at `/opt/homebrew/opt/openjdk@17`, Gradle 8.9 wrapper, Android SDK cmdline-tools + platform 35 + build-tools 35 installing to `~/Library/Android/sdk`).
 - **Protection engine (`:protection-engine`)**: implemented, pure Kotlin/JVM. Corpus: **506 entries**; pattern library: **121 patterns** (v1); corpus gates are green. Sensitivity and the library are both hot-swappable.
-- **Android app**: compiles (`:app:assembleDebug` green; `local.properties` with `sdk.dir` required). M1–M4 are complete; M5 is in polish and device-verification work. The app, core, and engine JVM test tasks plus the debug build were verified locally in this session.
+- **Android app**: feature-complete for personal use (work order Phases 0–6 + wrap-up all closed, 2026-07-24). M1–M5 complete. The user's phone runs the RELEASE build (R8 + baseline profile, debug-key lineage for data-preserving adb installs — see docs/RELEASE_SIGNING.md).
 - Run the full local verification: `export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && ./gradlew :protection-engine:test :core-messaging:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug`
+- Release build: `./gradlew :app:assembleRelease` (signed when `keystore.properties` exists).
 
 ## Done
 
@@ -38,7 +64,16 @@ _Last updated: 2026-07-24 (Phase 6 butter pass, session 1: Home-list jank root-c
 
 ## In progress
 
-- **Work order**: ~~Phase 0~~ → ~~fix phase~~ → ~~Phase 1 Drive backup~~ → ~~Phase 2 verified-sender badges~~ → ~~Phase 3 Truecaller research~~ (gate cleared 2026-07-22) → ~~Phase 4 feature-parity (all 21 items, committed in groups A–D)~~ → ~~**Phase 5 UI overhaul (COMPLETE 2026-07-23**: all 5 steps; doodle chat-background deliberately dropped — user decided against)~~ → **Phase 6 butter pass (performance/animation) — IN PROGRESS, final phase (session 1 done, see below).**
+Nothing — the work order is closed. See "Known gaps / next steps (fresh list, 2026-07-24)" at the bottom for what a future session could pick up.
+
+### Wrap-up session (2026-07-24 evening) — Archived screen, live-scam engine fix, release build + re-measurement
+
+- **Archived screen** (`ui/archived/ArchivedScreen.kt`, route `archived`, Home overflow → "Archived", commit `22d2b3a`): closes the "archive-swipe has no recovery path after the Undo snackbar" gap flagged in Phase 6 session 1. Reuses the `ConversationDao.archived()` flow that already existed; Phase-5 row anatomy (54dp avatar, cached time formatting, locked-chat masking); tap opens chat, trailing Unarchive icon + "Moved back to Home" snackbar. **Verified on-device**: both archived threads listed; unarchiving the user's Istak thread flipped `archived=0` in Room and the row reappeared on Home.
+- **CRITICAL engine fix — registered-header abuse (live false negatives, commit `d003f7a`)**: user reported fake-loan/fake-credit SMS sitting in Transactions. Pulled the real bodies (7 messages, 6 senders: AD-PLUTUS-S ×2, CP-CAPSTK-S, JM-SMCSEC-S, JK-RAMfcC-P, AD-INFATL-P, VA-RfcKL-P) — "Rs 12,269 credited … Withdraw before 9PM @ cutt.ly/…", "Rs 50,000* loan is ready to be credited … hu2.in/…". **Root cause**: they use REGISTERED DLT headers and bank-alert wording; `protect-bank-txn` matched, Stage 2 returned before ComboRules ever ran, so C4 (shortener+credited/loan, dangerous) never fired — Transactions folder, blue verified badge, tappable links. **Fix**: combos evaluated before Stage 2; non-OTP protected lane overridden ONLY on phishy link + (fraud combo ∨ scam-family pattern). OTP absolute; textual evidence alone (C7 on a genuine "never share your OTP" footer) or official-domain links never override — first attempt used "scam pattern + any URL" and JVM tests caught a genuine alert with an official link falling off the lane (the `payment-deposited-click` tail matched bare "http"; pattern tightened too). Plus: `hu2.in` → SHORTENERS, wallet/withdraw → C4 SCAM_HOOK, new `payment-wallet-waiting` pattern (122), the 7 real messages added to the corpus as scam (513 entries), `RegisteredHeaderAbuseTest` locks both directions. **All 5 gates green.** JVM replay: all 7 now `SPAM dangerous=true`.
+- **"Mark as spam" bubble action (commit `bb69a45`)**: `moveToSpam` (repo §6.3, reputation-adjusting) existed but had NO UI caller — mis-slotted messages had no path to Spam. Now in the bubble long-press menu for incoming non-Spam/non-Blocked messages. **Used live on-device (release build)** to file all 6 scam threads: Transactions folder now shows only the genuine AX-BHIMAP-S; threads confirmed in Spam folder (2 seen directly, all 6 gone from Transactions; old verdicts are never auto-rewritten by design — this was the manual path).
+- **Release build (commit pending this session's doc commit)**: signing config reads gitignored `keystore.properties` → keystore at `~/keystores/messages-release.jks` (RSA-4096, alias `messages`; generated 2026-07-24; docs/RELEASE_SIGNING.md documents password handling + backup warning; absent properties file = unsigned build, CI-safe). R8 + resource shrinking were already enabled but `proguard-rules.pro` didn't exist and release had never been built: rules written (kotlinx-serialization keeps for com.messages.** — protection-engine is a pure-JVM jar with no consumer rules; stack-trace attributes; everything else via library consumer rules). **APK 22.9MB (debug) → 3.4MB (release).** Baseline profile: hand-authored `app/src/main/baseline-prof.txt` (AOT-compile all first-party packages; Macrobenchmark generation needs API 33+/root, device is API 31 non-rooted) + profileinstaller dep; verified installed+compiled on device (`status=speed-profile` — note: OEM's `cmd package compile` is broken on this ROM, `bg-dexopt-job` works; incremental `adb install` also blocks dexopt, use `--no-incremental`). **R8 smoke on-device with real data (4.5k messages)**: cold start, Home + folders + badges, chat, dashboard family rollup (= patterns.json parsed under R8), search, Settings, Mark-as-spam flow — zero crashes, zero missing-class R8 warnings. **Data-preserving install path**: release APK re-signed with the debug keystore installs over the dev lineage without wiping app state (documented in RELEASE_SIGNING.md); the real release-key APK is for fresh installs.
+- **Home jump-to-top FAB (commit `02be351`, user-requested mid-session)**: scrolling deep into the conversation list (>~7 rows) springs in a small ⬆ FAB (bottom-start, clear of the compose FAB) that animates back to the top — the Google Messages affordance. Build+tests green; **on-device verification pending** (device battery died at session end — install `/tmp/app-release-debugkey.apk` when it's back).
+- **Session logistics**: wireless adb dropped 3× (low battery + Wi-Fi power saving; `adb kill-server` + mdns rediscovery recovered it each time); phone died (<12%) before the final two spot-checks — see gaps list.
 
 ### Phase 6 — performance butter pass, session 1 (2026-07-24): Home-list jank root-caused, fixed, measured
 
@@ -304,12 +339,9 @@ Work order Phase 1 of 4 (Phase 2 = verified-sender badges, Phase 3 = Truecaller 
 - Corpus 166→**506**; floor 170→**500**; `DebugMissesTest.kt` deleted; 14 new patterns (419/inheritance, cyber-cell/contraband, compensation-fund, N-hour block, IVR press-digit, electricity/meter, job fees, IPO allotment, charity-to-UPI, wrong-number openers, mistaken-transfer clawback, lost-phone/stranded-abroad emergencies). All gates green.
 - **Bug fix:** `patterns.json` is a JVM resource in the engine jar, not an Android asset — repository now loads it via classloader (was a guaranteed first-SMS crash).
 
-## Next (per PRD §12 milestones)
+## Next
 
-- **Work order (2026-07-22), four phases in strict order**: **Phase 1** Drive backup account model + restore verification — code done, on-device verify pending (see In progress). **Phase 2** verified-sender badges (blue check for DLT -S/-T/-G + protected-lane headers, "Business" tag for other alphanumeric headers, nothing for personal numbers; absolute fraud-suppression rule; list rows + chat top bar + notifications; reuse SenderAnalyzer). **Phase 3** Truecaller research report → `docs/research/TRUECALLER_ANALYSIS.md` (no code; **approval gate** before Phase 4). **Phase 4** UI overhaul (Figma MCP + frontend-design/compose-expert/material-3 skills + `design-refs/`; design-plan **approval gate**, then screen-by-screen with on-device screenshots; keep Motion.kt system; WCAG AA; fraud-suppression absolute).
-- **§8.3 Drive backup — remaining after Phase 1 verify**: restore on a second profile/device; optional later: snapshot chooser, transfer progress UI for restore, passkey-PRF wrap (nice-to-have under the account model).
-- **Deferred from §6.5**: optional auto-clean of Spam >90 days old (deliberately not built yet; Trash/OTP cleanup landed first).
-- **M5 — remaining:** on-device verification of `fa3c41c` (swipes/undo/drafts/Delivered — device dropped before install); RCS via available Android APIs; dual-SIM refinement; per-folder notification behavior config; Play Store SMS-permission declaration + privacy policy; conversation-bubbles/shortcuts polish. Done this session: §9 animation+UI pass, app icon, per-chat customization, accessibility, in-chat search normalization, swipe/undo/drafts/delivery reports, MMS never-lose hardening, and the theme mode picker.
+The work order is closed; the app is feature-complete for personal use. The authoritative list of what remains is **"Known gaps / next steps (fresh list, 2026-07-24)"** at the bottom of this file. (The historical "Next (per PRD §12 milestones)" content is superseded — everything in it either shipped in Phases 0–6 or appears in the fresh list.)
 
 ## Decisions made that are not in the PRD
 
@@ -338,7 +370,28 @@ Work order Phase 1 of 4 (Phase 2 = verified-sender badges, Phase 3 = Truecaller 
 23. **Drive scheduling (§8.3)**: WhatsApp-style checkpoints — snapshot content is "everything up to the last 6:00 AM checkpoint" for the chosen frequency, regardless of when WorkManager runs; a 6-hourly worker no-ops until a new window passes. Manual backups checkpoint at `now`. Last 2 snapshots kept in `appDataFolder`.
 24. **Bubbles/shortcuts privacy**: locked conversations never get shortcuts (removed on lock) and never bubble; bubbles are also suppressed entirely while app lock is enabled (a bubble would bypass the biometric gate). Custom spam-backup selection is stored as message-id StringSet in `drive_backup` prefs (device-local; ids are not stable across restores — acceptable, the selection is a this-device concern).
 
-## Known gaps / debt
+## Known gaps / next steps (fresh list, 2026-07-24, work-order close — AUTHORITATIVE)
+
+**Immediate spot-checks (blocked only by the phone's dead battery at session end):**
+1. Install `/tmp/app-release-debugkey.apk` (has the jump-to-top FAB; everything else already verified) — `adb install --no-incremental -r`, then re-run the profile broadcast + `cmd package bg-dexopt-job com.messages.app`.
+2. Eyeball the Home jump-to-top FAB (scroll >7 rows, ⬆ appears bottom-left, tap returns to top).
+3. Open the Drive-backup screen once on the RELEASE build (only major surface not smoke-tested under R8; play-services ships consumer rules so risk is low, but sign-in + a manual "Back up now" would close it fully).
+
+**Real features that remain (decisions, not bugs):**
+- **RCS**: not implemented — Android exposes no public RCS API to third-party default-SMS apps (Google Messages uses private Jibe APIs). Decision: out of scope unless Google opens the API; revisit yearly.
+- **MMS depth ("revival decision")**: current MMS is functional-minimal (first attachment surfaced only, no audio/video players, single-image compose, no m-notifyresp-ind ack). Decide whether to invest (multi-attachment compose, media grid, players) or accept as-is for personal use. Personal-use verdict so far: acceptable — group MMS and images work.
+- **Play Store prep** (only if distribution is ever wanted): SMS-permission declaration form, privacy policy URL, real release-key install lineage (current phone is on the debug-key lineage — a Play install would be a data-migrating reinstall), versionCode/versionName discipline, mapping.txt archival per release (see docs/RELEASE_SIGNING.md).
+- **Doodle chat background**: deliberately dropped by user decision 2026-07-23 (Phase 5 §4). Not owed; listed for the record.
+- **Drive restore on a second device**: the account-model restore path (key file in appDataFolder) has never been exercised on a device other than the one that wrote the backups.
+- **App-lock OFF biometric check** (Phase 4 item (a)): 30-second user check, still open — Settings → Privacy & security → toggle App lock OFF → cancel the prompt → switch must stay ON.
+
+**Engine follow-ups (from the wrap-up session's live-scam fix):**
+- The registered-header override currently needs a *phishy* link. A registered header sending scam text with a clean-looking custom domain (not shortener/suspicious-TLD/brand/IP) + no other link signal would still ride the bank lane. Watch live traffic; candidates: domain-age-agnostic heuristics (digit-heavy paths, tiny path-code domains like `hu2.in/XXXXX`) as a new LinkSignal.
+- Old mis-verdicts are never auto-rewritten. The 7 known scams were manually filed via Mark-as-spam; if more surface, same path (which also teaches reputation).
+
+**Inherited small debt (unchanged, see historical list below):** multipart/group-send shared PendingIntent accounting; group-MMS phantom-member on unknown own-number; snooze vs moved-message; dashboard CSV parse per refresh; CI workflow never run against a live GitHub remote; saved-search 20-cap; Motion.kt hardcoded springs until material3 ≥1.4; per-chat style/drafts/swipe prefs and photo wallpapers not in backups.
+
+## Known gaps / debt (historical — superseded by the fresh list above)
 
 - `SmsSentReceiver` multipart send reuses one PendingIntent for all parts (fine for status, not per-part accounting); group SMS likewise shares one sent-PI across recipients, so one failure marks the whole message FAILED.
 - MMS: no m-notifyresp-ind ack (dedupe covers redelivery); only the first attachment is surfaced in the chat UI (all parts are in the provider); audio/video attachments show as a mime-label row, not players; composer attaches one image per message (gallery picker is single-select, no multi-attachment). MMS media is in Drive backups only when the §8.3 media toggle is on (≤5MB/file); the local JSON backup remains text-only.
