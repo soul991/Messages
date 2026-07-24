@@ -813,6 +813,11 @@ fun ChatScreen(
                                     vm.moveToInbox(item.m.id)
                                     scope.launch { snackbarHostState.showSnackbar("Moved to Inbox") }
                                 },
+                                onMarkSpam = {
+                                    Haptics.confirm(view)
+                                    vm.moveToSpam(item.m.id)
+                                    scope.launch { snackbarHostState.showSnackbar("Moved to Spam") }
+                                },
                                 onResend = { vm.resend(item.m) },
                                 onSendNow = { vm.sendScheduledNow(item.m.id) },
                                 onCancelScheduled = { vm.cancelScheduled(item.m.id) },
@@ -1458,6 +1463,8 @@ private fun MessageBubble(
     highlightTerms: List<String> = emptyList(),
     onWhy: () -> Unit,
     onNotSpam: () -> Unit,
+    /** Recategorize-anywhere: file a mis-slotted incoming message as spam. */
+    onMarkSpam: () -> Unit = {},
     onResend: () -> Unit,
     onSendNow: () -> Unit,
     onCancelScheduled: () -> Unit,
@@ -1710,6 +1717,15 @@ private fun MessageBubble(
                     DropdownMenuItem(
                         text = { Text("Remind me…") },
                         onClick = { showMenu = false; showSnoozeMenu = true },
+                    )
+                }
+                // Recategorize-anywhere (Truecaller rec A): an incoming
+                // message the engine mis-slotted can be filed as spam from
+                // any folder; reputation learns from it like Not-spam does.
+                if (!isOut && msg.category != "SPAM" && msg.category != "BLOCKED") {
+                    DropdownMenuItem(
+                        text = { Text("Mark as spam") },
+                        onClick = { onMarkSpam(); showMenu = false },
                     )
                 }
                 DropdownMenuItem(
