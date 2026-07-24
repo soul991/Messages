@@ -1,6 +1,6 @@
 # PROGRESS — "Messages" (Android SMS app with deterministic spam/scam protection)
 
-_Last updated: 2026-07-23 (Phase 5 COMPLETE: final app icon shipped — bubble-with-text-lines mark, user-picked from on-device renders; see Phase 5 §5). Source spec: `PRD_Messages.md` (v2)._
+_Last updated: 2026-07-24 (Phase 6 butter pass, session 1: Home-list jank root-caused and fixed with on-device before/after numbers — fling p50 61ms→16ms; 3 commits). Source spec: `PRD_Messages.md` (v2)._
 
 ## Current state at a glance
 
@@ -38,7 +38,26 @@ _Last updated: 2026-07-23 (Phase 5 COMPLETE: final app icon shipped — bubble-w
 
 ## In progress
 
-- **Work order**: ~~Phase 0~~ → ~~fix phase~~ → ~~Phase 1 Drive backup~~ → ~~Phase 2 verified-sender badges~~ → ~~Phase 3 Truecaller research~~ (gate cleared 2026-07-22) → ~~Phase 4 feature-parity (all 21 items, committed in groups A–D)~~ → ~~**Phase 5 UI overhaul (COMPLETE 2026-07-23**: all 5 steps; doodle chat-background deliberately dropped — user decided against)~~ → **Phase 6 butter pass (performance/animation) — NEXT, final phase.**
+- **Work order**: ~~Phase 0~~ → ~~fix phase~~ → ~~Phase 1 Drive backup~~ → ~~Phase 2 verified-sender badges~~ → ~~Phase 3 Truecaller research~~ (gate cleared 2026-07-22) → ~~Phase 4 feature-parity (all 21 items, committed in groups A–D)~~ → ~~**Phase 5 UI overhaul (COMPLETE 2026-07-23**: all 5 steps; doodle chat-background deliberately dropped — user decided against)~~ → **Phase 6 butter pass (performance/animation) — IN PROGRESS, final phase (session 1 done, see below).**
+
+### Phase 6 — performance butter pass, session 1 (2026-07-24): Home-list jank root-caused, fixed, measured
+
+**Method**: debug build on the RMX3092 (60Hz panel → 16.7ms budget), wireless adb, `dumpsys gfxinfo` reset→scripted-gestures→percentiles for 4 scenarios (`/tmp/p6/measure.sh`: home fling ×10, Inbox↔Transactions chip switch ×8, row-tap open+back ×4, chat scroll in thread 61/380 msgs). Framestats attributed the jank to the Choreographer animation stage = Compose composition of incoming rows; an on-device **bisection** (temporarily stripping one suspect at a time, rebuilding, remeasuring) priced each cause before writing any fix. gfxinfo run-to-run variance is large (thermal) — conclusions use medians of 3-5 runs and janky%/p90 over single p50s.
+
+**Baseline → final (2 final runs, representative)**:
+| scenario | baseline | after fixes |
+|---|---|---|
+| home fling | **p50 61ms, 78% janky**, 68 frames | **p50 16ms, 31-41% janky**, 89-115 frames |
+| folder switch | 21% janky, p90 77ms, 42 frames | **6-7% janky, p90 ~19ms**, ~370 frames (animation actually renders now) |
+| open chat | 7.8% janky, p99 133ms | 8-11% janky, p99 93ms (~neutral) |
+| chat scroll | p50 17ms, 11% janky | p50 16ms, ~11% (~neutral) |
+
+**Fixes (3 commits, each with all JVM suites + build green)**:
+1. `839ba3a` **Shared-element gate** (`Transitions.kt`): `sharedThreadAvatar` attaches the `sharedElement` modifier ONLY while the nav transition is running — every Home row was registering a shared element (+ the old `pastFirstFrame` hack double-composing each incoming row) on every fling frame; bisected at ~29ms of the 61ms p50. Settled screens render identically; both ends still register in time when a transition starts. Subsumes the pastFirstFrame cold-start-crash workaround (verified: `--el threadId` cold start into chat, clean logcat; warm open/back cycles clean; burst screenshots show header composed mid-flight, settled frame correct, no doubled avatar).
+2. `fd65a7a` **Hand-rolled row swipe + cached time formatting** (`HomeScreen.kt`): M3 `SwipeToDismissBox` (~12ms/frame bisected) replaced by a drag handler — offset is an Animatable read only in `graphicsLayer` (draw phase, zero recomposition while dragging), action backdrop composed only while engaged, row background opaque only mid-slide (kills a full-list overdraw layer at rest). Same semantics (40% threshold, NONE-direction disable, always snaps back, selection mode disables swipes). **Behavior re-verified on-device**: partial swipe → snap back, no action; full swipe → Archive + Undo snackbar; Undo restores (confirmed in Room); long-press → "1 selected" contextual bar; badge tap → explanation sheet. `formatTime` stopped allocating 2-3 `SimpleDateFormat` per row per composition (cached formatters, arithmetic same-day check).
+3. `01df6d5` **Sync cache fast-paths** (`ContactPhotos.kt`, `SmartText.kt`+`ChatScreen.kt`): both lookups had caches but always paid a `produceState` coroutine dispatch + a second recomposition per row/bubble (photos bisected ~3ms of fling p50, plus visible pop-in). Cache hits now answer synchronously in composition; only unknown addresses/messages go async.
+
+**Honest residue / next session**: home-fling tail spikes remain (p90 ~90-130ms, p95+ occasionally 300ms+) — bursts of intrinsic row composition on a debug build; the E-series floor with everything stripped measured the same ~17ms p50, so the cheap wins are harvested. Candidates if more is wanted: measure a minified release build (R8 + no debug Compose overhead — likely transforms the tail), baseline profile, LazyColumn prefetch tuning, row flattening. open_chat and chat_scroll were never the problem (≤11% janky). Not owed but noticed: **no Archived-conversations screen exists** — archive-swipe's snackbar Undo is the only recovery path (a swipe-archived thread is otherwise only reachable via search); worth a small screen or filter chip some session. Session note: the user's Istak thread showed `archived=1` mid-session — archived during the window the device was untouched by automation (user's own action presumed, left untouched). Measurement scripts kept at `/tmp/p6/` (`measure.sh`, `fling.sh`); device stay-awake was enabled during runs and reset after.
 
 ### Phase 5 — UI overhaul (design plan `docs/design/PHASE5_DESIGN_PLAN.md`, approved 2026-07-23)
 
