@@ -372,10 +372,10 @@ The work order is closed; the app is feature-complete for personal use. The auth
 
 ## Known gaps / next steps (fresh list, 2026-07-24, work-order close — AUTHORITATIVE)
 
-**Immediate spot-checks (blocked only by the phone's dead battery at session end):**
-1. Install `/tmp/app-release-debugkey.apk` (has the jump-to-top FAB; everything else already verified) — `adb install --no-incremental -r`, then re-run the profile broadcast + `cmd package bg-dexopt-job com.messages.app`.
-2. Eyeball the Home jump-to-top FAB (scroll >7 rows, ⬆ appears bottom-left, tap returns to top).
-3. Open the Drive-backup screen once on the RELEASE build (only major surface not smoke-tested under R8; play-services ships consumer rules so risk is low, but sign-in + a manual "Back up now" would close it fully).
+**Immediate spot-checks — ALL CLOSED later the same evening (device recharged):**
+1. ~~Install the final release APK~~ — installed `--no-incremental`, profile re-broadcast, `bg-dexopt-job` → `status=speed-profile` confirmed.
+2. ~~Jump-to-top FAB~~ — verified on-device: ⬆ appears bottom-left after 2 fling-downs, tap returns the list to the top (search + chips visible), FAB auto-hides.
+3. ~~Drive backup under R8~~ — screen renders with the signed-in account; **manual "Back up now" ran end-to-end on the release build**: "Last backup: 24 Jul 2026, 21:18 · 1220 messages · 48 KB" (GoogleAuthUtil token fetch + master-key wrap + AES-GCM + appDataFolder upload all fine under R8). Zero crashes in logcat.
 
 **Real features that remain (decisions, not bugs):**
 - **RCS**: not implemented — Android exposes no public RCS API to third-party default-SMS apps (Google Messages uses private Jibe APIs). Decision: out of scope unless Google opens the API; revisit yearly.
