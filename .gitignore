@@ -19,7 +19,11 @@ captures/
 *.apk
 *.aab
 *.keystore
+*.jks
 !debug.keystore
+
+# Release signing secrets (see docs/RELEASE_SIGNING.md) — never committed
+keystore.properties
 
 # Kotlin
 .kotlin/

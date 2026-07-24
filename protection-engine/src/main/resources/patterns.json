@@ -619,7 +619,7 @@
     {
       "id": "payment-deposited-click",
       "family": "fake-payment",
-      "regex": "\\b(deposited|credited|transferred|received)\\b.{0,40}\\b(account|a/c|wallet|upi)\\b.{0,80}\\b(click|link|verify|claim|confirm|http)",
+      "regex": "\\b(deposited|credited|transferred|received)\\b.{0,40}\\b(account|a/c|wallet|upi)\\b.{0,80}\\b(click|link|verify|claim|confirm|withdraw|activate|apply|eligibility)",
       "weight": 10,
       "languages": [
         "en"
@@ -629,7 +629,8 @@
         "Rs 8,000 deposited in your account. Click link to confirm"
       ],
       "negativeExamples": [
-        "Rs 8,000 deposited in your account via NEFT. Avl bal Rs 42,180"
+        "Rs 8,000 deposited in your account via NEFT. Avl bal Rs 42,180",
+        "Rs 40,000 credited to your account XX882 via NEFT ref N19822. Details: https://www.hdfcbank.com/statements"
       ]
     },
     {
@@ -1968,6 +1969,22 @@
       ],
       "negativeExamples": [
         "Stuck at the airport, flight delayed 3 hours. Send me a good podcast recommendation"
+      ]
+    },
+    {
+      "id": "payment-wallet-waiting",
+      "family": "fake-payment",
+      "regex": "(wallet is waiting|waiting in (your )?wallet|available in (your )?wallet.{0,50}\\b(waiting|click|claim|allow)|click to allow|transfer received.{0,60}\\bwallet\\b)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "\"Money waiting in your wallet\" bait with a click-to-claim tail",
+      "examples": [
+        "Hi Account Transfer Received: Rs 1850 Amount 810****789 available in wallet is waiting. Click to allow bit.ly/4ehw5i0"
+      ],
+      "negativeExamples": [
+        "Rs 500 added to your Paytm wallet on 12-Jul. Updated balance: Rs 1,250"
       ]
     }
   ]

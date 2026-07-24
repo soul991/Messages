@@ -25,6 +25,8 @@ object LinkAnalyzer {
         "shorturl.at", "rebrand.ly", "ow.ly", "goo.gl", "s.id", "lnkd.in",
         "t.co", "surl.li", "u.to", "v.gd", "clck.ru", "bit.do", "shorte.st",
         "adf.ly", "soo.gd", "zpr.io", "qr.ae", "rblx.co", "smarturl.it",
+        // seen in live Indian loan spam (Ramfincorp bait), 2026-07
+        "hu2.in",
     )
 
     private val SUSPICIOUS_TLDS = setOf(

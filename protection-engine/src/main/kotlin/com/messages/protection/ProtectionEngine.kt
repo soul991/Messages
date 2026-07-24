@@ -85,6 +85,8 @@ class ProtectionEngine(
 
         val patternMatches = matcher.matchAll(msg)
         val linkSignals = LinkAnalyzer.analyze(msg)
+        val combos = ComboRules.evaluate(msg, sender, patternMatches, linkSignals)
+        val fraudCombos = combos.filter { it.dangerous }
 
         // Stage 2 — Protected patterns (can NEVER be filtered).
         // §5.7: OTP protection is absolute; bank/delivery/bill/travel protection
@@ -97,13 +99,30 @@ class ProtectionEngine(
             it.pattern.family == Families.PROTECTED_OTP ||
                 (it.pattern.family in Families.PROTECTED && registeredOrContact)
         }
+        var protectedOverridden = false
         if (protectedMatches.isNotEmpty()) {
-            return protectedVerdict(msg, sender, protectedMatches, patternMatches, linkSignals)
+            // Registered-header abuse (real-world, 2026-07): DLT-registered
+            // headers sending "Rs X credited — withdraw now: bit.ly/…" bait.
+            // The bank-alert wording matches PROTECTED_BANK, but the message
+            // also carries hard scam evidence. OTP protection stays absolute;
+            // for the other protected families the lane is overridden ONLY
+            // when a PHISHY link (shortener/suspicious TLD/impersonation/IP/
+            // insecure) is present alongside a fraud combo or a scam-family
+            // pattern match. Textual evidence alone (e.g. C7 firing on a
+            // genuine "never share your OTP/PIN" footer) or an official-
+            // domain link on a real alert never overrides.
+            val otpProtected = protectedMatches.any { it.pattern.family == Families.PROTECTED_OTP }
+            val phishyLink = linkSignals.any { it.isPhishy }
+            val scamEvidence = fraudCombos.isNotEmpty() ||
+                patternMatches.any { it.pattern.family in Families.SCAM }
+            if (otpProtected || !phishyLink || !scamEvidence) {
+                return protectedVerdict(msg, sender, protectedMatches, patternMatches, linkSignals)
+            }
+            // else: fall through to scoring; the scam evidence decides.
+            protectedOverridden = true
         }
 
         // Stage 3 — saved contact: Inbox directly unless a fraud combo matches
-        val combos = ComboRules.evaluate(msg, sender, patternMatches, linkSignals)
-        val fraudCombos = combos.filter { it.dangerous }
         if (sender.isContact && fraudCombos.isEmpty()) {
             return Verdict(Category.INBOX, explanations = listOf("From a saved contact"), notify = true)
         }
@@ -126,6 +145,10 @@ class ProtectionEngine(
         if (firstContactApplied) {
             matchedIds += "first-contact"
             explanations += "First message from this sender"
+        }
+        if (protectedOverridden) {
+            matchedIds += "protected-lane-override"
+            explanations += "Worded like a transaction alert, but scam signals outweigh it"
         }
         for (s in linkSignals) {
             score += s.weight

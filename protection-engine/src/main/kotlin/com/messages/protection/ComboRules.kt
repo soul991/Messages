@@ -21,7 +21,11 @@ object ComboRules {
     private val PIN_ASK = Regex(
         """(?i)(enter|share|send|give|provide|batao|bhejo).{0,25}\b(pin|otp|cvv|password|passcode|mpin|upi pin)\b|\b(pin|otp|cvv|password|mpin)\b.{0,25}(enter|share|send|give|provide|batao|bhejo)"""
     )
-    private val SCAM_HOOK = Regex("""(?i)\b(kyc|refund|deposited|credited|prize|won|loan|job|earn|lottery|reward)\b""")
+    // "wallet"/"withdraw" added 2026-07-24 from live fake-credit bait
+    // ("available in wallet is waiting", "Withdraw before 9PM") — C4 still
+    // needs a shortener/suspicious-TLD link on top, so genuine wallet or
+    // ATM-withdrawal alerts (official or no links) can't trip it.
+    private val SCAM_HOOK = Regex("""(?i)\b(kyc|refund|deposited|credited|prize|won|loan|job|earn|lottery|reward|wallet|withdraw\w*)\b""")
     private val MONEY_JOB_PRIZE_FAMILIES = setOf(
         Families.LOTTERY, Families.FAKE_PAYMENT, Families.LOAN, Families.JOB,
         Families.INVESTMENT, Families.ROMANCE,

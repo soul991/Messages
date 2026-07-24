@@ -1,0 +1,13 @@
+# Baseline profile (hand-authored). Macrobenchmark-generated profiles need
+# API 33+ or root to collect; the test device is API 31 non-rooted, so this
+# takes the documented small-app route instead: AOT-compile all first-party
+# code (startup + scroll paths are all in these packages), and let the
+# library-shipped profiles (Compose, etc.) merge in on top via AGP.
+HSPLcom/messages/app/**->**(**)**
+HSPLcom/messages/core/**->**(**)**
+HSPLcom/messages/protection/**->**(**)**
+HSPLcom/messages/designsystem/**->**(**)**
+Lcom/messages/app/**
+Lcom/messages/core/**
+Lcom/messages/protection/**
+Lcom/messages/designsystem/**
