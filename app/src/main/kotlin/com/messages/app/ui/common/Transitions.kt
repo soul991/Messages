@@ -10,11 +10,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import com.messages.designsystem.Motion
@@ -29,20 +24,27 @@ val LocalSharedTransitionScope = staticCompositionLocalOf<SharedTransitionScope?
 
 val LocalNavAnimatedVisibilityScope = staticCompositionLocalOf<AnimatedVisibilityScope?> { null }
 
-/** Marks this element as the shared avatar for [threadId] across screens. */
+/**
+ * Marks this element as the shared avatar for [threadId] across screens.
+ *
+ * The sharedElement modifier is attached ONLY while the navigation transition
+ * is actually running (Phase 6): a registered shared element costs real
+ * composition time per instance, and the Home list pays it for every row on
+ * every fling frame otherwise (measured ~half the frame budget on-device).
+ * While settled the avatar renders normally in place, so dropping the modifier
+ * has no visual effect; when a transition starts, the rows recompose (the
+ * transition state is a snapshot read) and both ends register in time for the
+ * match. This also covers the old "Uninitialized LayoutCoordinates" cold-start
+ * crash: on the very first frame of a start destination no transition runs, so
+ * no element ever joins the first lookahead pass.
+ */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun Modifier.sharedThreadAvatar(threadId: Long): Modifier {
     val sts = LocalSharedTransitionScope.current ?: return this
     val scope = LocalNavAnimatedVisibilityScope.current ?: return this
-    // A sharedElement taking part in the very first lookahead pass — before the
-    // SharedTransitionLayout root has been placed — crashes with "Uninitialized
-    // LayoutCoordinates" (hit when a notification tap cold-starts straight into
-    // a chat, making it the start destination). Sit out the first frame; the
-    // list→chat spring runs ~380ms, so joining at frame 2 still animates.
-    var pastFirstFrame by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { pastFirstFrame = true }
-    if (!pastFirstFrame) return this
+    val transition = scope.transition
+    if (transition.currentState == transition.targetState && !transition.isRunning) return this
     return with(sts) {
         this@sharedThreadAvatar.sharedElement(
             rememberSharedContentState(key = "avatar-$threadId"),
