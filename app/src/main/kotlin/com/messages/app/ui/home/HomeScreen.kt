@@ -11,12 +11,15 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -78,9 +81,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxState
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -88,7 +88,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -107,6 +106,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -992,11 +992,18 @@ private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
 
 /**
  * Swipe-action wrapper (§8.2): start→end runs [rightAction], end→start runs
- * [leftAction]. The row always snaps back (confirmValueChange returns false) —
- * rows that leave the list do so via the data update + animateItem, so
- * non-removing actions (pin, read, mute) don't strand a dismissed row.
+ * [leftAction]. The row always snaps back — rows that leave the list do so via
+ * the data update + animateItem, so non-removing actions (pin, read, mute)
+ * don't strand a dismissed row.
+ *
+ * Hand-rolled instead of M3's SwipeToDismissBox (Phase 6): the box's anchored-
+ * draggable machinery costs real composition time PER ROW while flinging the
+ * list (~12ms/frame on-device across a compose burst), and our rows never
+ * actually dismiss (the old confirmValueChange always returned false). Here
+ * the drag offset is an Animatable read only inside graphicsLayer (draw phase
+ * — zero recomposition while dragging) and the colored action background is
+ * composed only while a drag is engaged (no permanent extra layer/overdraw).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeableConversationRow(
     conv: ConversationEntity,
@@ -1012,8 +1019,11 @@ private fun SwipeableConversationRow(
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
 ) {
+    val rightEnabled = rightAction != SwipeActions.NONE
+    val leftEnabled = leftAction != SwipeActions.NONE
     // In selection mode swipes are disabled — taps toggle, long-press extends.
-    if (selectionActive) {
+    // Same for the no-actions-configured case: plain row, no gesture handler.
+    if (selectionActive || (!rightEnabled && !leftEnabled)) {
         Box(modifier.background(MaterialTheme.colorScheme.surface)) {
             ConversationRow(
                 conv = conv, draft = draft, onClick = onClick,
@@ -1023,25 +1033,62 @@ private fun SwipeableConversationRow(
         }
         return
     }
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> onAction(rightAction, conv)
-                SwipeToDismissBoxValue.EndToStart -> onAction(leftAction, conv)
-                else -> {}
+    val offsetX = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    // -1 = swiping toward start (left action), 1 = toward end (right action),
+    // 0 = at rest. Only crossing zero recomposes — not every drag frame.
+    val engaged by remember {
+        derivedStateOf {
+            when {
+                offsetX.value > 0f -> 1
+                offsetX.value < 0f -> -1
+                else -> 0
             }
-            false
-        },
-        positionalThreshold = { total -> total * 0.4f },
-    )
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = rightAction != SwipeActions.NONE,
-        enableDismissFromEndToStart = leftAction != SwipeActions.NONE,
-        backgroundContent = { SwipeActionBackground(dismissState, rightAction, leftAction) },
-        modifier = modifier,
-    ) {
-        Box(Modifier.background(MaterialTheme.colorScheme.surface)) {
+        }
+    }
+    Box(modifier) {
+        if (engaged != 0) {
+            SwipeActionBackground(
+                action = if (engaged > 0) rightAction else leftAction,
+                fromStart = engaged > 0,
+            )
+        }
+        Box(
+            Modifier
+                // Opaque only while sliding (it must cover the action backdrop);
+                // at rest the row draws straight on the window surface — one
+                // less full-row overdraw layer while scrolling.
+                .then(
+                    if (engaged != 0) {
+                        Modifier.background(MaterialTheme.colorScheme.surface)
+                    } else Modifier
+                )
+                .graphicsLayer { translationX = offsetX.value }
+                .pointerInput(rightEnabled, leftEnabled) {
+                    val threshold = 0.4f // fraction of row width, as before
+                    detectHorizontalDragGestures(
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val target = (offsetX.value + dragAmount).coerceIn(
+                                if (leftEnabled) -size.width.toFloat() else 0f,
+                                if (rightEnabled) size.width.toFloat() else 0f,
+                            )
+                            scope.launch { offsetX.snapTo(target) }
+                        },
+                        onDragEnd = {
+                            val past = size.width * threshold
+                            when {
+                                offsetX.value > past -> onAction(rightAction, conv)
+                                offsetX.value < -past -> onAction(leftAction, conv)
+                            }
+                            scope.launch { offsetX.animateTo(0f, Motion.spatialFast()) }
+                        },
+                        onDragCancel = {
+                            scope.launch { offsetX.animateTo(0f, Motion.spatialFast()) }
+                        },
+                    )
+                },
+        ) {
             ConversationRow(
                 conv = conv, draft = draft, onClick = onClick,
                 badge = badge, onBadgeTap = onBadgeTap,
@@ -1051,19 +1098,11 @@ private fun SwipeableConversationRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SwipeActionBackground(
-    state: SwipeToDismissBoxState,
-    rightAction: String,
-    leftAction: String,
+private fun BoxScope.SwipeActionBackground(
+    action: String,
+    fromStart: Boolean,
 ) {
-    val direction = state.dismissDirection
-    val action = when (direction) {
-        SwipeToDismissBoxValue.StartToEnd -> rightAction
-        SwipeToDismissBoxValue.EndToStart -> leftAction
-        else -> return
-    }
     val (icon, container, tint) = when (action) {
         SwipeActions.ARCHIVE -> Triple(
             Icons.Outlined.Archive,
@@ -1094,15 +1133,11 @@ private fun SwipeActionBackground(
     }
     Row(
         Modifier
-            .fillMaxSize()
+            .matchParentSize()
             .background(container)
             .padding(horizontal = 28.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (direction == SwipeToDismissBoxValue.StartToEnd) {
-            Arrangement.Start
-        } else {
-            Arrangement.End
-        },
+        horizontalArrangement = if (fromStart) Arrangement.Start else Arrangement.End,
     ) {
         Icon(icon, contentDescription = SwipeActions.label(action), tint = tint)
     }
@@ -1355,12 +1390,19 @@ private fun EmptyFolderState(folder: String) {
     }
 }
 
+// Composition-only helpers (main thread): SimpleDateFormat is not thread-safe
+// but is only ever touched from composition here. Allocating formatters per
+// row per frame showed up in the Phase 6 fling profile — reuse instead.
+private val rowTimeFormat = SimpleDateFormat("HH:mm", Locale.US)
+private val rowDateFormat = SimpleDateFormat("dd MMM", Locale.US)
+private val sharedDate = Date(0)
+
+private fun localDayOf(ts: Long): Long =
+    (ts + java.util.TimeZone.getDefault().getOffset(ts)) / 86_400_000L
+
 private fun formatTime(ts: Long): String {
     if (ts == 0L) return ""
-    val now = System.currentTimeMillis()
-    val sameDay = SimpleDateFormat("yyyyMMdd", Locale.US).let {
-        it.format(Date(now)) == it.format(Date(ts))
-    }
-    return if (sameDay) SimpleDateFormat("HH:mm", Locale.US).format(Date(ts))
-    else SimpleDateFormat("dd MMM", Locale.US).format(Date(ts))
+    val sameDay = localDayOf(ts) == localDayOf(System.currentTimeMillis())
+    sharedDate.time = ts
+    return if (sameDay) rowTimeFormat.format(sharedDate) else rowDateFormat.format(sharedDate)
 }
