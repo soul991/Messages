@@ -35,6 +35,9 @@ object SmartText {
     fun eligible(category: String?, dangerous: Boolean, fraudWarning: Boolean): Boolean =
         !dangerous && !fraudWarning && category !in listOf("SPAM", "BLOCKED")
 
+    /** Cache-only peek so already-detected bubbles compose without a coroutine round trip. */
+    fun cached(messageId: Long): List<Span>? = cache.get(messageId)
+
     suspend fun spansFor(context: Context, messageId: Long, body: String): List<Span> {
         cache.get(messageId)?.let { return it }
         val spans = withContext(Dispatchers.Default) { detect(context, body) }

@@ -1494,13 +1494,17 @@ private fun MessageBubble(
     // Smart text actions (Phase 4 item 5): platform TextClassifier entities,
     // NEVER on Spam/Blocked or Dangerous/fraud-flagged messages.
     val smartEligible = SmartText.eligible(msg.category, msg.dangerous, msg.fraudWarning)
-    val smartSpans by androidx.compose.runtime.produceState(
-        initialValue = emptyList<SmartText.Span>(), msg.id, smartEligible,
-    ) {
-        value = if (smartEligible && msg.body.isNotBlank()) {
-            SmartText.spansFor(context, msg.id, msg.body)
-        } else emptyList()
-    }
+    // Cache hits (re-scrolled bubbles) resolve synchronously — no coroutine
+    // round trip, no empty→spans recomposition (Phase 6).
+    val smartCached = if (smartEligible && msg.body.isNotBlank()) {
+        remember(msg.id) { SmartText.cached(msg.id) }
+    } else emptyList()
+    val smartSpans = smartCached
+        ?: androidx.compose.runtime.produceState(
+            initialValue = emptyList<SmartText.Span>(), msg.id,
+        ) {
+            value = SmartText.spansFor(context, msg.id, msg.body)
+        }.value
 
     // Grouped-bubble corners (§9): big outer corners, tight corners between
     // group neighbours, and a tail corner on the group's last bubble.
