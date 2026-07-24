@@ -166,6 +166,7 @@ fun HomeScreen(
     onSettings: () -> Unit,
     onDashboard: () -> Unit,
     onOpenStarred: () -> Unit = {},
+    onOpenArchived: () -> Unit = {},
     vm: HomeViewModel = viewModel(),
 ) {
     LaunchedEffect(initialFolder) { if (initialFolder != null) vm.setFolder(initialFolder) }
@@ -306,6 +307,10 @@ fun HomeScreen(
                                 expanded = showHomeMenu,
                                 onDismissRequest = { showHomeMenu = false },
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Archived") },
+                                    onClick = { showHomeMenu = false; onOpenArchived() },
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Starred messages") },
                                     onClick = { showHomeMenu = false; onOpenStarred() },

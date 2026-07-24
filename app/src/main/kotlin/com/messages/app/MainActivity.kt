@@ -251,8 +251,15 @@ class MainActivity : FragmentActivity() {
                             onSettings = { nav.navigate("settings") },
                             onDashboard = { nav.navigate("dashboard") },
                             onOpenStarred = { nav.navigate("starred") },
+                            onOpenArchived = { nav.navigate("archived") },
                         )
                         }
+                    }
+                    composable("archived") {
+                        com.messages.app.ui.archived.ArchivedScreen(
+                            onBack = { nav.popBackStack() },
+                            onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
+                        )
                     }
                     composable("dashboard") {
                         DashboardScreen(onBack = { nav.popBackStack() })
