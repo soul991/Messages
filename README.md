@@ -18,8 +18,15 @@ user can reverse a decision at any time.
 - **Protected messages come first.** OTPs, qualifying bank alerts, deliveries,
   travel, bills, and government alerts are protected from normal filtering.
   Suspicious links from unregistered senders receive a visible warning instead.
+  One deliberate exception, added after live abuse was observed: a message
+  worded like a bank alert loses its protected status when it also carries a
+  phishy link (URL shortener, suspicious domain, brand impersonation) plus
+  independent scam evidence — registered sender headers are not treated as
+  unconditional proof of honesty. OTP protection remains absolute.
 - **Every result has a reason.** The app records matched pattern and combination
-  IDs for the “Why filtered?” view.
+  IDs for the “Why filtered?” view, and any decision can be reversed in place
+  (“Not spam” on filtered messages, “Mark as spam” on missed ones — both teach
+  the local sender-reputation record).
 
 ## Honest limitation
 
@@ -48,14 +55,26 @@ The project is split into:
 - `:app` — default-SMS components, Compose UI, notifications, scheduling, MMS, and device integrations.
 - `:design-system` — Material 3 theme, motion, and shared visual primitives.
 
+## Release builds
+
+`./gradlew :app:assembleRelease` produces an R8-minified, resource-shrunk,
+baseline-profiled APK, signed when `keystore.properties` is present — see
+[`docs/RELEASE_SIGNING.md`](docs/RELEASE_SIGNING.md) for the keystore and
+password-handling contract. On the reference device (RMX3092, 60 Hz) the
+release build measures 0% janky frames on list fling and chat scroll.
+
 ## Current release gates
 
-- Google Drive backup needs Android OAuth-client registration before it can be
-  tested end to end. See [`docs/DRIVE_BACKUP_SETUP.md`](docs/DRIVE_BACKUP_SETUP.md).
-- Passkey-PRF backup unlock is format-reserved but not yet implemented; the
-  encrypted password route is available.
-- Default-role, MMS, multi-SIM, Doze/reboot, and restore flows still require
-  physical-device verification before a production release.
+- Google Drive backup: sign-in and scheduling are verified on-device
+  (owner-registered OAuth client, see
+  [`docs/DRIVE_BACKUP_SETUP.md`](docs/DRIVE_BACKUP_SETUP.md)); access control
+  is the Google account (WhatsApp-style master-key file in the app data
+  folder). Restore onto a second device is still unexercised.
+- Passkey-PRF backup unlock is format-reserved but not implemented; under the
+  account model it is a nice-to-have, not a gap.
+- RCS is not implemented (no public API for third-party default-SMS apps);
+  Play Store distribution would additionally need the SMS-permission
+  declaration and a privacy policy.
 
 For detailed scope, non-negotiable guardrails, and implementation status, see
 [`PRD_Messages.md`](PRD_Messages.md) and [`PROGRESS.md`](PROGRESS.md).

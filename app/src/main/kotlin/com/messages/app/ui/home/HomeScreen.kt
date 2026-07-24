@@ -7,6 +7,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -49,6 +51,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Drafts
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -70,6 +73,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -560,6 +564,8 @@ private fun FolderPane(
                     } else EmptyFolderState(targetFolder)
                 else -> {
                     val listState = rememberLazyListState()
+                    val listScope = rememberCoroutineScope()
+                    Box(Modifier.fillMaxSize()) {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                         itemsIndexed(
                             conversations.orEmpty(),
@@ -611,6 +617,30 @@ private fun FolderPane(
                                 )
                             }
                         }
+                    }
+                    // Jump back to the newest conversations after scrolling
+                    // deep into the list (Google Messages affordance).
+                    // Bottom-start so it never collides with the compose FAB.
+                    val showJumpTop by remember {
+                        derivedStateOf { listState.firstVisibleItemIndex > 6 }
+                    }
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showJumpTop,
+                        enter = scaleIn(Motion.spatialFast()) + fadeIn(Motion.effectsDefault()),
+                        exit = scaleOut(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
+                        modifier = Modifier.align(Alignment.BottomStart).padding(16.dp),
+                    ) {
+                        SmallFloatingActionButton(
+                            onClick = {
+                                listScope.launch { listState.animateScrollToItem(0) }
+                            },
+                        ) {
+                            Icon(
+                                Icons.Filled.KeyboardArrowUp,
+                                contentDescription = "Back to top",
+                            )
+                        }
+                    }
                     }
                 }
             }
