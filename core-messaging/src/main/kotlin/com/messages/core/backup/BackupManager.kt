@@ -146,7 +146,8 @@ object BackupManager {
         val lockedPending: Boolean = false,
     )
 
-    private val json = Json {
+    // internal so serializer round-trip tests use the exact production config.
+    internal val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
