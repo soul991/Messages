@@ -1225,7 +1225,7 @@ fun ChatScreen(
                         Text(
                             "To use locked chats, first set your secret code: " +
                                 "press and hold the \"Messages\" title on the home " +
-                                "screen for 3 seconds.",
+                                "screen.",
                         )
                     },
                     confirmButton = {

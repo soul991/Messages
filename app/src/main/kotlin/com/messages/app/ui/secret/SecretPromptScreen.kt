@@ -51,6 +51,8 @@ import kotlinx.coroutines.withContext
 fun SecretPromptScreen(
     onBack: () -> Unit,
     onUnlocked: () -> Unit,
+    /** Reset completed (everything locked destroyed) → launch fresh setup. */
+    onReset: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -62,6 +64,8 @@ fun SecretPromptScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var checking by remember { mutableStateOf(false) }
     var importing by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(false) }
+    var resetting by remember { mutableStateOf(false) }
     var cooldownMs by remember { mutableLongStateOf(SecretSpace.remainingCooldownMs(context)) }
 
     // Live cooldown countdown.
@@ -173,11 +177,13 @@ fun SecretPromptScreen(
                     isError = error != null,
                     onDone = { if (entry.isNotEmpty()) submit(entry.toCharArray()) },
                 )
+                // While the (deliberately slow) PBKDF2 check runs, the button
+                // and input just grey out — no label change, no spinner.
                 Button(
                     onClick = { submit(entry.toCharArray()) },
                     enabled = entry.isNotEmpty() && !coolingDown && !checking,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (checking) "Checking…" else "Unlock") }
+                ) { Text("Unlock") }
             }
 
             if (!coolingDown) {
@@ -186,12 +192,64 @@ fun SecretPromptScreen(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text(
-                "Forgot the code? There is no way to recover locked chats without it.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // The only path past a forgotten code: destroy, never reveal.
+            androidx.compose.material3.TextButton(
+                onClick = { showResetDialog = true },
+                enabled = !checking && !importing && !resetting,
+            ) {
+                Text("Reset", color = MaterialTheme.colorScheme.error)
+            }
         }
+    }
+
+    if (showResetDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { if (!resetting) showResetDialog = false },
+            title = { Text("Reset locked chats?") },
+            text = {
+                Text(
+                    "ALL messages in your locked folder will be permanently deleted. " +
+                        "This cannot be undone and cannot be recovered. You'll set a " +
+                        "new secret code and start with an empty locked folder.",
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    enabled = !resetting,
+                    onClick = {
+                        resetting = true
+                        scope.launch {
+                            withContext(Dispatchers.IO) {
+                                // Destruction without revelation: hard-delete
+                                // every locked row (Room + Telephony provider +
+                                // media, never via Trash), drop the LOCKED
+                                // conversation rows (routing reverts to normal),
+                                // then forget credential/KEK/rate-limit/pending.
+                                com.messages.core.MessageRepository.get(context).wipeLockedSpace()
+                                SecretSpace.clearAll(context)
+                            }
+                            androidx.core.app.NotificationManagerCompat.from(context)
+                                .cancel(com.messages.app.notify.MessageNotifier.LOCKED_SPACE_ID)
+                            SecretSession.lock()
+                            resetting = false
+                            showResetDialog = false
+                            onReset()
+                        }
+                    },
+                ) {
+                    Text(
+                        if (resetting) "Deleting…" else "Delete everything",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    enabled = !resetting,
+                    onClick = { showResetDialog = false },
+                ) { Text("Cancel") }
+            },
+        )
     }
 }
 

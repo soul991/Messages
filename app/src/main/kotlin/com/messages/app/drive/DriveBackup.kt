@@ -332,7 +332,7 @@ object DriveBackup {
         return when {
             lockedPending ->
                 "$base. Locked chats present — enter your secret code to unlock " +
-                    "(hold the Messages title for 3 seconds)."
+                    "(press and hold the Messages title)."
             lockedRestored > 0 -> "$base. Locked chats restored to your locked space."
             else -> base
         }

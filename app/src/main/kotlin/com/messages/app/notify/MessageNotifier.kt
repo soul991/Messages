@@ -388,8 +388,9 @@ class MessageNotifier(private val context: Context) {
     companion object {
         private const val REVIEW_ID = -100
 
-        /** Single shared id for ALL locked-space pings — never per-thread. */
-        private const val LOCKED_SPACE_ID = -200
+        /** Single shared id for ALL locked-space pings — never per-thread.
+         *  Public: the Reset flow cancels it during the wipe. */
+        const val LOCKED_SPACE_ID = -200
 
         /** Fraud-warning ids live far below thread-id space (item 19). */
         private const val FRAUD_ID_BASE = -1_000_000L

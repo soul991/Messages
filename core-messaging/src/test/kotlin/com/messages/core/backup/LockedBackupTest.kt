@@ -32,6 +32,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class LockedBackupTest {
 
+    @org.junit.Before
+    fun freshSingleton() = MessageRepository.resetForTests()
+
     @Test
     fun `locked chats travel encrypted and restore behind the credential`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Context>()

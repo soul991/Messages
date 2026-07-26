@@ -119,9 +119,20 @@ class NewMessageViewModel(app: Application) : AndroidViewModel(app) {
         emptyList()
     }
 
-    /** Resolve (or create) the system thread for the picked recipient. */
-    fun openThread(address: String, onResult: (Long) -> Unit) = viewModelScope.launch {
-        onResult(repo.threadIdFor(address))
+    /** Resolve (or create) the system thread for the picked recipient. When
+     *  composing from inside the secret space, the conversation is created
+     *  directly as LOCKED — the routing rule applies from this very moment
+     *  (future incoming from the address files locked, never normal). */
+    fun openThread(
+        address: String,
+        space: String = com.messages.core.db.Spaces.NORMAL,
+        onResult: (Long) -> Unit,
+    ) = viewModelScope.launch {
+        val threadId = repo.threadIdFor(address)
+        if (space == com.messages.core.db.Spaces.LOCKED) {
+            repo.createLockedConversation(threadId, address)
+        }
+        onResult(threadId)
     }
 
     // ---- Group compose (§8.1): staged recipients before opening the thread ----
@@ -154,6 +165,8 @@ private fun isDialable(q: String): Boolean =
 fun NewMessageScreen(
     onBack: () -> Unit,
     onOpenThread: (threadId: Long, address: String) -> Unit,
+    /** Secret space: LOCKED creates the picked conversation directly locked. */
+    space: String = com.messages.core.db.Spaces.NORMAL,
     vm: NewMessageViewModel = viewModel(),
 ) {
     val query by vm.query.collectAsState()
@@ -164,7 +177,8 @@ fun NewMessageScreen(
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-    fun open(address: String) = vm.openThread(address) { threadId -> onOpenThread(threadId, address) }
+    fun open(address: String) =
+        vm.openThread(address, space) { threadId -> onOpenThread(threadId, address) }
 
     // 1:1 tap opens the thread directly; in group mode taps stage recipients.
     fun pick(contact: PickerContact) {

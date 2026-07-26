@@ -304,6 +304,11 @@ class MainActivity : FragmentActivity() {
                                     popUpTo("home") // prompt never stays beneath the space
                                 }
                             },
+                            // Reset destroyed everything locked → straight into
+                            // fresh setup for the new code + empty folder.
+                            onReset = {
+                                nav.navigate("secret_setup") { popUpTo("home") }
+                            },
                         )
                     }
                     composable("secret_space") {
@@ -319,6 +324,24 @@ class MainActivity : FragmentActivity() {
                             },
                             onOpenThread = { threadId -> nav.navigate("secret_chat/$threadId") },
                             onOpenSettings = { nav.navigate("secret_settings") },
+                            onCompose = { nav.navigate("secret_compose") },
+                        )
+                    }
+                    composable("secret_compose") {
+                        if (!com.messages.app.ui.secret.SecretSession.unlocked) {
+                            LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
+                            return@composable
+                        }
+                        NewMessageScreen(
+                            onBack = { nav.popBackStack() },
+                            space = com.messages.core.db.Spaces.LOCKED,
+                            onOpenThread = { threadId, address ->
+                                nav.navigate(
+                                    "secret_chat/$threadId?address=${Uri.encode(address)}"
+                                ) {
+                                    popUpTo("secret_compose") { inclusive = true }
+                                }
+                            },
                         )
                     }
                     composable("secret_settings") {
@@ -330,7 +353,16 @@ class MainActivity : FragmentActivity() {
                             onBack = { nav.popBackStack() },
                         )
                     }
-                    composable("secret_chat/{threadId}") { entry ->
+                    composable(
+                        "secret_chat/{threadId}?address={address}",
+                        arguments = listOf(
+                            navArgument("address") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            },
+                        ),
+                    ) { entry ->
                         val threadId = entry.arguments?.getString("threadId")?.toLongOrNull()
                             ?: return@composable
                         if (!com.messages.app.ui.secret.SecretSession.unlocked) {
@@ -341,6 +373,9 @@ class MainActivity : FragmentActivity() {
                             threadId = threadId,
                             onBack = { nav.popBackStack() },
                             onWhy = { messageId -> nav.navigate("secret_why/$messageId") },
+                            // Compose-from-space: brand-new thread may have no
+                            // conversation row yet beyond the LOCKED shell.
+                            fallbackAddress = entry.arguments?.getString("address"),
                             space = com.messages.core.db.Spaces.LOCKED,
                         )
                     }

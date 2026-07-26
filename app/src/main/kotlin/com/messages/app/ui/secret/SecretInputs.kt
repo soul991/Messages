@@ -7,9 +7,14 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -172,3 +177,131 @@ val CREDENTIAL_KINDS = listOf(
 
 /** Column arrangement helper used by the secret screens. */
 val SecretScreenSpacing = Arrangement.spacedBy(16.dp)
+
+/**
+ * The ONE credential-creation UI, shared verbatim by first-time setup and
+ * the in-space "change secret code" flow (so changing the code always offers
+ * the full type re-pick — PIN / pattern / password — exactly like setup):
+ * kind chooser → enter → confirm. Calls [onChosen] once the confirmation
+ * matches; validation floors come from [SecretCrypto.setupError].
+ */
+@Composable
+fun CredentialCreationSteps(
+    heading: String = "Choose a secret code",
+    subtitle: String? = null,
+    working: Boolean = false,
+    onChosen: (kind: String, credential: CharArray) -> Unit,
+) {
+    var confirming by remember { mutableStateOf(false) }
+    var kind by remember { mutableStateOf(SecretCrypto.KIND_PIN) }
+    var first by remember { mutableStateOf("") }
+    var confirm by remember { mutableStateOf("") }
+    var firstPattern by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var patternClear by remember { mutableStateOf(0) }
+
+    fun chosenCredential(): CharArray =
+        if (kind == SecretCrypto.KIND_PATTERN) SecretCrypto.patternToCredential(firstPattern)
+        else first.toCharArray()
+
+    fun advance(credential: CharArray) {
+        val setupError = SecretCrypto.setupError(kind, credential)
+        if (setupError != null) {
+            error = setupError
+            return
+        }
+        error = null
+        confirming = true
+        patternClear++
+    }
+
+    Column(verticalArrangement = SecretScreenSpacing) {
+        Text(
+            if (!confirming) heading else "Confirm your secret code",
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        if (!confirming && subtitle != null) {
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (!confirming) {
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                CREDENTIAL_KINDS.forEachIndexed { i, (k, label) ->
+                    SegmentedButton(
+                        selected = kind == k,
+                        onClick = {
+                            kind = k; first = ""; error = null
+                            firstPattern = emptyList(); patternClear++
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(i, CREDENTIAL_KINDS.size),
+                    ) { Text(label) }
+                }
+            }
+            if (kind == SecretCrypto.KIND_PATTERN) {
+                PatternGrid(enabled = !working, clearSignal = patternClear) { cells ->
+                    firstPattern = cells
+                    advance(SecretCrypto.patternToCredential(cells))
+                }
+            } else {
+                PinOrPasswordField(
+                    kind = kind, value = first, onValueChange = { first = it },
+                    label = if (kind == SecretCrypto.KIND_PIN) "Enter a PIN (4+ digits)"
+                    else "Enter a password (4+ characters)",
+                    enabled = !working,
+                    isError = error != null,
+                    onDone = { advance(first.toCharArray()) },
+                )
+                Button(
+                    onClick = { advance(first.toCharArray()) },
+                    enabled = first.isNotEmpty() && !working,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Next") }
+            }
+        } else {
+            if (kind == SecretCrypto.KIND_PATTERN) {
+                PatternGrid(enabled = !working, clearSignal = patternClear) { cells ->
+                    if (cells == firstPattern) {
+                        error = null
+                        onChosen(kind, chosenCredential())
+                    } else {
+                        error = "Patterns don't match — try again"
+                        patternClear++
+                    }
+                }
+            } else {
+                PinOrPasswordField(
+                    kind = kind, value = confirm, onValueChange = { confirm = it },
+                    label = "Re-enter to confirm",
+                    enabled = !working,
+                    isError = error != null,
+                    onDone = {},
+                )
+                Button(
+                    onClick = {
+                        if (confirm == first) {
+                            error = null
+                            onChosen(kind, chosenCredential())
+                        } else {
+                            error = "Codes don't match — try again"; confirm = ""
+                        }
+                    },
+                    enabled = confirm.isNotEmpty() && !working,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Confirm") }
+            }
+            TextButton(
+                onClick = {
+                    confirming = false; first = ""; confirm = ""
+                    firstPattern = emptyList(); error = null; patternClear++
+                },
+                enabled = !working,
+            ) { Text("Start over") }
+        }
+        error?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}

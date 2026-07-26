@@ -90,6 +90,11 @@ interface MessageDao {
     @Query("UPDATE messages SET space = :to WHERE threadId = :threadId AND space = :from")
     suspend fun setThreadSpace(threadId: Long, from: String, to: String)
 
+    /** Every row of one space, trash included — feeds the locked-space Reset
+     *  wipe (hard delete; locked content must never pass through Trash). */
+    @Query("SELECT * FROM messages WHERE space = :space")
+    suspend fun allInSpace(space: String): List<MessageEntity>
+
     // User-initiated only — the filter itself never calls delete (§6). Normal
     // user deletions go through the Trash flags below (§6.4); the permitted
     // hard-delete callers are: "Delete forever" in Trash, the 60-day trash
@@ -285,6 +290,21 @@ interface ConversationDao {
             "AND space = :space ORDER BY pinned DESC, lastTimestamp DESC"
     )
     fun byCategory(category: String, space: String = Spaces.NORMAL): Flow<List<ConversationEntity>>
+
+    /**
+     * The Home "Unread" filter — SAME shape as [byCategory] plus the ONE
+     * unread predicate (`unreadCount > 0`) shared by row badges, folder-chip
+     * counts ([unreadConversationCount]) and this filter. Conversation-level
+     * by design: incoming messages increment it, opening a chat clears it,
+     * and mark-as-unread sets it (message `read` flags stay untouched there
+     * — Google Messages semantics). Keeping all three surfaces on this single
+     * column is what stops the definitions drifting again.
+     */
+    @Query(
+        "SELECT * FROM conversations WHERE category = :category AND archived = 0 " +
+            "AND unreadCount > 0 AND space = :space ORDER BY pinned DESC, lastTimestamp DESC"
+    )
+    fun byCategoryUnread(category: String, space: String = Spaces.NORMAL): Flow<List<ConversationEntity>>
 
     @Query(
         "SELECT * FROM conversations WHERE archived = 1 AND space = 'NORMAL' " +

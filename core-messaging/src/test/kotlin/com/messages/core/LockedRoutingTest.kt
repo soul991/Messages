@@ -27,6 +27,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class LockedRoutingTest {
 
+    @org.junit.Before
+    fun freshSingleton() = MessageRepository.resetForTests()
+
     @Test
     fun `incoming messages route to the locked conversation once it exists`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Context>()

@@ -41,7 +41,26 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                 .stateIn(viewModelScope, SharingStarted.Lazily, null)
         }
 
-    fun folderUnread(category: String) = repo.db.messages().unreadCount(category)
+    /**
+     * The "Unread" filter list — the DAO's byCategoryUnread, i.e. the SAME
+     * `unreadCount > 0` predicate the row badges render and folderUnread
+     * counts. One source of truth: the fix for the chip/filter drift where
+     * the filter used conversation-level unread while the folder chips
+     * counted message-level read=0 rows (backfilled history and
+     * mark-as-unread disagree between those two by design).
+     */
+    private val unreadConversationCache = HashMap<String, StateFlow<List<ConversationEntity>?>>()
+
+    fun unreadConversationsFor(category: String): StateFlow<List<ConversationEntity>?> =
+        unreadConversationCache.getOrPut(category) {
+            repo.db.conversations().byCategoryUnread(category)
+                .map<List<ConversationEntity>, List<ConversationEntity>?> { it }
+                .stateIn(viewModelScope, SharingStarted.Lazily, null)
+        }
+
+    /** Folder-chip badge: conversations with an unread badge (NOT unread
+     *  message rows — same predicate as the row badges and the filter). */
+    fun folderUnread(category: String) = repo.db.conversations().unreadConversationCount(category)
 
     /** Verified-sender badges: latest incoming message's fraud/protected-lane
      *  state per thread — drives badge suppression + elevation in list rows. */

@@ -207,6 +207,21 @@ object SecretSpace {
         prefs(context).edit().remove(K_PENDING).apply()
     }
 
+    /**
+     * RESET: forget everything about the secret space — credential verifier,
+     * salts, KEK cache, rate-limit state, notification preference, and any
+     * pending restore envelope. The caller wipes the locked rows themselves
+     * (MessageRepository.wipeLockedSpace) FIRST; with no KEK and no locked
+     * rows, the next backup carries no locked sub-envelope at all. Old
+     * backups' envelopes stay sealed under the forgotten credential — a
+     * restored app treats them as an (undecryptable) pending state, never as
+     * content. There is deliberately no partial reset.
+     */
+    fun clearAll(context: Context) {
+        pendingBlobFile(context).delete()
+        prefs(context).edit().clear().apply()
+    }
+
     /** On first successful entry after a fresh-install restore: the carried
      *  auth becomes this device's locked-space credential state. */
     private fun adoptPendingAuth(context: Context, credential: CharArray) {

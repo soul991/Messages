@@ -60,13 +60,8 @@ fun SecretSetupScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var step by remember { mutableIntStateOf(0) } // 0 choose+enter · 1 confirm · 2 disclaimer
-    var kind by remember { mutableStateOf(SecretCrypto.KIND_PIN) }
-    var first by remember { mutableStateOf("") }
-    var confirm by remember { mutableStateOf("") }
-    var firstPattern by remember { mutableStateOf<List<Int>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var patternClear by remember { mutableIntStateOf(0) }
+    // (kind, credential) once chosen+confirmed; null while still choosing.
+    var chosen by remember { mutableStateOf<Pair<String, CharArray>?>(null) }
     var working by remember { mutableStateOf(false) }
     var legacyCount by remember { mutableIntStateOf(0) }
 
@@ -76,19 +71,7 @@ fun SecretSetupScreen(
         }
     }
 
-    fun credentialOf(text: String): CharArray = text.toCharArray()
-
-    fun advanceFromEntry(credential: CharArray) {
-        val setupError = SecretCrypto.setupError(kind, credential)
-        if (setupError != null) {
-            error = setupError
-            return
-        }
-        error = null
-        step = 1
-    }
-
-    fun finishSetup(credential: CharArray) {
+    fun finishSetup(kind: String, credential: CharArray) {
         working = true
         scope.launch {
             withContext(Dispatchers.Default) {
@@ -106,13 +89,7 @@ fun SecretSetupScreen(
                 title = { Text("Set up locked chats") },
                 navigationIcon = {
                     IconButton(onClick = {
-                        when (step) {
-                            0 -> onBack()
-                            else -> {
-                                step = 0; confirm = ""; firstPattern = emptyList()
-                                first = ""; error = null; patternClear++
-                            }
-                        }
+                        if (chosen != null) chosen = null else onBack()
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
@@ -127,104 +104,28 @@ fun SecretSetupScreen(
                 .padding(horizontal = 24.dp),
             verticalArrangement = SecretScreenSpacing,
         ) {
-            when (step) {
-                0 -> {
-                    Spacer(Modifier.height(8.dp))
-                    Icon(
-                        Icons.Filled.Lock, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        "Choose a secret code",
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                    Text(
-                        "This code protects your locked chats. It works only here — " +
-                            "it is separate from your fingerprint, the phone's lock, " +
-                            "and the app lock.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                        CREDENTIAL_KINDS.forEachIndexed { i, (k, label) ->
-                            SegmentedButton(
-                                selected = kind == k,
-                                onClick = {
-                                    kind = k; first = ""; error = null
-                                    firstPattern = emptyList(); patternClear++
-                                },
-                                shape = SegmentedButtonDefaults.itemShape(i, CREDENTIAL_KINDS.size),
-                            ) { Text(label) }
-                        }
-                    }
-                    if (kind == SecretCrypto.KIND_PATTERN) {
-                        PatternGrid(clearSignal = patternClear) { cells ->
-                            firstPattern = cells
-                            advanceFromEntry(SecretCrypto.patternToCredential(cells))
-                        }
-                    } else {
-                        PinOrPasswordField(
-                            kind = kind, value = first, onValueChange = { first = it },
-                            label = if (kind == SecretCrypto.KIND_PIN) "Enter a PIN (4+ digits)"
-                            else "Enter a password (4+ characters)",
-                            isError = error != null,
-                            onDone = { advanceFromEntry(credentialOf(first)) },
-                        )
-                        Button(
-                            onClick = { advanceFromEntry(credentialOf(first)) },
-                            enabled = first.isNotEmpty(),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Next") }
-                    }
-                }
-
-                1 -> {
-                    Spacer(Modifier.height(8.dp))
-                    Text("Confirm your secret code", style = MaterialTheme.typography.headlineSmall)
-                    if (kind == SecretCrypto.KIND_PATTERN) {
-                        PatternGrid(clearSignal = patternClear) { cells ->
-                            if (cells == firstPattern) {
-                                error = null; step = 2
-                            } else {
-                                error = "Patterns don't match — try again"
-                                patternClear++
-                            }
-                        }
-                    } else {
-                        PinOrPasswordField(
-                            kind = kind, value = confirm, onValueChange = { confirm = it },
-                            label = "Re-enter to confirm",
-                            isError = error != null,
-                            onDone = {},
-                        )
-                        Button(
-                            onClick = {
-                                if (confirm == first) {
-                                    error = null; step = 2
-                                } else {
-                                    error = "Codes don't match — try again"; confirm = ""
-                                }
-                            },
-                            enabled = confirm.isNotEmpty(),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Confirm") }
-                    }
-                }
-
-                2 -> DisclaimerStep(
+            if (chosen == null) {
+                Spacer(Modifier.height(8.dp))
+                Icon(
+                    Icons.Filled.Lock, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                // The one shared choose→enter→confirm flow (also used by the
+                // in-space "change secret code" — fix: full type re-pick).
+                CredentialCreationSteps(
+                    subtitle = "This code protects your locked chats. It works only here — " +
+                        "it is separate from your fingerprint, the phone's lock, " +
+                        "and the app lock.",
+                    onChosen = { kind, credential -> chosen = kind to credential },
+                )
+            } else {
+                DisclaimerStep(
                     legacyCount = legacyCount,
                     working = working,
                     onUnderstood = {
-                        val credential =
-                            if (kind == SecretCrypto.KIND_PATTERN)
-                                SecretCrypto.patternToCredential(firstPattern)
-                            else credentialOf(first)
-                        finishSetup(credential)
+                        chosen?.let { (kind, credential) -> finishSetup(kind, credential) }
                     },
                 )
-            }
-            error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

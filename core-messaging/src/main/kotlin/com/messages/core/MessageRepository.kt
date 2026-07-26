@@ -816,23 +816,50 @@ class MessageRepository private constructor(private val context: Context) {
      * "New locked chat": create a LOCKED-space conversation for this thread.
      * Existing history stays on the NORMAL row; from now on the routing rule
      * sends every incoming message from this address to the locked row.
+     * [address] enables creation for a brand-new recipient with no normal
+     * conversation at all (compose-from-inside-the-locked-space).
      */
-    suspend fun createLockedConversation(threadId: Long) = withContext(Dispatchers.IO) {
-        if (db.conversations().byThreadId(threadId, Spaces.LOCKED) != null) return@withContext
-        val normal = db.conversations().byThreadId(threadId, Spaces.NORMAL) ?: return@withContext
-        db.conversations().upsert(
-            normal.copy(
-                id = 0, // fresh row — the NORMAL one stays untouched
-                space = Spaces.LOCKED,
-                locked = false,
-                lastMessage = "",
-                lastTimestamp = System.currentTimeMillis(),
-                unreadCount = 0,
-                category = "INBOX",
-                pinned = false,
-                archived = false,
+    suspend fun createLockedConversation(threadId: Long, address: String? = null) =
+        withContext(Dispatchers.IO) {
+            if (db.conversations().byThreadId(threadId, Spaces.LOCKED) != null) return@withContext
+            val normal = db.conversations().byThreadId(threadId, Spaces.NORMAL)
+            val resolvedAddress = normal?.address ?: address ?: return@withContext
+            db.conversations().upsert(
+                ConversationEntity(
+                    threadId = threadId,
+                    address = resolvedAddress,
+                    contactName = normal?.contactName ?: displayNameFor(resolvedAddress),
+                    lastMessage = "",
+                    lastTimestamp = System.currentTimeMillis(),
+                    unreadCount = 0,
+                    category = "INBOX",
+                    muted = normal?.muted ?: false,
+                    preferredSubId = normal?.preferredSubId,
+                    space = Spaces.LOCKED,
+                )
             )
-        )
+        }
+
+    /**
+     * Secret-space RESET: destruction without revelation. Hard-deletes every
+     * locked-space row — Room index, local media, AND the Telephony-provider
+     * rows — deliberately BYPASSING Trash (routing a locked message through
+     * the normal Trash screen would leak it). Removing the LOCKED
+     * conversation rows also reverts the routing rule: future incoming from
+     * those addresses files into the normal space again. Never displays,
+     * exports, or moves any locked content. Returns how many messages died.
+     */
+    suspend fun wipeLockedSpace(): Int = withContext(Dispatchers.IO) {
+        val locked = db.messages().allInSpace(Spaces.LOCKED) // trash included
+        locked.forEach { msg ->
+            deleteProviderRow(msg)
+            deleteLocalMedia(msg)
+            db.messages().userDelete(msg.id)
+        }
+        db.conversations().allConversations()
+            .filter { it.space == Spaces.LOCKED }
+            .forEach { db.conversations().deleteByThreadId(it.threadId, Spaces.LOCKED) }
+        locked.size
     }
 
     /**
@@ -1099,5 +1126,19 @@ class MessageRepository private constructor(private val context: Context) {
             instance ?: synchronized(this) {
                 instance ?: MessageRepository(context.applicationContext).also { instance = it }
             }
+
+        /**
+         * TESTS ONLY. Robolectric shares one instrumented classloader across
+         * test classes with identical config, so this singleton — and the
+         * application context + ContentResolver it captured — leaks from one
+         * test class into the next while each class gets a FRESH application.
+         * Repo-level test classes must drop it in @Before so their Room db and
+         * any registered fake providers bind to their own application.
+         */
+        @androidx.annotation.VisibleForTesting
+        fun resetForTests() = synchronized(this) {
+            runCatching { instance?.db?.close() }
+            instance = null
+        }
     }
 }

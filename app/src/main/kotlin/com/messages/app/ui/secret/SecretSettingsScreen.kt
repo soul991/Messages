@@ -123,7 +123,12 @@ fun SecretSettingsScreen(
     }
 }
 
-/** Verify current code → choose new kind → enter → confirm. */
+/**
+ * Change secret code: verify the CURRENT code first (immediately, with the
+ * same rate limit as the prompt), then the user picks the type again —
+ * PIN / pattern / password — through the exact first-time-setup component
+ * ([CredentialCreationSteps]). Changing the type is a first-class path.
+ */
 @Composable
 private fun ChangeCredentialFlow(
     modifier: Modifier = Modifier,
@@ -133,36 +138,47 @@ private fun ChangeCredentialFlow(
     val scope = rememberCoroutineScope()
     val currentKind = remember { SecretSpace.kind(context) }
 
-    var step by remember { mutableIntStateOf(0) } // 0 verify current · 1 new · 2 confirm
     var current by remember { mutableStateOf("") }
-    var currentPattern by remember { mutableStateOf<List<Int>>(emptyList()) }
-    var newKind by remember { mutableStateOf(currentKind) }
-    var new1 by remember { mutableStateOf("") }
-    var newPattern by remember { mutableStateOf<List<Int>>(emptyList()) }
-    var confirm by remember { mutableStateOf("") }
+    var verifiedCurrent by remember { mutableStateOf<CharArray?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var patternClear by remember { mutableIntStateOf(0) }
     var working by remember { mutableStateOf(false) }
 
-    fun currentCredential(): CharArray =
-        if (currentKind == SecretCrypto.KIND_PATTERN) SecretCrypto.patternToCredential(currentPattern)
-        else current.toCharArray()
+    fun verifyCurrent(credential: CharArray) {
+        if (working) return
+        working = true
+        error = null
+        scope.launch {
+            val result = withContext(Dispatchers.Default) { SecretSpace.attempt(context, credential) }
+            working = false
+            when (result) {
+                is SecretSpace.Attempt.Success -> verifiedCurrent = credential
+                is SecretSpace.Attempt.Wrong -> {
+                    current = ""; patternClear++
+                    error = if (result.cooldownMs > 0) {
+                        "Wrong code. Try again in ${formatCooldown(result.cooldownMs)}."
+                    } else "Current code was wrong — try again"
+                }
+                is SecretSpace.Attempt.Cooldown ->
+                    error = "Too many attempts. Try again in ${formatCooldown(result.remainingMs)}."
+            }
+        }
+    }
 
-    fun newCredential(): CharArray =
-        if (newKind == SecretCrypto.KIND_PATTERN) SecretCrypto.patternToCredential(newPattern)
-        else new1.toCharArray()
-
-    fun commitChange() {
+    fun commitChange(newKind: String, new: CharArray) {
+        val verified = verifiedCurrent ?: return
         working = true
         scope.launch {
             val result = withContext(Dispatchers.Default) {
-                SecretSpace.changeCredential(context, currentCredential(), newKind, newCredential())
+                SecretSpace.changeCredential(context, verified, newKind, new)
             }
             working = false
             when (result) {
                 is SecretSpace.Attempt.Success -> onDone("Secret code changed")
+                // Re-verification can only fail if state changed underneath —
+                // fall back to the verify step rather than guessing.
                 is SecretSpace.Attempt.Wrong -> {
-                    step = 0; current = ""; currentPattern = emptyList(); patternClear++
+                    verifiedCurrent = null; current = ""; patternClear++
                     error = "Current code was wrong"
                 }
                 is SecretSpace.Attempt.Cooldown ->
@@ -175,93 +191,40 @@ private fun ChangeCredentialFlow(
         modifier.fillMaxSize().padding(horizontal = 24.dp),
         verticalArrangement = SecretScreenSpacing,
     ) {
-        when (step) {
-            0 -> {
-                Text("Enter your current code", style = MaterialTheme.typography.titleLarge)
-                if (currentKind == SecretCrypto.KIND_PATTERN) {
-                    PatternGrid(clearSignal = patternClear) { cells ->
-                        currentPattern = cells; error = null; step = 1
-                    }
-                } else {
-                    PinOrPasswordField(
-                        kind = currentKind, value = current, onValueChange = { current = it },
-                        label = if (currentKind == SecretCrypto.KIND_PIN) "Current PIN" else "Current password",
-                        isError = error != null,
-                        onDone = { if (current.isNotEmpty()) { error = null; step = 1 } },
-                    )
-                    Button(
-                        onClick = { error = null; step = 1 },
-                        enabled = current.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Next") }
+        if (verifiedCurrent == null) {
+            Text("Enter your current code", style = MaterialTheme.typography.titleLarge)
+            if (currentKind == SecretCrypto.KIND_PATTERN) {
+                PatternGrid(enabled = !working, clearSignal = patternClear) { cells ->
+                    verifyCurrent(SecretCrypto.patternToCredential(cells))
                 }
+            } else {
+                PinOrPasswordField(
+                    kind = currentKind, value = current, onValueChange = { current = it },
+                    label = if (currentKind == SecretCrypto.KIND_PIN) "Current PIN" else "Current password",
+                    enabled = !working,
+                    isError = error != null,
+                    onDone = { if (current.isNotEmpty()) verifyCurrent(current.toCharArray()) },
+                )
+                Button(
+                    onClick = { verifyCurrent(current.toCharArray()) },
+                    enabled = current.isNotEmpty() && !working,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Next") }
             }
-            1 -> {
-                Text("Choose a new code", style = MaterialTheme.typography.titleLarge)
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    CREDENTIAL_KINDS.forEachIndexed { i, (k, label) ->
-                        SegmentedButton(
-                            selected = newKind == k,
-                            onClick = { newKind = k; new1 = ""; newPattern = emptyList(); patternClear++ },
-                            shape = SegmentedButtonDefaults.itemShape(i, CREDENTIAL_KINDS.size),
-                        ) { Text(label) }
-                    }
-                }
-                if (newKind == SecretCrypto.KIND_PATTERN) {
-                    PatternGrid(clearSignal = patternClear) { cells ->
-                        val err = SecretCrypto.setupError(
-                            newKind, SecretCrypto.patternToCredential(cells),
-                        )
-                        if (err != null) { error = err } else {
-                            newPattern = cells; error = null; step = 2; patternClear++
-                        }
-                    }
-                } else {
-                    PinOrPasswordField(
-                        kind = newKind, value = new1, onValueChange = { new1 = it },
-                        label = if (newKind == SecretCrypto.KIND_PIN) "New PIN (4+ digits)"
-                        else "New password (4+ characters)",
-                        isError = error != null,
-                        onDone = {},
-                    )
-                    Button(
-                        onClick = {
-                            val err = SecretCrypto.setupError(newKind, new1.toCharArray())
-                            if (err != null) error = err else { error = null; step = 2 }
-                        },
-                        enabled = new1.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Next") }
-                }
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
-            2 -> {
-                Text("Confirm the new code", style = MaterialTheme.typography.titleLarge)
-                if (newKind == SecretCrypto.KIND_PATTERN) {
-                    PatternGrid(enabled = !working, clearSignal = patternClear) { cells ->
-                        if (cells == newPattern) commitChange()
-                        else { error = "Patterns don't match"; patternClear++ }
-                    }
-                } else {
-                    PinOrPasswordField(
-                        kind = newKind, value = confirm, onValueChange = { confirm = it },
-                        label = "Re-enter to confirm",
-                        enabled = !working,
-                        isError = error != null,
-                        onDone = {},
-                    )
-                    Button(
-                        onClick = {
-                            if (confirm == new1) commitChange()
-                            else { error = "Codes don't match"; confirm = "" }
-                        },
-                        enabled = confirm.isNotEmpty() && !working,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text(if (working) "Changing…" else "Change code") }
-                }
+        } else {
+            // Current code verified — full type re-pick, exactly like setup.
+            CredentialCreationSteps(
+                heading = "Choose a new secret code",
+                subtitle = "Pick any type — it doesn't have to match your current one.",
+                working = working,
+                onChosen = { newKind, new -> commitChange(newKind, new) },
+            )
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
-        }
-        error?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

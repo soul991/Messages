@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.NotificationsOff
@@ -77,7 +78,9 @@ class LockedSpaceViewModel(app: Application) : AndroidViewModel(app) {
                 .stateIn(viewModelScope, SharingStarted.Lazily, null)
         }
 
-    fun folderUnread(category: String) = repo.db.messages().unreadCount(category, Spaces.LOCKED)
+    /** Conversation-level, matching Home's unified unread predicate. */
+    fun folderUnread(category: String) =
+        repo.db.conversations().unreadConversationCount(category, Spaces.LOCKED)
 
     fun setFolder(f: String) { folder.value = f }
 
@@ -113,6 +116,8 @@ fun LockedSpaceScreen(
     onBack: () -> Unit,
     onOpenThread: (Long) -> Unit,
     onOpenSettings: () -> Unit,
+    /** New-message FAB: same compose UX as Home, conversation lands LOCKED. */
+    onCompose: () -> Unit = {},
     vm: LockedSpaceViewModel = viewModel(),
 ) {
     val context = LocalContext.current
@@ -156,6 +161,13 @@ fun LockedSpaceScreen(
                         Icon(Icons.Filled.Settings, contentDescription = "Locked chats settings")
                     }
                 },
+            )
+        },
+        floatingActionButton = {
+            androidx.compose.material3.ExtendedFloatingActionButton(
+                onClick = onCompose,
+                icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                text = { Text("New message") },
             )
         },
     ) { padding ->

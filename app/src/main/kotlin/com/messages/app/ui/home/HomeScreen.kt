@@ -301,11 +301,11 @@ fun HomeScreen(
                 exit = shrinkVertically(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
             ) {
                 LargeTopAppBar(
-                    // Secret space entry: press and hold the title for 3s.
-                    // pointerInput + a timed press (not combinedClickable —
-                    // its long-press fires at the system ~400ms timeout; the
-                    // 3s hold is the deliberate-discovery requirement). No
-                    // visual affordance: nothing hints the space exists.
+                    // Secret space entry: press and hold the title for 1.5s —
+                    // standard long-press feel, still deliberate. pointerInput
+                    // + a timed press (not combinedClickable — its long-press
+                    // fires at the system ~400ms timeout). No visual
+                    // affordance: nothing hints the space exists.
                     title = {
                         val haptics = androidx.compose.ui.hapticfeedback.HapticFeedbackType
                         val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
@@ -315,12 +315,12 @@ fun HomeScreen(
                                 awaitEachGesture {
                                     awaitFirstDown(requireUnconsumed = false)
                                     val held = try {
-                                        withTimeout(3_000) {
+                                        withTimeout(1_500) {
                                             waitForUpOrCancellation()
-                                            false // released/cancelled before 3s
+                                            false // released/cancelled before 1.5s
                                         }
                                     } catch (_: PointerEventTimeoutCancellationException) {
-                                        true // still down at 3s
+                                        true // still down at 1.5s
                                     }
                                     if (held) {
                                         hapticFeedback.performHapticFeedback(haptics.LongPress)
@@ -573,13 +573,13 @@ private fun FolderPane(
             },
             label = "folder-switch",
         ) { targetFolder ->
-            val conversationsRaw by remember(targetFolder) { vm.conversationsFor(targetFolder) }
-                .collectAsState()
-            // Unread-only filter (Phase 4 item 12).
-            val conversations = remember(conversationsRaw, unreadOnly) {
-                if (!unreadOnly) conversationsRaw
-                else conversationsRaw?.filter { it.unreadCount > 0 }
-            }
+            // Unread-only filter (Phase 4 item 12): a dedicated DAO flow with
+            // the shared unreadCount>0 predicate — folder-scoped, drops a
+            // conversation live when it's read, includes mark-as-unread.
+            val conversations by remember(targetFolder, unreadOnly) {
+                if (unreadOnly) vm.unreadConversationsFor(targetFolder)
+                else vm.conversationsFor(targetFolder)
+            }.collectAsState()
             // Verified-sender badges (Phase 2): latest incoming message's
             // fraud/protected state per thread; eligibility is decided by the
             // engine's SenderBadges, never re-detected in the UI.
