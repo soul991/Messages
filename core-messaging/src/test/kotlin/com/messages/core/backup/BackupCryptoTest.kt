@@ -142,7 +142,7 @@ class BackupCryptoTest {
 class RestoreDedupeTest {
 
     private fun msg(
-        address: String = "AX-HDFCBK-S",
+        address: String = "AX-BANKXX-S",
         body: String = "Your a/c was credited",
         timestamp: Long = 1_700_000_000_000,
         outgoing: Boolean = false,

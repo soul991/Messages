@@ -72,7 +72,7 @@ If any Protected pattern (§5.7) matches → **Inbox (Important), notify. Stop.*
 | Sender type | How detected | Effect |
 |---|---|---|
 | Saved contact | Contacts provider | → Inbox (Personal) directly unless a Fraud combo (§5.8) matches; contacts get compromised too |
-| Registered business header, transactional | Alphanumeric ID (e.g., `AX-HDFCBK-S`), DLT suffix `-S`/`-T`/`-G` | Trust boost; content still scored |
+| Registered business header, transactional | Alphanumeric ID (e.g., `AX-BANKXX-S`), DLT suffix `-S`/`-T`/`-G` | Trust boost; content still scored |
 | Registered business header, promotional | DLT suffix `-P` | → Promotions by default (India mandates this marking) |
 | Alphanumeric header, unknown suffix | e.g., `VM-OFFERS` | Neutral; content decides |
 | Random 10-digit mobile number, not in contacts | Numeric sender | Spam weight ×1.5 on promo/scam patterns (legit businesses must use registered headers, not personal numbers) |

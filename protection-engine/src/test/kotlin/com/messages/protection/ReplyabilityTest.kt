@@ -12,11 +12,11 @@ class ReplyabilityTest {
 
     @Test
     fun `dlt headers are not replyable`() {
-        assertFalse(SenderAnalyzer.canReceiveReplies("VM-HDFCBK"))
-        assertFalse(SenderAnalyzer.canReceiveReplies("AX-HDFCBK-S"))
+        assertFalse(SenderAnalyzer.canReceiveReplies("VM-BANKXX"))
+        assertFalse(SenderAnalyzer.canReceiveReplies("AX-BANKXX-S"))
         assertFalse(SenderAnalyzer.canReceiveReplies("JD-620014-P"))
         assertFalse(SenderAnalyzer.canReceiveReplies("JK-REGINF-G"))
-        assertFalse(SenderAnalyzer.canReceiveReplies("AD-EBLOTP-S"))
+        assertFalse(SenderAnalyzer.canReceiveReplies("AD-EDUOTP-S"))
     }
 
     @Test

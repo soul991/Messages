@@ -3,7 +3,7 @@ _Compiled 2026-07-24. Purpose: full context for continuing development in any ne
 
 ## 1. What this project is
 
-**Messages** — a full-featured Android default-SMS app (Kotlin, Jetpack Compose M3, MVVM) with a **100% deterministic, offline, no-server, no-ML spam/scam/fraud protection engine** (weighted regex pattern library + sender analysis + combination rules). Built almost entirely by Claude Code, steered by the owner (Istak) with an advisor AI writing prompts. Spec: `PRD_Messages.md` (v2) in repo root. Personal-use app, tested on the owner's real device (60Hz panel, India, DLT-header SMS ecosystem).
+**Messages** — a full-featured Android default-SMS app (Kotlin, Jetpack Compose M3, MVVM) with a **100% deterministic, offline, no-server, no-ML spam/scam/fraud protection engine** (weighted regex pattern library + sender analysis + combination rules). Built almost entirely by Claude Code, steered by the owner with an advisor AI writing prompts. Spec: `PRD_Messages.md` (v2) in repo root. Personal-use app, tested on the owner's real device (60Hz panel, India, DLT-header SMS ecosystem).
 
 **Core promises (never violate):** no message is ever lost or auto-deleted by the filter; OTP/bank/delivery ("Protected") messages can never be filtered; every verdict is explainable ("Why?" screen, matched pattern IDs); message content never leaves the device; when unsure → Review folder, not Spam.
 

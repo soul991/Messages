@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
  * Usage:
  *   adb shell am broadcast -a com.messages.app.DEBUG_INJECT_SMS \
  *     -n com.messages.app/.debug.InjectSmsReceiver \
- *     --es address "AX-HDFCBK" --es body "Your OTP is 483920 ..."
+ *     --es address "AX-BANKXX" --es body "Your OTP is 483920 ..."
  */
 class InjectSmsReceiver : BroadcastReceiver() {
 

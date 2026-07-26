@@ -25,12 +25,12 @@ class ConversationExporterTest {
                 msg("later message", 2_000_000_000_000L, outgoing = true, status = "FAILED"),
                 msg("hi there", 1_000_000_000_000L),
             ),
-            conversationName = "Istak",
+            conversationName = "Sam",
         )
-        assertTrue(out.startsWith("Conversation with Istak"))
+        assertTrue(out.startsWith("Conversation with Sam"))
         assertTrue(out.contains("2 messages"))
         // Sorted by timestamp: incoming first despite input order.
-        assertTrue(out.indexOf("Istak: hi there") < out.indexOf("Me: later message"))
+        assertTrue(out.indexOf("Sam: hi there") < out.indexOf("Me: later message"))
         assertTrue(out.contains("later message [failed to send]"))
     }
 

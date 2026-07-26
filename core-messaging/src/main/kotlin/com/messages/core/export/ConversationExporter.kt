@@ -10,7 +10,7 @@ import java.util.Locale
  * output is JVM-testable; the SAF write lives in the ChatViewModel.
  *
  * Format, one message per block:
- *   [Wed, 22 Jul 2026 21:45] Istak: see you at 8
+ *   [Wed, 22 Jul 2026 21:45] Sam: see you at 8
  * Multi-line bodies indent continuation lines so blocks stay parseable by eye.
  */
 object ConversationExporter {

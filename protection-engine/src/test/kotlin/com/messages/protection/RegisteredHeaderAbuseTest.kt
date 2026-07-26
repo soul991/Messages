@@ -16,7 +16,7 @@ import org.junit.Test
 class RegisteredHeaderAbuseTest {
 
     private val liveSamples = listOf(
-        "AD-PLUTUS-S" to "Jio Alert : SPAM\nRESOLVEDOnServer Rs 3,850 has been credited to your account 8101304789. Claim immediately: bit.ly/43xeXQv valid for 24 hours only! ThresholdatPineLabs",
+        "AD-PLUTUS-S" to "Jio Alert : SPAM\nRESOLVEDOnServer Rs 3,850 has been credited to your account 9812309876. Claim immediately: bit.ly/43xeXQv valid for 24 hours only! ThresholdatPineLabs",
         "AD-PLUTUS-S" to "Jio Alert : SPAM\nRESOLVEDOnServer Hi Account Transfer Received: Rs 1850 Amount 810****789 available in wallet is waiting. Click to allow bit.ly/4ehw5i0 ThresholdatPineLabs",
         "CP-CAPSTK-S" to "Dear User: Rs.12,269 credited to account(810***789) successfully :MCXSELLFUTCOM Withdraw before 9PM @ cutt.ly/NtZYEWU5 . --Capstocks.",
         "JM-SMCSEC-S" to "Dear,SwitchOTPis Rs.12,275 credited for Account 810***4789. Withdraw before 9am today by Click in bit.ly/3QLxZ2e for.SMC",
@@ -46,7 +46,7 @@ class RegisteredHeaderAbuseTest {
         // not knock a real bank alert off the protected lane.
         val v = TestEngine.classify(
             "Rs 2,500 credited to A/c XX4421 on 12-Jul via IMPS. Avl bal Rs 18,240. Never share your OTP or PIN with anyone. -HDFC Bank",
-            "VD-HDFCBK-S",
+            "VD-BANKXX-S",
         )
         // The OTP-family pattern on the footer routes this to Inbox with an
         // OTP label (pre-existing lane-ordering behavior) — the property that
@@ -60,7 +60,7 @@ class RegisteredHeaderAbuseTest {
     fun `genuine credit alert with official link keeps the protected lane`() {
         val v = TestEngine.classify(
             "Rs 40,000 credited to your account XX882 via NEFT ref N19822. Details: https://www.hdfcbank.com/statements",
-            "VD-HDFCBK-S",
+            "VD-BANKXX-S",
         )
         assertEquals(Category.TRANSACTIONS, v.category)
         assertEquals(ProtectedLabel.BANK, v.protectedLabel)

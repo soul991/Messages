@@ -18,12 +18,12 @@ class SenderBadgesTest {
 
     @Test
     fun `dlt transactional and govt headers are verified`() {
-        assertEquals(Badge.VERIFIED, badge("AX-HDFCBK-S"))
-        assertEquals(Badge.VERIFIED, badge("JV-JIOINF-S"))
+        assertEquals(Badge.VERIFIED, badge("AX-BANKXX-S"))
+        assertEquals(Badge.VERIFIED, badge("JV-TELCOX-S"))
         assertEquals(Badge.VERIFIED, badge("VM-IRCTCI-T"))
         assertEquals(Badge.VERIFIED, badge("JK-REGINF-G"))
         // Plain registered format without a suffix.
-        assertEquals(Badge.VERIFIED, badge("AX-HDFCBK"))
+        assertEquals(Badge.VERIFIED, badge("AX-BANKXX"))
     }
 
     @Test
@@ -64,7 +64,7 @@ class SenderBadgesTest {
 
     @Test
     fun `saved contacts groups and blanks get nothing`() {
-        assertNull(badge("AX-HDFCBK-S", isContact = true))
+        assertNull(badge("AX-BANKXX-S", isContact = true))
         assertNull(badge("+919876543210;+919876543211"))
         assertNull(badge(""))
     }
@@ -74,7 +74,7 @@ class SenderBadgesTest {
     @Test
     fun `fraud suppression beats every badge including verified bank headers`() {
         // A dangerous message from a "bank" header — no trust chrome, period.
-        assertNull(badge("AX-HDFCBK-S", dangerous = true))
+        assertNull(badge("AX-BANKXX-S", dangerous = true))
         assertNull(badge("JK-REGINF-G", dangerous = true))
         assertNull(badge("JD-620014-P", dangerous = true))
         assertNull(badge("HDFCBANK", dangerous = true, protectedLabel = "BANK"))

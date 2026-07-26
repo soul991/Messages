@@ -46,7 +46,7 @@ _2026-07-23. Sources: `docs/research/DESIGN_REFS_NOTES.md` (WA/TG measured value
 ## 3. Notifications
 
 - **Proper small icons** — replace placeholder `android.R.drawable` icons (`sym_action_chat`, `stat_sys_warning`) with app-branded monochrome glyphs (message bubble; shield-alert for fraud). Highest-visibility polish item in the whole phase.
-- **OTP notifications** (TC A1): code becomes the typographic hero — title `483920 — VM-HDFCBK`, body de-emphasized, Copy action stays. Same treatment considered for Transactions amounts using existing Stage-0 amount extraction (TC B5) — deterministic only, degrade to plain text when extraction is uncertain.
+- **OTP notifications** (TC A1): code becomes the typographic hero — title `483920 — VM-BANKXX`, body de-emphasized, Copy action stays. Same treatment considered for Transactions amounts using existing Stage-0 amount extraction (TC B5) — deterministic only, degrade to plain text when extraction is uncertain.
 - **Fraud warning** (verified working today): keeps persistent-until-dismissed semantics; gets the branded shield-alert icon, red accent, and copy tightened to advice-first. Stays default-ON via `warn_dangerous` (TC A4).
 - **Per-category structure stays** as built in item 3 (Inbox always-on, Transactions/Promotions/Review toggles, Spam/Blocked never) — the NotificationSettingsScreen just adopts the new list tokens (section headers, switch rows) so it matches the overhauled Settings.
 - MessagingStyle + contact photo + badge subtext all stay.

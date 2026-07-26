@@ -9,7 +9,7 @@ package com.messages.protection
 object SenderAnalyzer {
 
     // Indian DLT header: 2-letter operator/circle prefix + 6-char entity ID,
-    // e.g. AX-HDFCBK or AX-HDFCBK-S with the category suffix.
+    // e.g. AX-BANKXX or AX-BANKXX-S with the category suffix.
     private val DLT_HEADER = Regex("""^[A-Z]{2}-[A-Z0-9]{3,9}(-[SPTG])?$""", RegexOption.IGNORE_CASE)
     private val ALPHA_HEADER = Regex("""^(?=.*[A-Za-z])[A-Za-z0-9\-_. ]{2,15}$""")
     private val INDIAN_MOBILE = Regex("""^(?:\+?91)?[6-9]\d{9}$""")
@@ -86,7 +86,7 @@ object SenderAnalyzer {
 
     /**
      * Can this sender receive an SMS reply? Alphanumeric sender IDs (DLT
-     * headers like `VM-HDFCBK`, unregistered alpha headers, email gateways)
+     * headers like `VM-BANKXX`, unregistered alpha headers, email gateways)
      * are one-way — the network cannot route a reply back, so the chat UI
      * hides the composer and notifications must not offer inline reply.
      * Numeric senders (personal, international, short codes) are replyable.

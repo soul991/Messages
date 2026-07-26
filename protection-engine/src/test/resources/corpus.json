@@ -432,7 +432,7 @@
   },
   {
    "label": "promo",
-   "sender": "VM-HDFCBK-P",
+   "sender": "VM-BANKXX-P",
    "text": "Pre-approved personal loan of Rs 5,00,000 at special rate 10.5%. Zero processing fee this month. Apply now. T&C apply"
   },
   {
@@ -692,7 +692,7 @@
   },
   {
    "label": "protected",
-   "sender": "AX-HDFCBK-S",
+   "sender": "AX-BANKXX-S",
    "text": "483920 is your OTP for HDFC Bank login. Valid for 10 minutes. Do not share it with anyone."
   },
   {
@@ -717,7 +717,7 @@
   },
   {
    "label": "protected",
-   "sender": "AX-HDFCBK-S",
+   "sender": "AX-BANKXX-S",
    "text": "Rs 2,500 debited from A/c XX4421 on 12-Jul via UPI. Avl Bal Rs 18,240. Not you? Call 18002586161"
   },
   {
@@ -742,7 +742,7 @@
   },
   {
    "label": "protected",
-   "sender": "AX-HDFCBK-S",
+   "sender": "AX-BANKXX-S",
    "text": "Your A/c XX4421 mini statement: 12-Jul debit 2,500. 11-Jul credit 40,000. Avl bal 55,740"
   },
   {
@@ -812,7 +812,7 @@
   },
   {
    "label": "protected",
-   "sender": "AX-HDFCBK-S",
+   "sender": "AX-BANKXX-S",
    "text": "Credit card statement generated. Total due Rs 12,480, min due Rs 620, due date 28-Jul"
   },
   {
@@ -1917,7 +1917,7 @@
   },
   {
    "label": "protected",
-   "sender": "VM-HDFCBK",
+   "sender": "VM-BANKXX",
    "text": "726354 is your OTP for HDFC Bank NetBanking login. Valid for 10 minutes. Do not share this OTP with anyone"
   },
   {
@@ -1987,7 +1987,7 @@
   },
   {
    "label": "protected",
-   "sender": "AX-HDFCBK-S",
+   "sender": "AX-BANKXX-S",
    "text": "Rs 4,299.00 debited from a/c XX4412 on 16-07-26 to VPA merchant@ybl (UPI Ref 6178823341). Avl bal Rs 38,204.55. Not you? Call 18002586161"
   },
   {
@@ -2017,7 +2017,7 @@
   },
   {
    "label": "protected",
-   "sender": "JX-HDFCBK-S",
+   "sender": "JX-BANKXX-S",
    "text": "UPI txn of Rs 210.00 to SWIGGY successful from a/c XX4412. UPI Ref: 617882110045. Avl bal Rs 37,994.55"
   },
   {
@@ -2037,7 +2037,7 @@
   },
   {
    "label": "protected",
-   "sender": "VK-HDFCBK-S",
+   "sender": "VK-BANKXX-S",
    "text": "Your credit card statement for Jun-26 is ready. Total due Rs 18,420, min due Rs 920, due date 03-08-26. HDFC Bank"
   },
   {
@@ -2533,7 +2533,7 @@
   {
    "label": "scam",
    "sender": "AD-PLUTUS-S",
-   "text": "Jio Alert : SPAM\nRESOLVEDOnServer Rs 3,850 has been credited to your account 8101304789. Claim immediately: bit.ly/43xeXQv valid for 24 hours only! ThresholdatPineLabs"
+   "text": "Jio Alert : SPAM\nRESOLVEDOnServer Rs 3,850 has been credited to your account 9812309876. Claim immediately: bit.ly/43xeXQv valid for 24 hours only! ThresholdatPineLabs"
   },
   {
    "label": "scam",

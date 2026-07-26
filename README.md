@@ -72,7 +72,7 @@ The project is split into:
 `./gradlew :app:assembleRelease` produces an R8-minified, resource-shrunk,
 baseline-profiled APK, signed when `keystore.properties` is present — see
 [`docs/RELEASE_SIGNING.md`](docs/RELEASE_SIGNING.md) for the keystore and
-password-handling contract. On the reference device (RMX3092, 60 Hz) the
+password-handling contract. On the reference device (60 Hz panel) the
 release build measures 0% janky frames on list fling and chat scroll.
 
 ## Current release gates

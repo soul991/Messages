@@ -42,7 +42,7 @@ class OTP_and_bank_alerts_can_never_be_filtered {
 
     @Test
     fun otp_always_reaches_inbox_from_any_sender() {
-        val senders = listOf("AX-HDFCBK-S", "VM-AMZOTP", "9876543210", "+2348012345678", "BZ-UNKNWN")
+        val senders = listOf("AX-BANKXX-S", "VM-AMZOTP", "9876543210", "+2348012345678", "BZ-UNKNWN")
         for (body in otpSamples) for (sender in senders) {
             val v = TestEngine.classify(body, sender)
             assertTrue(
@@ -56,7 +56,7 @@ class OTP_and_bank_alerts_can_never_be_filtered {
     @Test
     fun bank_alerts_from_registered_headers_are_never_filtered() {
         for (body in bankSamples) {
-            val v = TestEngine.classify(body, "AX-HDFCBK-S")
+            val v = TestEngine.classify(body, "AX-BANKXX-S")
             assertTrue(
                 "Bank alert filtered! body=$body → ${v.category}",
                 v.category == Category.INBOX || v.category == Category.TRANSACTIONS,
@@ -77,7 +77,7 @@ class OTP_and_bank_alerts_can_never_be_filtered {
 
     @Test
     fun otp_label_is_applied_for_auto_delete_feature() {
-        val v = TestEngine.classify(otpSamples[0], "AX-HDFCBK-S")
+        val v = TestEngine.classify(otpSamples[0], "AX-BANKXX-S")
         assertEquals(ProtectedLabel.OTP, v.protectedLabel)
     }
 }
@@ -156,7 +156,7 @@ class SenderAnalyzerTest {
 
     @Test
     fun classifies_dlt_headers() {
-        assertEquals(SenderType.REGISTERED_TRANSACTIONAL, SenderAnalyzer.analyze("AX-HDFCBK-S", false).type)
+        assertEquals(SenderType.REGISTERED_TRANSACTIONAL, SenderAnalyzer.analyze("AX-BANKXX-S", false).type)
         assertEquals(SenderType.REGISTERED_PROMOTIONAL, SenderAnalyzer.analyze("VM-MYNTRA-P", false).type)
         assertEquals(SenderType.REGISTERED_GOVERNMENT, SenderAnalyzer.analyze("AD-UIDAI-G", false).type)
     }

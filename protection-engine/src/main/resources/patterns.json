@@ -844,7 +844,7 @@
         "Your account will be blocked today. Click to verify your details"
       ],
       "negativeExamples": [
-        "Your card is blocked as requested. Call us to issue a new one -HDFCBK"
+        "Your card is blocked as requested. Call us to issue a new one -BANKXX"
       ]
     },
     {
@@ -943,7 +943,7 @@
         "Your loan is approved for Rs 3,00,000. Claim now"
       ],
       "negativeExamples": [
-        "Congratulations, your home loan application ref 48123 has been approved. Visit branch with documents -HDFCBK"
+        "Congratulations, your home loan application ref 48123 has been approved. Visit branch with documents -BANKXX"
       ]
     },
     {
