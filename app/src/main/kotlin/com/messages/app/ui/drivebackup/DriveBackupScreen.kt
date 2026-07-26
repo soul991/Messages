@@ -214,7 +214,10 @@ class DriveBackupViewModel(app: Application) : AndroidViewModel(app) {
         restoreCandidate.value = null
         snackbar.value = result.fold(
             onSuccess = {
-                DriveBackup.restoreResultMessage(it.messagesRestored, it.messagesSkipped)
+                DriveBackup.restoreResultMessage(
+                    it.messagesRestored, it.messagesSkipped,
+                    lockedPending = it.lockedPending, lockedRestored = it.lockedRestored,
+                )
             },
             onFailure = {
                 if (it is com.messages.core.backup.BackupCrypto.WrongPasswordException)

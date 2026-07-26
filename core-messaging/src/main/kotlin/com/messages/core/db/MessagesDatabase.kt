@@ -9,6 +9,14 @@ import androidx.room.RoomDatabase
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
+// Secret-space invisibility contract (audited by SpaceInvisibilityTest):
+// every query feeding NORMAL-space UI pins `space = 'NORMAL'` (home list,
+// folders, FTS search, name search, starred, trash, stats, widgets, badges).
+// Queries that serve the chat screen take a :space parameter because the chat
+// UI is shared by both spaces. Background-maintenance queries (trash purge,
+// OTP/spam cleanup, FTS renormalize) deliberately span both spaces — they
+// never surface content.
+
 @Dao
 interface MessageDao {
     /** Latest INCOMING message's badge-relevant fields per thread (verified-
@@ -22,9 +30,9 @@ interface MessageDao {
 
     @Query(
         "SELECT threadId, dangerous, fraudWarning, protectedLabel FROM messages m " +
-            "WHERE trashed = 0 AND isOutgoing = 0 AND timestamp = (" +
+            "WHERE trashed = 0 AND isOutgoing = 0 AND space = 'NORMAL' AND timestamp = (" +
             "SELECT MAX(timestamp) FROM messages WHERE threadId = m.threadId " +
-            "AND trashed = 0 AND isOutgoing = 0) GROUP BY threadId"
+            "AND trashed = 0 AND isOutgoing = 0 AND space = 'NORMAL') GROUP BY threadId"
     )
     fun latestIncomingMeta(): Flow<List<LatestIncomingMeta>>
 
@@ -34,11 +42,14 @@ interface MessageDao {
     @Update
     suspend fun update(message: MessageEntity)
 
-    @Query("SELECT * FROM messages WHERE threadId = :threadId AND trashed = 0 ORDER BY timestamp ASC")
-    fun messagesForThread(threadId: Long): Flow<List<MessageEntity>>
+    @Query(
+        "SELECT * FROM messages WHERE threadId = :threadId AND space = :space " +
+            "AND trashed = 0 ORDER BY timestamp ASC"
+    )
+    fun messagesForThread(threadId: Long, space: String = Spaces.NORMAL): Flow<List<MessageEntity>>
 
-    @Query("SELECT * FROM messages WHERE threadId = :threadId AND trashed = 0")
-    suspend fun listForThread(threadId: Long): List<MessageEntity>
+    @Query("SELECT * FROM messages WHERE threadId = :threadId AND space = :space AND trashed = 0")
+    suspend fun listForThread(threadId: Long, space: String = Spaces.NORMAL): List<MessageEntity>
 
     @Query("SELECT * FROM messages WHERE id = :id")
     suspend fun byId(id: Long): MessageEntity?
@@ -52,11 +63,11 @@ interface MessageDao {
     @Query("UPDATE messages SET category = :category, dangerous = 0 WHERE id = :id")
     suspend fun recategorize(id: Long, category: String)
 
-    @Query("UPDATE messages SET read = 1 WHERE threadId = :threadId")
-    suspend fun markThreadRead(threadId: Long)
+    @Query("UPDATE messages SET read = 1 WHERE threadId = :threadId AND space = :space")
+    suspend fun markThreadRead(threadId: Long, space: String = Spaces.NORMAL)
 
-    /** Mark-all-read for one folder (Phase 4 item 12). */
-    @Query("UPDATE messages SET read = 1 WHERE category = :category AND trashed = 0")
+    /** Mark-all-read for one folder (Phase 4 item 12) — Home surface, NORMAL only. */
+    @Query("UPDATE messages SET read = 1 WHERE category = :category AND trashed = 0 AND space = 'NORMAL'")
     suspend fun markCategoryRead(category: String)
 
     @Query("UPDATE messages SET starred = :starred WHERE id = :id")
@@ -71,6 +82,14 @@ interface MessageDao {
     @Query("UPDATE messages SET sendStatus = 'DELIVERED' WHERE id = :id AND sendStatus != 'FAILED'")
     suspend fun markDelivered(id: Long)
 
+    /**
+     * Secret space: move a whole thread's live messages between spaces
+     * ("Move entire chat" / "Unlock chat"). Trash rows move too — a locked
+     * chat's deletions must not resurface in the normal Trash screen.
+     */
+    @Query("UPDATE messages SET space = :to WHERE threadId = :threadId AND space = :from")
+    suspend fun setThreadSpace(threadId: Long, from: String, to: String)
+
     // User-initiated only — the filter itself never calls delete (§6). Normal
     // user deletions go through the Trash flags below (§6.4); the permitted
     // hard-delete callers are: "Delete forever" in Trash, the 60-day trash
@@ -84,31 +103,48 @@ interface MessageDao {
     @Query("UPDATE messages SET trashed = 1, trashedAt = :at WHERE id = :id")
     suspend fun moveToTrash(id: Long, at: Long)
 
-    @Query("UPDATE messages SET trashed = 1, trashedAt = :at WHERE threadId = :threadId AND trashed = 0")
-    suspend fun moveThreadToTrash(threadId: Long, at: Long)
+    @Query(
+        "UPDATE messages SET trashed = 1, trashedAt = :at " +
+            "WHERE threadId = :threadId AND space = :space AND trashed = 0"
+    )
+    suspend fun moveThreadToTrash(threadId: Long, at: Long, space: String = Spaces.NORMAL)
 
-    @Query("SELECT id FROM messages WHERE threadId = :threadId AND trashed = 1 AND trashedAt >= :after")
-    suspend fun trashedIdsForThread(threadId: Long, after: Long): List<Long>
+    @Query(
+        "SELECT id FROM messages WHERE threadId = :threadId AND space = :space " +
+            "AND trashed = 1 AND trashedAt >= :after"
+    )
+    suspend fun trashedIdsForThread(threadId: Long, after: Long, space: String = Spaces.NORMAL): List<Long>
 
     @Query("UPDATE messages SET trashed = 0, trashedAt = NULL WHERE id = :id")
     suspend fun restoreFromTrash(id: Long)
 
-    @Query("SELECT * FROM messages WHERE trashed = 1 ORDER BY trashedAt DESC, timestamp DESC")
+    /** Trash screen (normal surface): locked-space trash never appears here. */
+    @Query(
+        "SELECT * FROM messages WHERE trashed = 1 AND space = 'NORMAL' " +
+            "ORDER BY trashedAt DESC, timestamp DESC"
+    )
     fun trashedMessages(): Flow<List<MessageEntity>>
 
-    @Query("SELECT * FROM messages WHERE trashed = 1")
+    @Query("SELECT * FROM messages WHERE trashed = 1 AND space = 'NORMAL'")
     suspend fun allTrashed(): List<MessageEntity>
 
+    /** 60-day purge spans both spaces (background maintenance, no UI surface). */
     @Query("SELECT * FROM messages WHERE trashed = 1 AND trashedAt < :before")
     suspend fun trashExpiredBefore(before: Long): List<MessageEntity>
 
-    @Query("SELECT COUNT(*) FROM messages WHERE trashed = 1")
+    @Query("SELECT COUNT(*) FROM messages WHERE trashed = 1 AND space = 'NORMAL'")
     fun trashCount(): Flow<Int>
 
-    @Query("SELECT * FROM messages WHERE threadId = :threadId AND trashed = 0 ORDER BY timestamp DESC LIMIT 1")
-    suspend fun latestForThread(threadId: Long): MessageEntity?
+    @Query(
+        "SELECT * FROM messages WHERE threadId = :threadId AND space = :space " +
+            "AND trashed = 0 ORDER BY timestamp DESC LIMIT 1"
+    )
+    suspend fun latestForThread(threadId: Long, space: String = Spaces.NORMAL): MessageEntity?
 
-    @Query("SELECT * FROM messages WHERE body LIKE '%' || :query || '%' AND trashed = 0 ORDER BY timestamp DESC LIMIT 100")
+    @Query(
+        "SELECT * FROM messages WHERE body LIKE '%' || :query || '%' AND trashed = 0 " +
+            "AND space = 'NORMAL' ORDER BY timestamp DESC LIMIT 100"
+    )
     suspend fun search(query: String): List<MessageEntity>
 
     // ---- §8.5 FTS search ----
@@ -118,11 +154,13 @@ interface MessageDao {
      * phrase) → matching live messages, newest first. Multi-keyword match-any
      * ranking is assembled in [com.messages.core.search.MessageSearch] by
      * merging per-keyword result sets — avoids relying on FTS enhanced-query
-     * OR syntax, which not every OEM SQLite build enables.
+     * OR syntax, which not every OEM SQLite build enables. The FTS table has
+     * no space column, so the join filter enforces locked-space invisibility.
      */
     @Query(
         "SELECT messages.* FROM messages JOIN messages_fts ON messages.id = messages_fts.docid " +
             "WHERE messages_fts MATCH :match AND messages.trashed = 0 " +
+            "AND messages.space = 'NORMAL' " +
             "ORDER BY messages.timestamp DESC LIMIT :limit"
     )
     suspend fun searchFts(match: String, limit: Int): List<MessageEntity>
@@ -133,65 +171,91 @@ interface MessageDao {
     @Query("SELECT id, body FROM messages WHERE normalizedBody = ''")
     suspend fun rowsNeedingNormalization(): List<IdBody>
 
-    @Query("SELECT COUNT(*) FROM messages WHERE category = :category AND read = 0 AND trashed = 0")
-    fun unreadCount(category: String): Flow<Int>
+    @Query(
+        "SELECT COUNT(*) FROM messages WHERE category = :category AND read = 0 " +
+            "AND trashed = 0 AND space = :space"
+    )
+    fun unreadCount(category: String, space: String = Spaces.NORMAL): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED') AND timestamp > :since AND trashed = 0")
+    @Query(
+        "SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED') " +
+            "AND timestamp > :since AND trashed = 0 AND space = 'NORMAL'"
+    )
     suspend fun spamCountSince(since: Long): Int
 
     // §6.6/§8.2 guarantee lives in this WHERE clause: only OTP-labeled Inbox
     // messages — never filtered folders (Spam/Promotions/Blocked/Review), never
     // other labels, never starred messages the user chose to keep. Trashed
     // OTPs are excluded: they follow the normal 60-day trash purge instead.
+    // Both spaces on purpose: cleanup applies inside the locked space too.
     @Query(
         "SELECT * FROM messages WHERE protectedLabel = 'OTP' AND category = 'INBOX' " +
             "AND starred = 0 AND trashed = 0 AND timestamp < :olderThan"
     )
     suspend fun expiredOtps(olderThan: Long): List<MessageEntity>
 
-    // §6.5: SPAM only — Review and Blocked are NEVER auto-cleaned.
+    // §6.5: SPAM only — Review and Blocked are NEVER auto-cleaned. Both spaces.
     @Query(
         "SELECT * FROM messages WHERE category = 'SPAM' " +
             "AND starred = 0 AND trashed = 0 AND timestamp < :olderThan"
     )
     suspend fun expiredSpam(olderThan: Long): List<MessageEntity>
 
-    @Query("SELECT * FROM messages WHERE starred = 1 AND trashed = 0 ORDER BY timestamp DESC")
+    /** Starred screen (normal surface): starred locked messages stay invisible. */
+    @Query(
+        "SELECT * FROM messages WHERE starred = 1 AND trashed = 0 AND space = 'NORMAL' " +
+            "ORDER BY timestamp DESC"
+    )
     fun starred(): Flow<List<MessageEntity>>
 
     // Phase 5 §4: ContactDetail "Starred messages" row scopes to one thread.
-    @Query("SELECT * FROM messages WHERE starred = 1 AND trashed = 0 AND threadId = :threadId ORDER BY timestamp DESC")
+    @Query(
+        "SELECT * FROM messages WHERE starred = 1 AND trashed = 0 AND space = 'NORMAL' " +
+            "AND threadId = :threadId ORDER BY timestamp DESC"
+    )
     fun starredForThread(threadId: Long): Flow<List<MessageEntity>>
 
     // ---- Backup/restore (§8.2) ----
 
+    /** BOTH spaces — the backup layer splits them (locked rows go into the
+     *  credential-encrypted sub-envelope) and the dedupe key set must span
+     *  spaces so a restore never duplicates a message across them. */
     @Query("SELECT * FROM messages ORDER BY timestamp ASC")
     suspend fun allMessages(): List<MessageEntity>
 
-    // ---- Protection-dashboard stats (§8.2) ----
+    // ---- Protection-dashboard stats (§8.2) — normal space only ----
 
     @Query(
         "SELECT category, COUNT(*) as count FROM messages WHERE category IN " +
-            "('SPAM','PROMOTIONS','BLOCKED','REVIEW') AND timestamp >= :since AND trashed = 0 GROUP BY category"
+            "('SPAM','PROMOTIONS','BLOCKED','REVIEW') AND timestamp >= :since " +
+            "AND trashed = 0 AND space = 'NORMAL' GROUP BY category"
     )
     suspend fun filteredCountsSince(since: Long): List<CategoryCount>
 
     @Query(
         "SELECT address, COUNT(*) as count FROM messages WHERE category IN ('SPAM','BLOCKED') " +
-            "AND timestamp >= :since AND trashed = 0 GROUP BY address ORDER BY count DESC LIMIT :limit"
+            "AND timestamp >= :since AND trashed = 0 AND space = 'NORMAL' " +
+            "GROUP BY address ORDER BY count DESC LIMIT :limit"
     )
     suspend fun topFilteredSenders(since: Long, limit: Int): List<SenderCount>
 
-    @Query("SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED','PROMOTIONS') AND trashed = 0")
+    @Query(
+        "SELECT COUNT(*) FROM messages WHERE category IN ('SPAM','BLOCKED','PROMOTIONS') " +
+            "AND trashed = 0 AND space = 'NORMAL'"
+    )
     suspend fun totalSilenced(): Int
 
-    @Query("SELECT COUNT(*) FROM messages WHERE dangerous = 1 AND timestamp >= :since AND trashed = 0")
+    @Query(
+        "SELECT COUNT(*) FROM messages WHERE dangerous = 1 AND timestamp >= :since " +
+            "AND trashed = 0 AND space = 'NORMAL'"
+    )
     suspend fun dangerousCountSince(since: Long): Int
 
     /**
      * Phase 4 item 21 (rec B3): count of messages already stored from this
      * exact address (incl. trashed — a trashed history still means the sender
-     * is not brand-new). Zero → first-contact multiplier applies.
+     * is not brand-new). Zero → first-contact multiplier applies. Both spaces:
+     * a sender with locked history is not a first contact.
      */
     @Query("SELECT COUNT(*) FROM messages WHERE address = :address")
     suspend fun countForAddress(address: String): Int
@@ -199,7 +263,7 @@ interface MessageDao {
     @Query(
         "SELECT matchedPatternIds FROM messages WHERE category IN " +
             "('SPAM','PROMOTIONS','BLOCKED','REVIEW') AND timestamp >= :since " +
-            "AND trashed = 0 AND matchedPatternIds != ''"
+            "AND trashed = 0 AND space = 'NORMAL' AND matchedPatternIds != ''"
     )
     suspend fun filteredPatternIdsSince(since: Long): List<String>
 }
@@ -213,45 +277,54 @@ interface ConversationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(conversation: ConversationEntity): Long
 
-    @Query("SELECT * FROM conversations WHERE threadId = :threadId LIMIT 1")
-    suspend fun byThreadId(threadId: Long): ConversationEntity?
+    @Query("SELECT * FROM conversations WHERE threadId = :threadId AND space = :space LIMIT 1")
+    suspend fun byThreadId(threadId: Long, space: String = Spaces.NORMAL): ConversationEntity?
 
     @Query(
         "SELECT * FROM conversations WHERE category = :category AND archived = 0 " +
-            "ORDER BY pinned DESC, lastTimestamp DESC"
+            "AND space = :space ORDER BY pinned DESC, lastTimestamp DESC"
     )
-    fun byCategory(category: String): Flow<List<ConversationEntity>>
+    fun byCategory(category: String, space: String = Spaces.NORMAL): Flow<List<ConversationEntity>>
 
-    @Query("SELECT * FROM conversations WHERE archived = 1 ORDER BY lastTimestamp DESC")
+    @Query(
+        "SELECT * FROM conversations WHERE archived = 1 AND space = 'NORMAL' " +
+            "ORDER BY lastTimestamp DESC"
+    )
     fun archived(): Flow<List<ConversationEntity>>
 
     // §8.5.3: searching "mom" must find the conversation with the contact
     // saved as mom — contact names are not in the message FTS index, so
-    // conversations are matched separately by name/number substring.
+    // conversations are matched separately by name/number substring. NORMAL
+    // only: this also feeds the forward picker and global search.
     @Query(
         "SELECT * FROM conversations WHERE (contactName LIKE '%' || :q || '%' " +
-            "OR address LIKE '%' || :q || '%') " +
+            "OR address LIKE '%' || :q || '%') AND space = 'NORMAL' " +
             "ORDER BY lastTimestamp DESC LIMIT 20"
     )
     suspend fun searchByNameOrAddress(q: String): List<ConversationEntity>
 
-    @Query("UPDATE conversations SET pinned = :pinned WHERE threadId = :threadId")
-    suspend fun setPinned(threadId: Long, pinned: Boolean)
+    @Query("UPDATE conversations SET pinned = :pinned WHERE threadId = :threadId AND space = :space")
+    suspend fun setPinned(threadId: Long, pinned: Boolean, space: String = Spaces.NORMAL)
 
-    @Query("UPDATE conversations SET archived = :archived WHERE threadId = :threadId")
-    suspend fun setArchived(threadId: Long, archived: Boolean)
+    @Query("UPDATE conversations SET archived = :archived WHERE threadId = :threadId AND space = :space")
+    suspend fun setArchived(threadId: Long, archived: Boolean, space: String = Spaces.NORMAL)
 
-    @Query("UPDATE conversations SET muted = :muted WHERE threadId = :threadId")
-    suspend fun setMuted(threadId: Long, muted: Boolean)
+    @Query("UPDATE conversations SET muted = :muted WHERE threadId = :threadId AND space = :space")
+    suspend fun setMuted(threadId: Long, muted: Boolean, space: String = Spaces.NORMAL)
 
-    @Query("UPDATE conversations SET locked = :locked WHERE threadId = :threadId")
+    /** LEGACY biometric locked-conversation flag — normal space only. */
+    @Query("UPDATE conversations SET locked = :locked WHERE threadId = :threadId AND space = 'NORMAL'")
     suspend fun setLocked(threadId: Long, locked: Boolean)
 
-    @Query("UPDATE conversations SET unreadCount = 0 WHERE threadId = :threadId")
-    suspend fun clearUnread(threadId: Long)
+    /** Legacy rows to migrate into the LOCKED space at first secret-space setup. */
+    @Query("SELECT * FROM conversations WHERE locked = 1 AND space = 'NORMAL'")
+    suspend fun legacyLockedConversations(): List<ConversationEntity>
 
-    /** Mark-all-read for one folder (Phase 4 item 12). */
-    @Query("UPDATE conversations SET unreadCount = 0 WHERE category = :category")
+    @Query("UPDATE conversations SET unreadCount = 0 WHERE threadId = :threadId AND space = :space")
+    suspend fun clearUnread(threadId: Long, space: String = Spaces.NORMAL)
+
+    /** Mark-all-read for one folder (Phase 4 item 12) — Home surface. */
+    @Query("UPDATE conversations SET unreadCount = 0 WHERE category = :category AND space = 'NORMAL'")
     suspend fun clearUnreadForCategory(category: String)
 
     /**
@@ -260,33 +333,45 @@ interface ConversationDao {
      */
     @Query(
         "UPDATE conversations SET unreadCount = " +
-            "CASE WHEN unreadCount = 0 THEN 1 ELSE unreadCount END WHERE threadId = :threadId"
+            "CASE WHEN unreadCount = 0 THEN 1 ELSE unreadCount END " +
+            "WHERE threadId = :threadId AND space = :space"
     )
-    suspend fun markUnread(threadId: Long)
+    suspend fun markUnread(threadId: Long, space: String = Spaces.NORMAL)
 
-    @Query("UPDATE conversations SET preferredSubId = :subId WHERE threadId = :threadId")
-    suspend fun setPreferredSubId(threadId: Long, subId: Int?)
+    @Query("UPDATE conversations SET preferredSubId = :subId WHERE threadId = :threadId AND space = :space")
+    suspend fun setPreferredSubId(threadId: Long, subId: Int?, space: String = Spaces.NORMAL)
 
-    @Query("UPDATE conversations SET contactName = :name WHERE threadId = :threadId")
-    suspend fun setContactName(threadId: Long, name: String?)
+    @Query("UPDATE conversations SET contactName = :name WHERE threadId = :threadId AND space = :space")
+    suspend fun setContactName(threadId: Long, name: String?, space: String = Spaces.NORMAL)
 
-    @Query("DELETE FROM conversations WHERE threadId = :threadId")
-    suspend fun deleteByThreadId(threadId: Long)
+    @Query("DELETE FROM conversations WHERE threadId = :threadId AND space = :space")
+    suspend fun deleteByThreadId(threadId: Long, space: String = Spaces.NORMAL)
 
-    @Query("SELECT COUNT(*) FROM conversations WHERE category = :category AND unreadCount > 0 AND archived = 0")
-    fun unreadConversationCount(category: String): Flow<Int>
+    @Query(
+        "SELECT COUNT(*) FROM conversations WHERE category = :category " +
+            "AND unreadCount > 0 AND archived = 0 AND space = :space"
+    )
+    fun unreadConversationCount(category: String, space: String = Spaces.NORMAL): Flow<Int>
 
-    // ---- One-shot lookups for home-screen widgets (§8.2) ----
+    /** Any locked-space conversation rows at all? Drives the routing rule check. */
+    @Query("SELECT COUNT(*) FROM conversations WHERE space = 'LOCKED'")
+    suspend fun lockedConversationCount(): Int
 
-    @Query("SELECT COUNT(*) FROM conversations WHERE category = 'INBOX' AND unreadCount > 0 AND archived = 0")
+    // ---- One-shot lookups for home-screen widgets (§8.2) — normal space ----
+
+    @Query(
+        "SELECT COUNT(*) FROM conversations WHERE category = 'INBOX' AND unreadCount > 0 " +
+            "AND archived = 0 AND space = 'NORMAL'"
+    )
     suspend fun unreadInboxConversations(): Int
 
     @Query(
         "SELECT * FROM conversations WHERE category = 'INBOX' AND unreadCount > 0 " +
-            "AND archived = 0 ORDER BY lastTimestamp DESC LIMIT :limit"
+            "AND archived = 0 AND space = 'NORMAL' ORDER BY lastTimestamp DESC LIMIT :limit"
     )
     suspend fun recentUnreadInbox(limit: Int): List<ConversationEntity>
 
+    /** BOTH spaces — backup split + contact-name healing handle space themselves. */
     @Query("SELECT * FROM conversations")
     suspend fun allConversations(): List<ConversationEntity>
 }
@@ -324,7 +409,7 @@ interface UserRuleDao {
         SenderReputationEntity::class, UserRuleEntity::class,
         MessageFtsEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class MessagesDatabase : RoomDatabase() {

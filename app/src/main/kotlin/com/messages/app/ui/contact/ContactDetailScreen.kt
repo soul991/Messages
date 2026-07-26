@@ -331,12 +331,16 @@ fun ContactDetailScreen(
                 onClick = { vm.setMuted(!muted) },
                 trailing = { Switch(checked = muted, onCheckedChange = { vm.setMuted(it) }) },
             )
+            // The old per-chat biometric lock toggle is gone — locking now
+            // means the secret locked space ("Lock chat" in the chat's ⋮
+            // menu). This row only points there; legacy locked=1 rows keep
+            // their auth gate until the first secret-space setup migrates them.
             DetailRow(
                 icon = Icons.Outlined.Lock,
-                title = "Lock conversation",
-                subtitle = "Require unlock to open; previews hidden.",
-                onClick = { vm.setLocked(!locked) },
-                trailing = { Switch(checked = locked, onCheckedChange = { vm.setLocked(it) }) },
+                title = "Lock chat",
+                subtitle = "Use \"Lock chat\" in the conversation's ⋮ menu to move it " +
+                    "into your locked chats.",
+                onClick = {},
             )
 
             // Per-conversation tone (Phase 4 item 4): a dedicated notification

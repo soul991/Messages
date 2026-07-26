@@ -18,7 +18,11 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -171,6 +175,8 @@ fun HomeScreen(
     onDashboard: () -> Unit,
     onOpenStarred: () -> Unit = {},
     onOpenArchived: () -> Unit = {},
+    /** Secret space: fired by the 3s press-and-hold on the "Messages" title. */
+    onSecretEntry: () -> Unit = {},
     vm: HomeViewModel = viewModel(),
 ) {
     LaunchedEffect(initialFolder) { if (initialFolder != null) vm.setFolder(initialFolder) }
@@ -295,7 +301,35 @@ fun HomeScreen(
                 exit = shrinkVertically(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
             ) {
                 LargeTopAppBar(
-                    title = { Text("Messages") },
+                    // Secret space entry: press and hold the title for 3s.
+                    // pointerInput + a timed press (not combinedClickable —
+                    // its long-press fires at the system ~400ms timeout; the
+                    // 3s hold is the deliberate-discovery requirement). No
+                    // visual affordance: nothing hints the space exists.
+                    title = {
+                        val haptics = androidx.compose.ui.hapticfeedback.HapticFeedbackType
+                        val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
+                        Text(
+                            "Messages",
+                            modifier = Modifier.pointerInput(Unit) {
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false)
+                                    val held = try {
+                                        withTimeout(3_000) {
+                                            waitForUpOrCancellation()
+                                            false // released/cancelled before 3s
+                                        }
+                                    } catch (_: PointerEventTimeoutCancellationException) {
+                                        true // still down at 3s
+                                    }
+                                    if (held) {
+                                        hapticFeedback.performHapticFeedback(haptics.LongPress)
+                                        onSecretEntry()
+                                    }
+                                }
+                            },
+                        )
+                    },
                     actions = {
                         IconButton(onClick = onDashboard) {
                             Icon(Icons.Filled.Shield, contentDescription = "Protection dashboard")

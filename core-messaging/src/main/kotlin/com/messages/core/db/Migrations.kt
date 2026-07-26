@@ -49,5 +49,27 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+    /**
+     * v8 (secret locked space): `space` column (NORMAL/LOCKED) on messages and
+     * conversations. The conversations unique index widens from threadId to
+     * (threadId, space) — "New locked chat" keeps a second conversation row
+     * for the same system thread. Existing rows all default to NORMAL;
+     * legacy biometric-locked conversations migrate to the LOCKED space later,
+     * when the user first completes secret-space setup (not here — the space
+     * has no credential yet at schema-migration time).
+     */
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE messages ADD COLUMN space TEXT NOT NULL DEFAULT 'NORMAL'")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_space ON messages (space)")
+            db.execSQL("ALTER TABLE conversations ADD COLUMN space TEXT NOT NULL DEFAULT 'NORMAL'")
+            db.execSQL("DROP INDEX IF EXISTS index_conversations_threadId")
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS index_conversations_threadId_space " +
+                    "ON conversations (threadId, space)"
+            )
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
 }

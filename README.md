@@ -37,6 +37,18 @@ never-delete policy, and a versioned pattern library that can grow with app
 updates. The required standard is that every known family in
 [`PRD_Messages.md`](PRD_Messages.md) is covered and no genuine message is lost.
 
+**Locked chats.** The secret locked space hides conversations inside *this
+app*, behind a knowledge-only secret code (PIN/pattern/password; salted
+PBKDF2-HMAC-SHA256 ≥600k verifier, escalating attempt cooldown, no recovery
+path). It cannot change how Android stores SMS: message content still lives
+in the phone's shared message storage, so anyone who makes another app the
+default SMS handler can read it there. Locked chats protect against casual
+snooping on this app — that limitation is stated verbatim in the in-app
+disclaimer the user must scroll through and accept at setup. In backups,
+locked chats travel only as a separately-encrypted sub-envelope keyed to the
+secret code; account access alone restores the normal chats but cannot open
+the locked ones.
+
 ## Development
 
 Requirements: JDK 17, Android SDK platform 35, and a local `local.properties`

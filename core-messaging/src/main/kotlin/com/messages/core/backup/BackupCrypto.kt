@@ -119,6 +119,24 @@ object BackupCrypto {
     fun openWithMasterKey(blob: ByteArray, masterKey: ByteArray): String =
         open(blob, unwrapWithMasterKey(readHeader(blob), masterKey))
 
+    /**
+     * Wrap [dataKey] under an ALREADY-DERIVED PBKDF2 key (the secret locked
+     * space's cached KEK). Produces a standard METHOD_PASSWORD wrap carrying
+     * [salt]/[iterations] — so the restore side needs only the original
+     * credential and the untouched [unwrapWithPassword]/[openWithPassword]
+     * path. Used because scheduled backups run without the credential in hand;
+     * the KEK cache stands in for it (see SecretSpace docs).
+     */
+    fun wrapWithKek(dataKey: ByteArray, kek: ByteArray, salt: ByteArray, iterations: Int): WrappedKey {
+        val nonce = ByteArray(NONCE_LEN).also { SecureRandom().nextBytes(it) }
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(
+            Cipher.ENCRYPT_MODE, SecretKeySpec(kek, "AES"),
+            GCMParameterSpec(GCM_TAG_BITS, nonce),
+        )
+        return WrappedKey(METHOD_PASSWORD, b64(salt), iterations, b64(nonce), b64(cipher.doFinal(dataKey)))
+    }
+
     /** Wrap [dataKey] under a user password (PBKDF2 → AES-GCM). */
     fun wrapWithPassword(dataKey: ByteArray, password: CharArray): WrappedKey {
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
@@ -130,6 +148,24 @@ object BackupCrypto {
             GCMParameterSpec(GCM_TAG_BITS, nonce),
         )
         return WrappedKey(METHOD_PASSWORD, b64(salt), PBKDF2_ITERATIONS, b64(nonce), b64(cipher.doFinal(dataKey)))
+    }
+
+    /** Counterpart of [wrapWithKek]: unwrap with the derived key directly
+     *  (device already holds the locked-space KEK cache — no prompt needed). */
+    fun unwrapWithKek(header: Header, kek: ByteArray): ByteArray {
+        for (wk in header.wrappedKeys.filter { it.method == METHOD_PASSWORD }) {
+            try {
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                cipher.init(
+                    Cipher.DECRYPT_MODE, SecretKeySpec(kek, "AES"),
+                    GCMParameterSpec(GCM_TAG_BITS, unb64(wk.nonce)),
+                )
+                return cipher.doFinal(unb64(wk.wrapped))
+            } catch (_: Exception) {
+                // wrong key for this wrap — try the next
+            }
+        }
+        throw WrongPasswordException()
     }
 
     /** Try to unwrap the data key with [password] against every password wrap. */

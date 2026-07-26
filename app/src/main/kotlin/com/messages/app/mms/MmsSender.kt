@@ -53,11 +53,12 @@ object MmsSender {
         textBody: String,
         attachment: MmsPduParser.Attachment?,
         subId: Int? = null,
+        space: String = com.messages.core.db.Spaces.NORMAL,
     ): Long? {
         val repo = MessageRepository.get(context)
         val transactionId = "T${System.currentTimeMillis().toString(16)}"
         val entity = repo.storeOutgoingMms(
-            address, textBody, System.currentTimeMillis(), transactionId, attachment,
+            address, textBody, System.currentTimeMillis(), transactionId, attachment, space,
         )
         return try {
             val parts = buildList {

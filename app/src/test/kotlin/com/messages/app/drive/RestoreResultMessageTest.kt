@@ -39,6 +39,32 @@ class RestoreResultMessageTest {
         )
     }
 
+    @Test
+    fun `pending locked chats surface the opaque enter-your-code state`() {
+        val msg = DriveBackup.restoreResultMessage(
+            restored = 120, skipped = 0, lockedPending = true,
+        )
+        assertTrue(msg.startsWith("Restored 120 new messages"))
+        assertTrue(msg.contains("Locked chats present — enter your secret code to unlock"))
+        // A locked-only backup (all normal rows deduped) still explains itself.
+        val lockedOnly = DriveBackup.restoreResultMessage(
+            restored = 0, skipped = 0, lockedPending = true,
+        )
+        assertTrue(lockedOnly.contains("Locked chats present"))
+        assertFalse(lockedOnly.contains("contained no messages"))
+    }
+
+    @Test
+    fun `same-credential restore reports locked chats placed silently`() {
+        val msg = DriveBackup.restoreResultMessage(
+            restored = 10, skipped = 2, lockedPending = false, lockedRestored = 4,
+        )
+        assertTrue(msg.contains("Locked chats restored to your locked space"))
+        // The locked-chat count is deliberately not broken out — the toast
+        // may be seen by whoever performed the restore.
+        assertFalse(msg.contains("4"))
+    }
+
     private fun header(vararg methods: String) = BackupCrypto.Header(
         formatVersion = 1, createdAt = 1L, checkpointAt = 1L, nonce = "",
         wrappedKeys = methods.map { BackupCrypto.WrappedKey(it, "", 0, "", "") },

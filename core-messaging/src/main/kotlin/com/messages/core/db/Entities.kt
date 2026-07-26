@@ -6,6 +6,19 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
+ * Message/conversation spaces. LOCKED rows belong to the secret locked space:
+ * they must never surface in any query that feeds normal UI — list, folders,
+ * search/FTS, suggested chips, notifications with content, widgets, dashboard
+ * stats, Starred, Trash, export, or multi-select surfaces. The Telephony
+ * provider is unaffected (SMS stays in shared storage — stated honestly in
+ * the locked-chats disclaimer); the space lives only in this index.
+ */
+object Spaces {
+    const val NORMAL = "NORMAL"
+    const val LOCKED = "LOCKED"
+}
+
+/**
  * Local index over the system Telephony provider (which stays the source of
  * truth for message content). Adds category, labels, matched-pattern IDs —
  * everything the protection engine and folders need.
@@ -20,6 +33,7 @@ import androidx.room.PrimaryKey
         Index(value = ["mmsId"], unique = true),
         Index("mmsTransactionId"),
         Index("trashed"),
+        Index("space"),
     ],
 )
 data class MessageEntity(
@@ -77,6 +91,8 @@ data class MessageEntity(
     val trashed: Boolean = false,
     /** When the message was trashed; purge happens 60 days later. */
     val trashedAt: Long? = null,
+    /** [Spaces.NORMAL] or [Spaces.LOCKED] — see [Spaces]. */
+    val space: String = Spaces.NORMAL,
 )
 
 /**
@@ -92,7 +108,16 @@ data class MessageFtsEntity(
     val address: String,
 )
 
-@Entity(tableName = "conversations", indices = [Index(value = ["threadId"], unique = true)])
+/**
+ * One row per (threadId, space): "New locked chat" creates a second,
+ * LOCKED-space conversation for the same system thread — existing history
+ * stays on the NORMAL row, all future incoming messages from that address
+ * route to the LOCKED row (never both).
+ */
+@Entity(
+    tableName = "conversations",
+    indices = [Index(value = ["threadId", "space"], unique = true)],
+)
 data class ConversationEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val threadId: Long,
@@ -106,10 +131,18 @@ data class ConversationEntity(
     val pinned: Boolean = false,
     val archived: Boolean = false,
     val muted: Boolean = false,
-    /** Locked conversation (§8.2): opening requires app-lock auth; previews hidden. */
+    /**
+     * LEGACY (pre-secret-space biometric locked conversations). Superseded by
+     * [space]: rows with locked=1 are migrated into the LOCKED space the first
+     * time the user completes secret-space setup, then this flag is cleared.
+     * Kept in the schema (SQLite column drops are expensive) and still honored
+     * by the old auth gate until that migration runs.
+     */
     val locked: Boolean = false,
     /** Dual-SIM: subscription ID to send from in this chat; null = system default. */
     val preferredSubId: Int? = null,
+    /** [Spaces.NORMAL] or [Spaces.LOCKED] — see [Spaces]. */
+    val space: String = Spaces.NORMAL,
 )
 
 @Entity(tableName = "sender_reputation", indices = [Index(value = ["address"], unique = true)])

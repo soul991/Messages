@@ -99,9 +99,14 @@ class MainActivity : FragmentActivity() {
             if (key == "app_lock") applyFlagSecure()
         }
 
-    /** Screenshots + Recents preview blocked while app lock is enabled (§8.2). */
+    /** True while any secret-space route (setup/prompt/space/chat/settings)
+     *  is on top — forces FLAG_SECURE regardless of the app-lock setting. */
+    private var inSecretUi by mutableStateOf(false)
+
+    /** Screenshots + Recents preview blocked while app lock is enabled (§8.2)
+     *  and ALWAYS inside the secret locked space. */
     private fun applyFlagSecure() {
-        if (AppLock.isEnabled(this)) {
+        if (AppLock.isEnabled(this) || inSecretUi) {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         } else {
             window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
@@ -166,6 +171,23 @@ class MainActivity : FragmentActivity() {
                     return@MessagesTheme
                 }
                 val nav = rememberNavController()
+                // Secret locked space: leaving its routes re-locks the space
+                // INSTANTLY (no grace period, ever) and keeps FLAG_SECURE in
+                // sync — always secure while any secret route shows.
+                DisposableEffect(nav) {
+                    val listener =
+                        androidx.navigation.NavController.OnDestinationChangedListener { _, destination, _ ->
+                            val secret = destination.route?.startsWith("secret") == true
+                            if (!secret) com.messages.app.ui.secret.SecretSession.lock()
+                            inSecretUi = secret
+                            applyFlagSecure()
+                        }
+                    nav.addOnDestinationChangedListener(listener)
+                    onDispose {
+                        nav.removeOnDestinationChangedListener(listener)
+                        inSecretUi = false
+                    }
+                }
                 // Route intents that arrive while this singleTask activity is alive
                 // (notification taps, ACTION_SENDTO from other apps).
                 DisposableEffect(nav) {
@@ -252,8 +274,84 @@ class MainActivity : FragmentActivity() {
                             onDashboard = { nav.navigate("dashboard") },
                             onOpenStarred = { nav.navigate("starred") },
                             onOpenArchived = { nav.navigate("archived") },
+                            // Secret space entry: 3s long-press on the title.
+                            // First time → setup; afterwards → credential prompt.
+                            onSecretEntry = {
+                                if (com.messages.core.secret.SecretSpace.exists(this@MainActivity)) {
+                                    nav.navigate("secret_prompt")
+                                } else {
+                                    nav.navigate("secret_setup")
+                                }
+                            },
                         )
                         }
+                    }
+                    composable("secret_setup") {
+                        com.messages.app.ui.secret.SecretSetupScreen(
+                            onBack = { nav.popBackStack() },
+                            onComplete = {
+                                nav.navigate("secret_space") {
+                                    popUpTo("home") // setup screens leave the stack
+                                }
+                            },
+                        )
+                    }
+                    composable("secret_prompt") {
+                        com.messages.app.ui.secret.SecretPromptScreen(
+                            onBack = { nav.popBackStack() },
+                            onUnlocked = {
+                                nav.navigate("secret_space") {
+                                    popUpTo("home") // prompt never stays beneath the space
+                                }
+                            },
+                        )
+                    }
+                    composable("secret_space") {
+                        // Belt-and-braces: any way of reaching this route
+                        // without the in-memory unlock bounces to Home.
+                        if (!com.messages.app.ui.secret.SecretSession.unlocked) {
+                            LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
+                            return@composable
+                        }
+                        com.messages.app.ui.secret.LockedSpaceScreen(
+                            onBack = {
+                                nav.navigate("home") { popUpTo("home") } // re-locks via listener
+                            },
+                            onOpenThread = { threadId -> nav.navigate("secret_chat/$threadId") },
+                            onOpenSettings = { nav.navigate("secret_settings") },
+                        )
+                    }
+                    composable("secret_settings") {
+                        if (!com.messages.app.ui.secret.SecretSession.unlocked) {
+                            LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
+                            return@composable
+                        }
+                        com.messages.app.ui.secret.SecretSettingsScreen(
+                            onBack = { nav.popBackStack() },
+                        )
+                    }
+                    composable("secret_chat/{threadId}") { entry ->
+                        val threadId = entry.arguments?.getString("threadId")?.toLongOrNull()
+                            ?: return@composable
+                        if (!com.messages.app.ui.secret.SecretSession.unlocked) {
+                            LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
+                            return@composable
+                        }
+                        ChatScreen(
+                            threadId = threadId,
+                            onBack = { nav.popBackStack() },
+                            onWhy = { messageId -> nav.navigate("secret_why/$messageId") },
+                            space = com.messages.core.db.Spaces.LOCKED,
+                        )
+                    }
+                    composable("secret_why/{messageId}") { entry ->
+                        val messageId = entry.arguments?.getString("messageId")?.toLongOrNull()
+                            ?: return@composable
+                        if (!com.messages.app.ui.secret.SecretSession.unlocked) {
+                            LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
+                            return@composable
+                        }
+                        WhyFilteredScreen(messageId = messageId, onBack = { nav.popBackStack() })
                     }
                     composable("archived") {
                         com.messages.app.ui.archived.ArchivedScreen(
@@ -449,6 +547,14 @@ class MainActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
+        // Secret locked space: re-locks IMMEDIATELY on any background trip —
+        // no grace period ever, regardless of the app-lock "Lock after"
+        // setting, and even during app-initiated external trips (camera etc.).
+        // A configuration change is the single exception (rotation must not
+        // eject the user); process death locks by construction.
+        if (!isChangingConfigurations) {
+            com.messages.app.ui.secret.SecretSession.lock()
+        }
         // Re-lock whenever the app truly leaves the foreground. A configuration
         // change (rotation, fold, locale) also passes through onStop but must
         // not throw the user back to the biometric prompt. With a "Lock after"

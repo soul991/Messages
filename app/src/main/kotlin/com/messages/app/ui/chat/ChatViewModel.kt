@@ -25,6 +25,9 @@ class ChatViewModel(
     private val threadId: Long,
     /** Recipient for a brand-new thread with no conversation row yet (compose flow). */
     private val fallbackAddress: String? = null,
+    /** Secret space: which side of the wall this chat instance lives on. The
+     *  same threadId can have one conversation per space (New locked chat). */
+    val space: String = com.messages.core.db.Spaces.NORMAL,
     /** Survives process death: staged attachment + in-flight camera target —
      *  Android routinely kills us while the camera app is foreground. */
     private val savedState: androidx.lifecycle.SavedStateHandle =
@@ -33,8 +36,10 @@ class ChatViewModel(
 
     private val repo = MessageRepository.get(app)
 
+    val inLockedSpace: Boolean get() = space == com.messages.core.db.Spaces.LOCKED
+
     val messages: StateFlow<List<MessageEntity>> =
-        repo.db.messages().messagesForThread(threadId)
+        repo.db.messages().messagesForThread(threadId, space)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val contactName = MutableStateFlow<String?>(null)
@@ -54,7 +59,7 @@ class ChatViewModel(
 
     init {
         viewModelScope.launch {
-            val conv = repo.db.conversations().byThreadId(threadId)
+            val conv = repo.db.conversations().byThreadId(threadId, space)
             if (conv != null) {
                 address.value = conv.address
                 contactName.value = conv.contactName
@@ -67,11 +72,12 @@ class ChatViewModel(
                     repo.displayNameFor(fallbackAddress)
                 }
             }
-            repo.db.messages().markThreadRead(threadId)
-            repo.db.conversations().clearUnread(threadId)
+            repo.db.messages().markThreadRead(threadId, space)
+            repo.db.conversations().clearUnread(threadId, space)
             com.messages.app.widget.WidgetUpdater.requestUpdate(getApplication())
-            // Conversation shortcuts + direct-share ranking (§8.2).
-            if (conv?.locked != true) {
+            // Conversation shortcuts + direct-share ranking (§8.2). NEVER for
+            // the secret space or legacy locked chats — no launcher identity.
+            if (conv?.locked != true && !inLockedSpace) {
                 val name = contactName.value ?: address.value
                 if (name.isNotBlank()) {
                     com.messages.app.shortcut.ConversationShortcuts.push(
@@ -117,7 +123,7 @@ class ChatViewModel(
         if (to.isBlank() || text.isBlank()) return
         viewModelScope.launch {
             val subId = selectedSubId.value
-            val entity = repo.storeOutgoing(to, text, System.currentTimeMillis(), subId)
+            val entity = repo.storeOutgoing(to, text, System.currentTimeMillis(), subId, space)
             SmsRadio.send(getApplication(), repo, entity)
         }
     }
@@ -127,7 +133,7 @@ class ChatViewModel(
         val to = address.value
         if (to.isBlank() || text.isBlank()) return
         viewModelScope.launch {
-            val entity = repo.storeScheduledSms(to, text, sendAt, selectedSubId.value)
+            val entity = repo.storeScheduledSms(to, text, sendAt, selectedSubId.value, space)
             Scheduler.scheduleSend(getApplication(), entity.id, sendAt)
         }
     }
@@ -166,7 +172,7 @@ class ChatViewModel(
                     sendError.value = "Nothing left to resend"
                     return@launch
                 }
-                MmsSender.send(ctx, message.address, message.body, attachment, selectedSubId.value)
+                MmsSender.send(ctx, message.address, message.body, attachment, selectedSubId.value, space)
             }
         } else {
             send(message.body)
@@ -235,7 +241,7 @@ class ChatViewModel(
                 if (text.isNotBlank()) send(text)
                 return@launch
             }
-            MmsSender.send(ctx, to, text, attachment, selectedSubId.value)
+            MmsSender.send(ctx, to, text, attachment, selectedSubId.value, space)
         }
     }
 
@@ -247,17 +253,47 @@ class ChatViewModel(
         chatUnlocked.value = true
     }
 
-    /** Lock/unlock this conversation (§8.2). */
-    fun setConversationLocked(lock: Boolean) = viewModelScope.launch {
-        repo.db.conversations().setLocked(threadId, lock)
-        locked.value = lock
-        // Locked chats must not surface in launchers/share sheets (§8.2).
-        if (lock) {
-            com.messages.app.shortcut.ConversationShortcuts.remove(getApplication(), threadId)
-        }
-        // Locking from inside the chat keeps this session open; the gate
-        // applies from the next visit.
-        chatUnlocked.value = lock
+    // ---- Secret locked space: "Lock chat" bottom sheet actions ----
+
+    /**
+     * "New locked chat": existing history stays here in the normal list; a
+     * locked conversation for the same address appears in the locked space
+     * and claims all future incoming messages from it.
+     */
+    fun lockNewChat(onDone: () -> Unit) = viewModelScope.launch {
+        repo.createLockedConversation(threadId)
+        removeLauncherIdentity()
+        onDone()
+    }
+
+    /** Shortcut, per-conversation channel, and any visible notification go
+     *  away the moment a chat is locked (spec: "remove any existing on lock"). */
+    private fun removeLauncherIdentity() {
+        com.messages.app.shortcut.ConversationShortcuts.remove(getApplication(), threadId)
+        com.messages.app.notify.ConversationChannels.remove(getApplication(), threadId)
+        androidx.core.app.NotificationManagerCompat.from(getApplication())
+            .cancel(threadId.toInt())
+    }
+
+    /** "Unlock chat" from inside the locked space: whole thread returns. */
+    fun unlockChat(onDone: () -> Unit) = viewModelScope.launch {
+        repo.moveThreadToSpace(
+            threadId, com.messages.core.db.Spaces.LOCKED, com.messages.core.db.Spaces.NORMAL,
+        )
+        onDone()
+    }
+
+    /**
+     * "Move entire chat": the whole thread disappears from the normal list,
+     * FTS, and search, and lands in the locked space.
+     */
+    fun lockMoveChat(onDone: () -> Unit) = viewModelScope.launch {
+        repo.moveThreadToSpace(
+            threadId, com.messages.core.db.Spaces.NORMAL, com.messages.core.db.Spaces.LOCKED,
+        )
+        removeLauncherIdentity()
+        com.messages.app.ui.common.DraftStore.clear(getApplication(), threadId)
+        onDone()
     }
 
     fun moveToInbox(messageId: Long) = viewModelScope.launch { repo.moveToInbox(messageId) }
@@ -270,7 +306,7 @@ class ChatViewModel(
 
     /** Delete the whole conversation → Trash (§6.4). */
     fun deleteThread(onDone: () -> Unit) = viewModelScope.launch {
-        repo.moveThreadToTrash(threadId)
+        repo.moveThreadToTrash(threadId, space)
         onDone()
     }
 

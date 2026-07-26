@@ -50,6 +50,7 @@ import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -130,13 +131,14 @@ class ChatViewModelFactory(
     private val app: Application,
     private val threadId: Long,
     private val fallbackAddress: String? = null,
+    private val space: String = com.messages.core.db.Spaces.NORMAL,
 ) : androidx.lifecycle.AbstractSavedStateViewModelFactory() {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(
         key: String,
         modelClass: Class<T>,
         handle: androidx.lifecycle.SavedStateHandle,
-    ): T = ChatViewModel(app, threadId, fallbackAddress, handle) as T
+    ): T = ChatViewModel(app, threadId, fallbackAddress, space, handle) as T
 }
 
 /**
@@ -209,13 +211,17 @@ fun ChatScreen(
     onOpenContact: () -> Unit = {},
     /** Phase 4 item 14: forward selected text into another conversation. */
     onForward: (threadId: Long, text: String) -> Unit = { _, _ -> },
+    /** Secret space: LOCKED renders this chat inside the locked space (its
+     *  own conversation row, no shortcuts/drafts/contact-detail nav). */
+    space: String = com.messages.core.db.Spaces.NORMAL,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
+    val inLockedSpace = space == com.messages.core.db.Spaces.LOCKED
     val vm: ChatViewModel = viewModel(
-        factory = ChatViewModelFactory(context.applicationContext as Application, threadId, fallbackAddress)
+        factory = ChatViewModelFactory(context.applicationContext as Application, threadId, fallbackAddress, space)
     )
     val messages by vm.messages.collectAsState()
     val contactName by vm.contactName.collectAsState()
@@ -246,13 +252,18 @@ fun ChatScreen(
         )
     }
     // Drafts (§8.1): restore the saved draft unless direct-share provided one.
+    // Locked space: drafts are NOT persisted — DraftStore keys by threadId and
+    // the normal Home row for the same thread would show a "Draft:" preview.
     var draft by remember {
         mutableStateOf(
-            initialDraft.ifEmpty { com.messages.app.ui.common.DraftStore.get(context, threadId) }
+            initialDraft.ifEmpty {
+                if (inLockedSpace) "" else com.messages.app.ui.common.DraftStore.get(context, threadId)
+            }
         )
     }
     // Debounced write-through; sending sets draft = "" which clears it.
     LaunchedEffect(Unit) {
+        if (inLockedSpace) return@LaunchedEffect
         androidx.compose.runtime.snapshotFlow { draft }.collectLatest { text ->
             kotlinx.coroutines.delay(400)
             com.messages.app.ui.common.DraftStore.save(context, threadId, text)
@@ -284,6 +295,8 @@ fun ChatScreen(
     ) { ok -> if (ok) vm.cameraTarget.value?.let { vm.attach(it) } }
     var showAttachSheet by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
+    // Secret space: "Lock this chat" bottom sheet (New locked chat / Move entire chat).
+    var showLockSheet by remember { mutableStateOf(false) }
     var showChatMenu by remember { mutableStateOf(false) }
     var showDeleteThreadConfirm by remember { mutableStateOf(false) }
     var showQuickReplies by remember { mutableStateOf(false) }
@@ -680,13 +693,26 @@ fun ChatScreen(
                                     showCustomizeSheet = true
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text(if (locked) "Unlock conversation" else "Lock conversation") },
-                                onClick = {
-                                    showChatMenu = false
-                                    vm.setConversationLocked(!locked)
-                                },
-                            )
+                            // Secret space: "Lock chat" opens the two-option
+                            // sheet (normal space); inside the locked space
+                            // the action is "Unlock chat" (move back).
+                            if (!inLockedSpace) {
+                                DropdownMenuItem(
+                                    text = { Text("Lock chat") },
+                                    onClick = {
+                                        showChatMenu = false
+                                        showLockSheet = true
+                                    },
+                                )
+                            } else {
+                                DropdownMenuItem(
+                                    text = { Text("Unlock chat") },
+                                    onClick = {
+                                        showChatMenu = false
+                                        vm.unlockChat(onDone = onBack)
+                                    },
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Export conversation") },
                                 onClick = {
@@ -1182,6 +1208,79 @@ fun ChatScreen(
                         vm.setCameraTarget(uri)
                         cameraCapture.launch(uri)
                     }
+                }
+            }
+        }
+
+        // "Lock this chat" (secret space). Requires the space to be set up
+        // first — its single setup entry point is the 3s long-press on the
+        // Messages title, kept deliberate so the feature stays discoverable
+        // only by intention.
+        if (showLockSheet) {
+            if (!com.messages.core.secret.SecretSpace.exists(context)) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showLockSheet = false },
+                    title = { Text("Locked chats aren't set up") },
+                    text = {
+                        Text(
+                            "To use locked chats, first set your secret code: " +
+                                "press and hold the \"Messages\" title on the home " +
+                                "screen for 3 seconds.",
+                        )
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = { showLockSheet = false }) {
+                            Text("Got it")
+                        }
+                    },
+                )
+            } else {
+                androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showLockSheet = false }) {
+                    Text(
+                        "Lock this chat",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    )
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text("New locked chat") },
+                        supportingContent = {
+                            Text(
+                                "This chat and its history stay here. A locked chat for " +
+                                    "this sender starts in your locked space — all future " +
+                                    "messages from them go there, never here.",
+                            )
+                        },
+                        leadingContent = {
+                            Icon(Icons.Filled.Lock, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable {
+                            showLockSheet = false
+                            vm.lockNewChat {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "Locked chat created — new messages from this sender go to your locked space"
+                                    )
+                                }
+                            }
+                        },
+                    )
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text("Move entire chat") },
+                        supportingContent = {
+                            Text(
+                                "The whole conversation moves to your locked space and " +
+                                    "disappears from this list and search.",
+                            )
+                        },
+                        leadingContent = {
+                            Icon(Icons.Filled.DriveFileMove, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable {
+                            showLockSheet = false
+                            vm.lockMoveChat(onDone = onBack)
+                        },
+                    )
+                    Spacer(Modifier.height(24.dp))
                 }
             }
         }

@@ -9,6 +9,7 @@ import com.messages.core.db.ConversationEntity
 import com.messages.core.db.MessageEntity
 import com.messages.core.db.MessagesDatabase
 import com.messages.core.db.SenderReputationEntity
+import com.messages.core.db.Spaces
 import com.messages.core.mms.MmsPduParser
 import com.messages.core.search.MessageSearch
 import com.messages.core.trash.TrashRetention
@@ -142,6 +143,12 @@ class MessageRepository private constructor(private val context: Context) {
             // never lost. This is shared with MMS and backfill so every intake
             // path preserves the same guarantee.
             val verdict = classifyIncomingOrInbox(address, body, source = "SMS")
+            // Secret-space routing rule: once a LOCKED conversation exists for
+            // this thread, ALL incoming messages from the address go to it —
+            // never the normal thread (a visible incoming message would betray
+            // the space). The classifier ran normally above: spam from a
+            // locked sender files into the locked space's own folders.
+            val space = spaceForIncoming(threadId)
             val entity = MessageEntity(
                 smsId = smsId,
                 threadId = threadId,
@@ -159,11 +166,22 @@ class MessageRepository private constructor(private val context: Context) {
                 matchedPatternIds = verdict.matchedPatternIds.joinToString(","),
                 matchedComboIds = verdict.matchedComboIds.joinToString(","),
                 explanations = verdict.explanations.joinToString("\n"),
+                space = space,
             )
             val id = db.messages().insert(entity)
-            updateConversation(threadId, address, body, timestamp, verdict.category.name, incrementUnread = true)
+            updateConversation(threadId, address, body, timestamp, verdict.category.name, incrementUnread = true, space = space)
             entity.copy(id = id) to verdict
         }
+
+    /**
+     * The routing rule's decision point: a LOCKED conversation row for this
+     * thread claims every incoming message. Cheap fast path — the COUNT query
+     * short-circuits to nothing on devices that never set up the space.
+     */
+    private suspend fun spaceForIncoming(threadId: Long): String =
+        if (db.conversations().lockedConversationCount() > 0 &&
+            db.conversations().byThreadId(threadId, Spaces.LOCKED) != null
+        ) Spaces.LOCKED else Spaces.NORMAL
 
     /**
      * Index one pre-existing message from the Telephony provider (first-run
@@ -208,6 +226,10 @@ class MessageRepository private constructor(private val context: Context) {
         )
         val inserted = db.messages().insert(entity) != -1L
         if (inserted) {
+            // Backfill always indexes into the NORMAL space: it walks the
+            // shared Telephony provider (historical rows predate any locking;
+            // rows already claimed by the locked space are skipped above by
+            // their smsId). New arrivals route through onIncomingSms instead.
             val existing = db.conversations().byThreadId(threadId)
             if (existing == null || timestamp > existing.lastTimestamp) {
                 db.conversations().upsert(
@@ -266,6 +288,9 @@ class MessageRepository private constructor(private val context: Context) {
         // ensures the Room index, folders, and notification stay reachable if
         // a pattern-pack or classifier bug appears at runtime.
         val verdict = classifyIncomingOrInbox(senderAddress, textBody, source = "MMS")
+        // Same secret-space routing rule as SMS — an incoming MMS from a
+        // locked address must never surface in the normal thread either.
+        val space = spaceForIncoming(threadId)
         val entity = MessageEntity(
             smsId = null,
             mmsId = mmsId,
@@ -286,10 +311,11 @@ class MessageRepository private constructor(private val context: Context) {
             explanations = verdict.explanations.joinToString("\n"),
             mediaUri = mediaPath,
             mediaMimeType = media?.mimeType,
+            space = space,
         )
         val id = db.messages().insert(entity)
         val preview = textBody.ifBlank { mediaPreview(media?.mimeType) }
-        updateConversation(threadId, address, preview, timestamp, verdict.category.name, incrementUnread = true)
+        updateConversation(threadId, address, preview, timestamp, verdict.category.name, incrementUnread = true, space = space)
         entity.copy(id = id) to verdict
     }
 
@@ -454,6 +480,7 @@ class MessageRepository private constructor(private val context: Context) {
         timestamp: Long,
         transactionId: String,
         attachment: MmsPduParser.Attachment?,
+        space: String = Spaces.NORMAL,
     ): MessageEntity = withContext(Dispatchers.IO) {
         val recipients = recipientsOf(address)
         val threadId = resolveThreadId(address)
@@ -528,10 +555,11 @@ class MessageRepository private constructor(private val context: Context) {
             mediaUri = mediaPath,
             mediaMimeType = attachment?.mimeType,
             sendStatus = "SENDING",
+            space = space,
         )
         val id = db.messages().insert(entity)
         val preview = textBody.ifBlank { mediaPreview(attachment?.mimeType) }
-        updateConversation(threadId, address, preview, timestamp, category = null, incrementUnread = false)
+        updateConversation(threadId, address, preview, timestamp, category = null, incrementUnread = false, space = space)
         entity.copy(id = id)
     }
 
@@ -562,6 +590,7 @@ class MessageRepository private constructor(private val context: Context) {
         body: String,
         timestamp: Long,
         subId: Int? = null,
+        space: String = Spaces.NORMAL,
     ): MessageEntity =
         withContext(Dispatchers.IO) {
             val threadId = resolveThreadId(address)
@@ -577,9 +606,10 @@ class MessageRepository private constructor(private val context: Context) {
                 read = true,
                 sendStatus = "SENDING",
                 subId = subId,
+                space = space,
             )
             val id = db.messages().insert(entity)
-            updateConversation(threadId, address, body, timestamp, category = null, incrementUnread = false)
+            updateConversation(threadId, address, body, timestamp, category = null, incrementUnread = false, space = space)
             entity.copy(id = id)
         }
 
@@ -624,6 +654,7 @@ class MessageRepository private constructor(private val context: Context) {
         body: String,
         sendAt: Long,
         subId: Int? = null,
+        space: String = Spaces.NORMAL,
     ): MessageEntity = withContext(Dispatchers.IO) {
         val threadId = resolveThreadId(address)
         val entity = MessageEntity(
@@ -636,9 +667,10 @@ class MessageRepository private constructor(private val context: Context) {
             read = true,
             sendStatus = "SCHEDULED",
             subId = subId,
+            space = space,
         )
         val id = db.messages().insert(entity)
-        updateConversation(threadId, address, body, sendAt, category = null, incrementUnread = false)
+        updateConversation(threadId, address, body, sendAt, category = null, incrementUnread = false, space = space)
         entity.copy(id = id)
     }
 
@@ -658,7 +690,7 @@ class MessageRepository private constructor(private val context: Context) {
             db.messages().update(updated)
             updateConversation(
                 msg.threadId, msg.address, msg.body, now,
-                category = null, incrementUnread = false,
+                category = null, incrementUnread = false, space = msg.space,
             )
             updated
         }
@@ -668,7 +700,7 @@ class MessageRepository private constructor(private val context: Context) {
         val msg = db.messages().byId(messageId) ?: return@withContext
         if (msg.sendStatus != "SCHEDULED") return@withContext
         db.messages().userDelete(messageId)
-        refreshConversationSummary(msg.threadId)
+        refreshConversationSummary(msg.threadId, msg.space)
     }
 
     private suspend fun updateConversation(
@@ -678,8 +710,9 @@ class MessageRepository private constructor(private val context: Context) {
         timestamp: Long,
         category: String?,
         incrementUnread: Boolean,
+        space: String = Spaces.NORMAL,
     ) {
-        val existing = db.conversations().byThreadId(threadId)
+        val existing = db.conversations().byThreadId(threadId, space)
         val name = displayNameFor(address)
         db.conversations().upsert(
             ConversationEntity(
@@ -696,6 +729,7 @@ class MessageRepository private constructor(private val context: Context) {
                 muted = existing?.muted ?: false,
                 locked = existing?.locked ?: false,
                 preferredSubId = existing?.preferredSubId,
+                space = space,
             )
         )
     }
@@ -751,7 +785,7 @@ class MessageRepository private constructor(private val context: Context) {
                 continue
             }
             if (fresh != conv.contactName) {
-                db.conversations().setContactName(conv.threadId, fresh)
+                db.conversations().setContactName(conv.threadId, fresh, conv.space)
                 changed++
             }
         }
@@ -763,7 +797,7 @@ class MessageRepository private constructor(private val context: Context) {
         val msg = db.messages().byId(messageId) ?: return@withContext
         db.messages().recategorize(messageId, "INBOX")
         adjustReputation(msg.address, delta = +2, notSpam = true)
-        val conv = db.conversations().byThreadId(msg.threadId)
+        val conv = db.conversations().byThreadId(msg.threadId, msg.space)
         if (conv != null) db.conversations().upsert(conv.copy(category = "INBOX"))
     }
 
@@ -772,8 +806,73 @@ class MessageRepository private constructor(private val context: Context) {
         val msg = db.messages().byId(messageId) ?: return@withContext
         db.messages().recategorize(messageId, "SPAM")
         adjustReputation(msg.address, delta = -2, notSpam = false)
-        val conv = db.conversations().byThreadId(msg.threadId)
+        val conv = db.conversations().byThreadId(msg.threadId, msg.space)
         if (conv != null) db.conversations().upsert(conv.copy(category = "SPAM"))
+    }
+
+    // ---- Secret locked space ----
+
+    /**
+     * "New locked chat": create a LOCKED-space conversation for this thread.
+     * Existing history stays on the NORMAL row; from now on the routing rule
+     * sends every incoming message from this address to the locked row.
+     */
+    suspend fun createLockedConversation(threadId: Long) = withContext(Dispatchers.IO) {
+        if (db.conversations().byThreadId(threadId, Spaces.LOCKED) != null) return@withContext
+        val normal = db.conversations().byThreadId(threadId, Spaces.NORMAL) ?: return@withContext
+        db.conversations().upsert(
+            normal.copy(
+                id = 0, // fresh row — the NORMAL one stays untouched
+                space = Spaces.LOCKED,
+                locked = false,
+                lastMessage = "",
+                lastTimestamp = System.currentTimeMillis(),
+                unreadCount = 0,
+                category = "INBOX",
+                pinned = false,
+                archived = false,
+            )
+        )
+    }
+
+    /**
+     * "Move entire chat" (NORMAL→LOCKED) and "Unlock chat" (LOCKED→NORMAL):
+     * every message row of the thread (trash included — a locked chat's trash
+     * must not surface in the normal Trash screen) plus the conversation row
+     * change spaces. When a row already exists on the target side (New-locked-
+     * chat first, Move-entire-chat later — or unlocking one), they merge.
+     */
+    suspend fun moveThreadToSpace(threadId: Long, from: String, to: String) =
+        withContext(Dispatchers.IO) {
+            val source = db.conversations().byThreadId(threadId, from) ?: return@withContext
+            db.messages().setThreadSpace(threadId, from, to)
+            val target = db.conversations().byThreadId(threadId, to)
+            if (target == null) {
+                // REPLACE-by-PK flips the same row's space in place.
+                db.conversations().upsert(source.copy(space = to, locked = false))
+            } else {
+                db.conversations().upsert(
+                    target.copy(unreadCount = target.unreadCount + source.unreadCount)
+                )
+                db.conversations().deleteByThreadId(threadId, from)
+            }
+            refreshConversationSummary(threadId, to)
+        }
+
+    /**
+     * First secret-space setup: legacy biometric-locked conversations move
+     * into the locked space (told to the user in the setup flow), and the old
+     * per-chat flag is cleared. Returns how many threads moved.
+     */
+    suspend fun migrateLegacyLockedConversations(): Int = withContext(Dispatchers.IO) {
+        val legacy = db.conversations().legacyLockedConversations()
+        legacy.forEach { conv ->
+            moveThreadToSpace(conv.threadId, Spaces.NORMAL, Spaces.LOCKED)
+            db.conversations().byThreadId(conv.threadId, Spaces.LOCKED)?.let {
+                if (it.locked) db.conversations().upsert(it.copy(locked = false))
+            }
+        }
+        legacy.size
     }
 
     // ---- Trash (§6.4) ----
@@ -793,30 +892,31 @@ class MessageRepository private constructor(private val context: Context) {
             deleteProviderRow(msg)
             db.messages().moveToTrash(messageId, System.currentTimeMillis())
         }
-        refreshConversationSummary(msg.threadId)
+        refreshConversationSummary(msg.threadId, msg.space)
     }
 
     /**
      * Undo for a just-trashed conversation (swipe-delete snackbar): restore
      * every message of the thread trashed at/after [trashedAfter].
      */
-    suspend fun restoreThreadFromTrash(threadId: Long, trashedAfter: Long) =
+    suspend fun restoreThreadFromTrash(threadId: Long, trashedAfter: Long, space: String = Spaces.NORMAL) =
         withContext(Dispatchers.IO) {
-            db.messages().trashedIdsForThread(threadId, trashedAfter).forEach {
+            db.messages().trashedIdsForThread(threadId, trashedAfter, space).forEach {
                 restoreFromTrash(it)
             }
         }
 
     /** Delete a whole conversation to Trash (§6.4). */
-    suspend fun moveThreadToTrash(threadId: Long) = withContext(Dispatchers.IO) {
-        val now = System.currentTimeMillis()
-        db.messages().listForThread(threadId).forEach { msg ->
-            if (msg.sendStatus == "SCHEDULED") db.messages().userDelete(msg.id)
-            else deleteProviderRow(msg)
+    suspend fun moveThreadToTrash(threadId: Long, space: String = Spaces.NORMAL) =
+        withContext(Dispatchers.IO) {
+            val now = System.currentTimeMillis()
+            db.messages().listForThread(threadId, space).forEach { msg ->
+                if (msg.sendStatus == "SCHEDULED") db.messages().userDelete(msg.id)
+                else deleteProviderRow(msg)
+            }
+            db.messages().moveThreadToTrash(threadId, now, space)
+            refreshConversationSummary(threadId, space) // no live messages left → row is dropped
         }
-        db.messages().moveThreadToTrash(threadId, now)
-        refreshConversationSummary(threadId) // no live messages left → row is dropped
-    }
 
     /**
      * Restore from Trash within the 60-day window: clear the flag and write
@@ -858,9 +958,10 @@ class MessageRepository private constructor(private val context: Context) {
         }
         db.messages().update(restored)
         // Rebuild the conversation row (it may have been dropped when the
-        // thread emptied) without disturbing unread counts.
-        val conv = db.conversations().byThreadId(msg.threadId)
-        val latest = db.messages().latestForThread(msg.threadId)
+        // thread emptied) without disturbing unread counts. Space-scoped: a
+        // locked message restores into the locked conversation, never normal.
+        val conv = db.conversations().byThreadId(msg.threadId, msg.space)
+        val latest = db.messages().latestForThread(msg.threadId, msg.space)
         if (latest != null && (conv == null || latest.timestamp >= conv.lastTimestamp)) {
             db.conversations().upsert(
                 ConversationEntity(
@@ -877,6 +978,7 @@ class MessageRepository private constructor(private val context: Context) {
                     muted = conv?.muted ?: false,
                     locked = conv?.locked ?: false,
                     preferredSubId = conv?.preferredSubId,
+                    space = msg.space,
                 )
             )
         }
@@ -936,7 +1038,8 @@ class MessageRepository private constructor(private val context: Context) {
             deleteProviderRow(msg)
             db.messages().userDelete(msg.id)
         }
-        expired.map { it.threadId }.distinct().forEach { refreshConversationSummary(it) }
+        expired.map { it.threadId to it.space }.distinct()
+            .forEach { (t, s) -> refreshConversationSummary(t, s) }
         expired.size
     }
 
@@ -956,16 +1059,17 @@ class MessageRepository private constructor(private val context: Context) {
             deleteProviderRow(msg)
             db.messages().moveToTrash(msg.id, now)
         }
-        expired.map { it.threadId }.distinct().forEach { refreshConversationSummary(it) }
+        expired.map { it.threadId to it.space }.distinct()
+            .forEach { (t, s) -> refreshConversationSummary(t, s) }
         expired.size
     }
 
     /** Recompute a conversation's summary after deletions; drop it if empty. */
-    suspend fun refreshConversationSummary(threadId: Long) {
-        val conv = db.conversations().byThreadId(threadId) ?: return
-        val latest = db.messages().latestForThread(threadId)
+    suspend fun refreshConversationSummary(threadId: Long, space: String = Spaces.NORMAL) {
+        val conv = db.conversations().byThreadId(threadId, space) ?: return
+        val latest = db.messages().latestForThread(threadId, space)
         if (latest == null) {
-            db.conversations().deleteByThreadId(threadId)
+            db.conversations().deleteByThreadId(threadId, space)
         } else if (latest.timestamp != conv.lastTimestamp || latest.body != conv.lastMessage) {
             db.conversations().upsert(
                 conv.copy(

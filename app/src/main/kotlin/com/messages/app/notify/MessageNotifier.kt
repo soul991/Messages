@@ -32,6 +32,16 @@ import com.messages.protection.Verdict
 class MessageNotifier(private val context: Context) {
 
     suspend fun notifyFor(message: MessageEntity, verdict: Verdict, contactName: String?) {
+        // Secret locked space: a message routed to the locked space must not
+        // produce ANY identifying notification — no sender, no content, no
+        // per-thread id, no shortcut/bubble/reply, no channel of its own.
+        // Either one generic "New message" (default) or nothing at all,
+        // per the setting inside the locked folder. Fraud warnings are
+        // suppressed too: a red warning naming the thread would betray it.
+        if (message.space == com.messages.core.db.Spaces.LOCKED) {
+            postLockedSpaceNotification(message, verdict)
+            return
+        }
         val conversation = MessageRepository.get(context)
             .db.conversations().byThreadId(message.threadId)
         val conversationLocked = conversation?.locked == true
@@ -314,6 +324,46 @@ class MessageNotifier(private val context: Context) {
             .notify((FRAUD_ID_BASE - message.threadId).toInt(), builder.build())
     }
 
+    /**
+     * Secret locked space: one fixed-id, content-free notification. Says only
+     * "New message"; tapping opens the app at Home (never deep-links into the
+     * locked chat — the space's own credential gate is the only way in).
+     * Categories that are silent in the normal space stay silent here too
+     * (spam/promos/review/blocked never notify from the locked space), and
+     * the per-space setting can silence even the generic ping entirely.
+     */
+    private suspend fun postLockedSpaceNotification(message: MessageEntity, verdict: Verdict) {
+        if (!hasPermission()) return
+        if (com.messages.core.secret.SecretSpace.notifyMode(context) ==
+            com.messages.core.secret.SecretSpace.NOTIFY_OFF
+        ) return
+        val conversation = MessageRepository.get(context)
+            .db.conversations().byThreadId(message.threadId, com.messages.core.db.Spaces.LOCKED)
+        if (conversation?.muted == true) return
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val shouldNotify = when (verdict.category) {
+            Category.INBOX -> true
+            Category.TRANSACTIONS -> prefs.getBoolean("notify_transactions", true)
+            else -> false // Promotions/Spam/Review/Blocked: silent, and no fraud banner either
+        }
+        if (!shouldNotify) return
+        val openIntent = PendingIntent.getActivity(
+            context, LOCKED_SPACE_ID,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val builder = NotificationCompat.Builder(context, MessagesApp.CH_PERSONAL)
+            .setSmallIcon(R.drawable.ic_notif_message)
+            .setContentTitle("Messages")
+            .setContentText("New message")
+            .setContentIntent(openIntent)
+            .setAutoCancel(true)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+        NotificationManagerCompat.from(context).notify(LOCKED_SPACE_ID, builder.build())
+    }
+
     /** One quiet, batched low-priority notification for the Review folder. */
     private fun postReviewNotification() {        val openIntent = PendingIntent.getActivity(
             context, REVIEW_ID,
@@ -337,6 +387,9 @@ class MessageNotifier(private val context: Context) {
 
     companion object {
         private const val REVIEW_ID = -100
+
+        /** Single shared id for ALL locked-space pings — never per-thread. */
+        private const val LOCKED_SPACE_ID = -200
 
         /** Fraud-warning ids live far below thread-id space (item 19). */
         private const val FRAUD_ID_BASE = -1_000_000L

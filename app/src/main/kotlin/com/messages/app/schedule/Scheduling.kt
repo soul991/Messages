@@ -124,15 +124,19 @@ class SnoozeWorker(
         ) return Result.success()
 
         val name = repo.displayNameFor(msg.address) ?: msg.address
-        // Respect hide-previews / locked conversations (§8.2)
-        val conversationLocked = repo.db.conversations().byThreadId(msg.threadId)?.locked == true
+        // Secret locked space: reminders for locked-space messages carry no
+        // sender, no content, and no deep link into the chat.
+        val inLockedSpace = msg.space == com.messages.core.db.Spaces.LOCKED
+        // Respect hide-previews / legacy locked conversations (§8.2)
+        val conversationLocked = inLockedSpace ||
+            repo.db.conversations().byThreadId(msg.threadId)?.locked == true
         val hidden = com.messages.app.security.AppLock.hidePreviews(ctx) || conversationLocked
         val title = if (conversationLocked) "Reminder" else "Reminder · $name"
         val body = if (hidden) "You asked to be reminded about a message" else msg.body
         val openIntent = PendingIntent.getActivity(
             ctx, msg.threadId.toInt(),
             Intent(ctx, MainActivity::class.java).apply {
-                putExtra("threadId", msg.threadId)
+                if (!inLockedSpace) putExtra("threadId", msg.threadId)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,

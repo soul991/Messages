@@ -313,12 +313,29 @@ object DriveBackup {
     }
 
     /** Restore-outcome copy (§ restore idempotency UI states). Pure, JVM-tested. */
-    fun restoreResultMessage(restored: Int, skipped: Int): String = when {
-        restored == 0 && skipped > 0 ->
-            "Nothing to restore — all messages are already on this device"
-        restored == 0 -> "Backup contained no messages"
-        restored == 1 -> "Restored 1 new message"
-        else -> "Restored $restored new messages"
+    fun restoreResultMessage(
+        restored: Int,
+        skipped: Int,
+        lockedPending: Boolean = false,
+        lockedRestored: Int = 0,
+    ): String {
+        val base = when {
+            restored == 0 && skipped > 0 ->
+                "Nothing to restore — all messages are already on this device"
+            restored == 0 && (lockedPending || lockedRestored > 0) -> "Restore complete"
+            restored == 0 -> "Backup contained no messages"
+            restored == 1 -> "Restored 1 new message"
+            else -> "Restored $restored new messages"
+        }
+        // Secret space: the opaque state someone with mere account access
+        // sees — locked chats exist, but only the secret code opens them.
+        return when {
+            lockedPending ->
+                "$base. Locked chats present — enter your secret code to unlock " +
+                    "(hold the Messages title for 3 seconds)."
+            lockedRestored > 0 -> "$base. Locked chats restored to your locked space."
+            else -> base
+        }
     }
 
     /** Range-request size that comfortably covers the plaintext JSON header. */

@@ -8,7 +8,9 @@ import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.db.ConversationEntity
 import com.messages.core.db.MessageEntity
 import com.messages.core.db.SenderReputationEntity
+import com.messages.core.db.Spaces
 import com.messages.core.db.UserRuleEntity
+import com.messages.core.secret.SecretSpace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -109,6 +111,28 @@ object BackupManager {
         val messages: List<BackupMessage>,
         /** §8.3 media toggle: fileName → base64 file bytes. Empty when off. */
         val media: Map<String, String> = emptyMap(),
+        /**
+         * Secret locked space: the locked chats travel as a separately-
+         * encrypted sub-envelope (base64 of a [BackupCrypto] blob whose data
+         * key is wrapped under the locked-space credential's PBKDF2 KEK).
+         * Undecryptable without the original secret code — someone with mere
+         * account access restores the normal chats but gets only an opaque
+         * "locked chats present" state.
+         */
+        val lockedEnvelope: String? = null,
+        /** Serialized [SecretSpace.PendingAuth] — the credential's verifier +
+         *  salts travel with the backup so a fresh device can run the prompt. */
+        val lockedAuth: String? = null,
+    )
+
+    /** Plaintext payload INSIDE the locked sub-envelope. */
+    @Serializable
+    data class LockedPayload(
+        val messages: List<BackupMessage>,
+        val conversationPrefs: List<BackupConversationPrefs> = emptyList(),
+        /** Every locked conversation's address — recreates the routing rule
+         *  even for a "New locked chat" that has no messages yet. */
+        val lockedAddresses: List<String> = emptyList(),
     )
 
     data class ImportStats(
@@ -116,6 +140,10 @@ object BackupManager {
         val messagesSkipped: Int,
         val rulesRestored: Int,
         val reputationsRestored: Int,
+        /** Locked chats imported straight into the locked space (same credential). */
+        val lockedRestored: Int = 0,
+        /** A locked envelope is waiting for its secret code to be entered. */
+        val lockedPending: Boolean = false,
     )
 
     private val json = Json {
@@ -134,11 +162,15 @@ object BackupManager {
         val importedPack = java.io.File(context.filesDir, "patterns_imported.json")
             .takeIf { it.exists() }?.readText()
 
-        val included = db.messages().allMessages()
+        val (lockedRows, normalRows) = db.messages().allMessages()
             // Never export an unsent scheduled draft as if it were history.
             .filter { it.sendStatus != "SCHEDULED" }
             // §8.3 checkpoint cut: deterministic content per checkpoint.
             .filter { options.upTo == null || it.timestamp <= options.upTo }
+            // Locked-space rows leave the plaintext payload entirely — they
+            // only ever travel inside the credential-encrypted sub-envelope.
+            .partition { it.space == Spaces.LOCKED }
+        val included = normalRows
             // §8.3 spam-backup mode (Spam folder only — Blocked always travels).
             .filter {
                 it.category != "SPAM" || when (options.spamMode) {
@@ -180,22 +212,75 @@ object BackupManager {
                 BackupReputation(it.address, it.score, it.userMarkedSpamCount, it.userMarkedNotSpamCount)
             },
             conversationPrefs = db.conversations().allConversations()
+                .filter { it.space == Spaces.NORMAL }
                 .filter { it.pinned || it.archived || it.muted || it.locked }
                 .map { BackupConversationPrefs(it.address, it.pinned, it.archived, it.muted, it.locked) },
             messages = included.mapIndexed { index, it ->
                 onMessageProgress?.invoke(index + 1, included.size)
-                BackupMessage(
-                    it.address, it.body, it.timestamp, it.isOutgoing, it.read,
-                    it.category, it.dangerous, it.fraudWarning, it.protectedLabel,
-                    it.score, it.matchedPatternIds, it.matchedComboIds, it.explanations,
-                    it.starred, it.trashed, it.trashedAt,
-                    mediaFileName = mediaNames[it.id],
-                    mediaMimeType = if (mediaNames[it.id] != null) it.mediaMimeType else null,
-                )
+                toBackupMessage(it, mediaNames[it.id])
             },
             media = media,
+            lockedEnvelope = lockedEnvelope(context, lockedRows)?.let {
+                java.util.Base64.getEncoder().encodeToString(it)
+            },
+            lockedAuth = (SecretSpace.authForBackup(context) ?: SecretSpace.pendingAuth(context))
+                ?.serialize(),
         )
         json.encodeToString(BackupFile.serializer(), backup)
+    }
+
+    private fun toBackupMessage(it: MessageEntity, mediaName: String?) = BackupMessage(
+        it.address, it.body, it.timestamp, it.isOutgoing, it.read,
+        it.category, it.dangerous, it.fraudWarning, it.protectedLabel,
+        it.score, it.matchedPatternIds, it.matchedComboIds, it.explanations,
+        it.starred, it.trashed, it.trashedAt,
+        mediaFileName = mediaName,
+        mediaMimeType = if (mediaName != null) it.mediaMimeType else null,
+    )
+
+    /**
+     * Seal the locked space's content under its credential-derived KEK.
+     * Locked chats are ALWAYS fully backed up (no spam-mode shaping — the
+     * user manages that space from inside it). When this device itself holds
+     * a still-locked restored envelope (restore → backup chain before the
+     * code was ever entered), that envelope is carried forward verbatim so
+     * the chain never drops locked data.
+     */
+    private suspend fun lockedEnvelope(context: Context, lockedRows: List<MessageEntity>): ByteArray? {
+        val db = MessageRepository.get(context).db
+        val lockedConvs = db.conversations().allConversations().filter { it.space == Spaces.LOCKED }
+        val kek = SecretSpace.kekOrNull(context)
+        val saltK = SecretSpace.saltK(context)
+        if (kek == null || saltK == null || (lockedRows.isEmpty() && lockedConvs.isEmpty())) {
+            // Not set up (or nothing locked): pass through a pending envelope
+            // if one exists. Degenerate corner: locked rows exist but the KEK
+            // cache was lost (Keystore wipe) — we cannot encrypt without the
+            // credential, so THIS snapshot ships without locked chats; the
+            // next successful unlock re-caches the KEK (attempt() refreshes)
+            // and the following snapshot carries them again. Never plaintext.
+            return if (SecretSpace.hasPendingRestore(context)) {
+                runCatching { SecretSpace.pendingBlobFile(context).readBytes() }.getOrNull()
+            } else null
+        }
+        val payload = LockedPayload(
+            messages = lockedRows.map { toBackupMessage(it, null) },
+            conversationPrefs = lockedConvs.map {
+                BackupConversationPrefs(it.address, it.pinned, it.archived, it.muted, locked = false)
+            },
+            lockedAddresses = lockedConvs.map { it.address },
+        )
+        val dataKey = BackupCrypto.newDataKey()
+        return BackupCrypto.seal(
+            payloadJson = json.encodeToString(LockedPayload.serializer(), payload),
+            dataKey = dataKey,
+            wrappedKeys = listOf(
+                BackupCrypto.wrapWithKek(dataKey, kek, saltK, SecretSpace.iterations(context))
+            ),
+            createdAt = System.currentTimeMillis(),
+            checkpointAt = System.currentTimeMillis(),
+            deviceModel = android.os.Build.MODEL ?: "",
+            messageCount = lockedRows.size,
+        )
     }
 
     suspend fun import(context: Context, text: String): Result<ImportStats> =
@@ -333,7 +418,8 @@ object BackupManager {
                 rebuildConversations(repo)
                 backup.conversationPrefs.forEach { p ->
                     val conv = db.conversations().allConversations()
-                        .firstOrNull { it.address == p.address } ?: return@forEach
+                        .firstOrNull { it.address == p.address && it.space == Spaces.NORMAL }
+                        ?: return@forEach
                     db.conversations().upsert(
                         conv.copy(
                             pinned = p.pinned, archived = p.archived,
@@ -342,9 +428,147 @@ object BackupManager {
                     )
                 }
 
-                ImportStats(restored, skipped, rulesRestored, reputationsRestored)
+                // Secret locked space: try the local KEK first (same credential
+                // as this device) — otherwise the envelope waits, opaque, for
+                // the user to enter the original secret code.
+                var lockedRestored = 0
+                var lockedPending = false
+                val lockedBlob = backup.lockedEnvelope
+                    ?.let { runCatching { java.util.Base64.getDecoder().decode(it) }.getOrNull() }
+                if (lockedBlob != null) {
+                    val kek = SecretSpace.kekOrNull(context)
+                    val opened = kek?.let {
+                        runCatching {
+                            BackupCrypto.open(
+                                lockedBlob,
+                                BackupCrypto.unwrapWithKek(BackupCrypto.readHeader(lockedBlob), it),
+                            )
+                        }.getOrNull()
+                    }
+                    if (opened != null) {
+                        lockedRestored = importLockedPayload(context, opened)
+                    } else {
+                        val auth = backup.lockedAuth?.let(SecretSpace.PendingAuth::parse)
+                        if (auth != null) {
+                            SecretSpace.storePendingRestore(context, lockedBlob, auth)
+                            lockedPending = true
+                        }
+                    }
+                }
+
+                ImportStats(restored, skipped, rulesRestored, reputationsRestored, lockedRestored, lockedPending)
             }
         }
+
+    /**
+     * Import an opened locked payload into the LOCKED space. Additive +
+     * idempotent like the normal path; the dedupe key set spans BOTH spaces so
+     * a message never duplicates across them. Provider rows are written
+     * best-effort exactly like the normal path — SMS lives in shared storage
+     * either way (stated in the locked-chats disclaimer); invisibility inside
+     * THIS app comes from the space column.
+     */
+    suspend fun importLockedPayload(context: Context, payloadJson: String): Int =
+        withContext(Dispatchers.IO) {
+            val payload = json.decodeFromString(LockedPayload.serializer(), payloadJson)
+            val repo = MessageRepository.get(context)
+            val db = repo.db
+            val existingKeys = db.messages().allMessages()
+                .mapTo(HashSet()) { messageKey(it.address, it.timestamp, it.isOutgoing, it.body) }
+            val (toInsert, _) = dedupeForImport(existingKeys, payload.messages)
+            var restored = 0
+            toInsert.forEach { m ->
+                val threadId = repo.threadIdFor(m.address)
+                val smsId = if (m.trashed) null else try {
+                    context.contentResolver.insert(
+                        if (m.isOutgoing) Telephony.Sms.Sent.CONTENT_URI else Telephony.Sms.Inbox.CONTENT_URI,
+                        ContentValues().apply {
+                            put(Telephony.Sms.ADDRESS, m.address)
+                            put(Telephony.Sms.BODY, m.body)
+                            put(Telephony.Sms.DATE, m.timestamp)
+                            put(Telephony.Sms.READ, if (m.read) 1 else 0)
+                            put(Telephony.Sms.THREAD_ID, threadId)
+                            put(
+                                Telephony.Sms.TYPE,
+                                if (m.isOutgoing) Telephony.Sms.MESSAGE_TYPE_SENT
+                                else Telephony.Sms.MESSAGE_TYPE_INBOX,
+                            )
+                        },
+                    )?.lastPathSegment?.toLongOrNull()
+                } catch (_: Exception) {
+                    null
+                }
+                db.messages().insert(
+                    MessageEntity(
+                        smsId = smsId,
+                        threadId = threadId,
+                        address = m.address,
+                        body = m.body,
+                        normalizedBody = repo.normalizedOf(m.body),
+                        timestamp = m.timestamp,
+                        isOutgoing = m.isOutgoing,
+                        read = m.read,
+                        category = m.category,
+                        dangerous = m.dangerous,
+                        fraudWarning = m.fraudWarning,
+                        protectedLabel = m.protectedLabel,
+                        score = m.score,
+                        matchedPatternIds = m.matchedPatternIds,
+                        matchedComboIds = m.matchedComboIds,
+                        explanations = m.explanations,
+                        starred = m.starred,
+                        trashed = m.trashed,
+                        trashedAt = m.trashedAt,
+                        sendStatus = if (m.isOutgoing) "SENT" else "NONE",
+                        space = Spaces.LOCKED,
+                    )
+                )
+                restored++
+            }
+            rebuildConversations(repo)
+            // Routing rows: every locked address gets its LOCKED conversation
+            // even when it held no messages yet ("New locked chat").
+            payload.lockedAddresses.forEach { address ->
+                val threadId = repo.threadIdFor(address)
+                if (db.conversations().byThreadId(threadId, Spaces.LOCKED) == null) {
+                    db.conversations().upsert(
+                        ConversationEntity(
+                            threadId = threadId,
+                            address = address,
+                            contactName = repo.lookupContactName(address),
+                            lastTimestamp = System.currentTimeMillis(),
+                            space = Spaces.LOCKED,
+                        )
+                    )
+                }
+            }
+            payload.conversationPrefs.forEach { p ->
+                val conv = db.conversations().allConversations()
+                    .firstOrNull { it.address == p.address && it.space == Spaces.LOCKED }
+                    ?: return@forEach
+                db.conversations().upsert(conv.copy(pinned = p.pinned, muted = p.muted))
+            }
+            restored
+        }
+
+    /**
+     * Called after the user's first successful credential entry when a
+     * restored envelope is pending: opens it with the freshly-cached KEK and
+     * places the locked chats. Returns the restored count, or null when the
+     * envelope could not be opened (corrupt / mismatched).
+     */
+    suspend fun completeLockedRestore(context: Context): Int? = withContext(Dispatchers.IO) {
+        if (!SecretSpace.hasPendingRestore(context)) return@withContext null
+        val kek = SecretSpace.kekOrNull(context) ?: return@withContext null
+        val blob = runCatching { SecretSpace.pendingBlobFile(context).readBytes() }.getOrNull()
+            ?: return@withContext null
+        val opened = runCatching {
+            BackupCrypto.open(blob, BackupCrypto.unwrapWithKek(BackupCrypto.readHeader(blob), kek))
+        }.getOrNull() ?: return@withContext null
+        val restored = importLockedPayload(context, opened)
+        SecretSpace.clearPendingRestore(context)
+        restored
+    }
 
     /** §6 dedupe key: address + timestamp + direction + body-hash. */
     internal fun messageKey(address: String, timestamp: Long, isOutgoing: Boolean, body: String) =
@@ -374,12 +598,14 @@ object BackupManager {
 
     private suspend fun rebuildConversations(repo: MessageRepository) {
         val db = repo.db
-        val latestByThread = db.messages().allMessages()
+        // Space-aware: a thread can have one row per space (New locked chat).
+        val latestByThreadSpace = db.messages().allMessages()
             .filter { !it.trashed } // trash never resurfaces a conversation (§6.4)
-            .groupBy { it.threadId }
+            .groupBy { it.threadId to it.space }
             .mapValues { (_, msgs) -> msgs.maxBy { it.timestamp } }
-        latestByThread.forEach { (threadId, latest) ->
-            val existing = db.conversations().byThreadId(threadId)
+        latestByThreadSpace.forEach { (key, latest) ->
+            val (threadId, space) = key
+            val existing = db.conversations().byThreadId(threadId, space)
             if (existing == null || latest.timestamp > existing.lastTimestamp) {
                 db.conversations().upsert(
                     ConversationEntity(
@@ -397,6 +623,7 @@ object BackupManager {
                         muted = existing?.muted ?: false,
                         locked = existing?.locked ?: false,
                         preferredSubId = existing?.preferredSubId,
+                        space = space,
                     )
                 )
             }
