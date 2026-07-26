@@ -8,8 +8,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -17,7 +18,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,8 +32,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.SecureFlagPolicy
 import com.messages.core.backup.BackupManager
 import com.messages.core.secret.SecretCrypto
 import com.messages.core.secret.SecretSpace
@@ -40,11 +47,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Credential prompt for the secret locked space. Rate-limited: after 5
- * consecutive failures an escalating cooldown gates further attempts (the
- * countdown renders live). On the first successful entry after a fresh-
- * install restore, the pending locked envelope is decrypted and imported
- * before entering the space.
+ * Vault unlock (Phase 7 redesign): AMOLED-black surface, accent as glow and
+ * edge, the Compose-drawn lock mark, dot-indicator PIN entry with a wrong-
+ * code shake, accent pattern grid, revealed-toggle password field. Behavior
+ * is UNCHANGED from the security review: escalating cooldown, greyed (never
+ * spinner/"Checking…") verification state, knowledge factor only, and Reset
+ * — the space's single red element — destroying without revealing.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +69,7 @@ fun SecretPromptScreen(
 
     var entry by remember { mutableStateOf("") }
     var patternClear by remember { mutableIntStateOf(0) }
+    var errorSignal by remember { mutableIntStateOf(0) } // drives the PIN-dot shake
     var error by remember { mutableStateOf<String?>(null) }
     var checking by remember { mutableStateOf(false) }
     var importing by remember { mutableStateOf(false) }
@@ -95,6 +104,7 @@ fun SecretPromptScreen(
                 is SecretSpace.Attempt.Wrong -> {
                     entry = ""
                     patternClear++
+                    errorSignal++
                     cooldownMs = result.cooldownMs
                     error = if (result.cooldownMs > 0) {
                         "Wrong code. Try again in ${formatCooldown(result.cooldownMs)}."
@@ -112,9 +122,11 @@ fun SecretPromptScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Locked chats") },
+                title = {},
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -127,84 +139,122 @@ fun SecretPromptScreen(
             Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
-            verticalArrangement = SecretScreenSpacing,
+                .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(24.dp))
-            Icon(
-                Icons.Filled.Lock, contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            Spacer(Modifier.height(36.dp))
+            VaultLockMark()
+            Spacer(Modifier.height(28.dp))
             Text(
-                if (restoring) "Locked chats present" else "Enter your secret code",
-                style = MaterialTheme.typography.headlineSmall,
+                if (restoring) "Locked chats present" else "Locked chats",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
             )
-            if (restoring) {
-                Text(
-                    "Your backup contains locked chats. Enter the secret code you " +
-                        "set on your previous device to unlock them here.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                when {
+                    restoring ->
+                        "Your backup contains locked chats. Enter the secret code you " +
+                            "set on your previous device to unlock them here."
+                    kind == SecretCrypto.KIND_PATTERN -> "Draw your pattern to enter"
+                    kind == SecretCrypto.KIND_PASSWORD -> "Enter your password"
+                    else -> "Enter your PIN"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(32.dp))
 
             val coolingDown = cooldownMs > 0
-            if (coolingDown) {
-                Text(
-                    "Too many attempts. Try again in ${formatCooldown(cooldownMs)}.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
+            when {
+                importing -> {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Unlocking your restored chats…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                kind == SecretCrypto.KIND_PATTERN -> {
+                    PatternGrid(enabled = !coolingDown && !checking, clearSignal = patternClear) { cells ->
+                        submit(SecretCrypto.patternToCredential(cells))
+                    }
+                }
+                kind == SecretCrypto.KIND_PASSWORD -> {
+                    PinOrPasswordField(
+                        kind = kind, value = entry, onValueChange = { entry = it },
+                        label = "Password",
+                        enabled = !coolingDown && !checking,
+                        isError = false, // feedback is the message below, not a red field
+                        onDone = { if (entry.isNotEmpty()) submit(entry.toCharArray()) },
+                    )
+                }
+                else -> {
+                    PinDotsEntry(
+                        value = entry,
+                        onValueChange = { entry = it },
+                        enabled = !coolingDown && !checking,
+                        errorSignal = errorSignal,
+                        onDone = { if (entry.isNotEmpty()) submit(entry.toCharArray()) },
+                    )
+                }
             }
 
-            if (importing) {
-                CircularProgressIndicator()
-                Text(
-                    "Unlocking your restored chats…",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else if (kind == SecretCrypto.KIND_PATTERN) {
-                PatternGrid(enabled = !coolingDown && !checking, clearSignal = patternClear) { cells ->
-                    submit(SecretCrypto.patternToCredential(cells))
-                }
-            } else {
-                PinOrPasswordField(
-                    kind = kind, value = entry, onValueChange = { entry = it },
-                    label = if (kind == SecretCrypto.KIND_PIN) "PIN" else "Password",
-                    enabled = !coolingDown && !checking,
-                    isError = error != null,
-                    onDone = { if (entry.isNotEmpty()) submit(entry.toCharArray()) },
-                )
-                // While the (deliberately slow) PBKDF2 check runs, the button
-                // and input just grey out — no label change, no spinner.
+            if (!importing && kind != SecretCrypto.KIND_PATTERN) {
+                Spacer(Modifier.height(24.dp))
+                // Greyed verification state (deliberate): accent at low alpha,
+                // no spinner, no label change — the PBKDF2 delay just reads as
+                // a held button.
                 Button(
                     onClick = { submit(entry.toCharArray()) },
                     enabled = entry.isNotEmpty() && !coolingDown && !checking,
+                    colors = ButtonDefaults.buttonColors(
+                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                        disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f),
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Unlock") }
             }
 
-            if (!coolingDown) {
-                error?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-                }
+            Spacer(Modifier.height(16.dp))
+            // Wrong-code + cooldown feedback stays NEUTRAL — the shake carries
+            // the emphasis; red is reserved for Reset, the single destructive
+            // action in the space.
+            when {
+                coolingDown -> Text(
+                    "Too many attempts. Try again in ${formatCooldown(cooldownMs)}.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                error != null -> Text(
+                    error!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
             }
-            Spacer(Modifier.height(8.dp))
+
+            Spacer(Modifier.weight(1f))
             // The only path past a forgotten code: destroy, never reveal.
-            androidx.compose.material3.TextButton(
+            TextButton(
                 onClick = { showResetDialog = true },
                 enabled = !checking && !importing && !resetting,
             ) {
                 Text("Reset", color = MaterialTheme.colorScheme.error)
             }
+            Spacer(Modifier.height(16.dp))
         }
     }
 
     if (showResetDialog) {
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { if (!resetting) showResetDialog = false },
+            // Dialogs get their own window — the activity's FLAG_SECURE does
+            // not cover them. Explicitly secure, like every surface in here.
+            properties = DialogProperties(securePolicy = SecureFlagPolicy.SecureOn),
             title = { Text("Reset locked chats?") },
             text = {
                 Text(
@@ -214,7 +264,7 @@ fun SecretPromptScreen(
                 )
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(
+                TextButton(
                     enabled = !resetting,
                     onClick = {
                         resetting = true
@@ -244,7 +294,7 @@ fun SecretPromptScreen(
                 }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(
+                TextButton(
                     enabled = !resetting,
                     onClick = { showResetDialog = false },
                 ) { Text("Cancel") }

@@ -1,10 +1,11 @@
 package com.messages.app.ui.secret
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -106,10 +107,7 @@ fun SecretSetupScreen(
         ) {
             if (chosen == null) {
                 Spacer(Modifier.height(8.dp))
-                Icon(
-                    Icons.Filled.Lock, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+                VaultLockMark(size = 56.dp)
                 // The one shared choose→enter→confirm flow (also used by the
                 // in-space "change secret code" — fix: full type re-pick).
                 CredentialCreationSteps(
@@ -149,6 +147,10 @@ private val DISCLAIMER_POINTS = listOf(
         "turned off entirely inside the locked folder's settings.",
 )
 
+/** Short bold lead per verbatim point — structure added ABOVE the mandated
+ *  text, never replacing a word of it (styling per design system). */
+private val DISCLAIMER_LEADS = listOf("No recovery", "SMS storage", "Backups", "Notifications")
+
 @Composable
 private fun androidx.compose.foundation.layout.ColumnScope.DisclaimerStep(
     legacyCount: Int,
@@ -161,42 +163,95 @@ private fun androidx.compose.foundation.layout.ColumnScope.DisclaimerStep(
     var everReachedEnd by remember { mutableStateOf(false) }
     if (reachedEnd) everReachedEnd = true
 
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.large,
-        modifier = Modifier.weight(1f).fillMaxWidth(),
-    ) {
-        Column(
-            Modifier
-                .verticalScroll(scroll)
-                .padding(20.dp),
-            verticalArrangement = SecretScreenSpacing,
+    Box(Modifier.weight(1f).fillMaxWidth()) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Text(DISCLAIMER_TITLE, style = MaterialTheme.typography.titleLarge)
-            Text(
-                DISCLAIMER_INTRO,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            DISCLAIMER_POINTS.forEach { point ->
+            Column(
+                Modifier
+                    .verticalScroll(scroll)
+                    .padding(20.dp),
+                verticalArrangement = SecretScreenSpacing,
+            ) {
+                // Typographic hierarchy (Phase 7): display-size heading, lead
+                // labels per point, verbatim body text underneath.
+                Text(DISCLAIMER_TITLE, style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    point,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    DISCLAIMER_INTRO,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
+                DISCLAIMER_POINTS.forEachIndexed { i, point ->
+                    Column {
+                        Text(
+                            DISCLAIMER_LEADS.getOrElse(i) { "" },
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            point,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (legacyCount > 0) {
+                    Text(
+                        "Your existing locked chats will move here.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Spacer(Modifier.height(28.dp)) // room beneath the fade edge
             }
-            if (legacyCount > 0) {
-                Text(
-                    "Your existing locked chats will move here.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+        }
+        // Scroll gate affordance (Phase 7): fading bottom edge + a floating
+        // "scroll to continue" chip; both disappear once the end is reached.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !everReachedEnd,
+            enter = androidx.compose.animation.fadeIn(com.messages.designsystem.Motion.effectsDefault()),
+            exit = androidx.compose.animation.fadeOut(com.messages.designsystem.Motion.effectsFast()),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            listOf(
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                MaterialTheme.colorScheme.background,
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                Surface(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                ) {
+                    Text(
+                        "Scroll to continue ↓",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
             }
         }
     }
     Button(
         onClick = onUnderstood,
         enabled = everReachedEnd && !working,
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f),
+        ),
         modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
     ) {
         if (working) {
@@ -208,7 +263,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.DisclaimerStep(
                 Text("Setting up…")
             }
         } else {
-            Box { Text(if (everReachedEnd) "I understand" else "Scroll to continue") }
+            Box { Text("I understand") }
         }
     }
 }

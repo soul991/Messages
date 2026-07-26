@@ -68,6 +68,24 @@ private fun ProvideNavScope(scope: AnimatedVisibilityScope, content: @Composable
     CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides scope, content = content)
 }
 
+// Secret-space entry motion (Phase 7): a compartment opening, not a page
+// push — scale+fade from near the long-press origin (the title, top-left
+// region), spring-driven from Motion.kt. Exit runs on the FAST springs so
+// leaving is quicker than entering. No new duration constants.
+private fun vaultEnter() =
+    androidx.compose.animation.scaleIn(
+        animationSpec = com.messages.designsystem.Motion.spatialSlow(),
+        initialScale = 0.92f,
+        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.18f, 0.08f),
+    ) + androidx.compose.animation.fadeIn(com.messages.designsystem.Motion.effectsSlow())
+
+private fun vaultExit() =
+    androidx.compose.animation.scaleOut(
+        animationSpec = com.messages.designsystem.Motion.spatialFast(),
+        targetScale = 0.96f,
+        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.18f, 0.08f),
+    ) + androidx.compose.animation.fadeOut(com.messages.designsystem.Motion.effectsFast())
+
 // FragmentActivity (not ComponentActivity) so BiometricPrompt can attach (§8.2 app lock).
 @OptIn(ExperimentalSharedTransitionApi::class)
 class MainActivity : FragmentActivity() {
@@ -286,7 +304,14 @@ class MainActivity : FragmentActivity() {
                         )
                         }
                     }
-                    composable("secret_setup") {
+                    composable(
+                        "secret_setup",
+                        enterTransition = { vaultEnter() },
+                        exitTransition = { vaultExit() },
+                        popEnterTransition = { vaultEnter() },
+                        popExitTransition = { vaultExit() },
+                    ) {
+                        com.messages.app.ui.secret.VaultTheme {
                         com.messages.app.ui.secret.SecretSetupScreen(
                             onBack = { nav.popBackStack() },
                             onComplete = {
@@ -295,8 +320,16 @@ class MainActivity : FragmentActivity() {
                                 }
                             },
                         )
+                        }
                     }
-                    composable("secret_prompt") {
+                    composable(
+                        "secret_prompt",
+                        enterTransition = { vaultEnter() },
+                        exitTransition = { vaultExit() },
+                        popEnterTransition = { vaultEnter() },
+                        popExitTransition = { vaultExit() },
+                    ) {
+                        com.messages.app.ui.secret.VaultTheme {
                         com.messages.app.ui.secret.SecretPromptScreen(
                             onBack = { nav.popBackStack() },
                             onUnlocked = {
@@ -310,14 +343,22 @@ class MainActivity : FragmentActivity() {
                                 nav.navigate("secret_setup") { popUpTo("home") }
                             },
                         )
+                        }
                     }
-                    composable("secret_space") {
+                    composable(
+                        "secret_space",
+                        enterTransition = { vaultEnter() },
+                        exitTransition = { vaultExit() },
+                        popEnterTransition = { vaultEnter() },
+                        popExitTransition = { vaultExit() },
+                    ) {
                         // Belt-and-braces: any way of reaching this route
                         // without the in-memory unlock bounces to Home.
                         if (!com.messages.app.ui.secret.SecretSession.unlocked) {
                             LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
                             return@composable
                         }
+                        com.messages.app.ui.secret.VaultTheme {
                         com.messages.app.ui.secret.LockedSpaceScreen(
                             onBack = {
                                 nav.navigate("home") { popUpTo("home") } // re-locks via listener
@@ -326,12 +367,14 @@ class MainActivity : FragmentActivity() {
                             onOpenSettings = { nav.navigate("secret_settings") },
                             onCompose = { nav.navigate("secret_compose") },
                         )
+                        }
                     }
                     composable("secret_compose") {
                         if (!com.messages.app.ui.secret.SecretSession.unlocked) {
                             LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
                             return@composable
                         }
+                        com.messages.app.ui.secret.VaultTheme {
                         NewMessageScreen(
                             onBack = { nav.popBackStack() },
                             space = com.messages.core.db.Spaces.LOCKED,
@@ -343,15 +386,18 @@ class MainActivity : FragmentActivity() {
                                 }
                             },
                         )
+                        }
                     }
                     composable("secret_settings") {
                         if (!com.messages.app.ui.secret.SecretSession.unlocked) {
                             LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
                             return@composable
                         }
+                        com.messages.app.ui.secret.VaultTheme {
                         com.messages.app.ui.secret.SecretSettingsScreen(
                             onBack = { nav.popBackStack() },
                         )
+                        }
                     }
                     composable(
                         "secret_chat/{threadId}?address={address}",
@@ -369,6 +415,7 @@ class MainActivity : FragmentActivity() {
                             LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
                             return@composable
                         }
+                        com.messages.app.ui.secret.VaultTheme {
                         ChatScreen(
                             threadId = threadId,
                             onBack = { nav.popBackStack() },
@@ -378,6 +425,7 @@ class MainActivity : FragmentActivity() {
                             fallbackAddress = entry.arguments?.getString("address"),
                             space = com.messages.core.db.Spaces.LOCKED,
                         )
+                        }
                     }
                     composable("secret_why/{messageId}") { entry ->
                         val messageId = entry.arguments?.getString("messageId")?.toLongOrNull()
@@ -386,7 +434,9 @@ class MainActivity : FragmentActivity() {
                             LaunchedEffect(Unit) { nav.navigate("home") { popUpTo("home") } }
                             return@composable
                         }
+                        com.messages.app.ui.secret.VaultTheme {
                         WhyFilteredScreen(messageId = messageId, onBack = { nav.popBackStack() })
+                        }
                     }
                     composable("archived") {
                         com.messages.app.ui.archived.ArchivedScreen(

@@ -1047,6 +1047,7 @@ fun ChatScreen(
         // §6.4: conversation deletion goes to Trash — say so, offer the way back.
         if (showDeleteThreadConfirm) {
             AlertDialog(
+                properties = com.messages.app.ui.secret.secureDialogProperties(),
                 onDismissRequest = { showDeleteThreadConfirm = false },
                 title = { Text("Delete this conversation?") },
                 text = {
@@ -1085,7 +1086,9 @@ fun ChatScreen(
 
         // Forward-to-conversation picker (Phase 4 item 14): recents + search.
         if (showForwardPicker) {
-            androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showForwardPicker = false }) {
+            androidx.compose.material3.ModalBottomSheet(
+                properties = com.messages.app.ui.secret.secureSheetProperties(),
+                onDismissRequest = { showForwardPicker = false }) {
                 var query by remember { mutableStateOf("") }
                 val candidates by androidx.compose.runtime.produceState(
                     initialValue = emptyList<com.messages.core.db.ConversationEntity>(), query,
@@ -1149,7 +1152,9 @@ fun ChatScreen(
 
         // Quick-reply templates sheet (Phase 4 item 8): tap fills the composer.
         if (showQuickReplies) {
-            androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showQuickReplies = false }) {
+            androidx.compose.material3.ModalBottomSheet(
+                properties = com.messages.app.ui.secret.secureSheetProperties(),
+                onDismissRequest = { showQuickReplies = false }) {
                 val templates by QuickReplies.templates.collectAsState()
                 LaunchedEffect(Unit) { QuickReplies.load(context) }
                 Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
@@ -1187,7 +1192,9 @@ fun ChatScreen(
         }
 
         if (showAttachSheet) {
-            androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showAttachSheet = false }) {
+            androidx.compose.material3.ModalBottomSheet(
+                properties = com.messages.app.ui.secret.secureSheetProperties(),
+                onDismissRequest = { showAttachSheet = false }) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(32.dp),
@@ -1219,6 +1226,7 @@ fun ChatScreen(
         if (showLockSheet) {
             if (!com.messages.core.secret.SecretSpace.exists(context)) {
                 androidx.compose.material3.AlertDialog(
+                    properties = com.messages.app.ui.secret.secureDialogProperties(),
                     onDismissRequest = { showLockSheet = false },
                     title = { Text("Locked chats aren't set up") },
                     text = {
@@ -1235,7 +1243,9 @@ fun ChatScreen(
                     },
                 )
             } else {
-                androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showLockSheet = false }) {
+                androidx.compose.material3.ModalBottomSheet(
+                properties = com.messages.app.ui.secret.secureSheetProperties(),
+                onDismissRequest = { showLockSheet = false }) {
                     Text(
                         "Lock this chat",
                         style = MaterialTheme.typography.titleLarge,
@@ -1353,7 +1363,9 @@ private fun CustomizeChatSheet(
     onPickPhoto: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+    androidx.compose.material3.ModalBottomSheet(
+                properties = com.messages.app.ui.secret.secureSheetProperties(),
+                onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
             Text("Customize chat", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(20.dp))
@@ -1895,6 +1907,7 @@ private fun MessageBubble(
 
         if (showSelectDialog) {
             AlertDialog(
+                properties = com.messages.app.ui.secret.secureDialogProperties(),
                 onDismissRequest = { showSelectDialog = false },
                 title = { Text("Select text") },
                 text = {
@@ -2001,6 +2014,7 @@ private fun ScheduleSendDialog(
 
     when (step) {
         "presets" -> AlertDialog(
+            properties = com.messages.app.ui.secret.secureDialogProperties(),
             onDismissRequest = onDismiss,
             title = { Text("Send later") },
             text = {
@@ -2029,6 +2043,7 @@ private fun ScheduleSendDialog(
             dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
         ) { DatePicker(state = dateState) }
         "time" -> AlertDialog(
+            properties = com.messages.app.ui.secret.secureDialogProperties(),
             onDismissRequest = onDismiss,
             title = { Text("Send at") },
             text = { TimePicker(state = timeState) },
@@ -2150,6 +2165,7 @@ private fun CarrierReportDialog(msg: MessageEntity, onDismiss: () -> Unit) {
     val current = picked
     if (current == null) {
         AlertDialog(
+            properties = com.messages.app.ui.secret.secureDialogProperties(),
             onDismissRequest = onDismiss,
             title = { Text("Report to carrier") },
             text = {
@@ -2187,6 +2203,7 @@ private fun CarrierReportDialog(msg: MessageEntity, onDismiss: () -> Unit) {
         )
     } else {
         AlertDialog(
+            properties = com.messages.app.ui.secret.secureDialogProperties(),
             onDismissRequest = onDismiss,
             title = { Text("Send to ${current.first}?") },
             text = {
@@ -2224,7 +2241,9 @@ private fun MessageInfoSheet(
     simName: String,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+    androidx.compose.material3.ModalBottomSheet(
+                properties = com.messages.app.ui.secret.secureSheetProperties(),
+                onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
             Text("Message info", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(16.dp))

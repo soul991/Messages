@@ -130,38 +130,38 @@ fun LockedSpaceScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Filled.Lock, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Locked chats")
+            androidx.compose.foundation.layout.Column {
+                TopAppBar(
+                    title = {
                         if (notifyOff) {
-                            Spacer(Modifier.width(8.dp))
                             Icon(
                                 Icons.Filled.NotificationsOff, contentDescription = "Notifications off",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp),
                             )
                         }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Locked chats settings")
-                    }
-                },
-            )
+                    },
+                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    ),
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(Icons.Filled.Settings, contentDescription = "Locked chats settings")
+                        }
+                    },
+                )
+                // Phase 7: slim persistent strip — the space's name + mark
+                // with a hairline accent edge, so there's never any doubt
+                // which side of the wall you're on.
+                VaultHeaderStrip()
+            }
         },
         floatingActionButton = {
             androidx.compose.material3.ExtendedFloatingActionButton(
@@ -195,23 +195,25 @@ fun LockedSpaceScreen(
             if (list != null && list.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Filled.Lock, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(40.dp),
-                        )
-                        Spacer(Modifier.height(12.dp))
+                        VaultEmptyArt()
+                        Spacer(Modifier.height(20.dp))
                         Text(
                             if (folder == "INBOX") "No locked chats yet" else "Nothing here",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                         )
                         if (folder == "INBOX") {
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(6.dp))
                             Text(
-                                "Lock a chat from its ⋮ menu to move it here.",
+                                "Lock a chat from its ⋮ menu, or start one here.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            Spacer(Modifier.height(20.dp))
+                            androidx.compose.material3.FilledTonalButton(onClick = onCompose) {
+                                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("New message")
+                            }
                         }
                     }
                 }
@@ -230,7 +232,14 @@ fun LockedSpaceScreen(
     }
 
     sheetThread?.let { conv ->
-        ModalBottomSheet(onDismissRequest = { sheetThread = null }) {
+        ModalBottomSheet(
+            onDismissRequest = { sheetThread = null },
+            // Sheets get their own window — secure it explicitly, like every
+            // surface inside the space (activity FLAG_SECURE doesn't extend).
+            properties = androidx.compose.material3.ModalBottomSheetDefaults.properties(
+                securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn,
+            ),
+        ) {
             ListItem(
                 headlineContent = { Text("Move back to normal chats") },
                 supportingContent = {
