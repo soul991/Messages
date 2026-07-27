@@ -148,6 +148,22 @@ design-refs/
   telegram/  Telegram UI Screens (Community).svg (53 MB, 76 frames incl. dark mode)
              Telegram UI Screens (Community).pdf (same board)
              Telegram Chats.png · Telegram Chat.png · Rectangle.png (asset)
+  archives/  the three original community download zips (79 MB total) —
+             kept for future redesign passes, see below
 ```
 
-Raw zips remain at repo root, not committed. Typography values are render-measured approximations (SVG text is outlined); treat ±1–2pt.
+**The original zips are kept.** They were moved out of the repo root into
+`design-refs/archives/` on 2026-07-27 to keep the root clean:
+
+```
+design-refs/archives/Telegram UI Screens (Community).zip       (24 MB → .pdf board + 3 PNGs)
+design-refs/archives/Telegram UI Screens (Community) (1).zip   (39 MB → .svg board + 3 PNGs)
+design-refs/archives/WhatsApp UI Screens (Community).zip       (15 MB → .svg board + 5 PNGs)
+```
+
+Their contents are already extracted into `whatsapp/` and `telegram/` above
+(verified file-for-file), so nothing needs re-extracting for normal use — the
+zips exist so a later redesign pass can start from the pristine downloads.
+All of `design-refs/` is gitignored and never committed.
+
+Typography values are render-measured approximations (SVG text is outlined); treat ±1–2pt.

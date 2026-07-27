@@ -1,6 +1,7 @@
 # Gradle
 .gradle/
 build/
+**/test-results/
 !gradle/wrapper/gradle-wrapper.jar
 
 # Local configuration (SDK path, secrets)
@@ -8,7 +9,10 @@ local.properties
 
 # IDE
 .idea/
+.vscode/
 *.iml
+*.ipr
+*.iws
 .DS_Store
 
 # Claude Code local session settings
@@ -20,9 +24,10 @@ captures/
 *.aab
 *.keystore
 *.jks
+*.hprof
 !debug.keystore
 
-# Release signing secrets (see docs/RELEASE_SIGNING.md) — never committed
+# Release signing secrets (see docs/ops/RELEASE_SIGNING.md) — never committed
 keystore.properties
 
 # Firebase config (contains API keys) — never committed
@@ -31,7 +36,7 @@ google-services.json
 # Kotlin
 .kotlin/
 
-# Local design reference material (user-supplied, 98MB) — never committed
+# Local design reference material (user-supplied, ~180MB including the
+# original community zips under design-refs/archives/) — never committed
 design-refs/
 /*.zip
-/TRUECALLER_ANALYSIS.md
