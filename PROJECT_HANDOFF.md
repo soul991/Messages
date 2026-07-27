@@ -30,7 +30,7 @@ All PRD milestones M1–M5 done, plus an extended work order (Phases 0–6) fini
 2. **No E2E encryption claims — SMS is carrier plaintext; impossible.** RCS E2E is Google-proprietary. Never let any session claim otherwise.
 3. **MMS: receive pipeline fully working (mandatory for default-SMS role); SENDING disabled** behind `FeatureFlags.MMS_SEND_ENABLED = false` (carrier unreliability, e.g. Jio has no MMS). Code kept, not deleted. Voice notes/multi-attachment shelved with it.
 4. **No server, no crowdsourced data, no ML, no ads** — positioning vs Truecaller, documented in research doc + README.
-5. Drive OAuth: Android client registered in Google Cloud Console (project `messages-app`), package `com.messages.app`, debug SHA-1 registered, consent screen in **Testing mode** with owner as test user, `drive.appdata` scope. **A release-SHA-1 OAuth client must be added for the release-signed build** (see `docs/DRIVE_BACKUP_SETUP.md`) — check whether this was done for the current release build.
+5. Drive OAuth: Android client registered in Google Cloud Console (project `messages-app`), package `com.messages.app`, debug SHA-1 registered, consent screen in **Testing mode** with owner as test user, `drive.appdata` scope. **A release-SHA-1 OAuth client must be added for the release-signed build** (see `docs/ops/DRIVE_BACKUP_SETUP.md`) — check whether this was done for the current release build.
 6. JVM tests can't catch Android ICU regex differences — anything regex-new must be smoke-tested on device (historic lesson: an unbounded lookbehind crashed on-device while green on JVM).
 7. Debug-only helpers exist (`app/src/debug/`): SMS injection receiver + test-residue cleanup receiver — never ship in release; invaluable for driving the receive pipeline via adb.
 
@@ -39,7 +39,7 @@ All PRD milestones M1–M5 done, plus an extended work order (Phases 0–6) fini
 - **Machine:** owner's MacBook Air. Repo at `~/…/Messages` (multi-module: `:app`, `:core-messaging`, `:protection-engine`, `:design-system`).
 - **Build:** `export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && ./gradlew …` (system Gradle 9.6 incompatible — ALWAYS the wrapper, Gradle 8.9/AGP 8.5.2/Kotlin 2.0.20). Full check: `:protection-engine:test :core-messaging:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug`.
 - **Device:** wireless debugging (IP:port rotates — re-pair from phone's Wireless debugging screen when it drops; happens often mid-session). Release installs: `adb install --no-incremental -r`.
-- **Signing:** keystore `~/keystores/messages-release.jks`, passwords in gitignored `keystore.properties`, docs in `docs/RELEASE_SIGNING.md`. Losing these = can never update the installed release build.
+- **Signing:** keystore `~/keystores/messages-release.jks`, passwords in gitignored `keystore.properties`, docs in `docs/ops/RELEASE_SIGNING.md`. Losing these = can never update the installed release build.
 - **Proven workflow:** phased work orders with explicit approval gates; every phase ends with JVM tests + build green + on-device verification + PROGRESS.md update; PROGRESS.md is the single source of truth for resuming after context clears; device-verification checklists are run by the owner (biometrics etc. need human fingers); failures reported by step number.
 
 ## 5. Open items
@@ -50,4 +50,4 @@ All PRD milestones M1–M5 done, plus an extended work order (Phases 0–6) fini
 
 ## 6. Key repo documents
 
-`PRD_Messages.md` (spec) · `PROGRESS.md` (authoritative state + next steps) · `README.md` (trust guarantees incl. registered-header exception) · `docs/DRIVE_BACKUP_SETUP.md` · `docs/RELEASE_SIGNING.md` · `docs/research/TRUECALLER_ANALYSIS.md` · `docs/research/DESIGN_REFS_NOTES.md` · `docs/design/PHASE5_DESIGN_PLAN.md` · `design-refs/` (WhatsApp/Telegram SVG extractions).
+`PRD_Messages.md` (spec) · `PROGRESS.md` (authoritative state + next steps) · `README.md` (trust guarantees incl. registered-header exception) · `docs/ops/DRIVE_BACKUP_SETUP.md` · `docs/ops/RELEASE_SIGNING.md` · `docs/research/TRUECALLER_ANALYSIS.md` · `docs/research/DESIGN_REFS_NOTES.md` · `docs/design/PHASE5_DESIGN_PLAN.md` · `design-refs/` (WhatsApp/Telegram SVG extractions).

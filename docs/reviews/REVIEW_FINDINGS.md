@@ -98,7 +98,7 @@ Google Sign-In requires Android OAuth-client registration for package
 `com.messages.app` and the signing SHA-1. Passkey-PRF backup unlock is still
 format-reserved rather than implemented.
 
-**Owner action:** follow `docs/DRIVE_BACKUP_SETUP.md`, then test sign-in,
+**Owner action:** follow `docs/ops/DRIVE_BACKUP_SETUP.md`, then test sign-in,
 manual backup, automatic checkpoint backup, password restore on a second
 profile/device, and failure recovery.
 

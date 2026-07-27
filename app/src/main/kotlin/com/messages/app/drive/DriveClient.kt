@@ -20,7 +20,7 @@ import java.net.URL
  * HttpURLConnection; the OAuth token comes from GMS for the signed-in
  * account (no client secret in the app — the Cloud Console Android OAuth
  * client is matched by package name + signing SHA-1, see
- * docs/DRIVE_BACKUP_SETUP.md).
+ * docs/ops/DRIVE_BACKUP_SETUP.md).
  *
  * All methods are blocking — call from Dispatchers.IO.
  */

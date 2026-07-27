@@ -29,7 +29,7 @@ import javax.crypto.spec.SecretKeySpec
  *    longer produced for new backups, but old password-wrapped envelopes
  *    are still restorable (detected via [requiresPassword]).
  *  - "passkey-prf": reserved in the format for the Credential Manager PRF
- *    wrap; needs a hosted RP domain (see docs/DRIVE_BACKUP_SETUP.md) and is
+ *    wrap; needs a hosted RP domain (see docs/ops/DRIVE_BACKUP_SETUP.md) and is
  *    not produced yet. The versioned envelope lets it be added without
  *    breaking existing backups.
  *

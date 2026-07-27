@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Release signing (docs/RELEASE_SIGNING.md): keystore.properties at the repo
+// Release signing (docs/ops/RELEASE_SIGNING.md): keystore.properties at the repo
 // root (gitignored) points at the keystore outside the repo. Absent file →
 // release builds unsigned (CI-safe).
 val keystoreProps = Properties().apply {

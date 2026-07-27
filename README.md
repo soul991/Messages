@@ -71,7 +71,7 @@ The project is split into:
 
 `./gradlew :app:assembleRelease` produces an R8-minified, resource-shrunk,
 baseline-profiled APK, signed when `keystore.properties` is present — see
-[`docs/RELEASE_SIGNING.md`](docs/RELEASE_SIGNING.md) for the keystore and
+[`docs/ops/RELEASE_SIGNING.md`](docs/ops/RELEASE_SIGNING.md) for the keystore and
 password-handling contract. On the reference device (60 Hz panel) the
 release build measures 0% janky frames on list fling and chat scroll.
 
@@ -79,7 +79,7 @@ release build measures 0% janky frames on list fling and chat scroll.
 
 - Google Drive backup: sign-in and scheduling are verified on-device
   (owner-registered OAuth client, see
-  [`docs/DRIVE_BACKUP_SETUP.md`](docs/DRIVE_BACKUP_SETUP.md)); access control
+  [`docs/ops/DRIVE_BACKUP_SETUP.md`](docs/ops/DRIVE_BACKUP_SETUP.md)); access control
   is the Google account (WhatsApp-style master-key file in the app data
   folder). Restore onto a second device is still unexercised.
 - Passkey-PRF backup unlock is format-reserved but not implemented; under the
@@ -90,3 +90,6 @@ release build measures 0% janky frames on list fling and chat scroll.
 
 For detailed scope, non-negotiable guardrails, and implementation status, see
 [`PRD_Messages.md`](PRD_Messages.md) and [`PROGRESS.md`](PROGRESS.md).
+New to the project? [`PROJECT_HANDOFF.md`](PROJECT_HANDOFF.md) is the
+orientation layer above both. Everything else lives under
+[`docs/`](docs/README.md).
