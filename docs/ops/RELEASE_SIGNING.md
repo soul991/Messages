@@ -8,6 +8,12 @@
 | Passwords + alias | `keystore.properties` at the repo root | **Never** (gitignored) |
 | Signing config | `app/build.gradle.kts` (reads `keystore.properties`) | Yes |
 
+There is **exactly one** authoritative keystore file:
+`~/keystores/messages-release.jks`, plus the owner's off-machine backup. No
+copy lives inside the repo directory. A stale pre-rotation copy that had been
+sitting at the repo root was deleted on 2026-07-27 after its certificate
+identity was confirmed to match (see *Certificate identity* below).
+
 The keystore was generated 2026-07-24 (RSA 4096, alias `messages`, validity
 10,000 days, self-signed). Store password and key password are identical and
 live only in `keystore.properties`:
@@ -18,6 +24,47 @@ storePassword=<password>
 keyAlias=messages
 keyPassword=<password>
 ```
+
+## Certificate identity
+
+The signing identity — not the password — is what Android enforces on update.
+It has never changed:
+
+```
+Owner:  CN=Messages, OU=Personal, O=Personal, C=IN
+Alias:  messages
+SHA-256: 8F:06:A5:76:A0:5F:50:89:2B:35:F6:B4:E5:98:3D:E5:
+         18:26:D9:83:96:6B:D7:1C:48:0D:73:D0:D7:91:49:15
+SHA-1:   79:E2:F9:51:44:81:4F:30:30:9D:AF:56:98:04:D3:CC:A7:9C:2C:62
+Signature algorithm: SHA384withRSA
+Valid:  2026-07-24 → 2053-12-09
+```
+
+Verify at any time with:
+
+```bash
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17
+keytool -list -v -keystore ~/keystores/messages-release.jks | grep -A1 'Certificate fingerprints'
+# and, for an APK you already built:
+apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
+```
+
+The SHA-1 above is the value Google Cloud Console needs for the release
+OAuth client (see [`DRIVE_BACKUP_SETUP.md`](DRIVE_BACKUP_SETUP.md)).
+
+## Password rotation history
+
+| Date | Event | Effect on signing identity |
+|---|---|---|
+| 2026-07-24 | Keystore generated | — |
+| 2026-07-27 | Store password rotated via `keytool -storepasswd` | **None** — certificate fingerprint unchanged |
+
+`keytool -storepasswd` re-encrypts the private key under the new password, so
+the *file bytes change* while the certificate stays identical. Two copies of
+this keystore with different checksums are therefore not necessarily two
+different keys — compare the SHA-256 fingerprint above, never the file hash.
+After any rotation, update `storePassword`/`keyPassword` in
+`keystore.properties` and your password manager together.
 
 ## Password handling
 
