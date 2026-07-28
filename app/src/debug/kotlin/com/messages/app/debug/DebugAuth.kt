@@ -49,11 +49,7 @@ object DebugAuth {
         val expected = token(context)
         val supplied = intent.getStringExtra(EXTRA_TOKEN)
         if (supplied == expected) return true
-        Log.w(
-            TAG,
-            "REFUSED: debug harness broadcast without a valid --es token. " +
-                "This install's token is $expected",
-        )
+        Log.w(TAG, "REFUSED: debug harness broadcast missing or invalid token")
         return false
     }
 }
