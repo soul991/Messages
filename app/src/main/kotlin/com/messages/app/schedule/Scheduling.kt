@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.telephony.SmsManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -20,6 +21,7 @@ import com.messages.app.MessagesApp
 import com.messages.app.receiver.SmsSentReceiver
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
+import com.messages.core.send.SendAggregate
 import java.util.concurrent.TimeUnit
 
 /**
@@ -31,59 +33,94 @@ import java.util.concurrent.TimeUnit
 object SmsRadio {
     suspend fun send(context: Context, repo: MessageRepository, entity: MessageEntity) {
         try {
-            val base = context.getSystemService(SmsManager::class.java)
-            val sms = entity.subId?.let { base.createForSubscriptionId(it) } ?: base
+            val sms = com.messages.app.sms.SmsManagers.forSubscription(context, entity.subId)
             val parts = sms.divideMessage(entity.body)
             val wantDelivery = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
                 .getBoolean("delivery_reports", true)
-            repo.recipientsOf(entity.address).forEach { recipient ->
+            val recipients = repo.recipientsOf(entity.address)
+            // R-13: declare the whole dispatch matrix before the radio call, so
+            // the message-level status is derived from every (recipient, part)
+            // instead of from whichever callback happens to arrive first.
+            repo.recordSendAttempts(
+                messageId = entity.id,
+                recipientCount = recipients.size.coerceAtLeast(1),
+                partCount = parts.size.coerceAtLeast(1),
+                wantDelivery = wantDelivery,
+            )
+            recipients.forEachIndexed { recipientIndex, recipient ->
+                val (sentIntents, deliveredIntents) =
+                    statusIntents(context, entity.id, recipientIndex, parts.size, wantDelivery)
                 if (parts.size == 1) {
-                    val sentIntent = PendingIntent.getBroadcast(
-                        context, entity.id.toInt(),
-                        Intent(context, SmsSentReceiver::class.java).putExtra("messageId", entity.id),
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    sms.sendTextMessage(
+                        recipient, null, entity.body,
+                        sentIntents.first(), deliveredIntents?.first(),
                     )
-                    val deliveredIntent = if (!wantDelivery) null else PendingIntent.getBroadcast(
-                        context, entity.id.toInt(),
-                        Intent(context, com.messages.app.receiver.SmsDeliveredReceiver::class.java)
-                            .putExtra("messageId", entity.id),
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                    )
-                    sms.sendTextMessage(recipient, null, entity.body, sentIntent, deliveredIntent)
                 } else {
-                    val sentIntents = ArrayList<PendingIntent>()
-                    val deliveredIntents = if (!wantDelivery) null else ArrayList<PendingIntent>()
-                    parts.forEachIndexed { index, _ ->
-                        val requestCode = (entity.id * 100 + index).toInt()
-                        sentIntents.add(
-                            PendingIntent.getBroadcast(
-                                context, requestCode,
-                                Intent(context, SmsSentReceiver::class.java).putExtra("messageId", entity.id),
-                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                            )
-                        )
-                        if (wantDelivery) {
-                            deliveredIntents?.add(
-                                PendingIntent.getBroadcast(
-                                    context, requestCode,
-                                    Intent(context, com.messages.app.receiver.SmsDeliveredReceiver::class.java)
-                                        .putExtra("messageId", entity.id),
-                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                                )
-                            )
-                        }
-                    }
                     sms.sendMultipartTextMessage(
-                        recipient, null, parts, sentIntents, deliveredIntents
+                        recipient, null, parts,
+                        ArrayList(sentIntents),
+                        deliveredIntents?.let { ArrayList(it) },
                     )
                 }
             }
         } catch (_: Exception) {
-            repo.db.messages().markFailed(
+            // Nothing (or only part of the matrix) reached the radio: fail every
+            // attempt so the derived status is FAILED, not a half-SENDING row.
+            repo.failAllSendAttempts(
                 entity.id, com.messages.core.send.SendFailure.LOCAL_SEND_ERROR,
             )
         }
     }
+
+    /**
+     * One (sent, delivered) PendingIntent per part, each addressing exactly one
+     * attempt. PendingIntent equality ignores extras, so the distinct request
+     * code AND the distinct data URI are both required — otherwise the platform
+     * collapses every recipient/part into a single intent and one callback
+     * decides the whole message's fate.
+     */
+    private fun statusIntents(
+        context: Context,
+        messageId: Long,
+        recipientIndex: Int,
+        partCount: Int,
+        wantDelivery: Boolean,
+    ): Pair<List<PendingIntent>, List<PendingIntent>?> {
+        val sent = ArrayList<PendingIntent>(partCount)
+        val delivered = if (wantDelivery) ArrayList<PendingIntent>(partCount) else null
+        for (partIndex in 0 until partCount.coerceAtLeast(1)) {
+            val attemptId = SendAggregate.attemptId(messageId, recipientIndex, partIndex)
+            val code = SendAggregate.requestCode(messageId, recipientIndex, partIndex)
+            sent.add(
+                statusIntent(
+                    context, SmsSentReceiver::class.java, messageId, attemptId, code, "sent",
+                )
+            )
+            delivered?.add(
+                statusIntent(
+                    context, com.messages.app.receiver.SmsDeliveredReceiver::class.java,
+                    messageId, attemptId, code, "delivered",
+                )
+            )
+        }
+        return sent to delivered
+    }
+
+    private fun statusIntent(
+        context: Context,
+        receiver: Class<*>,
+        messageId: Long,
+        attemptId: String,
+        requestCode: Int,
+        kind: String,
+    ): PendingIntent = PendingIntent.getBroadcast(
+        context, requestCode,
+        Intent(context, receiver)
+            .setData(Uri.parse("messages://$kind/$attemptId"))
+            .putExtra("messageId", messageId)
+            .putExtra("attemptId", attemptId),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 }
 
 /**

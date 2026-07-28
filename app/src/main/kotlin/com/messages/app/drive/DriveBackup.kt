@@ -24,6 +24,7 @@ import com.messages.core.backup.BackupCrypto
 import com.messages.core.backup.BackupManager
 import com.messages.core.backup.Checkpoints
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.security.KeyStore
 import java.util.concurrent.TimeUnit
@@ -174,27 +175,53 @@ object DriveBackup {
      * Blocking — call on Dispatchers.IO.
      */
     private fun ensureMasterKey(context: Context, client: DriveClient): ByteArray {
-        val remote = client.list().firstOrNull { it.name == KEY_FILE_NAME }
+        // R-07: exact, fully paginated name query. The old code scanned only the
+        // first 25 listed files, so once a user had more objects than that the
+        // key became invisible and a second one was minted — splitting snapshots
+        // across two keys.
+        val keyFiles = client.findByName(KEY_FILE_NAME)
+        // Two key files means an earlier concurrent first-backup already split
+        // custody. Refuse rather than guessing: picking one silently makes the
+        // snapshots wrapped under the other permanently unreadable. Nothing is
+        // deleted — recovery needs every key.
+        require(keyFiles.size <= 1) {
+            "Multiple backup key files found in Google Drive (${keyFiles.size}). " +
+                "Restore an older snapshot before creating new backups."
+        }
+        val remote = keyFiles.firstOrNull()
         if (remote != null) {
-            val key = client.download(remote.id)
+            val key = client.download(remote.id, maxBytes = MAX_KEY_FILE_BYTES)
             require(key.size == 32) { "Corrupt backup key file in Google Drive" }
             cacheMasterKey(context, key)
             return key
         }
         val key = cachedMasterKey(context) ?: BackupCrypto.newMasterKey()
         client.upload(KEY_FILE_NAME, key)
+        // Re-list after the upload: if a concurrent run uploaded its own key at
+        // the same moment, fail loudly here rather than writing snapshots under
+        // a key that a later lookup won't treat as authoritative.
+        val after = client.findByName(KEY_FILE_NAME)
+        require(after.size <= 1) {
+            "Concurrent backup created a duplicate key file; no snapshot was written."
+        }
         cacheMasterKey(context, key)
         return key
     }
 
     /** Master key for restore: Drive key file first, local cache as fallback. */
     private fun masterKeyForRestore(context: Context, client: DriveClient): ByteArray? {
-        val remote = client.list().firstOrNull { it.name == KEY_FILE_NAME }
-            ?: return cachedMasterKey(context)
-        val key = client.download(remote.id)
-        if (key.size != 32) return cachedMasterKey(context)
-        cacheMasterKey(context, key)
-        return key
+        // Restore tolerates duplicates: try each candidate, newest first, and let
+        // the caller's decrypt attempt decide which key actually opens the blob.
+        val candidates = client.findByName(KEY_FILE_NAME)
+        for (remote in candidates) {
+            val key = runCatching {
+                client.download(remote.id, maxBytes = MAX_KEY_FILE_BYTES)
+            }.getOrNull() ?: continue
+            if (key.size != 32) continue
+            cacheMasterKey(context, key)
+            return key
+        }
+        return cachedMasterKey(context)
     }
 
     // ---- Backup ----
@@ -228,7 +255,27 @@ object DriveBackup {
      * scheduled runs use the frequency's last 6 AM checkpoint and skip when
      * that window is already covered.
      */
+    /**
+     * R-07: periodic and manual backups use DIFFERENT unique-work names, so
+     * WorkManager will happily run both at once. On a first backup that raced,
+     * each run could mint its own master key. One process-wide mutex serializes
+     * the whole key-resolution + upload critical section, whichever worker (or
+     * direct call) gets there first.
+     */
+    private val backupMutex = kotlinx.coroutines.sync.Mutex()
+
     suspend fun backupNow(
+        context: Context,
+        manual: Boolean,
+        onProgress: ((BackupProgress) -> Unit)? = null,
+    ): Result<Status> =
+        withContext(Dispatchers.IO) {
+            backupMutex.withLock {
+                backupNowLocked(context, manual, onProgress)
+            }
+        }
+
+    private suspend fun backupNowLocked(
         context: Context,
         manual: Boolean,
         onProgress: ((BackupProgress) -> Unit)? = null,
@@ -342,6 +389,16 @@ object DriveBackup {
     private const val HEADER_PROBE_BYTES = 8 * 1024
 
     /**
+     * R-10: one bounded retry for an unusually large header (many wrapped keys).
+     * Still far below a full snapshot download, and matches BackupCrypto's 64 KiB
+     * header ceiling plus the magic/length prefix.
+     */
+    private const val HEADER_PROBE_RETRY_BYTES = 80 * 1024
+
+    /** A master key file is exactly 32 bytes; cap the read accordingly (R-10). */
+    private const val MAX_KEY_FILE_BYTES = 4096L
+
+    /**
      * All available snapshots, newest first (§8.3 keeps the last 2 — the
      * chooser lets the user pick either). Headers are read via a small Range
      * request so a media-heavy snapshot isn't fully downloaded just to be
@@ -359,10 +416,17 @@ object DriveBackup {
                             val head = client.downloadPrefix(file.id, HEADER_PROBE_BYTES)
                             RemoteSnapshot(file.id, file.name, file.size, BackupCrypto.readHeader(head))
                         }.recoverCatching {
-                            // Oversized header or a server that ignored Range —
-                            // fall back to the full blob before giving up.
-                            val blob = client.download(file.id)
-                            RemoteSnapshot(file.id, file.name, file.size, BackupCrypto.readHeader(blob))
+                            // R-10: retry ONCE with a larger prefix — never with a
+                            // full download. The old fallback pulled the entire
+                            // snapshot (potentially hundreds of MB of media) just
+                            // to render a chooser row, which a server ignoring
+                            // Range could trigger for every listed file.
+                            val head = client.downloadPrefix(file.id, HEADER_PROBE_RETRY_BYTES)
+                            RemoteSnapshot(file.id, file.name, file.size, BackupCrypto.readHeader(head))
+                        }.onFailure {
+                            // An unreadable header means "unavailable", not "fetch
+                            // everything and hope".
+                            Log.w(TAG, "skipping snapshot with unreadable header: ${file.name}")
                         }.getOrNull()
                     }
             }.onFailure { e -> Log.w(TAG, "listSnapshots failed", e) }
@@ -387,6 +451,10 @@ object DriveBackup {
         password: CharArray? = null,
         onProgress: ((RestoreProgress) -> Unit)? = null,
     ): Result<BackupManager.ImportStats> = withContext(Dispatchers.IO) {
+        // R-07: hold the same lock as backupNow. A backup running mid-restore
+        // could otherwise re-resolve the master key or upload a snapshot while
+        // rows are being imported.
+        backupMutex.withLock {
         runCatching {
             val client = driveClient(context) ?: error("Not signed in to Google")
             onProgress?.invoke(RestoreProgress(RestoreStage.DOWNLOADING))
@@ -406,6 +474,7 @@ object DriveBackup {
             onProgress?.invoke(RestoreProgress(RestoreStage.IMPORTING))
             BackupManager.import(context, payload).getOrThrow()
         }.onFailure { e -> Log.w(TAG, "restore failed", e) }
+        }
     }
 
     // ---- Scheduling ----

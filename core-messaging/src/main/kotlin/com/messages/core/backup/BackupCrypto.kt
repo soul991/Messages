@@ -38,13 +38,41 @@ import javax.crypto.spec.SecretKeySpec
  */
 object BackupCrypto {
 
-    const val FORMAT_VERSION = 1
+    /**
+     * Version 2 authenticates the plaintext header as AES-GCM additional
+     * authenticated data (R-09). Version 1 envelopes stay readable — their
+     * header is unauthenticated, which is exactly the weakness v2 closes, so v1
+     * is accepted for restore only and never produced.
+     */
+    const val FORMAT_VERSION = 2
+    const val LEGACY_FORMAT_VERSION = 1
+    private val SUPPORTED_VERSIONS = setOf(LEGACY_FORMAT_VERSION, FORMAT_VERSION)
+
     const val PBKDF2_ITERATIONS = 600_000
     const val METHOD_PASSWORD = "password"
     const val METHOD_ACCOUNT = "account-plain"
     private const val MAGIC = "MBK1"
     private const val GCM_TAG_BITS = 128
     private const val NONCE_LEN = 12
+
+    // ---- R-09 hostile-input bounds -------------------------------------
+    // Each bound is checked BEFORE any allocation, PBKDF2 derivation or
+    // decompression driven by the value it bounds. A backup blob is
+    // attacker-supplied (a malicious file chosen in the restore picker, or a
+    // tampered Drive object), so "the header said so" is never sufficient
+    // reason to do unbounded work.
+    private const val MAX_BLOB = 512L * 1024 * 1024
+    private const val MAX_HEADER = 64 * 1024
+    private const val MAX_EXPANDED = 128 * 1024 * 1024
+    private const val MIN_ITERATIONS = 100_000
+    private const val MAX_ITERATIONS = 2_000_000
+    private const val MAX_WRAPPED_KEYS = 8
+    private const val WRAPPED_KEY_BYTES = 48 // 32-byte data key + 16-byte GCM tag
+    private const val MIN_SALT_BYTES = 16
+    private const val MAX_SALT_BYTES = 64
+
+    /** Raised when an envelope violates a structural bound. */
+    class MalformedBackupException(message: String) : Exception(message)
 
     class WrongPasswordException : Exception("No unlock method accepted this password")
 
@@ -198,13 +226,10 @@ object BackupCrypto {
     ): ByteArray {
         require(wrappedKeys.isNotEmpty()) { "At least one unlock method is required" }
         val nonce = ByteArray(NONCE_LEN).also { SecureRandom().nextBytes(it) }
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(
-            Cipher.ENCRYPT_MODE, SecretKeySpec(dataKey, "AES"),
-            GCMParameterSpec(GCM_TAG_BITS, nonce),
-        )
-        val ciphertext = cipher.doFinal(gzip(payloadJson.toByteArray(Charsets.UTF_8)))
 
+        // R-09: the header is serialized BEFORE the payload is encrypted so its
+        // exact bytes can be bound in as AAD. Anything the header claims is
+        // therefore covered by the GCM tag.
         val header = json.encodeToString(
             Header.serializer(),
             Header(
@@ -218,6 +243,14 @@ object BackupCrypto {
             ),
         ).toByteArray(Charsets.UTF_8)
 
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(
+            Cipher.ENCRYPT_MODE, SecretKeySpec(dataKey, "AES"),
+            GCMParameterSpec(GCM_TAG_BITS, nonce),
+        )
+        cipher.updateAAD(header)
+        val ciphertext = cipher.doFinal(gzip(payloadJson.toByteArray(Charsets.UTF_8)))
+
         val out = ByteArrayOutputStream()
         out.write(MAGIC.toByteArray(Charsets.US_ASCII))
         out.write(intToBytes(header.size))
@@ -226,30 +259,89 @@ object BackupCrypto {
         return out.toByteArray()
     }
 
-    /** Read the plaintext header without decrypting anything. */
-    fun readHeader(blob: ByteArray): Header {
-        require(blob.size > 8 && String(blob, 0, 4, Charsets.US_ASCII) == MAGIC) {
-            "Not a Messages backup"
+    /**
+     * Read the plaintext header without decrypting anything.
+     *
+     * R-09: this is the first code to touch an untrusted blob, so it enforces
+     * every structural bound before the value it guards is used — envelope and
+     * header size, format version, wrapped-key count, exact nonce/wrapped-key
+     * lengths, salt size, and above all the PBKDF2 iteration count (an
+     * unbounded value here is attacker-chosen CPU work, multiplied by the
+     * number of password wraps).
+     */
+    fun readHeader(blob: ByteArray): Header = parseHeader(blob).first
+
+    /** Header plus the exact bytes it was decoded from (needed as v2 AAD). */
+    private fun parseHeader(blob: ByteArray): Pair<Header, ByteArray> {
+        if (blob.size.toLong() > MAX_BLOB) throw MalformedBackupException("Backup is too large")
+        if (blob.size <= 8 || String(blob, 0, 4, Charsets.US_ASCII) != MAGIC) {
+            throw MalformedBackupException("Not a Messages backup")
         }
         val headerLen = bytesToInt(blob, 4)
-        require(headerLen in 1..(blob.size - 8)) { "Corrupt backup header" }
-        return json.decodeFromString(
-            Header.serializer(), String(blob, 8, headerLen, Charsets.UTF_8),
-        )
+        if (headerLen !in 1..minOf(MAX_HEADER, blob.size - 8)) {
+            throw MalformedBackupException("Corrupt backup header")
+        }
+        val headerBytes = blob.copyOfRange(8, 8 + headerLen)
+        val header = try {
+            json.decodeFromString(Header.serializer(), headerBytes.toString(Charsets.UTF_8))
+        } catch (e: Exception) {
+            throw MalformedBackupException("Unreadable backup header: ${e.message}")
+        }
+        validate(header)
+        return header to headerBytes
     }
+
+    private fun validate(header: Header) {
+        if (header.formatVersion !in SUPPORTED_VERSIONS) {
+            throw MalformedBackupException("Unsupported backup version ${header.formatVersion}")
+        }
+        if (header.wrappedKeys.isEmpty() || header.wrappedKeys.size > MAX_WRAPPED_KEYS) {
+            throw MalformedBackupException("Bad unlock-method count")
+        }
+        if (decodedSize(header.nonce) != NONCE_LEN) {
+            throw MalformedBackupException("Bad payload nonce")
+        }
+        header.wrappedKeys.forEach { wk ->
+            if (wk.method !in setOf(METHOD_ACCOUNT, METHOD_PASSWORD)) {
+                throw MalformedBackupException("Unsupported unlock method")
+            }
+            if (decodedSize(wk.nonce) != NONCE_LEN) {
+                throw MalformedBackupException("Bad wrap nonce")
+            }
+            if (decodedSize(wk.wrapped) != WRAPPED_KEY_BYTES) {
+                throw MalformedBackupException("Bad wrapped key")
+            }
+            if (wk.method == METHOD_PASSWORD) {
+                if (wk.iterations !in MIN_ITERATIONS..MAX_ITERATIONS) {
+                    throw MalformedBackupException("Refusing attacker-chosen PBKDF2 work")
+                }
+                if (decodedSize(wk.salt) !in MIN_SALT_BYTES..MAX_SALT_BYTES) {
+                    throw MalformedBackupException("Bad wrap salt")
+                }
+            }
+        }
+    }
+
+    /** Strict Base64 length probe; -1 when the field is not valid Base64. */
+    private fun decodedSize(field: String): Int =
+        runCatching { unb64(field).size }.getOrElse { -1 }
 
     /** Decrypt a whole blob with an already-unwrapped data key. */
     fun open(blob: ByteArray, dataKey: ByteArray): String {
-        val header = readHeader(blob)
-        val headerLen = bytesToInt(blob, 4)
-        val offset = 8 + headerLen
+        val (header, headerBytes) = parseHeader(blob)
+        val offset = 8 + headerBytes.size
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(
             Cipher.DECRYPT_MODE, SecretKeySpec(dataKey, "AES"),
             GCMParameterSpec(GCM_TAG_BITS, unb64(header.nonce)),
         )
+        // R-09: from v2 the header is bound into the ciphertext as AAD, so
+        // tampering with createdAt/messageCount/deviceModel — or swapping a
+        // wrapped key between envelopes — fails the GCM tag instead of being
+        // silently trusted. v1 envelopes carry no AAD and stay readable.
+        if (header.formatVersion >= FORMAT_VERSION) cipher.updateAAD(headerBytes)
         val plain = cipher.doFinal(blob, offset, blob.size - offset)
-        return String(gunzip(plain), Charsets.UTF_8)
+        return String(gunzipBounded(plain, MAX_EXPANDED), Charsets.UTF_8)
     }
 
     /** Convenience: password → payload JSON. */
@@ -268,8 +360,32 @@ object BackupCrypto {
         return out.toByteArray()
     }
 
-    private fun gunzip(bytes: ByteArray): ByteArray =
-        GZIPInputStream(ByteArrayInputStream(bytes)).use { it.readBytes() }
+    /**
+     * R-09: GZIP expands, so a small envelope can decompress to an unbounded
+     * amount of heap ("zip bomb"). Stop at [limit] rather than calling
+     * readBytes() and discovering the size afterwards. The limit is checked
+     * before each chunk is accumulated, so the buffer never exceeds it.
+     *
+     * Internal rather than private so tests can drive it with a small limit
+     * instead of allocating a realistic bomb.
+     */
+    internal fun gunzipBounded(bytes: ByteArray, limit: Int): ByteArray {
+        val out = ByteArrayOutputStream(minOf(bytes.size * 2, 1 shl 20))
+        GZIPInputStream(ByteArrayInputStream(bytes)).use { input ->
+            val buffer = ByteArray(32 * 1024)
+            var total = 0L
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                total += n
+                if (total > limit) {
+                    throw MalformedBackupException("Backup expands beyond the allowed size")
+                }
+                out.write(buffer, 0, n)
+            }
+        }
+        return out.toByteArray()
+    }
 
     private fun intToBytes(v: Int) = byteArrayOf(
         (v ushr 24).toByte(), (v ushr 16).toByte(), (v ushr 8).toByte(), v.toByte(),

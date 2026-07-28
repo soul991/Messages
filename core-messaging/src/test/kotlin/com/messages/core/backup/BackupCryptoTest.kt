@@ -44,7 +44,9 @@ class BackupCryptoTest {
     fun `header is readable without any password`() {
         val blob = sealRoundTrip("""{"x":1}""", "pw")
         val header = BackupCrypto.readHeader(blob)
-        assertEquals(1, header.formatVersion)
+        // R-09: newly sealed envelopes are format version 2 (authenticated
+        // header). Version 1 stays readable on restore but is never produced.
+        assertEquals(BackupCrypto.FORMAT_VERSION, header.formatVersion)
         assertEquals(1_700_000_000_000, header.createdAt)
         assertEquals(1_699_999_000_000, header.checkpointAt)
         assertEquals("TestDevice", header.deviceModel)

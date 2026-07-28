@@ -161,8 +161,16 @@ class ChatViewModel(
         if (message.mmsTransactionId != null) {
             viewModelScope.launch(Dispatchers.IO) {
                 val ctx = getApplication<Application>()
+                // R-17: the saved media file is on disk and can be arbitrarily
+                // large (the user picked it; a later edit can grow it). Read it
+                // through the bounded reader with the same ceiling the send path
+                // enforces — null past the limit, never a full-file readBytes().
                 val attachment = message.mediaUri
-                    ?.let { path -> runCatching { java.io.File(path).readBytes() }.getOrNull() }
+                    ?.let { path ->
+                        com.messages.core.io.BoundedRead.readFile(
+                            java.io.File(path), MmsSender.MAX_ATTACHMENT_BYTES,
+                        )
+                    }
                     ?.let { bytes ->
                         com.messages.core.mms.MmsPduParser.Attachment(
                             message.mediaMimeType ?: "application/octet-stream", null, bytes,
@@ -170,6 +178,13 @@ class ChatViewModel(
                     }
                 if (attachment == null && message.body.isBlank()) {
                     sendError.value = "Nothing left to resend"
+                    return@launch
+                }
+                // The media was recorded but could not be rebuilt (missing, or
+                // now past the attachment ceiling). Say so instead of quietly
+                // resending a text-only shadow of the original message.
+                if (attachment == null && message.mediaUri != null) {
+                    sendError.value = "Attachment is no longer available"
                     return@launch
                 }
                 MmsSender.send(ctx, message.address, message.body, attachment, selectedSubId.value, space)
@@ -180,24 +195,24 @@ class ChatViewModel(
     }
 
     // ---- Per-chat customization (§8.2): bubble color + wallpaper ----
-    val bubbleStyleId = MutableStateFlow(ChatStyle.bubbleId(app, threadId))
-    val wallpaperId = MutableStateFlow(ChatStyle.wallpaperId(app, threadId))
+    val bubbleStyleId = MutableStateFlow(ChatStyle.bubbleId(app, threadId, space))
+    val wallpaperId = MutableStateFlow(ChatStyle.wallpaperId(app, threadId, space))
 
     /** Bumped on photo import so a re-imported image invalidates the cache. */
     val wallpaperVersion = MutableStateFlow(0)
 
     fun setBubbleStyle(id: String) {
-        ChatStyle.setBubble(getApplication(), threadId, id)
+        ChatStyle.setBubble(getApplication(), threadId, id, space)
         bubbleStyleId.value = id
     }
 
     fun setWallpaper(id: String) {
-        ChatStyle.setWallpaper(getApplication(), threadId, id)
+        ChatStyle.setWallpaper(getApplication(), threadId, id, space)
         wallpaperId.value = id
     }
 
     fun importWallpaper(uri: Uri) = viewModelScope.launch(Dispatchers.IO) {
-        if (ChatStyle.importPhoto(getApplication(), threadId, uri)) {
+        if (ChatStyle.importPhoto(getApplication(), threadId, uri, space)) {
             wallpaperId.value = ChatStyle.WALLPAPER_PHOTO
             wallpaperVersion.value++
         } else {
@@ -271,8 +286,9 @@ class ChatViewModel(
     private fun removeLauncherIdentity() {
         com.messages.app.shortcut.ConversationShortcuts.remove(getApplication(), threadId)
         com.messages.app.notify.ConversationChannels.remove(getApplication(), threadId)
-        androidx.core.app.NotificationManagerCompat.from(getApplication())
-            .cancel(threadId.toInt())
+        // R-15: one API that knows every id a thread can own — cancelling only
+        // threadId.toInt() left the separate fraud warning on screen.
+        com.messages.app.notify.MessageNotifier.cancelThread(getApplication(), threadId)
     }
 
     /** "Unlock chat" from inside the locked space: whole thread returns. */

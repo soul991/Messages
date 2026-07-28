@@ -47,11 +47,8 @@ class MessageNotifier(private val context: Context) {
         val conversationLocked = conversation?.locked == true
 
         // OTP auto-copy (Phase 4 item 1, opt-in): runs before the permission
-        // gate so it works even with notifications denied. Locked chats are
-        // excluded — their content must not leave the app's auth gate.
-        if (verdict.protectedLabel == com.messages.protection.ProtectedLabel.OTP &&
-            !conversationLocked && OtpClipboard.autoCopyEnabled(context)
-        ) {
+        // gate so it works even with notifications denied.
+        if (mayAutoCopyOtp(verdict, conversationLocked)) {
             com.messages.protection.OtpExtractor.extract(message.body)
                 ?.let { OtpClipboard.copy(context, it, toast = false) }
         }
@@ -95,6 +92,33 @@ class MessageNotifier(private val context: Context) {
             }
             Category.BLOCKED -> Unit // silent (§4)
         }
+    }
+
+    /**
+     * R-30: whether this message may have its OTP put on the global clipboard
+     * without the user asking. Auto-copy happens *before* the user has looked
+     * at the message, so the decision has to be made from the verdict alone.
+     *
+     * Refused for:
+     *  - locked-space messages — handled earlier by the [postLockedSpaceNotification]
+     *    return, so they never reach here;
+     *  - legacy-locked conversations ([conversationLocked]) — content behind the
+     *    auth gate must not leave it;
+     *  - dangerous / fraud-warning verdicts — a "code" inside a phishing lure is
+     *    the attacker's payload, and pre-filling the clipboard with it is exactly
+     *    the assist they want;
+     *  - anything not in a trusted category — an OTP-shaped string in a Spam or
+     *    Blocked message is not an OTP we should act on.
+     *
+     * The notification's explicit Copy action stays available in every case, so
+     * refusing here costs the user one tap, never the code itself.
+     */
+    private fun mayAutoCopyOtp(verdict: Verdict, conversationLocked: Boolean): Boolean {
+        if (verdict.protectedLabel != com.messages.protection.ProtectedLabel.OTP) return false
+        if (conversationLocked) return false
+        if (verdict.dangerous || verdict.fraudWarningBanner) return false
+        if (verdict.category != Category.INBOX && verdict.category != Category.TRANSACTIONS) return false
+        return OtpClipboard.autoCopyEnabled(context)
     }
 
     /** Contact photo thumbnail as an icon; null for no contact / no photo. */
@@ -397,5 +421,20 @@ class MessageNotifier(private val context: Context) {
 
         /** RemoteInput result key for the inline reply action. */
         const val KEY_REPLY = "key_reply_text"
+
+        /**
+         * Cancel EVERY notification a thread can own (R-15).
+         *
+         * The fraud warning uses its own id derived from [FRAUD_ID_BASE], so
+         * callers that cancelled only `threadId.toInt()` left the red banner on
+         * screen after the user marked the message as not spam. One API so no
+         * call site has to know the id scheme.
+         */
+        fun cancelThread(context: Context, threadId: Long) {
+            NotificationManagerCompat.from(context).apply {
+                cancel(threadId.toInt())
+                cancel((FRAUD_ID_BASE - threadId).toInt())
+            }
+        }
     }
 }

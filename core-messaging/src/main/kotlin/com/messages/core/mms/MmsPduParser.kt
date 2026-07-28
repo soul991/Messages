@@ -43,6 +43,9 @@ object MmsPduParser {
     private const val TYPE_RETRIEVE_CONF = 0x84
 
     fun parseNotificationInd(pdu: ByteArray): NotificationInd? = try {
+        // R-17: a notification-ind is a few hundred bytes; anything PDU-sized
+        // is not one and is rejected before parsing.
+        if (pdu.size > MAX_PDU_BYTES) throw IllegalArgumentException("oversize notification")
         val r = Reader(pdu)
         var transactionId: String? = null
         var from: String? = null
@@ -70,8 +73,25 @@ object MmsPduParser {
         null
     }
 
+    /**
+     * R-17: hard bounds on carrier-supplied input. A hostile or corrupt PDU can
+     * claim any part count and any per-part length; without these the parser
+     * would try to honour whatever it claimed.
+     */
+    /** Whole-PDU ceiling — far above any real MMS (carriers cap around 1–3 MB). */
+    const val MAX_PDU_BYTES = 8 * 1024 * 1024
+
+    /** No legitimate MMS carries anywhere near this many parts. */
+    private const val MAX_PARTS = 64
+
+    /** Per-part payload ceiling. */
+    private const val MAX_PART_BYTES = 4 * 1024 * 1024
+
+    /** Part-header block ceiling. */
+    private const val MAX_PART_HEADER_BYTES = 64 * 1024
+
     fun parseRetrieveConf(pdu: ByteArray): RetrieveConf? = try {
-        parseRetrieveConfInner(pdu)
+        if (pdu.size > MAX_PDU_BYTES) null else parseRetrieveConfInner(pdu)
     } catch (_: Exception) {
         null
     }
@@ -106,11 +126,18 @@ object MmsPduParser {
         val texts = mutableListOf<String>()
         val attachments = mutableListOf<Attachment>()
         if (bodyContentType != null && bodyContentType.startsWith("application/vnd.wap.multipart")) {
-            var count = r.readUintvar().toInt()
+            // R-17: the claimed part count is attacker-controlled; cap it.
+            var count = r.readUintvar().toInt().coerceIn(0, MAX_PARTS)
             while (count-- > 0 && r.hasMore()) {
                 val headersLen = r.readUintvar().toInt()
                 val dataLen = r.readUintvar().toInt()
+                // A claimed length that is negative (overflowed), over the
+                // per-part ceiling, or past the end of the PDU means the frame
+                // is malformed — stop rather than allocate on its word.
+                if (headersLen < 0 || headersLen > MAX_PART_HEADER_BYTES) break
+                if (dataLen < 0 || dataLen > MAX_PART_BYTES) break
                 val headersEnd = r.pos + headersLen
+                if (headersEnd > pdu.size || headersEnd + dataLen > pdu.size) break
                 val (mime, name) = r.readPartContentType()
                 r.pos = headersEnd // skip remaining part headers
                 val data = r.readBytes(dataLen)

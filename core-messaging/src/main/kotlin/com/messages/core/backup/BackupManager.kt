@@ -133,6 +133,15 @@ object BackupManager {
         /** Every locked conversation's address — recreates the routing rule
          *  even for a "New locked chat" that has no messages yet. */
         val lockedAddresses: List<String> = emptyList(),
+        /**
+         * R-12: locked MMS attachments, Base64 by file name, carried INSIDE the
+         * credential-encrypted sub-envelope. Previously locked rows were
+         * serialized with a null media name and no map at all, so users were
+         * told their locked chats were backed up while every attachment was
+         * silently dropped. Defaulted for backwards compatibility with
+         * envelopes written before this field existed.
+         */
+        val media: Map<String, String> = emptyMap(),
     )
 
     data class ImportStats(
@@ -189,7 +198,7 @@ object BackupManager {
                 val path = msg.mediaUri ?: return@forEach
                 runCatching {
                     val file = java.io.File(path)
-                    if (file.exists() && file.length() < 5L * 1024 * 1024) {
+                    if (file.exists() && file.length() < MAX_MEDIA_FILE_BYTES) {
                         val name = "${msg.id}_${file.name}"
                         media[name] = java.util.Base64.getEncoder().encodeToString(file.readBytes())
                         mediaNames[msg.id] = name
@@ -263,12 +272,32 @@ object BackupManager {
                 runCatching { SecretSpace.pendingBlobFile(context).readBytes() }.getOrNull()
             } else null
         }
+        // R-12: bundle locked MMS attachments into the sub-envelope, under the
+        // same per-file and total-size limits as normal media. They stay inside
+        // the credential-encrypted payload — never in the outer plaintext map.
+        val lockedMedia = LinkedHashMap<String, String>()
+        val lockedMediaNames = HashMap<Long, String>()
+        var lockedMediaBytes = 0L
+        lockedRows.forEach { msg ->
+            val path = msg.mediaUri ?: return@forEach
+            runCatching {
+                val file = java.io.File(path)
+                if (!file.exists() || file.length() >= MAX_MEDIA_FILE_BYTES) return@runCatching
+                if (lockedMediaBytes + file.length() > Limits.MAX_MEDIA_BYTES) return@runCatching
+                if (lockedMedia.size >= Limits.MAX_MEDIA_FILES) return@runCatching
+                val name = "${msg.id}_${file.name}"
+                lockedMedia[name] = java.util.Base64.getEncoder().encodeToString(file.readBytes())
+                lockedMediaNames[msg.id] = name
+                lockedMediaBytes += file.length()
+            }
+        }
         val payload = LockedPayload(
-            messages = lockedRows.map { toBackupMessage(it, null) },
+            messages = lockedRows.map { toBackupMessage(it, lockedMediaNames[it.id]) },
             conversationPrefs = lockedConvs.map {
                 BackupConversationPrefs(it.address, it.pinned, it.archived, it.muted, locked = false)
             },
             lockedAddresses = lockedConvs.map { it.address },
+            media = lockedMedia,
         )
         val dataKey = BackupCrypto.newDataKey()
         return BackupCrypto.seal(
@@ -284,13 +313,94 @@ object BackupManager {
         )
     }
 
+    /**
+     * R-08 hostile-input bounds. A backup file is chosen by the user from
+     * arbitrary storage (or fetched from Drive), so its declared contents are
+     * untrusted. Everything is validated BEFORE any mutation begins — a restore
+     * that fails validation must leave the device exactly as it was, rather than
+     * partially applying settings and rows and then throwing.
+     */
+    internal object Limits {
+        const val MAX_JSON_CHARS = 128 * 1024 * 1024
+        const val MAX_MESSAGES = 500_000
+        const val MAX_RULES = 5_000
+        const val MAX_REPUTATIONS = 100_000
+        const val MAX_CONVERSATION_PREFS = 100_000
+        const val MAX_MEDIA_FILES = 20_000
+        const val MAX_MEDIA_BYTES = 2L * 1024 * 1024 * 1024
+        const val MAX_FIELD_CHARS = 100_000
+        const val MAX_ADDRESS_CHARS = 512
+        const val MAX_FILENAME_CHARS = 255
+    }
+
+    /** Per-file media ceiling, shared by the normal and locked export paths. */
+    private const val MAX_MEDIA_FILE_BYTES = 5L * 1024 * 1024
+
+    /** Raised when a backup violates a structural bound (R-08). */
+    class MalformedBackupException(message: String) : Exception(message)
+
+    /**
+     * Validate a decoded backup before it is allowed to change anything.
+     *
+     * Checks counts, per-field lengths, media sizes and filename safety. Media
+     * filenames matter most: they are concatenated into a path under filesDir,
+     * so a name containing a separator or `..` could otherwise escape the media
+     * directory (path traversal).
+     */
+    internal fun validate(backup: BackupFile) {
+        fun fail(reason: String): Nothing = throw MalformedBackupException(reason)
+
+        if (backup.messages.size > Limits.MAX_MESSAGES) fail("Backup declares too many messages")
+        if (backup.rules.size > Limits.MAX_RULES) fail("Backup declares too many rules")
+        if (backup.reputations.size > Limits.MAX_REPUTATIONS) {
+            fail("Backup declares too many senders")
+        }
+        if (backup.conversationPrefs.size > Limits.MAX_CONVERSATION_PREFS) {
+            fail("Backup declares too many conversation preferences")
+        }
+        if (backup.media.size > Limits.MAX_MEDIA_FILES) fail("Backup declares too many media files")
+
+        backup.messages.forEach { m ->
+            if (m.address.length > Limits.MAX_ADDRESS_CHARS) fail("Message address is too long")
+            if (m.body.length > Limits.MAX_FIELD_CHARS) fail("Message body is too long")
+            if (m.timestamp < 0) fail("Message timestamp is negative")
+            m.mediaFileName?.let { if (!isSafeMediaName(it)) fail("Unsafe media file name") }
+        }
+        backup.rules.forEach { r ->
+            if (r.pattern.length > Limits.MAX_FIELD_CHARS) fail("Rule pattern is too long")
+        }
+
+        var totalMedia = 0L
+        backup.media.forEach { (name, b64) ->
+            if (!isSafeMediaName(name)) fail("Unsafe media file name")
+            // Base64 expands 4 chars → 3 bytes; check the declared size before
+            // decoding so a huge blob is refused rather than allocated.
+            totalMedia += b64.length / 4L * 3L
+            if (totalMedia > Limits.MAX_MEDIA_BYTES) fail("Backup media exceeds the allowed size")
+        }
+    }
+
+    /** No separators, no traversal, no hidden/empty names (R-08). */
+    private fun isSafeMediaName(name: String): Boolean =
+        name.isNotBlank() &&
+            name.length <= Limits.MAX_FILENAME_CHARS &&
+            !name.contains('/') &&
+            !name.contains('\\') &&
+            name != "." && name != ".." &&
+            !name.startsWith(".")
+
     suspend fun import(context: Context, text: String): Result<ImportStats> =
         withContext(Dispatchers.IO) {
             runCatching {
+                if (text.length > Limits.MAX_JSON_CHARS) {
+                    throw MalformedBackupException("Backup is too large to import")
+                }
                 val backup = json.decodeFromString(BackupFile.serializer(), text)
                 require(backup.formatVersion <= FORMAT_VERSION) {
                     "Backup was made by a newer app version"
                 }
+                // R-08: validate the WHOLE file before the first mutation.
+                validate(backup)
                 val repo = MessageRepository.get(context)
                 val db = repo.db
 
@@ -380,8 +490,15 @@ object BackupManager {
                             runCatching {
                                 val dir = java.io.File(context.filesDir, "mms_media").apply { mkdirs() }
                                 val f = java.io.File(dir, "restored_${m.timestamp}_${m.mediaFileName}")
-                                f.writeBytes(java.util.Base64.getDecoder().decode(b64))
-                                mediaUri = f.absolutePath
+                                // R-08: validate() already rejects separators and
+                                // traversal in media names, but re-assert the
+                                // result stays inside the media directory — the
+                                // canonical path is the only thing that actually
+                                // proves containment.
+                                if (f.canonicalPath.startsWith(dir.canonicalPath + java.io.File.separator)) {
+                                    f.writeBytes(java.util.Base64.getDecoder().decode(b64))
+                                    mediaUri = f.absolutePath
+                                }
                             }
                         }
                     }
@@ -499,6 +616,21 @@ object BackupManager {
                 } catch (_: Exception) {
                     null
                 }
+                // R-12: restore the locked attachment that travelled inside the
+                // sub-envelope. Same containment check as the normal path.
+                var mediaUri: String? = null
+                if (m.mediaFileName != null && isSafeMediaName(m.mediaFileName)) {
+                    payload.media[m.mediaFileName]?.let { b64 ->
+                        runCatching {
+                            val dir = java.io.File(context.filesDir, "mms_media").apply { mkdirs() }
+                            val f = java.io.File(dir, "restored_${m.timestamp}_${m.mediaFileName}")
+                            if (f.canonicalPath.startsWith(dir.canonicalPath + java.io.File.separator)) {
+                                f.writeBytes(java.util.Base64.getDecoder().decode(b64))
+                                mediaUri = f.absolutePath
+                            }
+                        }
+                    }
+                }
                 db.messages().insert(
                     MessageEntity(
                         smsId = smsId,
@@ -520,6 +652,8 @@ object BackupManager {
                         starred = m.starred,
                         trashed = m.trashed,
                         trashedAt = m.trashedAt,
+                        mediaUri = mediaUri,
+                        mediaMimeType = if (mediaUri != null) m.mediaMimeType else null,
                         sendStatus = if (m.isOutgoing) "SENT" else "NONE",
                         space = Spaces.LOCKED,
                     )
@@ -571,9 +705,29 @@ object BackupManager {
         restored
     }
 
-    /** §6 dedupe key: address + timestamp + direction + body-hash. */
+    /**
+     * §6 dedupe key: address + timestamp + direction + body digest.
+     *
+     * R-11: this used Java's [String.hashCode], a 32-bit non-cryptographic hash
+     * with trivial collisions ("Aa" and "BB" hash identically). Two different
+     * messages to the same address in the same millisecond in the same direction
+     * would collide, and restore would SILENTLY DROP the second — counting it as
+     * a duplicate. A SHA-256 digest of the body removes any realistic collision.
+     *
+     * Truncated to 128 bits: still collision-free for this purpose, and it halves
+     * the in-memory key-set footprint on large restores. The key is derived at
+     * runtime and never persisted, so changing it needs no migration.
+     */
     internal fun messageKey(address: String, timestamp: Long, isOutgoing: Boolean, body: String) =
-        "$address|$timestamp|$isOutgoing|${body.hashCode()}"
+        "$address|$timestamp|$isOutgoing|${bodyDigest(body)}"
+
+    private fun bodyDigest(body: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(body.toByteArray(Charsets.UTF_8))
+        val sb = StringBuilder(32)
+        for (i in 0 until 16) sb.append("%02x".format(digest[i]))
+        return sb.toString()
+    }
 
     /**
      * Pure restore-idempotency core (JVM-testable): given the keys of every

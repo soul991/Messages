@@ -36,8 +36,12 @@ class SmsDeliverReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val repo = MessageRepository.get(context)
-                val (entity, verdict) = repo.onIncomingSms(address, body, timestamp, subId)
-                MessageNotifier(context).notifyFor(entity, verdict, repo.lookupContactName(address))
+                val intake = repo.onIncomingSms(address, body, timestamp, subId)
+                // R-16: a redelivered broadcast stored nothing the second time.
+                // Notifying again would double-alert for one message.
+                if (!intake.isNew) return@launch
+                MessageNotifier(context)
+                    .notifyFor(intake.message, intake.verdict, repo.lookupContactName(address))
                 WidgetUpdater.requestUpdate(context)
             } catch (t: Throwable) {
                 // The provider write inside onIncomingSms happens first, so the

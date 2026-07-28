@@ -9,11 +9,26 @@ plugins {
 }
 
 // Release signing (docs/ops/RELEASE_SIGNING.md): keystore.properties at the repo
-// root (gitignored) points at the keystore outside the repo. Absent file →
-// release builds unsigned (CI-safe).
+// root (gitignored) points at the keystore outside the repo.
 val keystoreProps = Properties().apply {
     val f = rootProject.file("keystore.properties")
     if (f.exists()) f.inputStream().use { load(it) }
+}
+
+// R-28: signing intent must be EXPLICIT per environment.
+//
+// An absent keystore still produces an unsigned release build, because that is
+// what a contributor without the signing key needs. What changed is that the
+// outcome is no longer silent: a build that intends to be distributable passes
+// -PrequireSigning=true (CI's release job does) and FAILS here rather than
+// emitting an unsigned APK that looks like a shippable artifact.
+val requireSigning = (findProperty("requireSigning") as String?)?.toBoolean() ?: false
+if (requireSigning && keystoreProps.isEmpty()) {
+    throw GradleException(
+        "requireSigning=true but keystore.properties is missing or empty. " +
+            "A release build cannot be signed — refusing to produce an unsigned artifact. " +
+            "See docs/ops/RELEASE_SIGNING.md."
+    )
 }
 
 android {

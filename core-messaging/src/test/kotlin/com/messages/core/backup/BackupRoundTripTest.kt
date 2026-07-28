@@ -52,7 +52,10 @@ private val LOCKED_MARKERS = listOf(LOCKED_BODY, LOCKED_BODY_PIPES, LOCKED_ADDRE
 // unwrapWithPassword honors it, so the genuine restore path runs at a
 // test-friendly cost (same convention as SecretCredentialTest). Production
 // seals the locked envelope through this same KEK path.
-private const val FAST_ITERS = 1_000
+// R-19 places a hard 100k floor under any iteration count read back from a
+// backup, so the "fast" fixture value sits exactly at that floor rather than
+// below it. Keep in sync with SecretSpace.PendingAuth.MIN_ITERATIONS.
+private const val FAST_ITERS = 100_000
 
 /** Naive byte-subsequence scan — blobs here are tiny. Needed because a
  *  String(ISO_8859_1) search only works for ASCII markers; unicode markers

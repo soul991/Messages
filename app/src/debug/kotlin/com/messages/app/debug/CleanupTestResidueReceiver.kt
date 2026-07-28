@@ -26,14 +26,23 @@ import kotlinx.coroutines.launch
  * even if its provider id were passed by mistake. Emptied threads have their
  * conversation row removed.
  *
+ * Authorization (R-24): signature-level permission
+ * `com.messages.app.permission.DEBUG_HARNESS` plus this install's [DebugAuth]
+ * token. Only the explicit ids passed in `smsIds` are ever touched.
+ *
  * Usage:
  *   adb shell "am broadcast -a com.messages.app.DEBUG_CLEANUP_RESIDUE \
- *     -n com.messages.app/.debug.CleanupTestResidueReceiver --es smsIds '1,2,3'"
+ *     -n com.messages.app/.debug.CleanupTestResidueReceiver \
+ *     --es token '<per-install token>' --es smsIds '1,2,3'"
  */
 class CleanupTestResidueReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION) return
+        // R-24: signature permission (manifest) + per-install token. Deletion is
+        // irreversible, so an unauthenticated caller must never reach it.
+        if (!DebugAuth.isAuthorized(context, intent)) return
+        // Explicit ids only — there is no "delete everything" mode by design.
         val smsIds = intent.getStringExtra("smsIds")
             ?.split(',')?.mapNotNull { it.trim().toLongOrNull() }
             ?.takeIf { it.isNotEmpty() } ?: return

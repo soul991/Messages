@@ -85,6 +85,7 @@ import com.messages.designsystem.AccentSeed
 import com.messages.designsystem.ThemeMode
 import com.messages.designsystem.schemeForSeed
 import kotlinx.coroutines.Dispatchers
+import com.messages.protection.SafeRegexPolicy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -114,14 +115,19 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     /** Trash entry badge (§6.4). */
     val trashCount = repo.db.messages().trashCount()
 
+    // R-03: widgets cache rendered text, so a privacy toggle must push a refresh
+    // immediately — otherwise sender names and bodies stay on the launcher until
+    // the next 30-minute system update or incoming message.
     fun setAppLock(enabled: Boolean) {
         AppLock.setEnabled(getApplication(), enabled)
         appLock.value = enabled
+        com.messages.app.widget.WidgetUpdater.requestUpdate(getApplication())
     }
 
     fun setHidePreviews(hide: Boolean) {
         AppLock.setHidePreviews(getApplication(), hide)
         hidePreviews.value = hide
+        com.messages.app.widget.WidgetUpdater.requestUpdate(getApplication())
     }
 
     fun setLockAfter(ms: Long) {
@@ -184,14 +190,36 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         sensitivity.value = name
     }
 
+    /** Non-null when the last [addRule] was refused; cleared on the next attempt. */
+    val ruleError = MutableStateFlow<String?>(null)
+
     fun addRule(kind: String, target: String, pattern: String, category: String) {
+        ruleError.value = null
         if (pattern.isBlank()) return
+        val trimmed = pattern.trim()
+
+        // R-21: a custom rule runs on the intake path for every message, so it
+        // gets the same screening as an imported pack. A pattern that does not
+        // compile as a regex is fine — matchesRule falls back to a literal
+        // comparison, which is how plain-text rules like "+9198…" work. What we
+        // refuse is a pattern that DOES compile and can backtrack pathologically.
+        if (trimmed.length > SafeRegexPolicy.MAX_REGEX_LENGTH) {
+            ruleError.value = "Rule is longer than ${SafeRegexPolicy.MAX_REGEX_LENGTH} characters"
+            return
+        }
+        val isRegex = runCatching { Regex(trimmed) }.isSuccess
+        if (isRegex && !SafeRegexPolicy.accepts(trimmed)) {
+            ruleError.value = runCatching { SafeRegexPolicy.requireAccepted(trimmed) }
+                .exceptionOrNull()?.message ?: "That pattern isn't allowed"
+            return
+        }
+
         viewModelScope.launch {
             val position = (rules.value.maxOfOrNull { it.position } ?: 0) + 1
             repo.db.userRules().insert(
                 UserRuleEntity(
                     position = position, kind = kind, target = target,
-                    pattern = pattern.trim(), category = category,
+                    pattern = trimmed, category = category,
                 )
             )
         }
@@ -200,12 +228,19 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteRule(id: Long) = viewModelScope.launch { repo.db.userRules().delete(id) }
 
     fun importPack(uri: Uri) = viewModelScope.launch {
-        val text = withContext(Dispatchers.IO) {
-            runCatching {
-                getApplication<Application>().contentResolver.openInputStream(uri)
-                    ?.bufferedReader()?.readText()
-            }.getOrNull()
+        // R-21: bound the read BEFORE building a String. readText() on a picked
+        // file is an unbounded allocation controlled by whoever supplied it.
+        val bytes = withContext(Dispatchers.IO) {
+            com.messages.core.io.BoundedRead.readUri(
+                getApplication(), uri, com.messages.protection.PatternPackPolicy.MAX_PACK_BYTES,
+            )
         }
+        if (bytes == null) {
+            importStatus.value = "Couldn't read the file, or it is larger than " +
+                "${com.messages.protection.PatternPackPolicy.MAX_PACK_BYTES / 1024} KB"
+            return@launch
+        }
+        val text = runCatching { bytes.toString(Charsets.UTF_8) }.getOrNull()
         if (text == null) {
             importStatus.value = "Couldn't read the selected file"
             return@launch
@@ -346,13 +381,17 @@ fun SettingsScreen(
     }
 
     if (addRuleKind != null) {
+        val ruleError by vm.ruleError.collectAsState()
         AddRuleDialog(
             kind = addRuleKind!!,
             onDismiss = { addRuleKind = null },
             onAdd = { target, pattern, category ->
                 vm.addRule(addRuleKind!!, target, pattern, category)
-                addRuleKind = null
+                // addRule validates synchronously, so a refusal is already
+                // visible here — keep the dialog open so the user can fix it.
+                if (vm.ruleError.value == null) addRuleKind = null
             },
+            error = ruleError,
         )
     }
 
@@ -1009,6 +1048,7 @@ private fun AddRuleDialog(
     kind: String,
     onDismiss: () -> Unit,
     onAdd: (target: String, pattern: String, category: String) -> Unit,
+    error: String? = null,
 ) {
     var pattern by remember { mutableStateOf("") }
     var target by remember { mutableStateOf("SENDER") }
@@ -1034,8 +1074,19 @@ private fun AddRuleDialog(
                         Text(if (kind == "CUSTOM" && target == "TEXT") "Text pattern (regex ok)" else "Sender number, header, or regex")
                     },
                     singleLine = true,
+                    isError = error != null,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                // R-21: the rule was refused by SafeRegexPolicy — say why, in
+                // the dialog, instead of silently dropping what the user typed.
+                if (error != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
                 if (kind == "CUSTOM") {
                     Spacer(Modifier.height(12.dp))
                     Text("Match against", style = MaterialTheme.typography.labelMedium)

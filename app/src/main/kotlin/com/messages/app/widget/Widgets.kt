@@ -9,6 +9,7 @@ import android.content.Intent
 import android.widget.RemoteViews
 import com.messages.app.MainActivity
 import com.messages.app.R
+import com.messages.app.security.AppLock
 import com.messages.core.MessageRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,21 +67,27 @@ object WidgetUpdater {
         }
         if (unreadIds.isNotEmpty()) {
             val count = repo.db.conversations().unreadInboxConversations()
-            val recent = repo.db.conversations().recentUnreadInbox(3)
+            // R-03: a launcher widget is an UNAUTHENTICATED surface. When app
+            // lock is on, or previews are hidden, senders and bodies must not
+            // render there — the count alone is safe and still useful. The DAO
+            // additionally excludes legacy locked rows and the LOCKED space.
+            val privateSurface = AppLock.isEnabled(context) || AppLock.hidePreviews(context)
+            val lines = if (privateSurface) {
+                if (count == 0) "" else "Open Messages to view"
+            } else {
+                repo.db.conversations().recentUnreadInbox(3).joinToString("\n") { conv ->
+                    val name = conv.contactName ?: conv.address
+                    "$name · ${conv.lastMessage}".let {
+                        if (it.length > 40) it.take(39) + "…" else it
+                    }
+                }
+            }
             val views = RemoteViews(context.packageName, R.layout.widget_unread).apply {
                 setTextViewText(
                     R.id.widget_unread_count,
                     if (count == 0) "All caught up" else "$count unread",
                 )
-                setTextViewText(
-                    R.id.widget_unread_lines,
-                    recent.joinToString("\n") { conv ->
-                        val name = conv.contactName ?: conv.address
-                        "$name · ${conv.lastMessage}".let {
-                            if (it.length > 40) it.take(39) + "…" else it
-                        }
-                    },
-                )
+                setTextViewText(R.id.widget_unread_lines, lines)
                 setOnClickPendingIntent(R.id.widget_root, openApp(context, dashboard = false))
             }
             mgr.updateAppWidget(unreadIds, views)

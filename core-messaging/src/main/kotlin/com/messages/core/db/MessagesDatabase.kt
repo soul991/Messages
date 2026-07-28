@@ -60,8 +60,34 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE mmsTransactionId = :transactionId LIMIT 1")
     suspend fun byMmsTransactionId(transactionId: String): MessageEntity?
 
+    /**
+     * R-16: logical identity of an incoming SMS — the carrier's millisecond
+     * timestamp plus sender plus body. A duplicate SMS_DELIVER broadcast (the
+     * platform can redeliver, and OEM shells sometimes do) would otherwise be
+     * indexed again, inflating the unread badge and re-notifying, because each
+     * redelivery gets its own provider `_id`.
+     */
+    @Query(
+        "SELECT * FROM messages WHERE address = :address AND timestamp = :timestamp " +
+            "AND body = :body AND isOutgoing = 0 LIMIT 1"
+    )
+    suspend fun findIncomingDuplicate(address: String, timestamp: Long, body: String): MessageEntity?
+
     @Query("UPDATE messages SET category = :category, dangerous = 0 WHERE id = :id")
     suspend fun recategorize(id: Long, category: String)
+
+    /**
+     * R-15: a user override ("Not spam") must erase the WHOLE classifier verdict.
+     * Clearing only `category`/`dangerous` left fraudWarning, the score and the
+     * matched pattern IDs in place, so the message still rendered as fraudulent
+     * and its red warning stayed visible.
+     */
+    @Query(
+        "UPDATE messages SET category = :category, dangerous = 0, fraudWarning = 0, " +
+            "score = 0, matchedPatternIds = '', matchedComboIds = '', " +
+            "explanations = 'User marked as not spam' WHERE id = :id"
+    )
+    suspend fun clearClassifierVerdict(id: Long, category: String)
 
     @Query("UPDATE messages SET read = 1 WHERE threadId = :threadId AND space = :space")
     suspend fun markThreadRead(threadId: Long, space: String = Spaces.NORMAL)
@@ -76,11 +102,24 @@ interface MessageDao {
     @Query("UPDATE messages SET sendStatus = 'FAILED', sendResultCode = :resultCode WHERE id = :id")
     suspend fun markFailed(id: Long, resultCode: Int?)
 
-    @Query("UPDATE messages SET sendStatus = 'SENT' WHERE id = :id AND sendStatus != 'FAILED'")
+    /**
+     * R-13: `sendStatus != 'DELIVERED'` stops a late SENT broadcast from
+     * downgrading a message the carrier already confirmed delivered. Retained
+     * for MMS and for legacy rows with no attempt set; SMS status now comes
+     * from [setSendStatus], driven by [com.messages.core.send.SendAggregate].
+     */
+    @Query(
+        "UPDATE messages SET sendStatus = 'SENT' WHERE id = :id " +
+            "AND sendStatus != 'FAILED' AND sendStatus != 'DELIVERED'"
+    )
     suspend fun markSent(id: Long)
 
     @Query("UPDATE messages SET sendStatus = 'DELIVERED' WHERE id = :id AND sendStatus != 'FAILED'")
     suspend fun markDelivered(id: Long)
+
+    /** R-13: apply an aggregate computed over a message's whole attempt set. */
+    @Query("UPDATE messages SET sendStatus = :status, sendResultCode = :resultCode WHERE id = :id")
+    suspend fun setSendStatus(id: Long, status: String, resultCode: Int?)
 
     /**
      * Secret space: move a whole thread's live messages between spaces
@@ -379,15 +418,22 @@ interface ConversationDao {
 
     // ---- One-shot lookups for home-screen widgets (§8.2) — normal space ----
 
+    /**
+     * R-03: `locked = 0` excludes LEGACY biometric-locked normal-space rows at
+     * the DAO layer, not in widget UI code. A launcher widget is an
+     * unauthenticated surface, so exclusion must not depend on a caller
+     * remembering to filter.
+     */
     @Query(
         "SELECT COUNT(*) FROM conversations WHERE category = 'INBOX' AND unreadCount > 0 " +
-            "AND archived = 0 AND space = 'NORMAL'"
+            "AND archived = 0 AND space = 'NORMAL' AND locked = 0"
     )
     suspend fun unreadInboxConversations(): Int
 
     @Query(
         "SELECT * FROM conversations WHERE category = 'INBOX' AND unreadCount > 0 " +
-            "AND archived = 0 AND space = 'NORMAL' ORDER BY lastTimestamp DESC LIMIT :limit"
+            "AND archived = 0 AND space = 'NORMAL' AND locked = 0 " +
+            "ORDER BY lastTimestamp DESC LIMIT :limit"
     )
     suspend fun recentUnreadInbox(limit: Int): List<ConversationEntity>
 
@@ -423,13 +469,91 @@ interface UserRuleDao {
     suspend fun delete(id: Long)
 }
 
+/**
+ * R-05: the provider rows one message owns. A group SMS owns one per
+ * recipient, so delete/trash must walk this list rather than a single smsId.
+ */
+@Dao
+interface ProviderRowDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(row: ProviderRowEntity)
+
+    @Query("SELECT * FROM provider_rows WHERE messageId = :messageId")
+    suspend fun forMessage(messageId: Long): List<ProviderRowEntity>
+
+    /** Deletions that failed once, for the purge worker's retry sweep. */
+    @Query("SELECT * FROM provider_rows WHERE deleteFailed = 1 LIMIT :limit")
+    suspend fun pendingDeletions(limit: Int): List<ProviderRowEntity>
+
+    @Query("UPDATE provider_rows SET deleteFailed = 1 WHERE uri = :uri")
+    suspend fun markDeleteFailed(uri: String)
+
+    @Query("DELETE FROM provider_rows WHERE uri = :uri")
+    suspend fun deleteByUri(uri: String)
+
+    @Query("DELETE FROM provider_rows WHERE messageId = :messageId")
+    suspend fun deleteForMessage(messageId: Long)
+
+    @Query("SELECT COUNT(*) FROM provider_rows WHERE messageId = :messageId")
+    suspend fun countForMessage(messageId: Long): Int
+}
+
+/** R-13: per-(recipient, part) send/delivery state for outgoing SMS. */
+@Dao
+interface SmsAttemptDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(attempt: SmsAttemptEntity)
+
+    @Query("SELECT * FROM sms_attempts WHERE attemptId = :attemptId")
+    suspend fun byId(attemptId: String): SmsAttemptEntity?
+
+    @Query("SELECT * FROM sms_attempts WHERE messageId = :messageId ORDER BY recipientIndex, partIndex")
+    suspend fun forMessage(messageId: Long): List<SmsAttemptEntity>
+
+    /**
+     * PENDING is the only state an attempt may leave — a receiver can never
+     * overwrite a state another broadcast already settled, which is what makes
+     * the derived aggregate independent of broadcast order.
+     */
+    @Query(
+        "UPDATE sms_attempts SET sentState = :state, resultCode = :resultCode " +
+            "WHERE attemptId = :attemptId AND sentState = 'PENDING'"
+    )
+    suspend fun settleSent(attemptId: String, state: String, resultCode: Int?)
+
+    @Query(
+        "UPDATE sms_attempts SET deliveryState = :state " +
+            "WHERE attemptId = :attemptId AND deliveryState = 'PENDING'"
+    )
+    suspend fun settleDelivery(attemptId: String, state: String)
+
+    /** A resend rebuilds the attempt set from scratch. */
+    @Query("DELETE FROM sms_attempts WHERE messageId = :messageId")
+    suspend fun deleteForMessage(messageId: Long)
+}
+
+/** R-16: collision-free synthetic thread IDs when the provider has none. */
+@Dao
+interface ThreadAliasDao {
+    @Query("SELECT * FROM thread_aliases WHERE recipientKey = :key LIMIT 1")
+    suspend fun byKey(key: String): ThreadAliasEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(alias: ThreadAliasEntity): Long
+
+    /** Synthetic IDs are negative so they can never hit a real provider ID. */
+    @Query("UPDATE thread_aliases SET threadId = -id WHERE id = :id")
+    suspend fun assignThreadId(id: Long)
+}
+
 @Database(
     entities = [
         MessageEntity::class, ConversationEntity::class,
         SenderReputationEntity::class, UserRuleEntity::class,
         MessageFtsEntity::class,
+        ProviderRowEntity::class, SmsAttemptEntity::class, ThreadAliasEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 abstract class MessagesDatabase : RoomDatabase() {
@@ -437,4 +561,7 @@ abstract class MessagesDatabase : RoomDatabase() {
     abstract fun conversations(): ConversationDao
     abstract fun reputation(): ReputationDao
     abstract fun userRules(): UserRuleDao
+    abstract fun providerRows(): ProviderRowDao
+    abstract fun smsAttempts(): SmsAttemptDao
+    abstract fun threadAliases(): ThreadAliasDao
 }

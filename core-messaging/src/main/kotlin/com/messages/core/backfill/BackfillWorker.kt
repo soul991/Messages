@@ -52,7 +52,7 @@ class BackfillWorker(
             prefs.edit().putInt(KEY_TOTAL, total).apply()
         }
 
-        var rowFailures = 0
+        val failedIds = readFailedIds(prefs).toMutableSet()
         try {
             while (true) {
                 val batch = queryBatch(ctx, checkpointDate, checkpointId)
@@ -76,7 +76,7 @@ class BackfillWorker(
                             // One poison message must not kill the whole import
                             // (§14.2 never-lose). Log it, keep going.
                             Log.e(TAG, "indexHistorical failed for sms ${row.id}", t)
-                            rowFailures++
+                            failedIds.add(row.id)
                         }
                     }
                 }
@@ -100,9 +100,26 @@ class BackfillWorker(
             return Result.retry() // resumes from the checkpoint
         }
 
-        if (rowFailures > 0) Log.w(TAG, "backfill finished with $rowFailures unindexed messages of $total")
-        prefs.edit().putBoolean(KEY_DONE, true).apply()
-        return Result.success()
+        // R-29: persist which rows failed so the UI can surface them and the
+        // worker can retry them on the next run instead of silently declaring
+        // the import complete while messages are missing.
+        val edit = prefs.edit()
+        if (failedIds.isEmpty()) {
+            edit.putBoolean(KEY_DONE, true).remove(KEY_FAILED_IDS).remove(KEY_INCOMPLETE)
+            edit.apply()
+            return Result.success()
+        }
+        Log.w(TAG, "backfill finished with ${failedIds.size} unindexed messages of $total")
+        edit.putString(KEY_FAILED_IDS, failedIds.joinToString(","))
+            .putBoolean(KEY_INCOMPLETE, true)
+            .apply()
+        // Cap retries so permanently-poison rows stop blocking the import.
+        // After MAX_ATTEMPTS the worker marks done-with-failures so the user
+        // can see the exception list and decide whether to accept it.
+        return if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else {
+            prefs.edit().putBoolean(KEY_DONE, true).apply()
+            Result.success()
+        }
     }
 
     private data class Row(
@@ -168,7 +185,15 @@ class BackfillWorker(
         const val KEY_TOTAL = "total"
         private const val KEY_CHECKPOINT_DATE = "checkpointDate"
         private const val KEY_CHECKPOINT_ID = "checkpointId"
+        const val KEY_FAILED_IDS = "failedIds"
+        const val KEY_INCOMPLETE = "incomplete"
+        private const val MAX_ATTEMPTS = 3
         private const val BATCH_SIZE = 200
+
+        fun readFailedIds(prefs: android.content.SharedPreferences): Set<Long> =
+            prefs.getString(KEY_FAILED_IDS, null)
+                ?.split(",")?.mapNotNull { it.toLongOrNull() }?.toSet()
+                ?: emptySet()
     }
 }
 
@@ -195,10 +220,9 @@ object Backfill {
         WorkManager.getInstance(context).getWorkInfosForUniqueWorkFlow(WORK_NAME)
 
     /**
-     * Settings → "Re-import messages" (safety net for a failed/partial first
-     * run): clear the done flag + checkpoint and start over. Already-indexed
-     * messages are skipped via the unique smsId index, so re-running is
-     * additive and idempotent — never a data risk.
+     * Re-import messages: clear the done flag + checkpoint and start over.
+     * Already-indexed messages are skipped via the unique smsId index, so
+     * re-running is additive and idempotent — never a data risk.
      */
     fun reimport(context: Context) {
         context.getSharedPreferences(BackfillWorker.PREFS, Context.MODE_PRIVATE)
@@ -208,5 +232,29 @@ object Backfill {
             ExistingWorkPolicy.REPLACE,
             OneTimeWorkRequestBuilder<BackfillWorker>().build(),
         )
+    }
+
+    /** True when the last run finished but left some rows unindexed. */
+    fun isIncomplete(context: Context): Boolean =
+        context.getSharedPreferences(BackfillWorker.PREFS, Context.MODE_PRIVATE)
+            .getBoolean(BackfillWorker.KEY_INCOMPLETE, false)
+
+    /** Provider _id values that could not be indexed (empty when none). */
+    fun unindexedIds(context: Context): Set<Long> =
+        BackfillWorker.readFailedIds(
+            context.getSharedPreferences(BackfillWorker.PREFS, Context.MODE_PRIVATE),
+        )
+
+    /**
+     * User explicitly accepts the partial import: mark done and clear the
+     * failure list so the UI stops surfacing the warning.
+     */
+    fun acceptIncomplete(context: Context) {
+        context.getSharedPreferences(BackfillWorker.PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(BackfillWorker.KEY_DONE, true)
+            .remove(BackfillWorker.KEY_FAILED_IDS)
+            .remove(BackfillWorker.KEY_INCOMPLETE)
+            .apply()
     }
 }

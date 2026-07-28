@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.provider.Telephony
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -173,6 +174,12 @@ class MainActivity : FragmentActivity() {
             onboardingPrefs.edit().putBoolean("role_prompted", true).apply()
             requestDefaultRole()
         }
+
+        // R-26: resolve lock state BEFORE the first composition so the lock
+        // screen never flashes on a cold start when app lock is disabled.
+        // onStart repeats this check for foreground re-entries; the ViewModel
+        // keeps the value across configuration changes.
+        if (!AppLock.isEnabled(this)) appUnlocked = true
 
         setContent {
             MessagesTheme(mode = themeMode, accent = accentSeed) {
@@ -719,15 +726,42 @@ class MainActivity : FragmentActivity() {
         return null
     }
 
+    /**
+     * Are we the default SMS app?
+     *
+     * [RoleManager] is API 29. `minSdk` is 26, and this runs from `onCreate`,
+     * so before the version guard existed the app crashed on launch for every
+     * Android 8.0/8.1/9 device — `getSystemService("role")` returns null there
+     * and the non-null cast blew up. Android 8-9 use the pre-role mechanism:
+     * ask the Telephony provider which package currently holds the default.
+     */
     private fun refreshDefaultState() {
-        val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
-        isDefaultSmsApp = roleManager.isRoleHeld(RoleManager.ROLE_SMS)
+        isDefaultSmsApp = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            (getSystemService(Context.ROLE_SERVICE) as RoleManager).isRoleHeld(RoleManager.ROLE_SMS)
+        } else {
+            Telephony.Sms.getDefaultSmsPackage(this) == packageName
+        }
     }
 
+    /**
+     * Ask to become the default SMS app. Both branches go through
+     * [roleRequest], whose result callback re-reads the real state rather than
+     * trusting the result code — the pre-29 chooser reports success even when
+     * the user backs out.
+     */
     private fun requestDefaultRole() {
-        val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
-        if (roleManager.isRoleAvailable(RoleManager.ROLE_SMS) && !roleManager.isRoleHeld(RoleManager.ROLE_SMS)) {
-            roleRequest.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
+            if (roleManager.isRoleAvailable(RoleManager.ROLE_SMS) &&
+                !roleManager.isRoleHeld(RoleManager.ROLE_SMS)
+            ) {
+                roleRequest.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS))
+            }
+        } else if (Telephony.Sms.getDefaultSmsPackage(this) != packageName) {
+            roleRequest.launch(
+                Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+                    .putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
+            )
         }
     }
 

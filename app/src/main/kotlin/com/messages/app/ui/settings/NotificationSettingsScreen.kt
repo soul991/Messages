@@ -169,11 +169,26 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
             SettingsSwitchRow(
                 icon = Icons.Outlined.ContentCopy,
                 title = "Auto-copy OTP codes",
-                subtitle = "Copy the code to the clipboard the moment an OTP arrives. " +
-                    "Android may show a clipboard notice each time.",
+                subtitle = "Copy the code to the clipboard the moment an OTP arrives, " +
+                    "then clear it a minute later. Never runs for locked chats or " +
+                    "messages flagged as fraud. Android may show a clipboard notice each time.",
                 checked = otpAutoCopy,
                 onChange = { vm.setOtpAutoCopy(it) },
             )
+            // R-30: below Android 13 the clipboard has no system-level access
+            // notice and no sensitive-content masking, so any app with a
+            // foreground window can read what we put there. Say so plainly
+            // rather than letting the switch imply parity across versions.
+            if (android.os.Build.VERSION.SDK_INT < 33) {
+                Text(
+                    "On this Android version the clipboard is readable by any app running " +
+                        "in the foreground, and the system shows no warning when that happens. " +
+                        "Leaving auto-copy off and using the Copy button is safer.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+                )
+            }
             Text(
                 "OTP notifications always include a one-tap Copy button.",
                 style = MaterialTheme.typography.bodySmall,

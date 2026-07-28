@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and below (android:fullBackupContent). Belt-and-braces alongside
+  android:allowBackup="false": if backup is ever re-enabled by a merged manifest
+  or a future product decision, every domain that can hold message content,
+  credentials or keys is already excluded (R-01).
+
+  Excluding "root" covers filesDir (MMS media, wallpapers, pending locked
+  restore envelopes, imported pattern packs). The remaining domains are listed
+  explicitly because "root" alone does not cover databases, shared prefs, or
+  app-external storage.
+-->
+<full-backup-content>
+    <exclude domain="root" />
+    <exclude domain="database" />
+    <exclude domain="sharedpref" />
+    <exclude domain="file" />
+    <exclude domain="external" />
+</full-backup-content>

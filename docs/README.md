@@ -18,6 +18,9 @@ Everything else is filed below.
 |---|---|
 | [`ops/RELEASE_SIGNING.md`](ops/RELEASE_SIGNING.md) | Keystore location, password handling, certificate fingerprint, data-preserving reinstall path |
 | [`ops/DRIVE_BACKUP_SETUP.md`](ops/DRIVE_BACKUP_SETUP.md) | One-time Google Cloud OAuth registration for `drive.appdata` backup |
+| [`ops/DISTRIBUTION_CHECKLIST.md`](ops/DISTRIBUTION_CHECKLIST.md) | Pre-distribution checklist: clean checkout, gitignore verification, artifact verification (R-32 compliance) |
+| [`ops/SUPPLY_CHAIN.md`](ops/SUPPLY_CHAIN.md) | What the build pins — wrapper checksum, dependency verification metadata, action SHAs — and how to change it safely (R-28) |
+| [`ops/DESIGN_REFERENCE_PROVENANCE.md`](ops/DESIGN_REFERENCE_PROVENANCE.md) | Provenance, licensing position and attribution for the gitignored `design-refs/` material (R-32) |
 | [`ops/privacy_policy.md`](ops/privacy_policy.md) | Published privacy policy (required for any Play Store distribution) |
 
 ## `design/` — UI design plans

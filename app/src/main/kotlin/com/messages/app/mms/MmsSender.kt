@@ -10,6 +10,7 @@ import android.telephony.SmsManager
 import androidx.core.content.FileProvider
 import com.messages.app.receiver.MmsSentReceiver
 import com.messages.core.MessageRepository
+import com.messages.core.io.BoundedRead
 import com.messages.core.mms.MmsPduBuilder
 import com.messages.core.mms.MmsPduParser
 import java.io.ByteArrayOutputStream
@@ -23,20 +24,58 @@ import java.io.File
  */
 object MmsSender {
 
-    /** Rough carrier ceiling for the whole PDU; images are compressed to fit. */
-    private const val MAX_ATTACHMENT_BYTES = 1_000_000
+    /**
+     * Rough carrier ceiling for the whole PDU; images are compressed to fit.
+     *
+     * Public so every path that materialises attachment bytes (including the
+     * resend path in ChatViewModel) bounds itself by the SAME number instead of
+     * re-deriving one — R-17.
+     */
+    const val MAX_ATTACHMENT_BYTES = 1_000_000
     private const val MAX_IMAGE_DIMENSION = 1440
 
-    /** Reads + (for images) recompresses the content Uri into an MMS-ready attachment. */
+    /**
+     * R-17: an image may arrive larger than the carrier ceiling because we
+     * recompress it — but not arbitrarily larger. Past this the source is
+     * rejected without ever being read into the heap.
+     */
+    private const val MAX_SOURCE_IMAGE_BYTES = 32 * 1024 * 1024
+
+    /**
+     * Reads + (for images) recompresses the content Uri into an MMS-ready
+     * attachment.
+     *
+     * R-17: the limit is now enforced BEFORE the bytes are read. The old code
+     * called `readBytes()` first and compared afterwards, so a huge (or
+     * hostile) content URI was already resident when the check ran. Images are
+     * decoded from the stream with `inSampleSize`, so a 100-megapixel source
+     * never allocates a full-size bitmap either.
+     */
     fun prepareAttachment(context: Context, uri: Uri): MmsPduParser.Attachment? = try {
         val resolver = context.contentResolver
         val mime = resolver.getType(uri) ?: "application/octet-stream"
-        val raw = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+        val declared = BoundedRead.declaredSize(resolver, uri)
+        val isImage = mime.startsWith("image/")
         when {
-            mime.startsWith("image/") && (raw.size > MAX_ATTACHMENT_BYTES || mime !in SENDABLE_IMAGE_TYPES) ->
-                compressImage(raw)?.let { MmsPduParser.Attachment("image/jpeg", "image.jpg", it) }
-            raw.size > MAX_ATTACHMENT_BYTES -> null // non-image too large — caller shows an error
-            else -> MmsPduParser.Attachment(mime, nameFor(mime), raw)
+            // Early rejection on the provider's own declared length.
+            isImage && declared != null && declared > MAX_SOURCE_IMAGE_BYTES -> null
+            !isImage && declared != null && declared > MAX_ATTACHMENT_BYTES -> null
+
+            isImage -> {
+                val fitsAsIs = mime in SENDABLE_IMAGE_TYPES &&
+                    declared != null && declared <= MAX_ATTACHMENT_BYTES
+                val asIs = if (!fitsAsIs) null else {
+                    // Bounded even so: a provider may under-declare its length.
+                    BoundedRead.readUri(context, uri, MAX_ATTACHMENT_BYTES)
+                        ?.let { MmsPduParser.Attachment(mime, nameFor(mime), it) }
+                }
+                asIs ?: compressImage(context, uri)
+                    ?.let { MmsPduParser.Attachment("image/jpeg", "image.jpg", it) }
+            }
+
+            // Non-image: no transcode is possible, so the ceiling is absolute.
+            else -> BoundedRead.readUri(context, uri, MAX_ATTACHMENT_BYTES)
+                ?.let { MmsPduParser.Attachment(mime, nameFor(mime), it) }
         }
     } catch (_: Exception) {
         null
@@ -83,16 +122,19 @@ object MmsSender {
                 context, entity.id.toInt(),
                 Intent(context, MmsSentReceiver::class.java)
                     .putExtra("messageId", entity.id)
-                    .putExtra("filePath", file.absolutePath),
+                    .putExtra("filePath", file.absolutePath)
+                    // R-17: so the receiver can revoke the grants it no longer needs.
+                    .putExtra("contentUri", contentUri.toString()),
                 // MUTABLE: the platform appends EXTRA_MMS_HTTP_STATUS to the result
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )
-            // The telephony process reads the PDU through this grant.
-            context.grantUriPermission(
-                "com.android.phone", contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            // R-17: grant to every resolved telephony handler, not just the
+            // AOSP package name — OEM stacks live elsewhere. MmsSentReceiver
+            // revokes these once the transaction reports back.
+            TelephonyGrants.grant(
+                context, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION,
             )
-            val smsManager = context.getSystemService(SmsManager::class.java)
-                .let { if (subId != null) it.createForSubscriptionId(subId) else it }
+            val smsManager = com.messages.app.sms.SmsManagers.forSubscription(context, subId)
             smsManager.sendMultimediaMessage(context, contentUri, null, null, pi)
             entity.id
         } catch (_: Exception) {
@@ -103,35 +145,46 @@ object MmsSender {
 
     private val SENDABLE_IMAGE_TYPES = setOf("image/jpeg", "image/png", "image/gif")
 
-    /** Downscale to [MAX_IMAGE_DIMENSION], then step JPEG quality until it fits. */
-    private fun compressImage(raw: ByteArray): ByteArray? = try {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(raw, 0, raw.size, bounds)
-        var sample = 1
-        while (bounds.outWidth / sample > MAX_IMAGE_DIMENSION * 2 ||
-            bounds.outHeight / sample > MAX_IMAGE_DIMENSION * 2
-        ) sample *= 2
-        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
-        val bitmap = BitmapFactory.decodeByteArray(raw, 0, raw.size, opts) ?: return null
-        val scale = minOf(
-            1f,
-            MAX_IMAGE_DIMENSION.toFloat() / bitmap.width,
-            MAX_IMAGE_DIMENSION.toFloat() / bitmap.height,
-        )
-        val scaled = if (scale < 1f) Bitmap.createScaledBitmap(
-            bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true,
-        ) else bitmap
-        var quality = 90
-        var out: ByteArray
-        do {
-            val buf = ByteArrayOutputStream()
-            scaled.compress(Bitmap.CompressFormat.JPEG, quality, buf)
-            out = buf.toByteArray()
-            quality -= 15
-        } while (out.size > MAX_ATTACHMENT_BYTES && quality > 15)
-        if (out.size <= MAX_ATTACHMENT_BYTES) out else null
-    } catch (_: Exception) {
-        null
+    /**
+     * Downscale to [MAX_IMAGE_DIMENSION], then step JPEG quality until it fits.
+     *
+     * R-17: bounds are decoded from one stream and the pixels from a second, so
+     * the full-resolution image is never materialised — neither as bytes nor as
+     * a bitmap. `inJustDecodeBounds` allocates nothing.
+     */
+    private fun compressImage(context: Context, uri: Uri): ByteArray? {
+        return try {
+            val resolver = context.contentResolver
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            var sample = 1
+            while (bounds.outWidth / sample > MAX_IMAGE_DIMENSION * 2 ||
+                bounds.outHeight / sample > MAX_IMAGE_DIMENSION * 2
+            ) sample *= 2
+            val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+            val bitmap = resolver.openInputStream(uri)
+                ?.use { BitmapFactory.decodeStream(it, null, opts) } ?: return null
+            val scale = minOf(
+                1f,
+                MAX_IMAGE_DIMENSION.toFloat() / bitmap.width,
+                MAX_IMAGE_DIMENSION.toFloat() / bitmap.height,
+            )
+            val scaled = if (scale < 1f) Bitmap.createScaledBitmap(
+                bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true,
+            ) else bitmap
+            var quality = 90
+            var out: ByteArray
+            do {
+                val buf = ByteArrayOutputStream()
+                scaled.compress(Bitmap.CompressFormat.JPEG, quality, buf)
+                out = buf.toByteArray()
+                quality -= 15
+            } while (out.size > MAX_ATTACHMENT_BYTES && quality > 15)
+            if (out.size <= MAX_ATTACHMENT_BYTES) out else null
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun nameFor(mime: String): String = when {

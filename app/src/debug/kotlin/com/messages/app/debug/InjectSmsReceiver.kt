@@ -19,15 +19,24 @@ import kotlinx.coroutines.launch
  * radio uses (repo.onIncomingSms + MessageNotifier.notifyFor), for verifying
  * notification actions (OTP copy, inline reply, fraud warning) on-device.
  *
+ * Authorization (R-24): the manifest gates this on the signature-level
+ * permission `com.messages.app.permission.DEBUG_HARNESS`, and [DebugAuth]
+ * additionally requires this install's token. Run once without `--es token` and
+ * read the expected value from logcat (`DebugAuth`).
+ *
  * Usage:
  *   adb shell am broadcast -a com.messages.app.DEBUG_INJECT_SMS \
  *     -n com.messages.app/.debug.InjectSmsReceiver \
+ *     --es token "<per-install token>" \
  *     --es address "AX-BANKXX" --es body "Your OTP is 483920 ..."
  */
 class InjectSmsReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION) return
+        // R-24: signature permission (manifest) + per-install token. Without
+        // this, any app on the device could fabricate inbox messages.
+        if (!DebugAuth.isAuthorized(context, intent)) return
         val address = intent.getStringExtra("address") ?: return
         val body = intent.getStringExtra("body") ?: return
         val timestamp = System.currentTimeMillis()
@@ -36,7 +45,9 @@ class InjectSmsReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val repo = MessageRepository.get(context)
-                val (entity, verdict) = repo.onIncomingSms(address, body, timestamp, null)
+                val intake = repo.onIncomingSms(address, body, timestamp, null)
+                val entity = intake.message
+                val verdict = intake.verdict
                 MessageNotifier(context).notifyFor(entity, verdict, repo.lookupContactName(address))
                 WidgetUpdater.requestUpdate(context)
                 android.util.Log.i(

@@ -73,6 +73,8 @@ class MmsDeliverReceiver : BroadcastReceiver() {
                 .putExtra("filePath", file.absolutePath)
                 .putExtra("address", notification.from)
                 .putExtra("transactionId", notification.transactionId)
+                // R-17: so the receiver can revoke the grants afterwards.
+                .putExtra("contentUri", contentUri.toString())
             val pi = PendingIntent.getBroadcast(
                 context,
                 notification.transactionId?.hashCode() ?: location.hashCode(),
@@ -80,12 +82,14 @@ class MmsDeliverReceiver : BroadcastReceiver() {
                 // MUTABLE: the platform appends EXTRA_MMS_HTTP_STATUS to the result
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )
-            // The telephony process writes the retrieved PDU through this grant.
-            context.grantUriPermission(
-                "com.android.phone", contentUri,
+            // R-17: the telephony process writes the retrieved PDU through this
+            // grant — and it is not always `com.android.phone`. Grant to every
+            // resolved handler; MmsDownloadReceiver revokes them afterwards.
+            com.messages.app.mms.TelephonyGrants.grant(
+                context, contentUri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
             )
-            context.getSystemService(SmsManager::class.java)
+            com.messages.app.sms.SmsManagers.default(context)
                 .downloadMultimediaMessage(context, location, contentUri, null, pi)
         } catch (t: Throwable) {
             android.util.Log.e("MmsDeliverReceiver", "MMS download could not start", t)
@@ -123,14 +127,25 @@ class MmsDownloadReceiver : BroadcastReceiver() {
             return
         }
         val ok = resultCode == Activity.RESULT_OK
+        val grantedUri = intent.getStringExtra("contentUri")
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val file = File(filePath)
+                // R-17: the carrier controls this file's size. Read it through
+                // the bounded reader (null past the PDU ceiling) instead of
+                // pulling the whole download into the heap first.
                 val conf = if (ok && file.exists()) {
-                    runCatching { MmsPduParser.parseRetrieveConf(file.readBytes()) }.getOrNull()
+                    com.messages.core.io.BoundedRead
+                        .readFile(file, MmsPduParser.MAX_PDU_BYTES)
+                        ?.let { runCatching { MmsPduParser.parseRetrieveConf(it) }.getOrNull() }
                 } else null
                 file.delete()
+                // The transaction is over: drop the grants we handed telephony.
+                grantedUri?.let {
+                    com.messages.app.mms.TelephonyGrants
+                        .revoke(context, android.net.Uri.parse(it))
+                }
 
                 if (conf == null) {
                     storeUndownloadable(
@@ -238,6 +253,10 @@ class MmsSentReceiver : BroadcastReceiver() {
         if (messageId == -1L) return
         val ok = resultCode == Activity.RESULT_OK
         intent.getStringExtra("filePath")?.let { File(it).delete() } // temp send PDU
+        // R-17: the send is finished — revoke the telephony grants on it.
+        intent.getStringExtra("contentUri")?.let {
+            com.messages.app.mms.TelephonyGrants.revoke(context, android.net.Uri.parse(it))
+        }
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -258,16 +277,15 @@ class SmsSentReceiver : BroadcastReceiver() {
         // On failure the resultCode IS the SmsManager.RESULT_* value — stored
         // raw for debugging, mapped to the user-facing reason by SendFailure.
         val failureCode = if (ok) null else resultCode
+        // R-13: this callback settles ONE (recipient, part) attempt; the
+        // message-level status is derived from the whole matrix afterwards, so
+        // it can no longer flip to SENT while other parts are in flight/failed.
+        val attemptId = intent.getStringExtra("attemptId")
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val repo = com.messages.core.MessageRepository.get(context)
-                val db = repo.db
-                if (ok) db.messages().markSent(messageId)
-                else db.messages().markFailed(messageId, failureCode)
-                
-                val msg = db.messages().byId(messageId)
-                if (msg != null) repo.refreshConversationSummary(msg.threadId)
+                com.messages.core.MessageRepository.get(context)
+                    .settleSendAttempt(messageId, attemptId, ok, failureCode)
             } finally {
                 pending.finish()
             }
@@ -283,12 +301,17 @@ class SmsDeliveredReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val messageId = intent.getLongExtra("messageId", -1L)
         if (messageId == -1L) return
-        if (resultCode != Activity.RESULT_OK) return
+        val delivered = resultCode == Activity.RESULT_OK
+        val attemptId = intent.getStringExtra("attemptId")
+        // R-13: record the report against its own attempt even when negative —
+        // DELIVERED is only claimed once EVERY requested report came back OK.
+        // Legacy rows (no attempt matrix) keep the old "ignore failures" path.
+        if (!delivered && attemptId == null) return
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = com.messages.core.MessageRepository.get(context).db
-                db.messages().markDelivered(messageId)
+                com.messages.core.MessageRepository.get(context)
+                    .settleDeliveryAttempt(messageId, attemptId, delivered)
             } finally {
                 pending.finish()
             }
@@ -343,7 +366,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     "not_spam" -> if (messageId != -1L) repo.moveToInbox(messageId)
                     "spam" -> if (messageId != -1L) repo.moveToSpam(messageId)
                 }
-                androidx.core.app.NotificationManagerCompat.from(context).cancel(threadId.toInt())
+                // R-15: cancels the thread notification AND the separate fraud
+                // warning, which previously survived a "Not spam" action.
+                com.messages.app.notify.MessageNotifier.cancelThread(context, threadId)
                 com.messages.app.widget.WidgetUpdater.requestUpdate(context)
             } finally {
                 pending.finish()

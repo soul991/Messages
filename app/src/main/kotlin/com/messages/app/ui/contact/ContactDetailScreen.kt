@@ -125,6 +125,9 @@ class ContactDetailViewModel(
     fun setLocked(lock: Boolean) = viewModelScope.launch {
         repo.db.conversations().setLocked(threadId, lock)
         locked.value = lock
+        // R-03: the unread widget excludes locked rows at the DAO layer, so push
+        // a refresh to drop any already-rendered preview for this thread.
+        com.messages.app.widget.WidgetUpdater.requestUpdate(getApplication())
         if (lock) {
             com.messages.app.shortcut.ConversationShortcuts.remove(getApplication(), threadId)
             // The channel name would leak the sender into system settings.

@@ -20,10 +20,23 @@ class TrashPurgeWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
 
-    override suspend fun doWork(): Result {
-        runCatching { MessageRepository.get(applicationContext).purgeExpiredTrash() }
-            .onFailure { return Result.retry() }
-        return Result.success()
+    /**
+     * R-29: cancellation is not a failure. `runCatching` caught
+     * [kotlinx.coroutines.CancellationException] as well, so a run the system
+     * stopped came back as `retry()` and got rescheduled; rethrow it so
+     * WorkManager sees the stop it asked for.
+     */
+    override suspend fun doWork(): Result = try {
+        val repo = MessageRepository.get(applicationContext)
+        repo.purgeExpiredTrash()
+        // R-05: the same daily cadence sweeps provider rows whose deletion
+        // failed earlier (default-SMS role lost, provider transiently busy).
+        repo.retryFailedProviderDeletions()
+        Result.success()
+    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+        throw cancelled
+    } catch (_: Throwable) {
+        Result.retry()
     }
 }
 

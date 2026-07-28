@@ -23,8 +23,7 @@ object CarrierReport {
      * Returns false when the radio refused synchronously.
      */
     fun send(context: Context, shortCode: String, text: String, subId: Int?): Boolean = try {
-        val base = context.getSystemService(SmsManager::class.java)
-        val sms = subId?.let { base.createForSubscriptionId(it) } ?: base
+        val sms = com.messages.app.sms.SmsManagers.forSubscription(context, subId)
         val parts = sms.divideMessage(text)
         if (parts.size == 1) sms.sendTextMessage(shortCode, null, text, null, null)
         else sms.sendMultipartTextMessage(shortCode, null, parts, null, null)

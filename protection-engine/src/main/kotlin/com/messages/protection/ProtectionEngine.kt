@@ -74,7 +74,8 @@ class ProtectionEngine(
         }
         for (rule in input.userRules) {
             val target = if (rule.target == UserRule.Target.SENDER) sender.rawAddress else msg.normalizedText
-            if (rule.compiled.containsMatchIn(target)) {
+            // R-21: budgeted match — a user rule is untrusted input too.
+            if (rule.compiled.containsMatchWithin(target)) {
                 return Verdict(
                     rule.category,
                     explanations = listOf("Matched your custom rule"),

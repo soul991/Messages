@@ -33,7 +33,17 @@ import org.robolectric.annotation.Config
 class LockedBackupTest {
 
     @org.junit.Before
-    fun freshSingleton() = MessageRepository.resetForTests()
+    fun freshSingleton() {
+        MessageRepository.resetForTests()
+        // R-18: production fails closed when the Keystore is unavailable, and
+        // Robolectric has no real Keystore. Install the in-memory key box so
+        // this test exercises the real KEK-cache path instead of relying on a
+        // plaintext fallback that no longer exists.
+        com.messages.core.secret.TestKeyBox.install()
+    }
+
+    @org.junit.After
+    fun restoreKeyBox() = com.messages.core.secret.TestKeyBox.uninstall()
 
     @Test
     fun `locked chats travel encrypted and restore behind the credential`() = runTest {

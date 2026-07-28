@@ -2,6 +2,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Telephony is genuinely REQUIRED, not merely used: this app exists to be
+         the device's default SMS/MMS handler, and every core surface (intake,
+         send, dual-SIM routing, carrier reporting) is meaningless without a
+         radio. The SMS permissions below already imply this requirement
+         implicitly; declaring it explicitly changes no device filtering, it
+         just stops the implication from being a silent one. -->
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="true" />
+
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
@@ -21,9 +31,19 @@
         <provider android:authorities="com.android.contacts" />
     </queries>
 
+    <!-- Platform backup is DISABLED (R-01). App-private state holds plaintext
+         indexed message bodies, drafts, secret-space verifier/salt material, a
+         cached secret-space KEK, Drive key material, pending locked restore
+         blobs and MMS media. Auto Backup / device transfer would copy all of
+         that off-device, defeating the app's own encrypted-backup boundary.
+         The app ships an explicit end-to-end encrypted Drive backup instead;
+         dataExtractionRules default-denies cloud backup and D2D transfer on
+         Android 12+, fullBackupContent covers Android 11 and below. -->
     <application
         android:name=".MessagesApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"

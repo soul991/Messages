@@ -79,17 +79,35 @@ object SecretSpace {
         val saltK = SecretCrypto.newSalt()
         val verifier = SecretCrypto.derive(credential, saltV)
         val kek = SecretCrypto.derive(credential, saltK)
+        // R-18: the KEK is only ever stored Keystore-wrapped. If the Keystore is
+        // unavailable the wrap is skipped entirely — never stored in plaintext.
+        // Setup still succeeds: the space works without a cached KEK (only the
+        // backup sub-envelope needs it) and `attempt` re-wraps once the Keystore
+        // recovers.
+        val wrapped = wrapKekOrNull(kek)
         prefs(context).edit()
             .putString(K_KIND, kind)
             .putString(K_SALT_V, b64(saltV))
             .putString(K_VERIFIER, b64(verifier))
             .putString(K_SALT_K, b64(saltK))
             .putInt(K_ITERATIONS, SecretCrypto.ITERATIONS)
-            .putString(K_KEK_LOCAL, LocalKeyBox.encrypt(kek))
+            .apply { if (wrapped != null) putString(K_KEK_LOCAL, wrapped) else remove(K_KEK_LOCAL) }
             .putInt(K_FAIL_COUNT, 0)
             .putLong(K_LAST_FAIL, 0L)
             .apply()
     }
+
+    /**
+     * Keystore-wrap the KEK, or null when the Keystore refuses (R-18). Never
+     * falls back to a plaintext encoding; a null result means "no cached KEK",
+     * which callers already handle by asking for the credential again.
+     */
+    private fun wrapKekOrNull(kek: ByteArray): String? =
+        try {
+            LocalKeyBox.encrypt(kek)
+        } catch (_: KeyBoxUnavailableException) {
+            null
+        }
 
     /** Change requires the current credential; re-derives verifier AND KEK. */
     fun changeCredential(
@@ -125,8 +143,17 @@ object SecretSpace {
             p.edit().putInt(K_FAIL_COUNT, 0).putLong(K_LAST_FAIL, 0L).apply()
             if (hasPendingRestore(context) && !isSetUp(context)) adoptPendingAuth(context, credential)
             // Refresh the KEK cache — cheap, and heals a lost Keystore entry.
+            // R-18: this is also the recovery path for a legacy `plain:` value
+            // or a Keystore that was briefly unavailable. On failure the cache
+            // entry is REMOVED rather than downgraded, so a later read cannot
+            // find unprotected key material.
             saltK(context)?.let { sk ->
-                p.edit().putString(K_KEK_LOCAL, LocalKeyBox.encrypt(SecretCrypto.derive(credential, sk, iterations))).apply()
+                val wrapped = wrapKekOrNull(SecretCrypto.derive(credential, sk, iterations))
+                p.edit()
+                    .apply {
+                        if (wrapped != null) putString(K_KEK_LOCAL, wrapped) else remove(K_KEK_LOCAL)
+                    }
+                    .apply()
             }
             Attempt.Success
         } else {
@@ -136,11 +163,34 @@ object SecretSpace {
         }
     }
 
-    /** Cached backup KEK (Keystore-decrypted); null before setup / after a wipe. */
-    fun kekOrNull(context: Context): ByteArray? =
-        prefs(context).getString(K_KEK_LOCAL, null)?.let {
-            runCatching { LocalKeyBox.decrypt(it) }.getOrNull()
+    /**
+     * Cached backup KEK (Keystore-decrypted); null before setup / after a wipe.
+     *
+     * R-18: a stored value that is not Keystore-wrapped (a legacy `plain:` entry
+     * written by an older build) is treated as absent AND purged, so it stops
+     * being readable key material at rest. The KEK is credential-derived, so the
+     * next successful [attempt] re-derives and re-wraps it.
+     */
+    fun kekOrNull(context: Context): ByteArray? {
+        val stored = prefs(context).getString(K_KEK_LOCAL, null) ?: return null
+        if (LocalKeyBox.isUnprotected(stored)) {
+            prefs(context).edit().remove(K_KEK_LOCAL).apply()
+            return null
         }
+        return runCatching { LocalKeyBox.decrypt(stored) }.getOrNull()
+    }
+
+    /**
+     * Upgrade sweep for R-18: drop any legacy plaintext KEK cache left behind by
+     * an older build. Safe to call on every start — the value is re-created,
+     * Keystore-wrapped, on the next successful credential attempt.
+     */
+    fun purgeUnprotectedKekCache(context: Context) {
+        val stored = prefs(context).getString(K_KEK_LOCAL, null) ?: return
+        if (LocalKeyBox.isUnprotected(stored)) {
+            prefs(context).edit().remove(K_KEK_LOCAL).apply()
+        }
+    }
 
     fun saltK(context: Context): ByteArray? =
         prefs(context).getString(K_SALT_K, null)?.let(::unb64)
@@ -167,10 +217,44 @@ object SecretSpace {
         val iterations: Int, val kind: String,
     ) {
         fun serialize() = "$saltV|$verifier|$saltK|$iterations|$kind"
+
         companion object {
-            fun parse(s: String): PendingAuth? = s.split('|').takeIf { it.size == 5 }?.let {
-                PendingAuth(it[0], it[1], it[2], it[3].toIntOrNull() ?: return null, it[4])
-            }
+            /** Hard caps for R-19. The serialized form is 5 short Base64 fields. */
+            private const val MAX_SERIALIZED = 1024
+            internal const val MIN_ITERATIONS = 100_000
+            internal const val MAX_ITERATIONS = 2_000_000
+            private const val SALT_BYTES = 16
+            private const val VERIFIER_BYTES = 32
+
+            /**
+             * R-19: this string arrives inside a restored backup, so every field
+             * is untrusted. Validate LENGTH, FIELD COUNT, BASE64 DECODABILITY,
+             * EXACT DECODED SIZES, the credential KIND enum and the PBKDF2
+             * ITERATION BOUND before storing it — an unbounded iteration count
+             * would otherwise be attacker-chosen CPU work executed on every
+             * unlock attempt, and malformed Base64 would throw at the
+             * derivation boundary instead of here.
+             */
+            fun parse(s: String): PendingAuth? = runCatching {
+                if (s.length > MAX_SERIALIZED) return null
+                val f = s.split('|')
+                if (f.size != 5) return null
+                val iterations = f[3].toIntOrNull() ?: return null
+                if (iterations !in MIN_ITERATIONS..MAX_ITERATIONS) return null
+                if (f[4] !in ALLOWED_KINDS) return null
+                if (decodedSize(f[0]) != SALT_BYTES) return null
+                if (decodedSize(f[1]) != VERIFIER_BYTES) return null
+                if (decodedSize(f[2]) != SALT_BYTES) return null
+                PendingAuth(f[0], f[1], f[2], iterations, f[4])
+            }.getOrNull()
+
+            private val ALLOWED_KINDS = setOf(
+                SecretCrypto.KIND_PIN, SecretCrypto.KIND_PATTERN, SecretCrypto.KIND_PASSWORD,
+            )
+
+            /** Strict Base64 decode; returns -1 when the field is not valid Base64. */
+            private fun decodedSize(field: String): Int =
+                runCatching { java.util.Base64.getDecoder().decode(field).size }.getOrElse { -1 }
         }
     }
 
@@ -226,16 +310,16 @@ object SecretSpace {
      *  auth becomes this device's locked-space credential state. */
     private fun adoptPendingAuth(context: Context, credential: CharArray) {
         val a = pendingAuth(context) ?: return
+        val wrapped = wrapKekOrNull(
+            SecretCrypto.derive(credential, unb64(a.saltK), a.iterations)
+        )
         prefs(context).edit()
             .putString(K_KIND, a.kind)
             .putString(K_SALT_V, a.saltV)
             .putString(K_VERIFIER, a.verifier)
             .putString(K_SALT_K, a.saltK)
             .putInt(K_ITERATIONS, a.iterations)
-            .putString(
-                K_KEK_LOCAL,
-                LocalKeyBox.encrypt(SecretCrypto.derive(credential, unb64(a.saltK), a.iterations)),
-            )
+            .apply { if (wrapped != null) putString(K_KEK_LOCAL, wrapped) else remove(K_KEK_LOCAL) }
             .apply()
     }
 

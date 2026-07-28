@@ -7,14 +7,20 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
+import com.messages.core.db.Spaces
 import com.messages.designsystem.LocalDarkTheme
 import java.io.File
 
 /**
  * Per-chat customization (§8.2): bubble colors and wallpapers, stored as
- * preset ids in `chat_style` prefs keyed by threadId. Presets are light/dark
- * pairs chosen for AA contrast of the on-color; "photo" wallpapers are copied
- * into filesDir so they survive the picker permission going away.
+ * preset ids in `chat_style` prefs keyed by (space, threadId). Presets are
+ * light/dark pairs chosen for AA contrast of the on-color; "photo" wallpapers
+ * are copied into filesDir so they survive the picker permission going away.
+ *
+ * R-31: values are namespaced by (space, threadId), not threadId alone. The
+ * same thread ID can have BOTH normal-space and locked-space conversation rows,
+ * so a threadId-only key lets one space read or overwrite the other's style or
+ * leak the wallpaper filename.
  */
 object ChatStyle {
 
@@ -79,30 +85,32 @@ object ChatStyle {
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    fun bubbleId(ctx: Context, threadId: Long): String =
-        prefs(ctx).getString("bubble_$threadId", "default") ?: "default"
+    private fun key(space: String, threadId: Long, prefix: String) = "${prefix}_${space}:${threadId}"
 
-    fun wallpaperId(ctx: Context, threadId: Long): String =
-        prefs(ctx).getString("wallpaper_$threadId", "none") ?: "none"
+    fun bubbleId(ctx: Context, threadId: Long, space: String = Spaces.NORMAL): String =
+        prefs(ctx).getString(key(space, threadId, "bubble"), "default") ?: "default"
 
-    fun setBubble(ctx: Context, threadId: Long, id: String) {
-        prefs(ctx).edit().putString("bubble_$threadId", id).apply()
+    fun wallpaperId(ctx: Context, threadId: Long, space: String = Spaces.NORMAL): String =
+        prefs(ctx).getString(key(space, threadId, "wallpaper"), "none") ?: "none"
+
+    fun setBubble(ctx: Context, threadId: Long, id: String, space: String = Spaces.NORMAL) {
+        prefs(ctx).edit().putString(key(space, threadId, "bubble"), id).apply()
     }
 
-    fun setWallpaper(ctx: Context, threadId: Long, id: String) {
-        prefs(ctx).edit().putString("wallpaper_$threadId", id).apply()
-        if (id != WALLPAPER_PHOTO) photoFile(ctx, threadId).delete()
+    fun setWallpaper(ctx: Context, threadId: Long, id: String, space: String = Spaces.NORMAL) {
+        prefs(ctx).edit().putString(key(space, threadId, "wallpaper"), id).apply()
+        if (id != WALLPAPER_PHOTO) photoFile(ctx, threadId, space).delete()
     }
 
-    fun photoFile(ctx: Context, threadId: Long): File =
-        File(File(ctx.filesDir, "wallpapers").apply { mkdirs() }, "wp_$threadId.jpg")
+    fun photoFile(ctx: Context, threadId: Long, space: String = Spaces.NORMAL): File =
+        File(File(ctx.filesDir, "wallpapers").apply { mkdirs() }, "wp_${space}_${threadId}.jpg")
 
     /** Copies the picked image locally, then selects it. Returns false on failure. */
-    fun importPhoto(ctx: Context, threadId: Long, uri: Uri): Boolean = try {
+    fun importPhoto(ctx: Context, threadId: Long, uri: Uri, space: String = Spaces.NORMAL): Boolean = try {
         ctx.contentResolver.openInputStream(uri)?.use { input ->
-            photoFile(ctx, threadId).outputStream().use { input.copyTo(it) }
+            photoFile(ctx, threadId, space).outputStream().use { input.copyTo(it) }
         } != null && run {
-            prefs(ctx).edit().putString("wallpaper_$threadId", WALLPAPER_PHOTO).apply()
+            prefs(ctx).edit().putString(key(space, threadId, "wallpaper"), WALLPAPER_PHOTO).apply()
             true
         }
     } catch (_: Exception) {

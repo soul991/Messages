@@ -21,12 +21,23 @@ class OtpCleanupWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
 
+    /**
+     * R-29: `runCatching` swallowed [kotlinx.coroutines.CancellationException]
+     * too, so work the system had STOPPED reported itself as a transient
+     * failure and was rescheduled. Cancellation must propagate — only real
+     * failures earn a retry.
+     */
     override suspend fun doWork(): Result {
         val ctx = applicationContext
         if (!OtpCleanup.isEnabled(ctx)) return Result.success()
-        runCatching { MessageRepository.get(ctx).cleanupExpiredOtps(OtpCleanup.TTL_MS) }
-            .onFailure { return Result.retry() }
-        return Result.success()
+        return try {
+            MessageRepository.get(ctx).cleanupExpiredOtps(OtpCleanup.TTL_MS)
+            Result.success()
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Throwable) {
+            Result.retry()
+        }
     }
 }
 

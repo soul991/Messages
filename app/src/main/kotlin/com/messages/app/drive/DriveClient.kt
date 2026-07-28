@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
 /**
  * Minimal Google Drive REST client for the app-private `appDataFolder`
@@ -58,22 +59,52 @@ class DriveClient(private val context: Context, private val account: Account) {
             throw e
         }
 
-    /** List backup files in the app data folder, newest first. */
-    fun list(): List<RemoteFile> {
-        val url = "https://www.googleapis.com/drive/v3/files" +
-            "?spaces=appDataFolder&orderBy=createdTime desc&pageSize=25" +
-            "&fields=files(id,name,size,createdTime)"
-        val json = JSONObject(request("GET", url))
-        val files = json.getJSONArray("files")
-        return (0 until files.length()).map { i ->
-            val f = files.getJSONObject(i)
-            RemoteFile(
-                id = f.getString("id"),
-                name = f.getString("name"),
-                size = f.optString("size", "0").toLongOrNull() ?: 0L,
-                createdTime = f.optString("createdTime"),
+    /**
+     * List files in the app data folder, newest first.
+     *
+     * R-07: this used to request a single page of 25 without asking for
+     * `nextPageToken`. Once a user accumulated more than 25 objects the master
+     * key file could fall off the end of the list, the caller would conclude no
+     * key existed, and a SECOND key would be minted — splitting snapshots across
+     * two keys and breaking later restores. Every page is now walked, and
+     * [query] lets callers ask for an exact filename instead of scanning.
+     */
+    fun list(query: String? = null): List<RemoteFile> {
+        val out = mutableListOf<RemoteFile>()
+        var pageToken: String? = null
+        do {
+            val params = buildList {
+                add("spaces=appDataFolder")
+                add("pageSize=$PAGE_SIZE")
+                add("orderBy=createdTime desc")
+                add("fields=nextPageToken,files(id,name,size,createdTime)")
+                query?.let { add("q=" + URLEncoder.encode(it, "UTF-8")) }
+                pageToken?.let { add("pageToken=" + URLEncoder.encode(it, "UTF-8")) }
+            }.joinToString("&")
+            val json = JSONObject(
+                request("GET", "https://www.googleapis.com/drive/v3/files?$params")
             )
-        }
+            val files = json.getJSONArray("files")
+            for (i in 0 until files.length()) {
+                val f = files.getJSONObject(i)
+                out += RemoteFile(
+                    id = f.getString("id"),
+                    name = f.getString("name"),
+                    size = f.optString("size", "0").toLongOrNull() ?: 0L,
+                    createdTime = f.optString("createdTime"),
+                )
+            }
+            pageToken = json.optString("nextPageToken").takeIf { it.isNotBlank() }
+            // Defensive: a server that keeps handing back tokens must not spin
+            // this loop forever.
+        } while (pageToken != null && out.size < MAX_LISTED_FILES)
+        return out
+    }
+
+    /** Exact-name lookup, correctly paginated and escaped (R-07). */
+    fun findByName(name: String): List<RemoteFile> {
+        val escaped = name.replace("\\", "\\\\").replace("'", "\\'")
+        return list("name = '$escaped' and trashed = false")
     }
 
     /** Multipart upload into the app data folder; returns the new file id. */
@@ -106,19 +137,34 @@ class DriveClient(private val context: Context, private val account: Account) {
         return JSONObject(response).getString("id")
     }
 
+    /**
+     * Whole-file download, hard-capped (R-10). [maxBytes] defaults to the
+     * largest envelope the crypto layer will accept, so a hostile or
+     * misconfigured server cannot stream unbounded data into app heap.
+     */
     fun download(
         fileId: String,
+        maxBytes: Long = MAX_DOWNLOAD_BYTES,
         onProgress: ((got: Long, total: Long) -> Unit)? = null,
     ): ByteArray = requestBytes(
         "GET", "https://www.googleapis.com/drive/v3/files/$fileId?alt=media",
         onReadProgress = onProgress,
+        maxBytes = maxBytes,
     )
 
-    /** First [maxBytes] of a file (Range request) — enough to read a backup
-     *  header without pulling the whole snapshot down for the chooser. */
+    /**
+     * First [maxBytes] of a file — enough to read a backup header without
+     * pulling a whole snapshot down for the chooser.
+     *
+     * R-10: a server or proxy that ignores `Range` answers 200 with the ENTIRE
+     * object, which silently turned a few-KB header probe into a full download.
+     * The read is now capped at [maxBytes] regardless of status, so a non-206
+     * response costs at most one buffer.
+     */
     fun downloadPrefix(fileId: String, maxBytes: Int): ByteArray = requestBytes(
         "GET", "https://www.googleapis.com/drive/v3/files/$fileId?alt=media",
         rangeHeader = "bytes=0-${maxBytes - 1}",
+        maxBytes = maxBytes.toLong(),
     )
 
     fun delete(fileId: String) {
@@ -141,6 +187,7 @@ class DriveClient(private val context: Context, private val account: Account) {
         onProgress: ((sent: Long, total: Long) -> Unit)? = null,
         rangeHeader: String? = null,
         onReadProgress: ((got: Long, total: Long) -> Unit)? = null,
+        maxBytes: Long = MAX_DOWNLOAD_BYTES,
     ): ByteArray {
         val conn = URL(url).openConnection() as HttpURLConnection
         val usedToken = token()
@@ -178,6 +225,11 @@ class DriveClient(private val context: Context, private val account: Account) {
             // contentLengthLong is -1 when the server doesn't say — callers
             // get total<=0 and should treat the progress as indeterminate.
             val total = conn.contentLengthLong
+            // R-10: refuse before reading when the server announces more than
+            // the caller is willing to hold.
+            if (total > maxBytes) {
+                throw DriveHttpException(code, "Response of $total bytes exceeds the $maxBytes cap")
+            }
             val outBuf = ByteArrayOutputStream()
             conn.inputStream.use { ins ->
                 val buf = ByteArray(UPLOAD_CHUNK_BYTES)
@@ -185,9 +237,13 @@ class DriveClient(private val context: Context, private val account: Account) {
                 while (true) {
                     val n = ins.read(buf)
                     if (n < 0) break
-                    outBuf.write(buf, 0, n)
-                    got += n
+                    // Stop at the cap even when Content-Length lied or a proxy
+                    // ignored our Range header and returned 200 + whole object.
+                    val allowed = minOf(n.toLong(), maxBytes - got).toInt()
+                    outBuf.write(buf, 0, allowed)
+                    got += allowed
                     onReadProgress?.invoke(got, total)
+                    if (got >= maxBytes) break
                 }
             }
             return outBuf.toByteArray()
@@ -200,5 +256,17 @@ class DriveClient(private val context: Context, private val account: Account) {
         const val SCOPE = "https://www.googleapis.com/auth/drive.appdata"
         private const val TAG = "DriveBackup"
         private const val UPLOAD_CHUNK_BYTES = 64 * 1024
+
+        /** R-07: full page size, so key lookups need few round trips. */
+        private const val PAGE_SIZE = 1000
+
+        /** R-07: stop walking pages long before an unbounded server can OOM us. */
+        private const val MAX_LISTED_FILES = 10_000
+
+        /**
+         * R-10: default read cap, matching the largest envelope BackupCrypto
+         * will accept. Nothing legitimate in the appDataFolder is bigger.
+         */
+        const val MAX_DOWNLOAD_BYTES = 512L * 1024 * 1024
     }
 }

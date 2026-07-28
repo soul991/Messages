@@ -270,9 +270,15 @@ fun ChatScreen(
         }
     }
     val latestDraft = androidx.compose.runtime.rememberUpdatedState(draft)
-    androidx.compose.runtime.DisposableEffect(Unit) {
+    androidx.compose.runtime.DisposableEffect(inLockedSpace) {
         onDispose {
-            com.messages.app.ui.common.DraftStore.save(context, threadId, latestDraft.value)
+            // R-04: the debounced writer above skips the locked space, but this
+            // disposal path used to save unconditionally — leaving locked-space
+            // composer text in the shared, threadId-keyed "drafts" prefs where
+            // the normal-space Home row renders it as a "Draft:" preview.
+            if (!inLockedSpace) {
+                com.messages.app.ui.common.DraftStore.save(context, threadId, latestDraft.value)
+            }
         }
     }
     val listState = rememberLazyListState()
@@ -338,8 +344,8 @@ fun ChatScreen(
 
     // Pinned messages (Phase 4 item 6): local-only ids from PinStore.
     val allPins by PinStore.pins.collectAsState()
-    LaunchedEffect(Unit) { PinStore.pinsFor(context, threadId) } // triggers initial load
-    val pinnedIds = allPins[threadId].orEmpty()
+    LaunchedEffect(Unit) { PinStore.pinsFor(context, threadId, space) } // triggers initial load
+    val pinnedIds = allPins[space to threadId].orEmpty()
     val pinnedMessages = remember(messages, pinnedIds) {
         messages.filter { it.id in pinnedIds }
     }
@@ -791,11 +797,11 @@ fun ChatScreen(
                     .then(if (wallpaperBrush != null) Modifier.background(wallpaperBrush) else Modifier)
             ) {
                 if (wallpaperId == ChatStyle.WALLPAPER_PHOTO) {
-                    val photo = remember(wallpaperVersion) { ChatStyle.photoFile(context, threadId) }
+                    val photo = remember(wallpaperVersion) { ChatStyle.photoFile(context, threadId, space) }
                     AsyncImage(
                         model = coil.request.ImageRequest.Builder(context)
                             .data(photo)
-                            .memoryCacheKey("wp_$threadId-$wallpaperVersion")
+                            .memoryCacheKey("wp_${space}_$threadId-$wallpaperVersion")
                             .diskCachePolicy(coil.request.CachePolicy.DISABLED)
                             .build(),
                         contentDescription = null,
@@ -856,6 +862,7 @@ fun ChatScreen(
                                     PinStore.setPinned(
                                         context, threadId, item.m.id,
                                         pinned = item.m.id !in pinnedIds,
+                                        space = space,
                                     )
                                 },
                                 linkPreviewsEnabled = linkPreviewsEnabled,

@@ -155,6 +155,91 @@ data class SenderReputationEntity(
     val userMarkedNotSpamCount: Int = 0,
 )
 
+/**
+ * R-05: every Telephony-provider row this app created for one message.
+ *
+ * A group SMS writes ONE PROVIDER ROW PER RECIPIENT, but [MessageEntity.smsId]
+ * only ever held the first — so deleting a group message left the other
+ * recipients' rows visible to every other SMS app, outside this app's trash and
+ * retention model. The mapping is one-to-many so delete/trash can attempt every
+ * URI it created.
+ *
+ * Deliberately NOT a CASCADE foreign key: a provider deletion that fails
+ * (transient provider error, default-SMS role temporarily lost) is kept as
+ * [deleteFailed] for retry, and that must outlive the local message row.
+ */
+@Entity(
+    tableName = "provider_rows",
+    indices = [Index("messageId"), Index("deleteFailed")],
+)
+data class ProviderRowEntity(
+    /** Full content URI, e.g. `content://sms/1234`. */
+    @PrimaryKey val uri: String,
+    val messageId: Long,
+    val recipient: String,
+    /** SMS | MMS */
+    val kind: String,
+    /** Deletion was attempted and failed — retried by the trash-purge worker. */
+    val deleteFailed: Boolean = false,
+)
+
+/**
+ * R-13: one row per (recipient, part) dispatch of an outgoing SMS.
+ *
+ * Status used to be message-level, so a single early success marked a whole
+ * group/multipart message SENT while other parts were still pending or had
+ * already failed, and callbacks could oscillate with broadcast order. Each
+ * dispatch now reports into its own row and the message's `sendStatus` is
+ * DERIVED from the full set by [com.messages.core.send.SendAggregate] — a pure
+ * function of monotonic per-attempt states, hence independent of the order the
+ * broadcasts arrive in.
+ */
+@Entity(tableName = "sms_attempts", indices = [Index("messageId")])
+data class SmsAttemptEntity(
+    /** "<messageId>:<recipientIndex>:<partIndex>" — stable and unique. */
+    @PrimaryKey val attemptId: String,
+    val messageId: Long,
+    val recipientIndex: Int,
+    val partIndex: Int,
+    /** [AttemptState] — PENDING until the SENT broadcast for this part lands. */
+    val sentState: String = AttemptState.PENDING,
+    /** [AttemptState] — only meaningful when [wantDelivery]. */
+    val deliveryState: String = AttemptState.PENDING,
+    /** Whether a delivery report was requested for this dispatch. */
+    val wantDelivery: Boolean = false,
+    /** Raw SmsManager.RESULT_* for a failed dispatch. */
+    val resultCode: Int? = null,
+)
+
+/** Per-attempt lifecycle: PENDING is the only non-terminal state. */
+object AttemptState {
+    const val PENDING = "PENDING"
+    const val OK = "OK"
+    const val FAILED = "FAILED"
+}
+
+/**
+ * R-16: collision-resistant synthetic thread IDs.
+ *
+ * When `Telephony.Threads.getOrCreateThreadId` is unavailable the intake path
+ * used to fall back to `address.hashCode().toLong()` — a 32-bit hash, so two
+ * unrelated senders could collide and have their conversations silently merged.
+ * Threads are now allocated from this table, keyed by the CANONICAL recipient
+ * set, and numbered NEGATIVELY so a synthetic ID can never collide with a real
+ * provider thread ID (those are positive).
+ */
+@Entity(
+    tableName = "thread_aliases",
+    indices = [Index(value = ["recipientKey"], unique = true)],
+)
+data class ThreadAliasEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Digits-only, de-duplicated, sorted, ';'-joined recipient set. */
+    val recipientKey: String,
+    /** Negative synthetic thread ID; 0 only in the instant before allocation. */
+    val threadId: Long = 0,
+)
+
 @Entity(tableName = "user_rules")
 data class UserRuleEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

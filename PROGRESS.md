@@ -1,8 +1,83 @@
 # PROGRESS — "Messages" (Android SMS app with deterministic spam/scam protection)
 
-_Last updated: 2026-07-27 (repo tidy-up: 616M → 180M on disk, all documentation filed under `docs/` behind a new `docs/README.md` index, single authoritative release keystore — suite 80/73/39 green and `:app:assembleRelease` verified after the moves). Source spec: `PRD_Messages.md` (v2)._
+_Last updated: 2026-07-28 (Codex review remediation R-01…R-32 — 31 of 32 findings closed; suite **110/136/39 = 285 green**, full lint clean, signed `:app:assembleRelease` verified by `scripts/verify-release-artifact.sh`). Source spec: `PRD_Messages.md` (v2)._
 
-> **PRIVACY STATUS (2026-07-27): the working tree is PII-free as of this commit, but the git HISTORY is NOT** — earlier commits still contain the pre-redaction values (see the per-commit audit in the session record). **This repo must stay private until history is squashed.**
+> **PRIVACY STATUS (2026-07-27): the working tree is PII-free as of this commit, but the git HISTORY is NOT** — earlier commits still contain the pre-redaction values (see the per-commit audit in the session record). **This repo must stay private until history is squashed.** This is finding **R-23**, the one review item still open — see below.
+
+## Codex review remediation (2026-07-27 → 2026-07-28)
+
+An external read-only audit (`codex_review.md`, 32 findings: 12 high / 14 medium
+/ 6 low) was verified against the code and worked through end to end. **31 of 32
+are closed.** The one that is not is R-23, which cannot be done unilaterally.
+
+| Phase | Findings | Status |
+|---|---|---|
+| 0 — privacy/authorization exposure | R-01, R-02, R-03, R-04, R-18, R-20 | ✅ |
+| 1 — backup/restore safety | R-07…R-12, R-19 | ✅ |
+| 2 — messaging data integrity | R-05, R-06, R-13…R-17 | ✅ |
+| 3 — release engineering & compliance | R-21, R-22, R-25, R-27, R-28 | ✅ |
+| 4 — hardening & cleanup | R-24, R-26, R-29, R-30, R-31, R-32 | ✅ |
+| — | **R-23 (git history rewrite)** | ⛔ **blocked — needs owner authorization** |
+
+Highlights from the closing session (R-21, R-25, R-27, R-28, R-30 second half):
+
+- **R-30** — OTP auto-copy now refuses locked-space, legacy-locked, dangerous
+  and fraud-warning messages and anything outside Inbox/Transactions; the clip
+  self-clears after 60 s but only if it still holds the same code; the settings
+  screen carries an explicit pre-Android-13 clipboard warning.
+- **R-21** — `SafeRegexPolicy` (static rejection of backreferences, lookbehind
+  and expanding-quantifier nesting) plus `BudgetedCharSequence`, a
+  `CharSequence` that refuses to be read past a cap. The budget is what actually
+  holds the line: a regex cannot be interrupted by cancellation, but it can be
+  starved of input. `PatternPackPolicy` bounds imported packs, which are
+  validated on import **and on every load** so a pack predating the policy
+  cannot keep applying. Import reads are bounded before becoming a String.
+  32 new tests, including one asserting our own bundled library obeys the policy
+  — it caught a false positive in the first draft (`(\s?(lakh|crore))?` is
+  benign; only an *expanding* outer quantifier can blow up).
+- **R-25** — `fallbackToDestructiveMigrationFrom(1, 2, 3)` is **gone**; there is
+  no destructive fallback at any version. Real `MIGRATION_1_2` / `2_3` / `3_4`
+  were derived from the entity definitions at the exact commits that introduced
+  each version (v1 `cf129ae`, v2 `63ff679`, v3 `b6d0314`, v4 `0184d15`), since
+  v1–v4 predate `exportSchema`. v1→v2 rebuilds `messages` to relax `smsId` to
+  nullable and maps the old `-1` draft sentinel to NULL. 8 new tests drive v1,
+  v2, v3 and v4 to current and assert categories, rules, reputation, starred and
+  unread all survive.
+- **R-27/R-28** — CI now runs all three suites, the migration matrix, full lint
+  and a minified release build, with every action pinned to a resolved 40-char
+  commit SHA and a tag-gated signed-release job. `gradle/verification-metadata.xml`
+  pins 567 components / 1009 SHA-256 checksums (validated with
+  `--refresh-dependencies`). The missing `core-messaging/consumer-rules.pro` now
+  exists. `-PrequireSigning=true` turns a missing keystore into a loud failure
+  instead of a silent unsigned APK.
+- **`scripts/verify-release-artifact.sh`** — asserts signature scheme v2/v3,
+  certificate identity against `docs/ops/RELEASE_SIGNING.md`, not-debuggable,
+  `allowBackup=false`, `dataExtractionRules` present, no debug-only components
+  or debug-harness permission, pattern library present, no signing material
+  packaged. Verified to fail correctly on a wrong certificate and on a debug APK.
+
+**Found while closing R-27, not in the review** — adding full lint to CI exposed
+14 pre-existing lint errors, of which the `NewApi` group were genuine crashes:
+
+- `RoleManager` (API 29) was used unguarded in `MainActivity.refreshDefaultState()`,
+  which runs from `onCreate` — **every Android 8.0/8.1/9 device crashed at
+  launch**. Now falls back to `Telephony.Sms.getDefaultSmsPackage`.
+- `SmsManager.createForSubscriptionId` (API 31) was unguarded in carrier
+  reporting, MMS send and scheduled send; worse, `getSystemService(SmsManager::class.java)`
+  returns **null** before API 31, and the resulting `NoSuchMethodError` is an
+  `Error` that the surrounding `catch (Exception)` would not have caught. All
+  four call sites now route through `com.messages.app.sms.SmsManagers`.
+
+The old CI ran only `:protection-engine:test` and `:app:assembleDebug`, so none
+of this was ever visible — which is precisely the point R-27 was making.
+
+### R-23 — still open, needs an explicit decision
+
+Rewriting history is destructive and outward-facing: it invalidates every
+existing clone and requires a force-push and a coordinated re-clone. It has NOT
+been attempted. The repo must stay private until it is done. See
+`docs/ops/DISTRIBUTION_CHECKLIST.md` for why `git gc` / unreachable-object
+cleanup is deliberately deferred until after the rewrite.
 
 ## Repo tidy-up + documentation layout (2026-07-27)
 
