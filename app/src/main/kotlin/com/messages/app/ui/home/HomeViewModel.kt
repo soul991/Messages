@@ -3,19 +3,26 @@ package com.messages.app.ui.home
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.messages.app.ui.common.LoadState
 import com.messages.app.ui.search.SavedSearches
 import com.messages.core.MessageRepository
 import com.messages.core.db.ConversationEntity
+import com.messages.core.db.Spaces
 import com.messages.core.search.MessageSearch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -27,18 +34,34 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     val folder = MutableStateFlow("INBOX")
 
     /**
+     * V2-43. Bumping this restarts every cached conversation flow — what the
+     * "Try again" button on the failure state is wired to.
+     *
+     * A Room flow that throws is *terminated*: `catch` can turn it into a
+     * `Failed` value but cannot resume it, so retry has to mean "collect the
+     * query again", which is what `flatMapLatest` over this tick does.
+     */
+    private val reload = MutableStateFlow(0)
+
+    fun retry() { reload.value += 1 }
+
+    /**
      * Per-folder conversation flows, cached so the animated folder switch can
      * render the outgoing and incoming folder simultaneously with each one's
-     * own data. `null` = not yet loaded (UI shows nothing rather than
-     * flashing an empty state).
+     * own data.
+     *
+     * V2-43: these used to be `List<ConversationEntity>?` with `null` meaning
+     * "not loaded yet", and the screen rendered nothing for it. A nullable list
+     * has no room for the fourth outcome — a query that *failed* — so a broken
+     * read was indistinguishable from a slow one, and the screen stayed blank
+     * for good. [LoadState] gives the failure somewhere to go.
      */
-    private val conversationCache = HashMap<String, StateFlow<List<ConversationEntity>?>>()
+    private val conversationCache =
+        HashMap<String, StateFlow<LoadState<List<ConversationEntity>>>>()
 
-    fun conversationsFor(category: String): StateFlow<List<ConversationEntity>?> =
+    fun conversationsFor(category: String): StateFlow<LoadState<List<ConversationEntity>>> =
         conversationCache.getOrPut(category) {
-            repo.db.conversations().byCategory(category)
-                .map<List<ConversationEntity>, List<ConversationEntity>?> { it }
-                .stateIn(viewModelScope, SharingStarted.Lazily, null)
+            loadStateOf { repo.db.conversations().byCategory(category) }
         }
 
     /**
@@ -49,14 +72,39 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
      * counted message-level read=0 rows (backfilled history and
      * mark-as-unread disagree between those two by design).
      */
-    private val unreadConversationCache = HashMap<String, StateFlow<List<ConversationEntity>?>>()
+    private val unreadConversationCache =
+        HashMap<String, StateFlow<LoadState<List<ConversationEntity>>>>()
 
-    fun unreadConversationsFor(category: String): StateFlow<List<ConversationEntity>?> =
+    fun unreadConversationsFor(category: String): StateFlow<LoadState<List<ConversationEntity>>> =
         unreadConversationCache.getOrPut(category) {
-            repo.db.conversations().byCategoryUnread(category)
-                .map<List<ConversationEntity>, List<ConversationEntity>?> { it }
-                .stateIn(viewModelScope, SharingStarted.Lazily, null)
+            loadStateOf { repo.db.conversations().byCategoryUnread(category) }
         }
+
+    /**
+     * Wraps a DAO flow as a restartable [LoadState] flow.
+     *
+     * `onStart` re-emits `Loading` on every restart so a retry does not leave
+     * the previous failure on screen while the new query runs. The `catch`
+     * keeps the exception off `viewModelScope` — an uncaught one there cancels
+     * the scope, taking every *other* folder's flow down with it and leaving
+     * the whole screen dead with no error anywhere.
+     */
+    private fun loadStateOf(
+        query: () -> kotlinx.coroutines.flow.Flow<List<ConversationEntity>>,
+    ): StateFlow<LoadState<List<ConversationEntity>>> =
+        reload
+            .flatMapLatest {
+                query()
+                    .map<List<ConversationEntity>, LoadState<List<ConversationEntity>>> {
+                        LoadState.Ready(it)
+                    }
+                    .onStart { emit(LoadState.Loading) }
+                    .catch { t ->
+                        android.util.Log.e("HomeViewModel", "conversation query failed", t)
+                        emit(LoadState.Failed(t::class.java.simpleName))
+                    }
+            }
+            .stateIn(viewModelScope, SharingStarted.Lazily, LoadState.Loading)
 
     /** Folder-chip badge: conversations with an unread badge (NOT unread
      *  message rows — same predicate as the row badges and the filter). */
@@ -69,24 +117,36 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             .map { list -> list.associateBy { it.threadId } }
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
+    /**
+     * V2-48: how many outgoing messages have not finished. Home shows this on
+     * the Outbox entry so a scheduled or failed send is discoverable without
+     * opening the screen to find out — the failure mode the finding described
+     * was precisely that nobody knew to look.
+     */
+    val outboxCount: StateFlow<Int> = repo.outboxCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     fun setFolder(f: String) { folder.value = f }
 
+    // V2-24: Home only ever lists the normal space (every query it feeds from
+    // is NORMAL-scoped), so it names that space rather than leaning on a
+    // default that would follow the caller anywhere.
     fun togglePin(threadId: Long, pinned: Boolean) = viewModelScope.launch {
-        repo.db.conversations().setPinned(threadId, pinned)
+        repo.db.conversations().setPinned(threadId, pinned, Spaces.NORMAL)
     }
 
     fun archive(threadId: Long) = viewModelScope.launch {
-        repo.db.conversations().setArchived(threadId, true)
+        repo.db.conversations().setArchived(threadId, true, Spaces.NORMAL)
     }
 
     // ---- Swipe actions (§8.2) + undo ----
 
     fun unarchive(threadId: Long) = viewModelScope.launch {
-        repo.db.conversations().setArchived(threadId, false)
+        repo.db.conversations().setArchived(threadId, false, Spaces.NORMAL)
     }
 
     fun trashThread(threadId: Long) = viewModelScope.launch {
-        repo.moveThreadToTrash(threadId)
+        repo.moveThreadToTrash(threadId, Spaces.NORMAL)
     }
 
     /** Undo for swipe-delete: restore messages trashed at/after [trashedAfter]. */
@@ -95,13 +155,13 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun markThreadRead(threadId: Long) = viewModelScope.launch {
-        repo.db.messages().markThreadRead(threadId)
-        repo.db.conversations().clearUnread(threadId)
+        repo.db.messages().markThreadRead(threadId, Spaces.NORMAL)
+        repo.db.conversations().clearUnread(threadId, Spaces.NORMAL)
     }
 
     /** Phase 4 item 13: UI-level unread marker (rows stay read, badge returns). */
     fun markThreadUnread(threadId: Long) = viewModelScope.launch {
-        repo.db.conversations().markUnread(threadId)
+        repo.db.conversations().markUnread(threadId, Spaces.NORMAL)
     }
 
     /** Phase 4 item 12: mark the whole current folder read. */
@@ -131,7 +191,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     /** Bulk trash for multi-select; returns the cut timestamp for undo. */
     fun trashThreads(ids: Set<Long>): Long {
         val at = System.currentTimeMillis()
-        viewModelScope.launch { ids.forEach { repo.moveThreadToTrash(it) } }
+        viewModelScope.launch { ids.forEach { repo.moveThreadToTrash(it, Spaces.NORMAL) } }
         return at
     }
 
@@ -141,21 +201,21 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun markThreadsRead(ids: Set<Long>) = viewModelScope.launch {
         ids.forEach {
-            repo.db.messages().markThreadRead(it)
-            repo.db.conversations().clearUnread(it)
+            repo.db.messages().markThreadRead(it, Spaces.NORMAL)
+            repo.db.conversations().clearUnread(it, Spaces.NORMAL)
         }
     }
 
     fun markThreadsUnread(ids: Set<Long>) = viewModelScope.launch {
-        ids.forEach { repo.db.conversations().markUnread(it) }
+        ids.forEach { repo.db.conversations().markUnread(it, Spaces.NORMAL) }
     }
 
     fun archiveThreads(ids: Set<Long>) = viewModelScope.launch {
-        ids.forEach { repo.db.conversations().setArchived(it, true) }
+        ids.forEach { repo.db.conversations().setArchived(it, true, Spaces.NORMAL) }
     }
 
     fun toggleMute(threadId: Long, muted: Boolean) = viewModelScope.launch {
-        repo.db.conversations().setMuted(threadId, muted)
+        repo.db.conversations().setMuted(threadId, muted, Spaces.NORMAL)
     }
 
     // ---- §8.5 incremental multi-keyword search ----
@@ -185,12 +245,20 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         val conversationMatches: List<ConversationEntity> = emptyList(),
     )
 
-    private val nameCache = HashMap<String, String?>()
-
     // ~200 ms debounce on the typed token only; chip edits and label changes
     // re-query immediately (they are deliberate taps, not keystrokes).
     private val debouncedTyping = typing.debounce(200)
 
+    /**
+     * V2-28: this whole pipeline used to run on the collector's dispatcher —
+     * the main thread — including up to 200 `PhoneLookup` provider queries, one
+     * per result row, per keystroke-driven re-query. Two changes fix that: the
+     * upstream is now confined to IO with [flowOn], and the per-row lookup is a
+     * single batched, process-wide-cached resolution over the handful of
+     * distinct addresses a result set actually contains. `mapLatest` already
+     * cancelled the obsolete search; it now cancels it before it can spend
+     * anything on the provider.
+     */
     val searchState: StateFlow<SearchState> =
         combine(chips, debouncedTyping, labelFilter) { c, t, l -> Triple(c, t, l) }
             .mapLatest { (chipList, typed, label) ->
@@ -207,15 +275,17 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                     repo.db.conversations().searchByNameOrAddress(k)
                         .forEach { convMatches.putIfAbsent(it.threadId, it) }
                 }
+                val shown = filtered.take(200)
+                // One resolution pass over the distinct addresses in the page,
+                // not one query per row.
+                val names = repo.displayNamesFor(shown.map { it.message.address })
                 SearchState(
                     activeKeywords = keywords,
                     conversationMatches = convMatches.values.toList(),
-                    results = filtered.take(200).map { r ->
+                    results = shown.map { r ->
                         SearchRowUi(
                             message = r.message,
-                            displayName = nameCache.getOrPut(r.message.address) {
-                                repo.displayNameFor(r.message.address)
-                            },
+                            displayName = names[r.message.address],
                             matchedKeywords = r.matchedKeywords,
                             matchCount = r.matchedKeywords.size,
                         )
@@ -223,6 +293,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                     suggestedChips = repo.search.suggestedChips(filtered, keywords),
                 )
             }
+            .flowOn(Dispatchers.IO)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchState())
 
     fun setTyping(text: String) {

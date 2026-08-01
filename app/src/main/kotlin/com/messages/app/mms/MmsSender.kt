@@ -112,19 +112,24 @@ object MmsSender {
             // Group MMS is one PDU addressed to every recipient (§8.1).
             val pdu = MmsPduBuilder.buildSendReq(repo.recipientsOf(address), parts, transactionId)
 
-            val dir = File(context.cacheDir, "mms").apply { mkdirs() }
-            val file = File(dir, "send_${entity.id}.pdu")
+            val dir = MmsTransactions.pduDir(context).apply { mkdirs() }
+            val pduName = "send_${entity.id}.pdu"
+            val file = File(dir, pduName)
             file.writeBytes(pdu)
             val contentUri = FileProvider.getUriForFile(
                 context, "${context.packageName}.fileprovider", file,
             )
+            // #15: the callback carries an opaque one-shot token and nothing
+            // else. The message id, the PDU name and the granted URI stay on
+            // our side of the handoff — a mutable result extra must never be
+            // what tells a receiver which file to delete.
+            val token = MmsTransactions.register(
+                context, pduName, contentUri, messageId = entity.id,
+            )
             val pi = PendingIntent.getBroadcast(
                 context, entity.id.toInt(),
                 Intent(context, MmsSentReceiver::class.java)
-                    .putExtra("messageId", entity.id)
-                    .putExtra("filePath", file.absolutePath)
-                    // R-17: so the receiver can revoke the grants it no longer needs.
-                    .putExtra("contentUri", contentUri.toString()),
+                    .putExtra(MmsTransactions.EXTRA_TOKEN, token),
                 // MUTABLE: the platform appends EXTRA_MMS_HTTP_STATUS to the result
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )

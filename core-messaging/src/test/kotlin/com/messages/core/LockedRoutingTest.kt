@@ -28,7 +28,16 @@ import org.robolectric.annotation.Config
 class LockedRoutingTest {
 
     @org.junit.Before
-    fun freshSingleton() = MessageRepository.resetForTests()
+    fun freshSingleton() {
+        MessageRepository.resetForTests()
+        // V2-6: the real key box fails closed under Robolectric, which would
+        // make every locked row here fall back to plaintext and quietly stop
+        // this test from covering encryption at all.
+        com.messages.core.secret.TestKeyBox.install()
+    }
+
+    @org.junit.After
+    fun restoreKeyBox() = com.messages.core.secret.TestKeyBox.uninstall()
 
     @Test
     fun `incoming messages route to the locked conversation once it exists`() = runTest {
@@ -59,9 +68,17 @@ class LockedRoutingTest {
         assertTrue("see you at 8" !in normalBodies)
         assertEquals("hey, lunch tomorrow?", db.conversations().byThreadId(threadId)!!.lastMessage)
         assertTrue(db.messages().search("see you at 8").isEmpty())
-        // The locked conversation carries it (summary + unread).
+        // The locked conversation carries it (summary + unread) — sealed at
+        // rest, so the stored preview is ciphertext and only opens on read.
         val lockedConv = db.conversations().byThreadId(threadId, Spaces.LOCKED)!!
-        assertEquals("see you at 8", lockedConv.lastMessage)
+        assertTrue(
+            "the locked preview must not sit in the clear in the conversation row",
+            com.messages.core.secret.LockedContent.isSealed(lockedConv.lastMessage),
+        )
+        assertEquals(
+            "see you at 8",
+            com.messages.core.secret.LockedContent.open(context, lockedConv).lastMessage,
+        )
         assertEquals(1, lockedConv.unreadCount)
 
         // 4) Classifier still runs: obvious scam text from the locked address

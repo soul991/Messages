@@ -44,8 +44,15 @@ error 10 (`DEVELOPER_ERROR`).
 
 Settings → Google Drive backup → *Choose Google account*. The account chooser
 should appear and complete without error. Then tap *Back up now* — no backup
-password is needed: the Google account is the access control (the encryption
-master key lives in a key file in the same app-private Drive area).
+password is needed by default: the Google account is the access control (the
+encryption master key lives in a key file in the same app-private Drive area).
+
+To exercise the opt-in mode, use *Backup key protection → Protect with a code*.
+Enabling it seals the same master key into `messages-backup-key-vault.json`,
+re-downloads and test-opens that object, and only then deletes
+`messages-backup-key.bin`. A useful device check: after enabling, clear the
+app's data (which drops the local Keystore cache) and confirm the settings
+screen now offers *Enter recovery code* rather than backing up silently.
 
 Troubleshooting:
 - **Error 10 / DEVELOPER_ERROR** — package name or SHA-1 mismatch (wrong
@@ -74,6 +81,14 @@ app-private `appDataFolder` — signing in to the Google account IS the access
 control, WhatsApp-style. Legacy snapshots made under the earlier mandatory
 password model (`password` wrap, PBKDF2-HMAC-SHA256 600k iterations) are
 detected by their header and still prompt for that password on restore.
+
+**Note where the user-held wrap sits (V2-5 / V2-46).** It is a layer *above*
+this, not another entry in `wrappedKeys[]`: `MasterKeyVault` seals the master
+key itself, so the snapshot format is untouched and every existing snapshot
+stays readable when custody changes. That is also what makes rotation cheap —
+reseal one small object, re-encrypt nothing. A passkey PRF secret, once the RP
+domain above exists, drops in as a third `method` on the vault rather than as a
+fourth snapshot wrap.
 
 Restore UX: "Restore" lists the kept snapshots (the last 2). With one
 snapshot it goes straight to the confirm dialog; with two, a chooser shows

@@ -8,30 +8,33 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * V2-36. Asserts on [DriveSignInError.reason] — the technical code that goes
+ * into the message — rather than the sentence around it. The sentence now
+ * comes from the resource table, so an assertion on it would only be checking
+ * the English copy.
+ */
 class DriveSignInErrorTest {
 
     @Test
     fun `user cancelling the picker is reported as cancelled, not silently dropped`() {
         val e = ApiException(Status(GoogleSignInStatusCodes.SIGN_IN_CANCELLED))
-        assertTrue(DriveSignInError.describe(e).contains("cancel", ignoreCase = true))
+        assertTrue(DriveSignInError.reason(e).contains("cancel", ignoreCase = true))
     }
 
     @Test
     fun `developer error names the OAuth client misconfiguration`() {
         val e = ApiException(Status(CommonStatusCodes.DEVELOPER_ERROR))
-        assertTrue(DriveSignInError.describe(e).contains("DEVELOPER_ERROR"))
+        assertTrue(DriveSignInError.reason(e).contains("DEVELOPER_ERROR"))
     }
 
     @Test
     fun `non-api exceptions fall back to their own message`() {
-        assertEquals("Sign-in failed: boom", DriveSignInError.describe(RuntimeException("boom")))
+        assertEquals("boom", DriveSignInError.reason(RuntimeException("boom")))
     }
 
     @Test
     fun `exceptions without a message fall back to the class name`() {
-        assertEquals(
-            "Sign-in failed: NumberFormatException",
-            DriveSignInError.describe(NumberFormatException()),
-        )
+        assertEquals("NumberFormatException", DriveSignInError.reason(NumberFormatException()))
     }
 }

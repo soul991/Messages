@@ -13,11 +13,13 @@ import java.io.File
  *    ([SecretCrypto]).
  *  - The backup KEK (also credential-derived, separate salt) IS cached
  *    locally, Android-Keystore-encrypted, so scheduled backups can seal the
- *    locked sub-envelope without prompting. This does not weaken the on-device
- *    model: the locked rows live in plaintext in the app-private Room index
- *    anyway (the space gates the UI; the app sandbox + FLAG_SECURE gate the
- *    device). What the KEK protects is the BACKUP on Drive/disk — and there
- *    it never travels; only the credential unlocks a restored envelope.
+ *    locked sub-envelope without prompting. What the KEK protects is the
+ *    BACKUP on Drive/disk — and there it never travels; only the credential
+ *    unlocks a restored envelope. On-device, the row text is protected
+ *    separately by [LockedContent] under its own Keystore-wrapped content key,
+ *    so caching the KEK does not expose message content: an attacker who
+ *    recovers the cached KEK gets the ability to open backups, not the local
+ *    rows, and neither key survives leaving the device.
  *  - No recovery path: there is deliberately no way to reset the credential
  *    without knowing it.
  */
@@ -45,6 +47,7 @@ object SecretSpace {
     private const val K_FAIL_COUNT = "fail_count"
     private const val K_LAST_FAIL = "last_fail_at"
     private const val K_NOTIFY = "notify_mode"
+    private const val K_WEAK = "credential_weak" // V2-7 nudge; never the credential itself
     private const val K_PENDING = "pending_restore" // carried auth of a not-yet-unlocked restore
     private const val PENDING_BLOB = "secret_pending.mbk"
 
@@ -94,8 +97,28 @@ object SecretSpace {
             .apply { if (wrapped != null) putString(K_KEK_LOCAL, wrapped) else remove(K_KEK_LOCAL) }
             .putInt(K_FAIL_COUNT, 0)
             .putLong(K_LAST_FAIL, 0L)
+            .putBoolean(K_WEAK, SecretCrypto.setupError(kind, credential) != null)
             .apply()
     }
+
+    /**
+     * V2-7: does the stored credential fall below the *current* setup floors?
+     *
+     * Set from the credential itself — at setup, and again on every successful
+     * [attempt], which is the only other moment the credential is in hand. Only
+     * this boolean is persisted; nothing about the credential's length, kind, or
+     * content is written anywhere, so the flag adds no offline-attack signal
+     * beyond what the verifier already carries.
+     *
+     * This drives a one-line nudge in settings. It deliberately does NOT gate
+     * entry, expire the credential, or force a change: NIST SP 800-63B-4
+     * prohibits forced rotation without evidence of compromise, and locking
+     * someone out of their own messages over a policy change would be a far
+     * worse outcome than the weak credential. Defaults to false, so a space set
+     * up by an older build stays quiet until its owner next unlocks it.
+     */
+    fun isCredentialWeak(context: Context): Boolean =
+        prefs(context).getBoolean(K_WEAK, false)
 
     /**
      * Keystore-wrap the KEK, or null when the Keystore refuses (R-18). Never
@@ -155,6 +178,12 @@ object SecretSpace {
                     }
                     .apply()
             }
+            // V2-7: re-judge strength against today's floors. This runs after
+            // adoptPendingAuth so a restored space is judged by its own kind,
+            // not the default. Only the boolean verdict is stored.
+            p.edit()
+                .putBoolean(K_WEAK, SecretCrypto.setupError(kind(context), credential) != null)
+                .apply()
             Attempt.Success
         } else {
             val fails = p.getInt(K_FAIL_COUNT, 0) + 1

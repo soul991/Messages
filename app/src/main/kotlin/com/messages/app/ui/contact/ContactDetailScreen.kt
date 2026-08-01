@@ -43,7 +43,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +69,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 
 class ContactDetailViewModel(
     app: Application,
@@ -117,8 +119,11 @@ class ContactDetailViewModel(
         }
     }
 
+    // V2-24: this screen is normal-space only — the locked-space chat route
+    // leaves `onOpenContact` at its no-op default, so there is no way in from
+    // the vault. Naming NORMAL keeps that true if a route is ever added.
     fun setMuted(mute: Boolean) = viewModelScope.launch {
-        repo.db.conversations().setMuted(threadId, mute)
+        repo.db.conversations().setMuted(threadId, mute, com.messages.core.db.Spaces.NORMAL)
         muted.value = mute
     }
 
@@ -197,14 +202,14 @@ fun ContactDetailScreen(
     val vm: ContactDetailViewModel = viewModel(
         factory = ContactDetailViewModelFactory(context.applicationContext as Application, threadId)
     )
-    val address by vm.address.collectAsState()
-    val contactName by vm.contactName.collectAsState()
-    val category by vm.category.collectAsState()
-    val muted by vm.muted.collectAsState()
-    val locked by vm.locked.collectAsState()
-    val blocked by vm.blocked.collectAsState()
-    val lookupKey by vm.contactLookupKey.collectAsState()
-    val hasCustomChannel by vm.hasCustomChannel.collectAsState()
+    val address by vm.address.collectAsStateWithLifecycle()
+    val contactName by vm.contactName.collectAsStateWithLifecycle()
+    val category by vm.category.collectAsStateWithLifecycle()
+    val muted by vm.muted.collectAsStateWithLifecycle()
+    val locked by vm.locked.collectAsStateWithLifecycle()
+    val blocked by vm.blocked.collectAsStateWithLifecycle()
+    val lookupKey by vm.contactLookupKey.collectAsStateWithLifecycle()
+    val hasCustomChannel by vm.hasCustomChannel.collectAsStateWithLifecycle()
 
     val isGroup = address.contains(';')
     val saved = lookupKey != null
@@ -215,7 +220,7 @@ fun ContactDetailScreen(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -239,7 +244,7 @@ fun ContactDetailScreen(
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                contactName ?: address.ifBlank { "Conversation" },
+                contactName ?: address.ifBlank { stringResource(R.string.contact_unnamed) },
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp),
@@ -260,14 +265,14 @@ fun ContactDetailScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 HeroAction(
                     icon = Icons.AutoMirrored.Outlined.Chat,
-                    label = "Message",
+                    label = stringResource(R.string.contact_action_message),
                     onClick = onMessage,
                 )
                 // Numeric senders can be called; alphanumeric headers can't.
                 if (!isGroup && address.any { it.isDigit() } && address.none { it.isLetter() }) {
                     HeroAction(
                         icon = Icons.Outlined.Call,
-                        label = "Call",
+                        label = stringResource(R.string.contact_action_call),
                         onClick = {
                             runCatching {
                                 context.startActivity(
@@ -281,7 +286,7 @@ fun ContactDetailScreen(
                     if (saved) {
                         HeroAction(
                             icon = Icons.Outlined.Person,
-                            label = "Contact",
+                            label = stringResource(R.string.contact_action_open_contact),
                             onClick = {
                                 runCatching {
                                     val uri = Uri.withAppendedPath(
@@ -294,7 +299,7 @@ fun ContactDetailScreen(
                     } else {
                         HeroAction(
                             icon = Icons.Outlined.PersonAddAlt,
-                            label = "Save",
+                            label = stringResource(R.string.contact_action_save),
                             onClick = {
                                 runCatching {
                                     context.startActivity(
@@ -314,14 +319,14 @@ fun ContactDetailScreen(
             // ---- Feature rows (REFS §6b: colored-icon rows) ----
             DetailRow(
                 icon = Icons.Outlined.StarOutline,
-                title = "Starred messages",
-                subtitle = "Messages you starred in this conversation.",
+                title = stringResource(R.string.starred_title),
+                subtitle = stringResource(R.string.contact_starred_subtitle),
                 onClick = onOpenStarred,
             )
             DetailRow(
                 icon = Icons.Outlined.Search,
-                title = "Search in conversation",
-                subtitle = "Find a message in this chat.",
+                title = stringResource(R.string.contact_search_title),
+                subtitle = stringResource(R.string.contact_search_subtitle),
                 onClick = onSearchInChat,
             )
 
@@ -329,8 +334,8 @@ fun ContactDetailScreen(
 
             DetailRow(
                 icon = Icons.Outlined.NotificationsOff,
-                title = "Mute notifications",
-                subtitle = "No alerts for this conversation.",
+                title = stringResource(R.string.contact_mute_title),
+                subtitle = stringResource(R.string.contact_mute_subtitle),
                 onClick = { vm.setMuted(!muted) },
                 trailing = { Switch(checked = muted, onCheckedChange = { vm.setMuted(it) }) },
             )
@@ -340,9 +345,8 @@ fun ContactDetailScreen(
             // their auth gate until the first secret-space setup migrates them.
             DetailRow(
                 icon = Icons.Outlined.Lock,
-                title = "Lock chat",
-                subtitle = "Use \"Lock chat\" in the conversation's ⋮ menu to move it " +
-                    "into your locked chats.",
+                title = stringResource(R.string.contact_lock_title),
+                subtitle = stringResource(R.string.contact_lock_subtitle),
                 onClick = {},
             )
 
@@ -352,9 +356,12 @@ fun ContactDetailScreen(
             if (!locked) {
                 DetailRow(
                     icon = Icons.Outlined.MusicNote,
-                    title = "Notification sound & style",
-                    subtitle = if (hasCustomChannel) "Customized for this conversation."
-                    else "Pick a custom sound just for this conversation.",
+                    title = stringResource(R.string.contact_tone_title),
+                    subtitle = if (hasCustomChannel) {
+                        stringResource(R.string.contact_tone_subtitle_custom)
+                    } else {
+                        stringResource(R.string.contact_tone_subtitle_default)
+                    },
                     onClick = {
                         val channelId = vm.ensureCustomChannel()
                         runCatching {
@@ -376,7 +383,7 @@ fun ContactDetailScreen(
                             .padding(start = 76.dp, end = 20.dp, top = 2.dp, bottom = 10.dp),
                     ) {
                         Text(
-                            "Reset to default notifications",
+                            stringResource(R.string.contact_tone_reset),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -388,9 +395,10 @@ fun ContactDetailScreen(
 
             DetailRow(
                 icon = Icons.Outlined.Block,
-                title = if (blocked) "Unblock sender" else "Block sender",
-                subtitle = if (blocked) "Messages will arrive normally again."
-                else "Future messages land in Blocked, silently. Nothing is deleted.",
+                title = if (blocked) stringResource(R.string.contact_unblock_title)
+                else stringResource(R.string.contact_block_title),
+                subtitle = if (blocked) stringResource(R.string.contact_unblock_subtitle)
+                else stringResource(R.string.contact_block_subtitle),
                 onClick = { vm.setBlocked(!blocked) },
                 iconContainer = MaterialTheme.colorScheme.errorContainer,
                 iconTint = MaterialTheme.colorScheme.onErrorContainer,

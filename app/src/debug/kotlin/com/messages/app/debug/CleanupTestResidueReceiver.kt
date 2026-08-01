@@ -87,7 +87,7 @@ class CleanupTestResidueReceiver : BroadcastReceiver() {
                         ),
                     ).use { c -> c.moveToFirst(); c.getLong(0) }
                     if (remaining == 0L) {
-                        db.conversations().deleteByThreadId(threadId)
+                        db.conversations().deleteByThreadId(threadId, com.messages.core.db.Spaces.NORMAL)
                         android.util.Log.i(TAG, "thread=$threadId emptied, conversation row removed")
                     } else {
                         android.util.Log.i(TAG, "thread=$threadId keeps $remaining real rows")

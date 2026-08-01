@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import com.messages.app.MessagesApp
+import com.messages.app.R
 
 /**
  * Per-conversation notification channels (Phase 4 item 4). A channel is
@@ -35,7 +36,7 @@ object ConversationChannels {
             val channel = NotificationChannel(
                 id, displayName, NotificationManager.IMPORTANCE_HIGH,
             ).apply {
-                description = "Custom notifications for this conversation"
+                description = context.getString(R.string.notif_channel_conversation_desc)
                 if (Build.VERSION.SDK_INT >= 30) {
                     setConversationId(MessagesApp.CH_PERSONAL, id)
                 }

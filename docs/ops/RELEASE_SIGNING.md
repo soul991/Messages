@@ -25,6 +25,35 @@ keyAlias=messages
 keyPassword=<password>
 ```
 
+### File mode is enforced (V2-04)
+
+`keystore.properties` holds passwords in plaintext, so the build **refuses to
+read it** unless it is owner-only:
+
+```bash
+chmod 600 keystore.properties
+```
+
+A group- or world-readable file fails configuration with an actionable message
+rather than quietly handing your signing password to every account on the box.
+
+### Preferred on CI and shared machines: environment variables
+
+The build reads the environment **first** and only falls back to the file. When
+all four are set, no plaintext credentials file needs to exist at all:
+
+| Variable | Maps to |
+|---|---|
+| `MESSAGES_STOREFILE` | `storeFile` |
+| `MESSAGES_STOREPASSWORD` | `storePassword` |
+| `MESSAGES_KEYALIAS` | `keyAlias` |
+| `MESSAGES_KEYPASSWORD` | `keyPassword` |
+
+All four must be non-blank or the build falls back to the file. With
+`-PrequireSigning=true` the build also verifies the keystore actually exists at
+`storeFile` before starting, so a dangling path fails immediately with a clear
+message instead of deep inside AGP.
+
 ## Certificate identity
 
 The signing identity — not the password — is what Android enforces on update.

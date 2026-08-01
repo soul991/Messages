@@ -141,20 +141,29 @@ class MessageNotifier(private val context: Context) {
         conversationLocked: Boolean,
     ) {
         // Locked conversations hide the sender too; hide-previews keeps it.
-        val title = if (conversationLocked) "Messages" else (contactName ?: message.address)
+        val title = if (conversationLocked) context.getString(R.string.app_name)
+        else (contactName ?: message.address)
+        // V2-31: every PendingIntent below carries a per-(thread, action) data
+        // URI. `Intent.filterEquals` ignores extras, so without it two threads'
+        // action intents are the same intent, and a request-code collision
+        // hands one conversation an action carrying the other's threadId.
         val openIntent = PendingIntent.getActivity(
-            context, message.threadId.toInt(),
+            context, NotificationIds.requestCode(message.threadId, "open"),
             Intent(context, MainActivity::class.java).apply {
                 putExtra("threadId", message.threadId)
+                data = android.net.Uri.parse(NotificationIds.actionUri(message.threadId, "open"))
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val markRead = PendingIntent.getBroadcast(
-            context, (message.threadId * 10 + 1).toInt(),
+            context, NotificationIds.requestCode(message.threadId, "mark_read"),
             Intent(context, NotificationActionReceiver::class.java).apply {
                 putExtra("action", "mark_read")
                 putExtra("threadId", message.threadId)
+                data = android.net.Uri.parse(
+                    NotificationIds.actionUri(message.threadId, "mark_read")
+                )
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -165,12 +174,12 @@ class MessageNotifier(private val context: Context) {
             if (!conversationLocked) contactPhotoIcon(message.address)?.let { setIcon(it) }
         }.build()
         val text = when {
-            hidden -> "New message"
+            hidden -> context.getString(R.string.notif_new_message)
             verdict.fraudWarningBanner ->
-                "⚠️ Caution: contains a suspicious link — ${message.body}"
+                context.getString(R.string.notif_suspicious_link, message.body)
             else -> message.body
         }
-        val style = NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
+        val style = NotificationCompat.MessagingStyle(Person.Builder().setName(context.getString(R.string.notif_you)).build())
             .addMessage(text, message.timestamp, person)
 
         // Conversation shortcut (§8.2): anchor for launcher shortcuts,
@@ -218,7 +227,7 @@ class MessageNotifier(private val context: Context) {
             .setContentIntent(openIntent)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .addAction(0, "Mark as read", markRead)
+            .addAction(0, context.getString(R.string.notif_mark_as_read), markRead)
 
         // MessagingStyle renders its own sender line, which would override the
         // hero title — hero notifications use BigTextStyle instead (the body
@@ -232,15 +241,18 @@ class MessageNotifier(private val context: Context) {
         // One-tap OTP copy on the notification itself (Phase 4 item 1).
         if (otpCode != null) {
             val copyOtp = PendingIntent.getBroadcast(
-                context, (message.threadId * 10 + 2).toInt(),
+                context, NotificationIds.requestCode(message.threadId, "copy_otp"),
                 Intent(context, NotificationActionReceiver::class.java).apply {
                     putExtra("action", "copy_otp")
                     putExtra("threadId", message.threadId)
                     putExtra("otp", otpCode)
+                    data = android.net.Uri.parse(
+                        NotificationIds.actionUri(message.threadId, "copy_otp")
+                    )
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            builder.addAction(0, "Copy $otpCode", copyOtp)
+            builder.addAction(0, context.getString(R.string.notif_copy_otp, otpCode), copyOtp)
         }
 
         // Inline reply (Phase 4 item 2): only for senders that can actually
@@ -250,18 +262,21 @@ class MessageNotifier(private val context: Context) {
         val replyable = !conversationLocked &&
             message.address.split(';').all { it.isNotBlank() && SenderAnalyzer.canReceiveReplies(it) }
         if (replyable) {
-            val remoteInput = RemoteInput.Builder(KEY_REPLY).setLabel("Reply").build()
+            val remoteInput = RemoteInput.Builder(KEY_REPLY).setLabel(context.getString(R.string.notif_reply)).build()
             val replyIntent = PendingIntent.getBroadcast(
-                context, (message.threadId * 10 + 3).toInt(),
+                context, NotificationIds.requestCode(message.threadId, "reply"),
                 Intent(context, NotificationActionReceiver::class.java).apply {
                     putExtra("action", "reply")
                     putExtra("threadId", message.threadId)
+                    data = android.net.Uri.parse(
+                        NotificationIds.actionUri(message.threadId, "reply")
+                    )
                 },
                 // RemoteInput results are appended by the system → must be mutable.
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )
             builder.addAction(
-                NotificationCompat.Action.Builder(0, "Reply", replyIntent)
+                NotificationCompat.Action.Builder(0, context.getString(R.string.notif_reply), replyIntent)
                     .addRemoteInput(remoteInput)
                     .setAllowGeneratedReplies(false)
                     .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
@@ -273,9 +288,9 @@ class MessageNotifier(private val context: Context) {
 
         when (badge) {
             com.messages.protection.SenderBadges.Badge.VERIFIED ->
-                builder.setSubText("Verified sender ✓")
+                builder.setSubText(context.getString(R.string.notif_verified_sender))
             com.messages.protection.SenderBadges.Badge.BUSINESS ->
-                builder.setSubText("Business")
+                builder.setSubText(context.getString(R.string.notif_business))
             null -> Unit
         }
 
@@ -283,11 +298,13 @@ class MessageNotifier(private val context: Context) {
         // on (a bubble would bypass the lock screen) and for locked chats.
         if (Build.VERSION.SDK_INT >= 30 && shortcutId != null && !AppLock.isEnabled(context)) {
             val bubbleIntent = PendingIntent.getActivity(
-                context, message.threadId.toInt(),
+                context, NotificationIds.requestCode(message.threadId, "bubble"),
                 Intent(context, BubbleActivity::class.java).apply {
                     putExtra("threadId", message.threadId)
                     // Distinct data URI so PendingIntents don't collide across threads.
-                    data = android.net.Uri.parse("messages://bubble/${message.threadId}")
+                    data = android.net.Uri.parse(
+                        NotificationIds.actionUri(message.threadId, "bubble")
+                    )
                 },
                 // Bubble intents must be mutable (the system adds bubble extras).
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
@@ -300,7 +317,15 @@ class MessageNotifier(private val context: Context) {
                 .build()
         }
 
-        NotificationManagerCompat.from(context).notify(message.threadId.toInt(), builder.build())
+        // V2-31: tag carries the whole 64-bit thread id; the id is a per-kind
+        // constant. `(tag, id)` is the platform's identity pair, so two threads
+        // can never share a notification and none of them can land on the
+        // fixed-id Review / locked-space notifications (which carry no tag).
+        NotificationManagerCompat.from(context).notify(
+            NotificationIds.threadTag(message.threadId),
+            NotificationIds.ID_MESSAGE,
+            builder.build(),
+        )
     }
 
     /**
@@ -314,27 +339,26 @@ class MessageNotifier(private val context: Context) {
         hidden: Boolean,
         conversationLocked: Boolean,
     ) {
-        val sender = if (conversationLocked) "a locked conversation"
+        val sender = if (conversationLocked) context.getString(R.string.notif_locked_sender)
         else contactName ?: message.address
         val openIntent = PendingIntent.getActivity(
-            context, (FRAUD_ID_BASE - message.threadId).toInt(),
+            context, NotificationIds.requestCode(message.threadId, "fraud"),
             Intent(context, MainActivity::class.java).apply {
                 putExtra("threadId", message.threadId)
+                data = android.net.Uri.parse(NotificationIds.actionUri(message.threadId, "fraud"))
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         // Advice-first copy (Phase 5): what to do leads, attribution follows.
         val body = if (hidden) {
-            "Don't tap links or share codes. A message was flagged as likely " +
-                "fraud and filed in Spam."
+            context.getString(R.string.notif_fraud_body_hidden)
         } else {
-            "Don't tap links, call back, or share OTPs, PINs, or card details. " +
-                "Likely fraud from $sender — filed in Spam."
+            context.getString(R.string.notif_fraud_body, sender)
         }
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_FRAUD)
             .setSmallIcon(R.drawable.ic_notif_fraud)
-            .setContentTitle("⚠️ Dangerous message blocked")
+            .setContentTitle(context.getString(R.string.notif_fraud_title))
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(openIntent)
@@ -344,8 +368,11 @@ class MessageNotifier(private val context: Context) {
             .setColor(0xFFD32F2F.toInt())
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-        NotificationManagerCompat.from(context)
-            .notify((FRAUD_ID_BASE - message.threadId).toInt(), builder.build())
+        NotificationManagerCompat.from(context).notify(
+            NotificationIds.threadTag(message.threadId),
+            NotificationIds.ID_FRAUD,
+            builder.build(),
+        )
     }
 
     /**
@@ -380,8 +407,8 @@ class MessageNotifier(private val context: Context) {
         )
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_PERSONAL)
             .setSmallIcon(R.drawable.ic_notif_message)
-            .setContentTitle("Messages")
-            .setContentText("New message")
+            .setContentTitle(context.getString(R.string.app_name))
+            .setContentText(context.getString(R.string.notif_new_message))
             .setContentIntent(openIntent)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
@@ -396,8 +423,8 @@ class MessageNotifier(private val context: Context) {
         )
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_REVIEW)
             .setSmallIcon(R.drawable.ic_notif_review)
-            .setContentTitle("Messages to review")
-            .setContentText("New messages are waiting in your Review folder")
+            .setContentTitle(context.getString(R.string.notif_review_batch_title))
+            .setContentText(context.getString(R.string.notif_review_batch_body))
             .setContentIntent(openIntent)
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
@@ -416,24 +443,28 @@ class MessageNotifier(private val context: Context) {
          *  Public: the Reset flow cancels it during the wipe. */
         const val LOCKED_SPACE_ID = -200
 
-        /** Fraud-warning ids live far below thread-id space (item 19). */
-        private const val FRAUD_ID_BASE = -1_000_000L
-
         /** RemoteInput result key for the inline reply action. */
         const val KEY_REPLY = "key_reply_text"
 
         /**
          * Cancel EVERY notification a thread can own (R-15).
          *
-         * The fraud warning uses its own id derived from [FRAUD_ID_BASE], so
-         * callers that cancelled only `threadId.toInt()` left the red banner on
-         * screen after the user marked the message as not spam. One API so no
-         * call site has to know the id scheme.
+         * The fraud warning is a second notification under the same tag, so
+         * callers that cancelled only the message left the red banner on screen
+         * after the user marked the message as not spam. One API so no call site
+         * has to know the id scheme.
+         *
+         * V2-31: the legacy numeric ids are cancelled too. Notifications posted
+         * by the previous version are on screen across the upgrade, and nothing
+         * else would ever clear them.
          */
         fun cancelThread(context: Context, threadId: Long) {
             NotificationManagerCompat.from(context).apply {
-                cancel(threadId.toInt())
-                cancel((FRAUD_ID_BASE - threadId).toInt())
+                val tag = NotificationIds.threadTag(threadId)
+                cancel(tag, NotificationIds.ID_MESSAGE)
+                cancel(tag, NotificationIds.ID_FRAUD)
+                cancel(NotificationIds.legacyMessageId(threadId))
+                cancel(NotificationIds.legacyFraudId(threadId))
             }
         }
     }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,8 +11,8 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🛡️ Protection"
-        android:textColor="#49454F"
+        android:text="@string/widget_protection_title"
+        android:textColor="@color/widget_text_secondary"
         android:textSize="12sp"
         android:textStyle="bold" />
 
@@ -20,8 +21,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="0"
-        android:textColor="#1C1B1F"
+        tools:text="12"
+        android:textColor="@color/widget_text_primary"
         android:textSize="32sp"
         android:textStyle="bold" />
 
@@ -29,8 +30,8 @@
         android:id="@+id/widget_subtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="spam blocked this week"
-        android:textColor="#49454F"
+        android:text="@string/widget_protection_subtitle"
+        android:textColor="@color/widget_text_secondary"
         android:textSize="11sp" />
 
     <TextView
@@ -38,7 +39,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:text=""
-        android:textColor="#79747E"
+        tools:text="1,204 silenced all-time"
+        android:textColor="@color/widget_text_tertiary"
         android:textSize="11sp" />
 </LinearLayout>

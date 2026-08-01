@@ -41,8 +41,15 @@ class TrashPurgeWorker(
 }
 
 object TrashRetention {
-    /** §6.4: trashed messages are restorable for 60 days, then purged. */
-    const val RETENTION_MS = 60L * 24 * 60 * 60 * 1000
+    /**
+     * §6.4: trashed messages are restorable for this long, then purged.
+     *
+     * V2-36: the Trash screen tells the user this number, so it is declared
+     * once and read from there. A retention window that changes in code but
+     * not in the sentence explaining it is worse than no sentence.
+     */
+    const val RETENTION_DAYS = 60
+    const val RETENTION_MS = RETENTION_DAYS * 24L * 60 * 60 * 1000
     const val WORK_NAME = "trash_purge"
 
     /** Always-on (unlike OTP cleanup) — idempotent app-start scheduling. */
@@ -55,7 +62,7 @@ object TrashRetention {
     }
 
     fun purgeCountdownDays(trashedAt: Long?, now: Long = System.currentTimeMillis()): Int {
-        if (trashedAt == null) return 60
+        if (trashedAt == null) return RETENTION_DAYS
         val left = trashedAt + RETENTION_MS - now
         return (left / (24L * 60 * 60 * 1000)).toInt().coerceAtLeast(0)
     }

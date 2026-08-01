@@ -144,8 +144,11 @@ object BackupCrypto {
     }
 
     /** Convenience: key-file master key → payload JSON. */
-    fun openWithMasterKey(blob: ByteArray, masterKey: ByteArray): String =
-        open(blob, unwrapWithMasterKey(readHeader(blob), masterKey))
+    fun openWithMasterKey(
+        blob: ByteArray,
+        masterKey: ByteArray,
+        maxExpanded: Int = MAX_EXPANDED,
+    ): String = open(blob, unwrapWithMasterKey(readHeader(blob), masterKey), maxExpanded)
 
     /**
      * Wrap [dataKey] under an ALREADY-DERIVED PBKDF2 key (the secret locked
@@ -271,6 +274,22 @@ object BackupCrypto {
      */
     fun readHeader(blob: ByteArray): Header = parseHeader(blob).first
 
+    /** Bytes needed by [looksLikeEnvelope]. */
+    const val MAGIC_BYTES = 4
+
+    /**
+     * V2-49: whether these leading bytes are an encrypted envelope rather than
+     * a plain JSON backup.
+     *
+     * A magic-number probe, not a validation: it exists so the import path can
+     * route a file to the right reader before committing to reading all of it.
+     * Answering true says nothing about whether the envelope is well-formed —
+     * [readHeader] decides that, and it is the code with the bounds.
+     */
+    fun looksLikeEnvelope(head: ByteArray): Boolean =
+        head.size >= MAGIC_BYTES &&
+            String(head, 0, MAGIC_BYTES, Charsets.US_ASCII) == MAGIC
+
     /** Header plus the exact bytes it was decoded from (needed as v2 AAD). */
     private fun parseHeader(blob: ByteArray): Pair<Header, ByteArray> {
         if (blob.size.toLong() > MAX_BLOB) throw MalformedBackupException("Backup is too large")
@@ -326,8 +345,17 @@ object BackupCrypto {
     private fun decodedSize(field: String): Int =
         runCatching { unb64(field).size }.getOrElse { -1 }
 
-    /** Decrypt a whole blob with an already-unwrapped data key. */
-    fun open(blob: ByteArray, dataKey: ByteArray): String {
+    /**
+     * Decrypt a whole blob with an already-unwrapped data key.
+     *
+     * V2-12: [maxExpanded] defaults to the structural ceiling, which is a
+     * multiple of what a phone's heap holds — opening produces the expanded
+     * bytes AND the String built from them, so the real cost is about three
+     * times this number. Restore paths pass a device-derived figure
+     * ([RestoreBudget.maxExpandedBytes]) so an over-large envelope is refused
+     * mid-decompression instead of after it.
+     */
+    fun open(blob: ByteArray, dataKey: ByteArray, maxExpanded: Int = MAX_EXPANDED): String {
         val (header, headerBytes) = parseHeader(blob)
         val offset = 8 + headerBytes.size
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -341,12 +369,18 @@ object BackupCrypto {
         // silently trusted. v1 envelopes carry no AAD and stay readable.
         if (header.formatVersion >= FORMAT_VERSION) cipher.updateAAD(headerBytes)
         val plain = cipher.doFinal(blob, offset, blob.size - offset)
-        return String(gunzipBounded(plain, MAX_EXPANDED), Charsets.UTF_8)
+        return String(
+            gunzipBounded(plain, maxExpanded.coerceIn(1, MAX_EXPANDED)),
+            Charsets.UTF_8,
+        )
     }
 
     /** Convenience: password → payload JSON. */
-    fun openWithPassword(blob: ByteArray, password: CharArray): String =
-        open(blob, unwrapWithPassword(readHeader(blob), password))
+    fun openWithPassword(
+        blob: ByteArray,
+        password: CharArray,
+        maxExpanded: Int = MAX_EXPANDED,
+    ): String = open(blob, unwrapWithPassword(readHeader(blob), password), maxExpanded)
 
     private fun deriveKek(password: CharArray, salt: ByteArray, iterations: Int): ByteArray {
         val spec = PBEKeySpec(password, salt, iterations, 256)

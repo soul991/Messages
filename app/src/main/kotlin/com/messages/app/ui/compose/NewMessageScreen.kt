@@ -38,7 +38,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.ui.common.ListSkeleton
+import com.messages.app.ui.common.rememberLoadingGrace
 import com.messages.core.MessageRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,60 +65,98 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 
 data class PickerContact(val name: String, val number: String, val label: String)
 
 class NewMessageViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repo = MessageRepository.get(app)
-    private val allContacts = MutableStateFlow<List<PickerContact>>(emptyList())
+
+    /**
+     * V2-42: was `List<PickerContact>` with `emptyList()` standing in for every
+     * way the read could go wrong. [ContactsLoad] gives the failures somewhere
+     * to go, so the screen can tell the user which one happened.
+     */
+    private val allContacts = MutableStateFlow<ContactsLoad>(ContactsLoad.Loading)
     val query = MutableStateFlow("")
 
-    val contacts: StateFlow<List<PickerContact>> =
-        combine(allContacts, query) { list, q ->
-            if (q.isBlank()) list
-            else {
-                val qDigits = q.filter { it.isDigit() || it == '+' }
-                list.filter { c ->
-                    c.name.contains(q, ignoreCase = true) ||
-                        (qDigits.length >= 3 &&
-                            c.number.filter { it.isDigit() || it == '+' }.contains(qDigits))
-                }
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val contacts: StateFlow<ContactsLoad> =
+        combine(allContacts, query) { state, q ->
+            // Filtering only ever narrows Ready; the other states have no rows
+            // and must survive the combine intact.
+            if (state is ContactsLoad.Ready) ContactsLoad.Ready(filterContacts(state.contacts, q))
+            else state
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ContactsLoad.Loading)
 
-    init {
-        viewModelScope.launch { allContacts.value = withContext(Dispatchers.IO) { loadContacts() } }
+    /** In flight, so a double-tap on "Try again" cannot stack two provider reads. */
+    private var loadJob: kotlinx.coroutines.Job? = null
+
+    init { refresh() }
+
+    /**
+     * (Re)read the address book. Called on open, from the failure state's retry,
+     * and after the permission is granted — the last one matters because the
+     * process is not restarted on a grant, so without it the picker would keep
+     * showing the denial it observed at launch.
+     */
+    fun refresh() {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            allContacts.value = ContactsLoad.Loading
+            allContacts.value = withContext(Dispatchers.IO) { loadContacts() }
+        }
     }
 
-    private fun loadContacts(): List<PickerContact> = try {
+    private fun loadContacts(): ContactsLoad {
         val ctx = getApplication<Application>()
-        ctx.contentResolver.query(
-            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-            arrayOf(
-                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                ContactsContract.CommonDataKinds.Phone.NUMBER,
-                ContactsContract.CommonDataKinds.Phone.TYPE,
-                ContactsContract.CommonDataKinds.Phone.LABEL,
-            ),
-            null, null,
-            "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} COLLATE NOCASE ASC",
-        )?.use { c ->
-            // Dedupe: the Phone table repeats a number per raw contact / account.
-            val seen = LinkedHashMap<String, PickerContact>()
-            while (c.moveToNext()) {
-                val name = c.getString(0) ?: continue
-                val number = c.getString(1) ?: continue
-                val label = ContactsContract.CommonDataKinds.Phone.getTypeLabel(
-                    ctx.resources, c.getInt(2), c.getString(3),
-                ).toString()
-                val key = name + "|" + number.filter { it.isDigit() || it == '+' }
-                if (key !in seen) seen[key] = PickerContact(name, number, label)
+        // Checked before querying rather than inferred from the result: a denied
+        // read and an empty address book are indistinguishable at the cursor.
+        if (ctx.checkSelfPermission(android.Manifest.permission.READ_CONTACTS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            return ContactsLoad.PermissionDenied
+        }
+        return try {
+            val cursor = ctx.contentResolver.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER,
+                    ContactsContract.CommonDataKinds.Phone.TYPE,
+                    ContactsContract.CommonDataKinds.Phone.LABEL,
+                ),
+                null, null,
+                "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} COLLATE NOCASE ASC",
+            // A null cursor is the package-visibility failure the manifest
+            // documents: the provider refuses silently, with the permission
+            // granted, and returns nothing rather than throwing. Reporting it
+            // as an empty address book is precisely the bug in this finding.
+            ) ?: return ContactsLoad.Failed("Contacts provider returned no cursor")
+            cursor.use { c ->
+                // Dedupe: the Phone table repeats a number per raw contact / account.
+                val seen = LinkedHashMap<String, PickerContact>()
+                while (c.moveToNext()) {
+                    val name = c.getString(0) ?: continue
+                    val number = c.getString(1) ?: continue
+                    val label = ContactsContract.CommonDataKinds.Phone.getTypeLabel(
+                        ctx.resources, c.getInt(2), c.getString(3),
+                    ).toString()
+                    val key = name + "|" + number.filter { it.isDigit() || it == '+' }
+                    if (key !in seen) seen[key] = PickerContact(name, number, label)
+                }
+                ContactsLoad.Ready(seen.values.toList())
             }
-            seen.values.toList()
-        } ?: emptyList()
-    } catch (_: Exception) {
-        emptyList()
+        } catch (_: SecurityException) {
+            // Revoked between the check above and the query, or an OEM provider
+            // enforcing its own gate. Same recovery as a plain denial.
+            ContactsLoad.PermissionDenied
+        } catch (t: Throwable) {
+            if (t is kotlinx.coroutines.CancellationException) throw t
+            android.util.Log.e("NewMessageViewModel", "contacts query failed", t)
+            ContactsLoad.Failed(t::class.java.simpleName)
+        }
     }
 
     /** Resolve (or create) the system thread for the picked recipient. When
@@ -169,9 +209,11 @@ fun NewMessageScreen(
     space: String = com.messages.core.db.Spaces.NORMAL,
     vm: NewMessageViewModel = viewModel(),
 ) {
-    val query by vm.query.collectAsState()
-    val contacts by vm.contacts.collectAsState()
-    val selected by vm.selected.collectAsState()
+    val query by vm.query.collectAsStateWithLifecycle()
+    val contactsLoad by vm.contacts.collectAsStateWithLifecycle()
+    val contacts = contactsLoad.rows()
+    val pastGrace = rememberLoadingGrace(contactsLoad is ContactsLoad.Loading)
+    val selected by vm.selected.collectAsStateWithLifecycle()
     var groupMode by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
@@ -188,17 +230,26 @@ fun NewMessageScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (groupMode) "New group (${selected.size})" else "New message") },
+                title = {
+                    Text(
+                        if (groupMode) {
+                            stringResource(R.string.compose_group_title, selected.size)
+                        } else {
+                            stringResource(R.string.compose_title)
+                        },
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     if (groupMode && selected.size >= 2) {
                         IconButton(onClick = { open(vm.groupAddress()) }) {
                             Icon(
-                                Icons.Filled.Check, contentDescription = "Start conversation",
+                                Icons.Filled.Check,
+                                contentDescription = stringResource(R.string.compose_start_conversation),
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         }
@@ -223,7 +274,8 @@ fun NewMessageScreen(
                             label = { Text(contact.name) },
                             trailingIcon = {
                                 Icon(
-                                    Icons.Filled.Close, contentDescription = "Remove",
+                                    Icons.Filled.Close,
+                                    contentDescription = stringResource(R.string.compose_remove_recipient),
                                     modifier = Modifier.size(16.dp),
                                 )
                             },
@@ -235,7 +287,7 @@ fun NewMessageScreen(
             TextField(
                 value = query,
                 onValueChange = { vm.query.value = it },
-                placeholder = { Text("To: name or number") },
+                placeholder = { Text(stringResource(R.string.compose_recipient_hint)) },
                 singleLine = true,
                 shape = CircleShape,
                 colors = TextFieldDefaults.colors(
@@ -269,19 +321,155 @@ fun NewMessageScreen(
                 items(contacts, key = { it.name + "|" + it.number }) { contact ->
                     ContactRow(contact, onClick = { pick(contact) })
                 }
-                if (contacts.isEmpty() && !isDialable(query)) {
-                    item {
-                        Text(
-                            if (query.isBlank()) "No contacts to show"
-                            else "No matches — type a number to message it directly",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.padding(20.dp),
+                // V2-42. Failure notices render whether or not the query is
+                // dialable — a broken address book is worth saying out loud —
+                // while the send-to-number row above keeps manual entry working
+                // through all of them.
+                val notice = contactsNotice(
+                    contactsLoad, query, contacts.size, pastGrace, isDialable(query),
+                )
+                when (notice) {
+                    ContactsNotice.NONE -> Unit
+                    ContactsNotice.LOADING -> item(key = "contacts-loading") {
+                        ListSkeleton(stringResource(R.string.compose_loading_contacts), rows = 6, avatar = 44.dp)
+                    }
+                    ContactsNotice.PERMISSION -> item(key = "contacts-permission") {
+                        ContactsPermissionNotice(onGranted = vm::refresh)
+                    }
+                    ContactsNotice.FAILED -> item(key = "contacts-failed") {
+                        ContactsFailedNotice(
+                            reason = (contactsLoad as? ContactsLoad.Failed)?.reason,
+                            onRetry = vm::refresh,
                         )
+                    }
+                    ContactsNotice.NO_CONTACTS -> item(key = "contacts-empty") {
+                        PickerHint(stringResource(R.string.compose_no_contacts))
+                    }
+                    ContactsNotice.NO_MATCHES -> item(key = "contacts-no-matches") {
+                        PickerHint(stringResource(R.string.compose_no_matches))
                     }
                 }
             }
         }
+    }
+}
+
+/** Plain informational line under the list — a real answer, not a failure. */
+@Composable
+private fun PickerHint(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.outline,
+        modifier = Modifier.padding(20.dp),
+    )
+}
+
+/**
+ * V2-42. Shown when READ_CONTACTS is not granted.
+ *
+ * Worded as a capability the app is missing rather than a list that is empty,
+ * because that is the difference the finding is about: the user's contacts are
+ * not gone, this app just cannot see them. "Allow" requests; once the system
+ * has stopped showing the dialog, the only route left is the settings page, so
+ * that button appears then rather than cluttering the first pass.
+ */
+@Composable
+private fun ContactsPermissionNotice(onGranted: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = context as? android.app.Activity
+    var permanentlyDenied by remember { mutableStateOf(false) }
+
+    fun openAppSettings() {
+        runCatching {
+            context.startActivity(
+                android.content.Intent(
+                    android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    android.net.Uri.fromParts("package", context.packageName, null),
+                )
+            )
+        }
+    }
+
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { ok ->
+        if (ok) {
+            com.messages.core.contacts.ContactSync.ensureObserver(context)
+            com.messages.core.contacts.ContactSync.refreshOnForeground(context)
+            // The process is not restarted on a grant, so the picker has to be
+            // told to read again — otherwise it keeps showing this card.
+            onGranted()
+        } else {
+            // "Don't ask again": the dialog will never appear again, so stop
+            // offering a button that now does nothing.
+            permanentlyDenied = activity != null &&
+                !activity.shouldShowRequestPermissionRationale(
+                    android.Manifest.permission.READ_CONTACTS,
+                )
+        }
+    }
+
+    NoticeCard {
+        Text(
+            stringResource(R.string.compose_contacts_unavailable),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Text(
+            stringResource(R.string.compose_contacts_denied_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.material3.TextButton(
+                onClick = { launcher.launch(android.Manifest.permission.READ_CONTACTS) },
+            ) { Text(stringResource(R.string.compose_allow_contacts)) }
+            if (permanentlyDenied) {
+                androidx.compose.material3.TextButton(onClick = ::openAppSettings) {
+                    Text(stringResource(R.string.compose_app_settings))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * V2-42. Shown when the provider was asked and did not answer.
+ *
+ * Distinct from the permission card because the recovery is distinct: nothing
+ * for the user to authorise, just a read that failed and can be repeated.
+ */
+@Composable
+private fun ContactsFailedNotice(reason: String?, onRetry: () -> Unit) {
+    NoticeCard {
+        Text(
+            stringResource(R.string.compose_contacts_failed),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Text(
+            stringResource(R.string.compose_contacts_failed_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (!reason.isNullOrBlank()) {
+            Text(
+                reason,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        androidx.compose.material3.TextButton(onClick = onRetry) { Text(stringResource(R.string.action_try_again)) }
+    }
+}
+
+@Composable
+private fun NoticeCard(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(Modifier.padding(16.dp), content = content)
     }
 }
 
@@ -308,7 +496,10 @@ private fun StartGroupRow(onClick: () -> Unit) {
             )
         }
         Spacer(Modifier.width(14.dp))
-        Text("New group", style = MaterialTheme.typography.titleMedium)
+        Text(
+            stringResource(R.string.compose_new_group),
+            style = MaterialTheme.typography.titleMedium,
+        )
     }
 }
 
@@ -336,9 +527,12 @@ private fun SendToNumberRow(number: String, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(14.dp))
         Column {
-            Text("Send to $number", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Not in your contacts",
+                stringResource(R.string.compose_send_to_number, number),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                stringResource(R.string.compose_not_in_contacts),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
             )
@@ -386,7 +580,9 @@ private fun ContactRow(contact: PickerContact, onClick: () -> Unit) {
             )
             Spacer(Modifier.height(1.dp))
             Text(
-                "${contact.number} · ${contact.label}",
+                stringResource(
+                    R.string.compose_contact_number_label, contact.number, contact.label,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
                 maxLines = 1,

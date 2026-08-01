@@ -38,7 +38,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.messages.app.R
 import com.messages.core.MessageRepository
 import com.messages.core.secret.SecretCrypto
 import com.messages.core.secret.SecretSpace
@@ -87,12 +89,12 @@ fun SecretSetupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Set up locked chats") },
+                title = { Text(stringResource(R.string.secret_setup_title)) },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (chosen != null) chosen = null else onBack()
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -111,9 +113,7 @@ fun SecretSetupScreen(
                 // The one shared choose→enter→confirm flow (also used by the
                 // in-space "change secret code" — fix: full type re-pick).
                 CredentialCreationSteps(
-                    subtitle = "This code protects your locked chats. It works only here — " +
-                        "it is separate from your fingerprint, the phone's lock, " +
-                        "and the app lock.",
+                    subtitle = stringResource(R.string.secret_setup_subtitle),
                     onChosen = { kind, credential -> chosen = kind to credential },
                 )
             } else {
@@ -129,27 +129,30 @@ fun SecretSetupScreen(
     }
 }
 
-/** Disclaimer paragraphs — text used VERBATIM per the product spec. */
-private val DISCLAIMER_TITLE = "About locked chats."
-private val DISCLAIMER_INTRO =
-    "Locked chats are hidden inside this app and protected by the secret code you set — " +
-        "not by your fingerprint or the phone's lock. Please understand:"
+/**
+ * Disclaimer paragraphs — text used VERBATIM per the product spec.
+ *
+ * V2-36. Verbatim means verbatim in whatever language the user reads. These
+ * are the four things they are agreeing they understand before a chat becomes
+ * unrecoverable, so leaving them in English for a non-English reader would be
+ * the one place in the app where that actually costs someone their messages.
+ * The translator notes in strings.xml say which parts must not be softened.
+ */
 private val DISCLAIMER_POINTS = listOf(
-    "(1) If you forget your secret code, there is NO way to recover these chats — " +
-        "no reset, no backdoor. That's what makes it secure.",
-    "(2) SMS messages are stored in your phone's shared message storage. If someone " +
-        "makes another app the default SMS app, they could see these messages there. " +
-        "Locked chats protect against casual snooping on THIS app — they cannot " +
-        "change how Android stores SMS.",
-    "(3) Backups include locked chats in encrypted form; restoring them on any " +
-        "device requires this same secret code.",
-    "(4) Notifications for locked chats will only say 'New message' — or can be " +
-        "turned off entirely inside the locked folder's settings.",
+    R.string.secret_disclaimer_point_recovery,
+    R.string.secret_disclaimer_point_sms_storage,
+    R.string.secret_disclaimer_point_backups,
+    R.string.secret_disclaimer_point_notifications,
 )
 
 /** Short bold lead per verbatim point — structure added ABOVE the mandated
  *  text, never replacing a word of it (styling per design system). */
-private val DISCLAIMER_LEADS = listOf("No recovery", "SMS storage", "Backups", "Notifications")
+private val DISCLAIMER_LEADS = listOf(
+    R.string.secret_disclaimer_lead_recovery,
+    R.string.secret_disclaimer_lead_sms_storage,
+    R.string.secret_disclaimer_lead_backups,
+    R.string.secret_disclaimer_lead_notifications,
+)
 
 @Composable
 private fun androidx.compose.foundation.layout.ColumnScope.DisclaimerStep(
@@ -177,22 +180,25 @@ private fun androidx.compose.foundation.layout.ColumnScope.DisclaimerStep(
             ) {
                 // Typographic hierarchy (Phase 7): display-size heading, lead
                 // labels per point, verbatim body text underneath.
-                Text(DISCLAIMER_TITLE, style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    DISCLAIMER_INTRO,
+                    stringResource(R.string.secret_disclaimer_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                Text(
+                    stringResource(R.string.secret_disclaimer_intro),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 DISCLAIMER_POINTS.forEachIndexed { i, point ->
                     Column {
                         Text(
-                            DISCLAIMER_LEADS.getOrElse(i) { "" },
+                            DISCLAIMER_LEADS.getOrNull(i)?.let { stringResource(it) }.orEmpty(),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            point,
+                            stringResource(point),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -200,7 +206,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.DisclaimerStep(
                 }
                 if (legacyCount > 0) {
                     Text(
-                        "Your existing locked chats will move here.",
+                        stringResource(R.string.secret_setup_legacy_move),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -236,7 +242,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.DisclaimerStep(
                     modifier = Modifier.padding(bottom = 8.dp),
                 ) {
                     Text(
-                        "Scroll to continue ↓",
+                        stringResource(R.string.secret_scroll_to_continue),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -260,10 +266,10 @@ private fun androidx.compose.foundation.layout.ColumnScope.DisclaimerStep(
                     Modifier.width(18.dp).height(18.dp), strokeWidth = 2.dp,
                 )
                 Spacer(Modifier.width(10.dp))
-                Text("Setting up…")
+                Text(stringResource(R.string.secret_setting_up))
             }
         } else {
-            Box { Text("I understand") }
+            Box { Text(stringResource(R.string.secret_i_understand)) }
         }
     }
 }

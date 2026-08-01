@@ -1,5 +1,6 @@
 package com.messages.app.ui.secret
 
+import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,10 +35,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
+import com.messages.app.R
 import com.messages.core.backup.BackupManager
 import com.messages.core.secret.SecretCrypto
 import com.messages.core.secret.SecretSpace
@@ -107,9 +113,12 @@ fun SecretPromptScreen(
                     errorSignal++
                     cooldownMs = result.cooldownMs
                     error = if (result.cooldownMs > 0) {
-                        "Wrong code. Try again in ${formatCooldown(result.cooldownMs)}."
+                        context.getString(
+                            R.string.secret_wrong_code_cooldown,
+                            formatCooldown(context, result.cooldownMs),
+                        )
                     } else {
-                        "Wrong code — try again"
+                        context.getString(R.string.secret_wrong_code)
                     }
                 }
                 is SecretSpace.Attempt.Cooldown -> {
@@ -129,7 +138,7 @@ fun SecretPromptScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -146,20 +155,23 @@ fun SecretPromptScreen(
             VaultLockMark()
             Spacer(Modifier.height(28.dp))
             Text(
-                if (restoring) "Locked chats present" else "Locked chats",
+                stringResource(
+                    if (restoring) R.string.secret_prompt_title_restoring
+                    else R.string.secret_prompt_title,
+                ),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                when {
-                    restoring ->
-                        "Your backup contains locked chats. Enter the secret code you " +
-                            "set on your previous device to unlock them here."
-                    kind == SecretCrypto.KIND_PATTERN -> "Draw your pattern to enter"
-                    kind == SecretCrypto.KIND_PASSWORD -> "Enter your password"
-                    else -> "Enter your PIN"
-                },
+                stringResource(
+                    when {
+                        restoring -> R.string.secret_prompt_restoring_body
+                        kind == SecretCrypto.KIND_PATTERN -> R.string.secret_prompt_draw_pattern
+                        kind == SecretCrypto.KIND_PASSWORD -> R.string.secret_prompt_enter_password
+                        else -> R.string.secret_prompt_enter_pin
+                    },
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -172,7 +184,7 @@ fun SecretPromptScreen(
                     CircularProgressIndicator()
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "Unlocking your restored chats…",
+                        stringResource(R.string.secret_unlocking_restored),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -185,7 +197,7 @@ fun SecretPromptScreen(
                 kind == SecretCrypto.KIND_PASSWORD -> {
                     PinOrPasswordField(
                         kind = kind, value = entry, onValueChange = { entry = it },
-                        label = "Password",
+                        label = stringResource(R.string.secret_password_label),
                         enabled = !coolingDown && !checking,
                         isError = false, // feedback is the message below, not a red field
                         onDone = { if (entry.isNotEmpty()) submit(entry.toCharArray()) },
@@ -215,25 +227,38 @@ fun SecretPromptScreen(
                         disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f),
                     ),
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Unlock") }
+                ) { Text(stringResource(R.string.secret_unlock)) }
             }
 
             Spacer(Modifier.height(16.dp))
             // Wrong-code + cooldown feedback stays NEUTRAL — the shake carries
             // the emphasis; red is reserved for Reset, the single destructive
             // action in the space.
+            //
+            // V2-38: it is also a live region. The shake and the red-free
+            // wording are both visual, so without this a screen-reader user
+            // submits a wrong code and hears nothing at all — the screen simply
+            // sits there. Assertive because it is blocking: there is no point
+            // entering another code during a cooldown. Neither string contains
+            // any part of the credential.
+            val announce = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }
             when {
                 coolingDown -> Text(
-                    "Too many attempts. Try again in ${formatCooldown(cooldownMs)}.",
+                    stringResource(
+                        R.string.secret_too_many_attempts,
+                        formatCooldown(context, cooldownMs),
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
+                    modifier = announce,
                 )
                 error != null -> Text(
                     error!!,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
+                    modifier = announce,
                 )
             }
 
@@ -243,7 +268,7 @@ fun SecretPromptScreen(
                 onClick = { showResetDialog = true },
                 enabled = !checking && !importing && !resetting,
             ) {
-                Text("Reset", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.secret_reset), color = MaterialTheme.colorScheme.error)
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -255,13 +280,9 @@ fun SecretPromptScreen(
             // Dialogs get their own window — the activity's FLAG_SECURE does
             // not cover them. Explicitly secure, like every surface in here.
             properties = DialogProperties(securePolicy = SecureFlagPolicy.SecureOn),
-            title = { Text("Reset locked chats?") },
+            title = { Text(stringResource(R.string.secret_reset_confirm_title)) },
             text = {
-                Text(
-                    "ALL messages in your locked folder will be permanently deleted. " +
-                        "This cannot be undone and cannot be recovered. You'll set a " +
-                        "new secret code and start with an empty locked folder.",
-                )
+                Text(stringResource(R.string.secret_reset_confirm_body))
             },
             confirmButton = {
                 TextButton(
@@ -288,7 +309,10 @@ fun SecretPromptScreen(
                     },
                 ) {
                     Text(
-                        if (resetting) "Deleting…" else "Delete everything",
+                        stringResource(
+                            if (resetting) R.string.secret_deleting
+                            else R.string.secret_delete_everything,
+                        ),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -297,19 +321,24 @@ fun SecretPromptScreen(
                 TextButton(
                     enabled = !resetting,
                     onClick = { showResetDialog = false },
-                ) { Text("Cancel") }
+                ) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
 }
 
-internal fun formatCooldown(ms: Long): String {
+/**
+ * V2-36. "5m 30s" is copy, not arithmetic: the unit letters differ by language
+ * and some put them before the number. The rounding-up and the choice of which
+ * two units to show stay here; only the letters moved to the resource table.
+ */
+internal fun formatCooldown(context: Context, ms: Long): String {
     val totalSec = (ms + 999) / 1000
     val min = totalSec / 60
     val sec = totalSec % 60
     return when {
-        min >= 60 -> "${min / 60}h ${min % 60}m"
-        min > 0 -> "${min}m ${sec}s"
-        else -> "${sec}s"
+        min >= 60 -> context.getString(R.string.secret_cooldown_hm, min / 60, min % 60)
+        min > 0 -> context.getString(R.string.secret_cooldown_ms, min, sec)
+        else -> context.getString(R.string.secret_cooldown_s, sec)
     }
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -11,8 +12,8 @@
         android:id="@+id/widget_unread_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Messages"
-        android:textColor="#49454F"
+        android:text="@string/app_name"
+        android:textColor="@color/widget_text_secondary"
         android:textSize="12sp"
         android:textStyle="bold" />
 
@@ -21,8 +22,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="0 unread"
-        android:textColor="#1C1B1F"
+        tools:text="3 unread"
+        android:textColor="@color/widget_text_primary"
         android:textSize="20sp"
         android:textStyle="bold" />
 
@@ -31,8 +32,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text=""
+        tools:text="Ada · See you at six"
         android:maxLines="3"
-        android:textColor="#49454F"
+        android:textColor="@color/widget_text_secondary"
         android:textSize="12sp" />
 </LinearLayout>

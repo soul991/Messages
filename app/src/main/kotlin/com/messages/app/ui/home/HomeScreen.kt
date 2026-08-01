@@ -98,7 +98,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -116,8 +116,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -126,16 +129,26 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.ui.common.AppDateFormat
 import com.messages.app.ui.common.ContactAvatar
+import com.messages.app.ui.common.ListRender
+import com.messages.app.ui.common.ListSkeleton
+import com.messages.app.ui.common.LoadFailedState
+import com.messages.app.ui.common.LoadState
+import com.messages.app.ui.common.listRender
+import com.messages.app.ui.common.rememberLoadingGrace
 import com.messages.app.ui.common.sharedThreadAvatar
+import com.messages.app.ui.common.valueOrNull
 import com.messages.app.ui.search.SearchHighlight
 import com.messages.core.db.ConversationEntity
 import com.messages.designsystem.Haptics
 import com.messages.designsystem.Motion
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.launch
+import androidx.annotation.StringRes
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 
 // Phase 5 §1 row grid (REFS §1): 54dp avatar + 16dp gap ≈ 76dp rows.
 private val ROW_AVATAR = 54.dp
@@ -144,21 +157,24 @@ private val ROW_GAP = 16.dp
 // text column; false = divider-free Telegram-style spacing.
 private const val INSET_DIVIDERS = false
 
+// V2-36. The left half of each pair is the stored folder/label id and never
+// changes; the right half is a resource, because the tab is the first thing a
+// user reads and "Inbox" is not a name they typed.
 private val FOLDERS = listOf(
-    "INBOX" to "Inbox",
-    "TRANSACTIONS" to "Transactions",
-    "PROMOTIONS" to "Promotions",
-    "SPAM" to "Spam",
-    "REVIEW" to "Review",
-    "BLOCKED" to "Blocked",
+    "INBOX" to R.string.category_inbox,
+    "TRANSACTIONS" to R.string.category_transactions,
+    "PROMOTIONS" to R.string.category_promotions,
+    "SPAM" to R.string.category_spam,
+    "REVIEW" to R.string.category_review,
+    "BLOCKED" to R.string.home_folder_blocked,
 )
 
 private val SEARCH_LABELS = listOf(
-    "OTP" to "OTP",
-    "BANK" to "Bank",
-    "DELIVERY" to "Delivery",
-    "TRAVEL" to "Travel",
-    "BILL" to "Bill",
+    "OTP" to R.string.home_label_otp,
+    "BANK" to R.string.home_label_bank,
+    "DELIVERY" to R.string.home_label_delivery,
+    "TRAVEL" to R.string.home_label_travel,
+    "BILL" to R.string.home_label_bill,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -175,6 +191,7 @@ fun HomeScreen(
     onDashboard: () -> Unit,
     onOpenStarred: () -> Unit = {},
     onOpenArchived: () -> Unit = {},
+    onOpenOutbox: () -> Unit = {},
     /** Secret space: fired by the 3s press-and-hold on the "Messages" title. */
     onSecretEntry: () -> Unit = {},
     vm: HomeViewModel = viewModel(),
@@ -184,13 +201,26 @@ fun HomeScreen(
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val folder by vm.folder.collectAsState()
+    // V2-36. Snackbars are raised from onSwipeAction and from onClick lambdas —
+    // neither is a composable scope — so their copy is resolved here.
+    val undoLabel = stringResource(R.string.action_undo)
+    val archivedMessage = stringResource(R.string.home_archived_snackbar)
+    val trashedMessage = stringResource(R.string.home_trashed_snackbar)
+    val markedReadMessage = stringResource(R.string.home_folder_marked_read)
+    // Counted, so it is a plural rather than an "s" glued on — and the count is
+    // only known inside the click handler, hence a resolver instead of a value.
+    val resources = LocalContext.current.resources
+    val trashedCount = { n: Int ->
+        resources.getQuantityString(R.plurals.home_trashed_count_snackbar, n, n)
+    }
+    val folder by vm.folder.collectAsStateWithLifecycle()
     var searchActive by remember { mutableStateOf(false) }
-    val typing by vm.typing.collectAsState()
-    val chips by vm.chips.collectAsState()
-    val labelFilter by vm.labelFilter.collectAsState()
-    val searchState by vm.searchState.collectAsState()
-    val selectedThreads by vm.selectedThreads.collectAsState()
+    val typing by vm.typing.collectAsStateWithLifecycle()
+    val chips by vm.chips.collectAsStateWithLifecycle()
+    val labelFilter by vm.labelFilter.collectAsStateWithLifecycle()
+    val searchState by vm.searchState.collectAsStateWithLifecycle()
+    val selectedThreads by vm.selectedThreads.collectAsStateWithLifecycle()
+    val outboxWaiting by vm.outboxCount.collectAsStateWithLifecycle()
     val selectionActive = selectedThreads.isNotEmpty()
     var showHomeMenu by remember { mutableStateOf(false) }
 
@@ -216,7 +246,7 @@ fun HomeScreen(
                 vm.archive(conv.threadId)
                 scope.launch {
                     val r = snackbarHostState.showSnackbar(
-                        "Archived", actionLabel = "Undo", withDismissAction = true,
+                        archivedMessage, actionLabel = undoLabel, withDismissAction = true,
                     )
                     if (r == SnackbarResult.ActionPerformed) vm.unarchive(conv.threadId)
                 }
@@ -226,7 +256,7 @@ fun HomeScreen(
                 vm.trashThread(conv.threadId)
                 scope.launch {
                     val r = snackbarHostState.showSnackbar(
-                        "Conversation moved to Trash", actionLabel = "Undo",
+                        trashedMessage, actionLabel = undoLabel,
                         withDismissAction = true,
                     )
                     if (r == SnackbarResult.ActionPerformed) {
@@ -251,10 +281,15 @@ fun HomeScreen(
             // Multi-select contextual bar (Phase 4 item 14).
             if (selectionActive) {
                 TopAppBar(
-                    title = { Text("${selectedThreads.size} selected") },
+                    title = {
+                        Text(pluralStringResource(
+                            R.plurals.home_selected_count,
+                            selectedThreads.size, selectedThreads.size,
+                        ))
+                    },
                     navigationIcon = {
                         IconButton(onClick = { vm.clearSelection() }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Clear selection")
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.home_clear_selection))
                         }
                     },
                     actions = {
@@ -262,19 +297,19 @@ fun HomeScreen(
                             vm.markThreadsRead(selectedThreads)
                             vm.clearSelection()
                         }) {
-                            Icon(Icons.Filled.Drafts, contentDescription = "Mark read")
+                            Icon(Icons.Filled.Drafts, contentDescription = stringResource(R.string.home_mark_read))
                         }
                         IconButton(onClick = {
                             vm.markThreadsUnread(selectedThreads)
                             vm.clearSelection()
                         }) {
-                            Icon(Icons.Filled.MarkEmailUnread, contentDescription = "Mark unread")
+                            Icon(Icons.Filled.MarkEmailUnread, contentDescription = stringResource(R.string.home_mark_unread))
                         }
                         IconButton(onClick = {
                             vm.archiveThreads(selectedThreads)
                             vm.clearSelection()
                         }) {
-                            Icon(Icons.Filled.Archive, contentDescription = "Archive")
+                            Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.home_archive))
                         }
                         IconButton(onClick = {
                             val ids = selectedThreads
@@ -282,15 +317,15 @@ fun HomeScreen(
                             vm.clearSelection()
                             scope.launch {
                                 val r = snackbarHostState.showSnackbar(
-                                    "${ids.size} conversation${if (ids.size == 1) "" else "s"} moved to Trash",
-                                    actionLabel = "Undo", withDismissAction = true,
+                                    trashedCount(ids.size),
+                                    actionLabel = undoLabel, withDismissAction = true,
                                 )
                                 if (r == SnackbarResult.ActionPerformed) {
                                     vm.undoTrashThreads(ids, at - 1_000)
                                 }
                             }
                         }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
                         }
                     },
                 )
@@ -309,57 +344,99 @@ fun HomeScreen(
                     title = {
                         val haptics = androidx.compose.ui.hapticfeedback.HapticFeedbackType
                         val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
+                        // V2-39: the timed press is pointer input only, so it
+                        // does not exist for TalkBack, Switch Access, a D-pad or
+                        // a keyboard. When the user has opted in, the same
+                        // entry is published as a labelled semantic action and
+                        // a long-click action — additions to the node, never a
+                        // change to the gesture, and never a way past the
+                        // credential prompt underneath.
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val accessibleEntry = remember {
+                            com.messages.app.ui.secret.SecretEntryAccess.enabled(context)
+                        }
+                        val entryLabel = stringResource(
+                            com.messages.app.ui.secret.SecretEntryAccess.ACTION_LABEL,
+                        )
                         Text(
-                            "Messages",
-                            modifier = Modifier.pointerInput(Unit) {
-                                awaitEachGesture {
-                                    awaitFirstDown(requireUnconsumed = false)
-                                    val held = try {
-                                        withTimeout(1_500) {
-                                            waitForUpOrCancellation()
-                                            false // released/cancelled before 1.5s
+                            stringResource(R.string.app_name),
+                            modifier = Modifier
+                                .pointerInput(Unit) {
+                                    awaitEachGesture {
+                                        awaitFirstDown(requireUnconsumed = false)
+                                        val held = try {
+                                            withTimeout(1_500) {
+                                                waitForUpOrCancellation()
+                                                false // released/cancelled before 1.5s
+                                            }
+                                        } catch (_: PointerEventTimeoutCancellationException) {
+                                            true // still down at 1.5s
                                         }
-                                    } catch (_: PointerEventTimeoutCancellationException) {
-                                        true // still down at 1.5s
-                                    }
-                                    if (held) {
-                                        hapticFeedback.performHapticFeedback(haptics.LongPress)
-                                        onSecretEntry()
+                                        if (held) {
+                                            hapticFeedback.performHapticFeedback(haptics.LongPress)
+                                            onSecretEntry()
+                                        }
                                     }
                                 }
-                            },
+                                .then(
+                                    if (!accessibleEntry) Modifier else Modifier.semantics {
+                                        onLongClick(label = entryLabel) {
+                                            onSecretEntry(); true
+                                        }
+                                        customActions = listOf(
+                                            CustomAccessibilityAction(entryLabel) {
+                                                onSecretEntry(); true
+                                            },
+                                        )
+                                    },
+                                ),
                         )
                     },
                     actions = {
                         IconButton(onClick = onDashboard) {
-                            Icon(Icons.Filled.Shield, contentDescription = "Protection dashboard")
+                            Icon(Icons.Filled.Shield, contentDescription = stringResource(R.string.home_protection_dashboard))
                         }
                         IconButton(onClick = onSettings) {
-                            Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
                         }
                         Box {
                             IconButton(onClick = { showHomeMenu = true }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+                                Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more_options))
                             }
                             DropdownMenu(
                                 expanded = showHomeMenu,
                                 onDismissRequest = { showHomeMenu = false },
                             ) {
+                                // V2-48: the count is in the label rather than
+                                // in a dot, because "3 waiting" is the part
+                                // that decides whether it is worth opening.
                                 DropdownMenuItem(
-                                    text = { Text("Archived") },
+                                    text = {
+                                        Text(
+                                            if (outboxWaiting > 0) {
+                                                stringResource(R.string.outbox_title_count, outboxWaiting)
+                                            } else {
+                                                stringResource(R.string.outbox_title)
+                                            }
+                                        )
+                                    },
+                                    onClick = { showHomeMenu = false; onOpenOutbox() },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.archived_title)) },
                                     onClick = { showHomeMenu = false; onOpenArchived() },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Starred messages") },
+                                    text = { Text(stringResource(R.string.home_starred_messages)) },
                                     onClick = { showHomeMenu = false; onOpenStarred() },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Mark all as read") },
+                                    text = { Text(stringResource(R.string.home_mark_all_as_read)) },
                                     onClick = {
                                         showHomeMenu = false
                                         vm.markFolderRead(folder)
                                         scope.launch {
-                                            snackbarHostState.showSnackbar("Folder marked as read")
+                                            snackbarHostState.showSnackbar(markedReadMessage)
                                         }
                                     },
                                 )
@@ -378,7 +455,7 @@ fun HomeScreen(
                     onClick = onCompose,
                     expanded = fabExpanded,
                     icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                    text = { Text("New message") },
+                    text = { Text(stringResource(R.string.home_new_message)) },
                 )
             }
         },
@@ -404,7 +481,7 @@ fun HomeScreen(
                     exit = fadeOut(Motion.effectsFast()),
                 ) {
                     IconButton(onClick = { exitSearch() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.chat_close_search))
                     }
                 }
                 TextField(
@@ -412,7 +489,7 @@ fun HomeScreen(
                     onValueChange = { vm.setTyping(it); searchActive = true },
                     placeholder = {
                         Text(
-                            if (chips.isEmpty()) "Search messages" else "Add another keyword",
+                            if (chips.isEmpty()) stringResource(R.string.home_search_placeholder) else stringResource(R.string.home_search_add_keyword),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -425,7 +502,7 @@ fun HomeScreen(
                         if (searchActive && (typing.isNotEmpty() || chips.isNotEmpty())) {
                             IconButton(onClick = {
                                 if (typing.isNotEmpty()) vm.setTyping("") else vm.clearSearch()
-                            }) { Icon(Icons.Filled.Close, contentDescription = "Clear") }
+                            }) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear)) }
                         }
                     },
                     singleLine = true,
@@ -500,11 +577,11 @@ private fun FolderPane(
     onOpenThread: (Long) -> Unit,
     onSwipeAction: (String, ConversationEntity) -> Unit,
 ) {
-    val rightAction by SwipeActions.right.collectAsState()
-    val leftAction by SwipeActions.left.collectAsState()
-    val drafts by com.messages.app.ui.common.DraftStore.drafts.collectAsState()
-    val unreadOnly by vm.unreadOnly.collectAsState()
-    val selectedThreads by vm.selectedThreads.collectAsState()
+    val rightAction by SwipeActions.right.collectAsStateWithLifecycle()
+    val leftAction by SwipeActions.left.collectAsStateWithLifecycle()
+    val drafts by com.messages.app.ui.common.DraftStore.drafts.collectAsStateWithLifecycle()
+    val unreadOnly by vm.unreadOnly.collectAsStateWithLifecycle()
+    val selectedThreads by vm.selectedThreads.collectAsStateWithLifecycle()
     val selectionActive = selectedThreads.isNotEmpty()
     val rowView = LocalView.current
     // Badge-tap explanation sheet (Phase 2).
@@ -522,32 +599,36 @@ private fun FolderPane(
                 FilterChip(
                     selected = unreadOnly,
                     onClick = { vm.setUnreadOnly(!unreadOnly) },
-                    label = { Text("Unread") },
+                    label = { Text(stringResource(R.string.home_filter_unread)) },
                     leadingIcon = if (unreadOnly) {
                         {
                             Icon(
-                                Icons.Filled.Close, contentDescription = "Clear unread filter",
+                                Icons.Filled.Close, contentDescription = stringResource(R.string.home_clear_unread_filter),
                                 modifier = Modifier.size(16.dp),
                             )
                         }
                     } else null,
                 )
             }
-            items(FOLDERS) { (key, label) ->
-                val unread by vm.folderUnread(key).collectAsState(initial = 0)
+            items(FOLDERS) { (key, labelRes) ->
+                val unread by vm.folderUnread(key).collectAsStateWithLifecycle(initialValue = 0)
                 FilterChip(
                     selected = folder == key,
                     onClick = { onSelectFolder(key) },
                     label = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(label)
+                            Text(stringResource(labelRes))
                             if (unread > 0) {
                                 Spacer(Modifier.width(6.dp))
+                                // `semantics { }` is not a composable scope.
+                                val unreadLabel = pluralStringResource(
+                                    R.plurals.home_unread_count, unread, unread,
+                                )
                                 Badge {
                                     Text(
-                                        "$unread",
+                                        unread.toString(),
                                         modifier = Modifier.semantics {
-                                            contentDescription = "$unread unread"
+                                            contentDescription = unreadLabel
                                         },
                                     )
                                 }
@@ -576,33 +657,48 @@ private fun FolderPane(
             // Unread-only filter (Phase 4 item 12): a dedicated DAO flow with
             // the shared unreadCount>0 predicate — folder-scoped, drops a
             // conversation live when it's read, includes mark-as-unread.
-            val conversations by remember(targetFolder, unreadOnly) {
+            val loadState by remember(targetFolder, unreadOnly) {
                 if (unreadOnly) vm.unreadConversationsFor(targetFolder)
                 else vm.conversationsFor(targetFolder)
-            }.collectAsState()
+            }.collectAsStateWithLifecycle()
+            // V2-43: a blank screen during a slow first load reads as a crash
+            // or as lost messages. The grace keeps it blank while the load is
+            // quick — a skeleton that appears for two frames is worse than
+            // nothing — and shows the skeleton once it is not.
+            val pastGrace = rememberLoadingGrace(loadState is LoadState.Loading)
+            val conversations = loadState.valueOrNull.orEmpty()
             // Verified-sender badges (Phase 2): latest incoming message's
             // fraud/protected state per thread; eligibility is decided by the
             // engine's SenderBadges, never re-detected in the UI.
-            val badgeMeta by vm.latestIncomingMeta.collectAsState()
-            when {
-                conversations == null -> Box(Modifier.fillMaxSize()) // first load, no flash
-                conversations.orEmpty().isEmpty() ->
+            val badgeMeta by vm.latestIncomingMeta.collectAsStateWithLifecycle()
+            when (listRender(loadState, pastGrace)) {
+                ListRender.NOTHING -> Box(Modifier.fillMaxSize()) // fast load, no flash
+                ListRender.LOADING -> ListSkeleton(stringResource(R.string.home_loading_conversations))
+                ListRender.FAILED -> LoadFailedState(
+                    headline = stringResource(R.string.home_load_failed),
+                    reason = (loadState as? LoadState.Failed)?.reason,
+                    onRetry = vm::retry,
+                )
+                // Reserved for a *completed* query that returned nothing: "no
+                // conversations" is a claim about the data, and making it
+                // before the data arrives is the bug this replaced.
+                ListRender.EMPTY ->
                     if (unreadOnly) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                "No unread conversations",
+                                stringResource(R.string.home_no_unread),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     } else EmptyFolderState(targetFolder)
-                else -> {
+                ListRender.CONTENT -> {
                     val listState = rememberLazyListState()
                     val listScope = rememberCoroutineScope()
                     Box(Modifier.fillMaxSize()) {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                         itemsIndexed(
-                            conversations.orEmpty(),
+                            conversations,
                             key = { _, it -> it.threadId },
                         ) { index, conv ->
                             val meta = badgeMeta[conv.threadId]
@@ -641,7 +737,7 @@ private fun FolderPane(
                             // Inset divider starting at the text column (plan
                             // §1 prototype) — never after the last row.
                             if (INSET_DIVIDERS &&
-                                index < conversations.orEmpty().lastIndex
+                                index < conversations.lastIndex
                             ) {
                                 HorizontalDivider(
                                     modifier = Modifier
@@ -671,7 +767,7 @@ private fun FolderPane(
                         ) {
                             Icon(
                                 Icons.Filled.KeyboardArrowUp,
-                                contentDescription = "Back to top",
+                                contentDescription = stringResource(R.string.home_back_to_top),
                             )
                         }
                     }
@@ -709,7 +805,7 @@ private fun SearchPane(
                     label = { Text(chip) },
                     trailingIcon = {
                         Icon(
-                            Icons.Filled.Close, contentDescription = "Remove $chip",
+                            Icons.Filled.Close, contentDescription = stringResource(R.string.home_remove_chip, chip),
                             modifier = Modifier.size(16.dp),
                         )
                     },
@@ -723,11 +819,11 @@ private fun SearchPane(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
     ) {
-        items(SEARCH_LABELS) { (key, label) ->
+        items(SEARCH_LABELS) { (key, labelRes) ->
             FilterChip(
                 selected = labelFilter == key,
                 onClick = { vm.setLabelFilter(if (labelFilter == key) null else key) },
-                label = { Text(label) },
+                label = { Text(stringResource(labelRes)) },
             )
         }
     }
@@ -754,7 +850,7 @@ private fun SearchPane(
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             if (typing.isNotEmpty()) {
                 Text(
-                    "Type at least 3 characters",
+                    stringResource(R.string.home_search_min_length),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -762,7 +858,7 @@ private fun SearchPane(
             }
             if (saved.isNotEmpty()) {
                 Text(
-                    "Recent searches",
+                    stringResource(R.string.home_recent_searches),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -789,7 +885,7 @@ private fun SearchPane(
     if (state.results.isEmpty() && state.conversationMatches.isEmpty()) {
         Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
             Text(
-                "No messages match",
+                stringResource(R.string.home_search_no_match),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -806,20 +902,20 @@ private fun SearchPane(
         // §8.5.3: conversations whose contact name / number matches ("mom").
         if (state.conversationMatches.isNotEmpty()) {
             item {
-                SearchSectionHeader("Conversations")
+                SearchSectionHeader(stringResource(R.string.home_search_section_conversations))
             }
             items(state.conversationMatches, key = { "conv-${it.threadId}" }) { conv ->
                 ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
             }
             if (state.results.isNotEmpty()) {
-                item { SearchSectionHeader("Messages") }
+                item { SearchSectionHeader(stringResource(R.string.home_search_section_messages)) }
             }
         }
         items(normal, key = { it.message.id }) { row ->
             SearchResultRow(row, state.activeKeywords, onOpenResult)
         }
         if (filtered.isNotEmpty()) {
-            item { SearchSectionHeader("In Spam & Blocked") }
+            item { SearchSectionHeader(stringResource(R.string.home_search_section_spam)) }
             items(filtered, key = { it.message.id }) { row ->
                 SearchResultRow(row, state.activeKeywords, onOpenResult)
             }
@@ -933,7 +1029,10 @@ private fun SearchResultRow(
             )
             if (keywords.size > 1) {
                 Text(
-                    "Matches ${row.matchCount} of ${keywords.size} keywords",
+                    pluralStringResource(
+                        R.plurals.home_match_count,
+                        keywords.size, row.matchCount, keywords.size,
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -994,22 +1093,22 @@ private fun ContactsPermissionBanner() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Show contact names", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.home_contacts_prompt_title), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Allow Contacts access so people show up by name and photo, not number.",
+                    stringResource(R.string.home_contacts_prompt_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(4.dp))
                 androidx.compose.material3.TextButton(
                     onClick = { launcher.launch(android.Manifest.permission.READ_CONTACTS) },
-                ) { Text("Allow") }
+                ) { Text(stringResource(R.string.home_contacts_allow)) }
             }
             IconButton(onClick = {
                 dismissed = true
                 prefs.edit().putBoolean("contacts_banner_dismissed", true).apply()
             }) {
-                Icon(Icons.Filled.Close, contentDescription = "Dismiss")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_dismiss))
             }
         }
     }
@@ -1039,21 +1138,20 @@ private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
             }
             Spacer(Modifier.height(20.dp))
             Text(
-                "Set Messages as your default SMS app",
+                stringResource(R.string.home_default_sms_title),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "To see your conversations and turn on spam, scam & fraud " +
-                    "protection, Messages needs to be your SMS app.",
+                stringResource(R.string.home_default_sms_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(20.dp))
             Button(onClick = onRequestDefault) {
-                Text("Set as default SMS app")
+                Text(stringResource(R.string.home_default_sms_action))
             }
         }
     }
@@ -1235,7 +1333,7 @@ private fun ConversationRow(
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
-                onLongClickLabel = if (onLongClick != null) "Select conversation" else null,
+                onLongClickLabel = if (onLongClick != null) stringResource(R.string.home_select_conversation) else null,
             )
             // 54dp avatar + 11dp vertical padding ≈ the refs' 74–76pt row.
             .padding(horizontal = 16.dp, vertical = 11.dp),
@@ -1278,7 +1376,7 @@ private fun ConversationRow(
                         Spacer(Modifier.width(4.dp))
                         Icon(
                             Icons.Outlined.NotificationsOff,
-                            contentDescription = "Muted",
+                            contentDescription = stringResource(R.string.home_muted),
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1300,7 +1398,7 @@ private fun ConversationRow(
                 Text(
                     when {
                         conv.locked -> "🔒 Locked conversation"
-                        showDraft -> "Draft: $draft"
+                        showDraft -> stringResource(R.string.home_draft_prefix, draft)
                         else -> conv.lastMessage
                     },
                     style = MaterialTheme.typography.bodyMedium,
@@ -1320,24 +1418,30 @@ private fun ConversationRow(
                 when {
                     unread -> {
                         Spacer(Modifier.width(8.dp))
+                        // `semantics { }` is not a composable scope.
+                        val unreadLabel = pluralStringResource(
+                            if (conv.muted) R.plurals.home_unread_count_muted
+                            else R.plurals.home_unread_count,
+                            conv.unreadCount, conv.unreadCount,
+                        )
                         if (conv.muted) {
                             Badge(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             ) {
                                 Text(
-                                    "${conv.unreadCount}",
+                                    conv.unreadCount.toString(),
                                     modifier = Modifier.semantics {
-                                        contentDescription = "${conv.unreadCount} unread, muted"
+                                        contentDescription = unreadLabel
                                     },
                                 )
                             }
                         } else {
                             Badge {
                                 Text(
-                                    "${conv.unreadCount}",
+                                    conv.unreadCount.toString(),
                                     modifier = Modifier.semantics {
-                                        contentDescription = "${conv.unreadCount} unread"
+                                        contentDescription = unreadLabel
                                     },
                                 )
                             }
@@ -1346,7 +1450,7 @@ private fun ConversationRow(
                     conv.pinned -> {
                         Spacer(Modifier.width(8.dp))
                         Icon(
-                            Icons.Outlined.PushPin, contentDescription = "Pinned",
+                            Icons.Outlined.PushPin, contentDescription = stringResource(R.string.home_pinned),
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1359,40 +1463,40 @@ private fun ConversationRow(
 
 private data class EmptyStateSpec(
     val icon: ImageVector,
-    val headline: String,
-    val supporting: String,
+    @StringRes val headline: Int,
+    @StringRes val supporting: Int,
 )
 
 private fun emptySpecFor(folder: String): EmptyStateSpec = when (folder) {
     "SPAM" -> EmptyStateSpec(
         Icons.Outlined.Shield,
-        "No spam today — enjoy the silence",
-        "Caught messages stay here, reviewable any time. Nothing is ever deleted.",
+        R.string.home_empty_spam_headline,
+        R.string.home_empty_spam_supporting,
     )
     "PROMOTIONS" -> EmptyStateSpec(
         Icons.Outlined.LocalOffer,
-        "No promotions right now",
-        "Offers and marketing wait here without making a sound.",
+        R.string.home_empty_promotions_headline,
+        R.string.home_empty_promotions_supporting,
     )
     "REVIEW" -> EmptyStateSpec(
         Icons.Outlined.RateReview,
-        "Nothing needs your review",
-        "When the engine isn't sure, it asks you here instead of guessing.",
+        R.string.home_empty_review_headline,
+        R.string.home_empty_review_supporting,
     )
     "BLOCKED" -> EmptyStateSpec(
         Icons.Outlined.Block,
-        "No blocked messages",
-        "Messages from senders you block are kept here, silently.",
+        R.string.home_empty_blocked_headline,
+        R.string.home_empty_blocked_supporting,
     )
     "TRANSACTIONS" -> EmptyStateSpec(
         Icons.Outlined.ReceiptLong,
-        "No transactions yet",
-        "Receipts, debits and statements are filed here automatically.",
+        R.string.home_empty_transactions_headline,
+        R.string.home_empty_transactions_supporting,
     )
     else -> EmptyStateSpec(
         Icons.Outlined.Forum,
-        "No messages yet",
-        "Conversations you start or receive will appear here.",
+        R.string.home_empty_default_headline,
+        R.string.home_empty_default_supporting,
     )
 }
 
@@ -1444,13 +1548,13 @@ private fun EmptyFolderState(folder: String) {
             }
             Spacer(Modifier.height(24.dp))
             Text(
-                spec.headline,
+                stringResource(spec.headline),
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                spec.supporting,
+                stringResource(spec.supporting),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -1459,19 +1563,8 @@ private fun EmptyFolderState(folder: String) {
     }
 }
 
-// Composition-only helpers (main thread): SimpleDateFormat is not thread-safe
-// but is only ever touched from composition here. Allocating formatters per
-// row per frame showed up in the Phase 6 fling profile — reuse instead.
-private val rowTimeFormat = SimpleDateFormat("HH:mm", Locale.US)
-private val rowDateFormat = SimpleDateFormat("dd MMM", Locale.US)
-private val sharedDate = Date(0)
-
-private fun localDayOf(ts: Long): Long =
-    (ts + java.util.TimeZone.getDefault().getOffset(ts)) / 86_400_000L
-
-private fun formatTime(ts: Long): String {
-    if (ts == 0L) return ""
-    val sameDay = localDayOf(ts) == localDayOf(System.currentTimeMillis())
-    sharedDate.time = ts
-    return if (sameDay) rowTimeFormat.format(sharedDate) else rowDateFormat.format(sharedDate)
-}
+// V2-45: the formatters used to live here as file-level vals, which froze the
+// locale and time zone at class-init. AppDateFormat reads both at render time
+// and still reuses the formatter objects — allocating one per row per frame
+// showed up in the Phase 6 fling profile, and that stays fixed.
+private fun formatTime(ts: Long): String = AppDateFormat.listRowStamp(ts)

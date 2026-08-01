@@ -1,3 +1,5 @@
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermission
 import java.util.Properties
 
 plugins {
@@ -10,9 +12,49 @@ plugins {
 
 // Release signing (docs/ops/RELEASE_SIGNING.md): keystore.properties at the repo
 // root (gitignored) points at the keystore outside the repo.
+//
+// V2-04: credentials come from the ENVIRONMENT first and the file only as a
+// local-developer fallback. CI and any shared machine set the four env vars and
+// never materialize a plaintext credentials file at all. When the file IS used,
+// its mode is enforced below — a world-readable secret is refused, not warned
+// about, because every other user on the machine can read it.
 val keystoreProps = Properties().apply {
-    val f = rootProject.file("keystore.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
+    val fromEnv = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+        .associateWith { System.getenv("MESSAGES_${it.uppercase()}") }
+        .filterValues { !it.isNullOrBlank() }
+    if (fromEnv.size == 4) {
+        fromEnv.forEach { (k, v) -> setProperty(k, v) }
+    } else {
+        val f = rootProject.file("keystore.properties")
+        if (f.exists()) {
+            requireOwnerOnly(f)
+            f.inputStream().use { load(it) }
+        }
+    }
+}
+
+/**
+ * Refuse to read signing credentials out of a file that other local accounts can
+ * read. POSIX-only check; on filesystems without POSIX permissions (Windows,
+ * some mounts) it is skipped rather than guessed at.
+ */
+fun requireOwnerOnly(f: File) {
+    val perms: Set<PosixFilePermission> = try {
+        Files.getPosixFilePermissions(f.toPath())
+    } catch (_: UnsupportedOperationException) {
+        return
+    }
+    val leaked = perms.map { it.name }
+        .filter { it.startsWith("GROUP_") || it.startsWith("OTHERS_") }
+    if (leaked.isNotEmpty()) {
+        throw GradleException(
+            "${f.name} holds plaintext signing credentials but is readable beyond its " +
+                "owner ($leaked). Run: chmod 600 ${f.absolutePath}\n" +
+                "Or drop the file entirely and export MESSAGES_STOREFILE, " +
+                "MESSAGES_STOREPASSWORD, MESSAGES_KEYALIAS, MESSAGES_KEYPASSWORD instead. " +
+                "See docs/ops/RELEASE_SIGNING.md."
+        )
+    }
 }
 
 // R-28: signing intent must be EXPLICIT per environment.
@@ -25,10 +67,23 @@ val keystoreProps = Properties().apply {
 val requireSigning = (findProperty("requireSigning") as String?)?.toBoolean() ?: false
 if (requireSigning && keystoreProps.isEmpty()) {
     throw GradleException(
-        "requireSigning=true but keystore.properties is missing or empty. " +
+        "requireSigning=true but no signing credentials were found (neither the " +
+            "MESSAGES_* environment variables nor keystore.properties). " +
             "A release build cannot be signed — refusing to produce an unsigned artifact. " +
             "See docs/ops/RELEASE_SIGNING.md."
     )
+}
+// V2-04: credentials that point at a keystore which is not there are worse than
+// no credentials — they read as "signing is configured" while every release
+// build fails deep inside AGP. Fail here, where the message is actionable.
+if (requireSigning) {
+    val store = rootProject.file(keystoreProps.getProperty("storeFile") ?: "")
+    if (!store.isFile) {
+        throw GradleException(
+            "requireSigning=true but the keystore is missing: ${store.absolutePath}. " +
+                "See docs/ops/RELEASE_SIGNING.md."
+        )
+    }
 }
 
 android {
@@ -69,7 +124,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    // V2-13: buildConfig is needed for BuildConfig.DEBUG, which gates the
+    // verbose Drive diagnostics that must never reach a release log.
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -97,9 +157,69 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose)
+    // V2-08/09: link previews need a client with a DNS override, so the
+    // connection goes only to validated addresses while TLS SNI and hostname
+    // verification still use the real hostname.
+    implementation(libs.okhttp)
     implementation(libs.play.services.auth)
     // Installs merged baseline profiles (ours + library-shipped, e.g. Compose)
     // on devices without Play Store profile delivery.
     implementation(libs.androidx.profileinstaller)
     testImplementation(libs.junit)
+    // V2-34: the receiver work budget is a coroutine policy — tested on virtual
+    // time rather than by sleeping for eight seconds.
+    testImplementation(libs.kotlinx.coroutines.test)
+}
+
+// ---------------------------------------------------------------------------
+// V2-18: the inventory a vulnerability scan needs.
+//
+// `scripts/scan-dependencies.py` has to answer one question before it can rank
+// anything: does this artifact ship, or does it only ever run on the build
+// machine? A netty advisory inside the Android Gradle Plugin and the same
+// advisory inside the APK are not the same finding — one needs a hostile build
+// host, the other needs a hostile SMS.
+//
+// `releaseRuntimeClasspath` is exactly the shipped set: `compileOnly` and
+// annotation processors are absent from it, project dependencies contribute
+// their transitives, and R8 only ever removes from it. Everything else Gradle
+// resolves — the superset recorded in `gradle/verification-metadata.xml` — is
+// build-time by subtraction.
+//
+// Emitted from Gradle rather than scraped out of `./gradlew :app:dependencies`
+// because that report prints the losing side of a version conflict next to the
+// winner ("room-ktx:2.5.0 -> 2.6.1"). Scanning the losing side reports
+// vulnerabilities in code that is not in the build.
+// ---------------------------------------------------------------------------
+val shippedDependenciesReport: Provider<RegularFile> =
+    layout.buildDirectory.file("reports/shipped-dependencies.txt")
+
+tasks.register("shippedDependencies") {
+    group = "verification"
+    description = "Lists the external coordinates packaged into the release APK."
+    outputs.file(shippedDependenciesReport)
+    // Resolution can change — a new transitive, a version bump — without this
+    // task's own inputs changing, and a stale inventory scans the wrong build.
+    outputs.upToDateWhen { false }
+
+    val coordinates = provider {
+        configurations.getByName("releaseRuntimeClasspath")
+            .incoming
+            .resolutionResult
+            .allComponents
+            // Project components (":core-messaging") are ours and have no
+            // upstream advisories; their external dependencies are already in
+            // this graph on their own.
+            .mapNotNull { it.id as? ModuleComponentIdentifier }
+            .map { "${it.group}:${it.module}:${it.version}" }
+            .distinct()
+            .sorted()
+    }
+
+    doLast {
+        val report = shippedDependenciesReport.get().asFile
+        report.parentFile.mkdirs()
+        report.writeText(coordinates.get().joinToString("\n", postfix = "\n"))
+        logger.lifecycle("shipped coordinates: ${coordinates.get().size} -> $report")
+    }
 }

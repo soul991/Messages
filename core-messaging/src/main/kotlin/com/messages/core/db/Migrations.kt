@@ -229,8 +229,24 @@ object Migrations {
         }
     }
 
+    /**
+     * v10 (V2-48) — two columns behind the outbox's automatic retry.
+     *
+     * `retryCount` defaults to 0 and `nextRetryAt` to NULL, which is exactly
+     * right for every existing row: nothing that was sent before this version
+     * has an automatic retry pending, and a failed message from before the
+     * upgrade simply waits for the user like it always did.
+     */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE messages ADD COLUMN retryCount INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE messages ADD COLUMN nextRetryAt INTEGER")
+        }
+    }
+
     val ALL: Array<Migration> = arrayOf(
         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+        MIGRATION_9_10,
     )
 }

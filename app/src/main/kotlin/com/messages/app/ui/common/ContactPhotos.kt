@@ -2,7 +2,7 @@ package com.messages.app.ui.common
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -63,7 +63,7 @@ object ContactPhotos {
 fun rememberContactPhoto(address: String?): String? {
     if (address.isNullOrBlank()) return null
     val context = LocalContext.current.applicationContext
-    val version by ContactSync.refreshVersion.collectAsState()
+    val version by ContactSync.refreshVersion.collectAsStateWithLifecycle()
     val cached = remember(address, version) { ContactPhotos.cached(address) }
     if (cached != null) return cached.ifEmpty { null }
     val photo by produceState<String?>(initialValue = null, address, version) {

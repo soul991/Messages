@@ -27,20 +27,24 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.messages.app.R
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.drive.DriveBackup
 import com.messages.app.ui.search.SearchHighlight
+import com.messages.app.ui.common.AppDateFormat
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,9 +53,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class SpamBackupPickerViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -75,7 +76,14 @@ class SpamBackupPickerViewModel(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch {
             allSpam.value = repo.db.messages().allMessages()
-                .filter { it.category == "SPAM" && !it.trashed }
+                // V2-6: NORMAL only. Locked rows never travel in the plaintext
+                // payload this picker shapes, so ticking one could never have
+                // done anything — and their bodies are sealed, so they would
+                // have rendered here as base64.
+                .filter {
+                    it.category == "SPAM" && !it.trashed &&
+                        it.space == com.messages.core.db.Spaces.NORMAL
+                }
                 .sortedByDescending { it.timestamp }
         }
     }
@@ -100,7 +108,7 @@ class SpamBackupPickerViewModel(app: Application) : AndroidViewModel(app) {
     private fun persist() = DriveBackup.setCustomSpamIds(getApplication(), selected.value)
 }
 
-private val ROW_STAMP = SimpleDateFormat("d MMM", Locale.US)
+// V2-45: locale and zone read at render time, not at class-init.
 
 /**
  * §8.3 Custom spam-backup picker: search-first multi-select over the Spam
@@ -112,29 +120,34 @@ fun SpamBackupPickerScreen(
     onBack: () -> Unit,
     vm: SpamBackupPickerViewModel = viewModel(),
 ) {
-    val query by vm.query.collectAsState()
-    val shown by vm.shown.collectAsState()
-    val selected by vm.selected.collectAsState()
+    val query by vm.query.collectAsStateWithLifecycle()
+    val shown by vm.shown.collectAsStateWithLifecycle()
+    val selected by vm.selected.collectAsStateWithLifecycle()
     val terms = if (query.trim().length >= 3) listOf(query.trim()) else emptyList()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Spam to back up") },
+                title = { Text(stringResource(R.string.drive_spam_picker_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
-                    TextButton(onClick = { vm.clearSelection() }) { Text("Clear") }
+                    TextButton(onClick = { vm.clearSelection() }) { Text(stringResource(R.string.action_clear)) }
                 },
             )
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             Text(
-                "${selected.size} of ${vm.spamTotal()} spam messages will be backed up",
+                pluralStringResource(
+                    R.plurals.drive_spam_picker_count,
+                    selected.size,
+                    selected.size,
+                    vm.spamTotal(),
+                ),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
@@ -142,7 +155,7 @@ fun SpamBackupPickerScreen(
             TextField(
                 value = query,
                 onValueChange = { vm.query.value = it },
-                placeholder = { Text("Search spam") },
+                placeholder = { Text(stringResource(R.string.drive_spam_picker_search)) },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 singleLine = true,
                 shape = CircleShape,
@@ -157,7 +170,17 @@ fun SpamBackupPickerScreen(
                     onClick = { vm.selectAllShown() },
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    Text(if (terms.isEmpty()) "Select all" else "Select all ${shown.size} results")
+                    Text(
+                        if (terms.isEmpty()) {
+                            stringResource(R.string.drive_spam_picker_select_all)
+                        } else {
+                            pluralStringResource(
+                                R.plurals.drive_spam_picker_select_all_results,
+                                shown.size,
+                                shown.size,
+                            )
+                        },
+                    )
                 }
             }
             LazyColumn(Modifier.fillMaxSize()) {
@@ -189,7 +212,7 @@ fun SpamBackupPickerScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    ROW_STAMP.format(Date(msg.timestamp)),
+                                    AppDateFormat.dayMonth(msg.timestamp),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.outline,
                                 )

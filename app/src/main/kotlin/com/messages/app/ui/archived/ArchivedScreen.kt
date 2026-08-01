@@ -28,7 +28,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,16 +41,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.ui.common.AppDateFormat
 import com.messages.app.ui.common.ContactAvatar
 import com.messages.core.MessageRepository
 import com.messages.core.db.ConversationEntity
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 
 class ArchivedViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -60,25 +60,16 @@ class ArchivedViewModel(app: Application) : AndroidViewModel(app) {
         repo.db.conversations().archived()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    // V2-24: `archived()` is hard-coded to space = 'NORMAL', so everything
+    // this screen can show — and un-archive — lives in the normal space.
     fun unarchive(threadId: Long) = viewModelScope.launch {
-        repo.db.conversations().setArchived(threadId, false)
+        repo.db.conversations().setArchived(threadId, false, com.messages.core.db.Spaces.NORMAL)
     }
 }
 
-// Same composition-only formatter policy as HomeScreen's row time.
-private val rowTimeFormat = SimpleDateFormat("HH:mm", Locale.US)
-private val rowDateFormat = SimpleDateFormat("dd MMM", Locale.US)
-private val sharedDate = Date(0)
-
-private fun localDayOf(ts: Long): Long =
-    (ts + java.util.TimeZone.getDefault().getOffset(ts)) / 86_400_000L
-
-private fun formatTime(ts: Long): String {
-    if (ts == 0L) return ""
-    val sameDay = localDayOf(ts) == localDayOf(System.currentTimeMillis())
-    sharedDate.time = ts
-    return if (sameDay) rowTimeFormat.format(sharedDate) else rowDateFormat.format(sharedDate)
-}
+// V2-45: same row rule as Home, and now literally the same code — locale and
+// zone resolved at render time rather than frozen at class-init.
+private fun formatTime(ts: Long): String = AppDateFormat.listRowStamp(ts)
 
 private val ROW_AVATAR = 54.dp
 private val ROW_GAP = 16.dp
@@ -91,17 +82,17 @@ fun ArchivedScreen(
     onOpenThread: (Long) -> Unit,
     vm: ArchivedViewModel = viewModel(),
 ) {
-    val conversations by vm.conversations.collectAsState()
+    val conversations by vm.conversations.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Archived") },
+                title = { Text(stringResource(R.string.archived_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -120,12 +111,12 @@ fun ArchivedScreen(
                         modifier = Modifier.size(48.dp),
                     )
                     Text(
-                        "No archived conversations",
+                        stringResource(R.string.archived_empty_title),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(top = 12.dp),
                     )
                     Text(
-                        "Swipe a conversation on Home to archive it.",
+                        stringResource(R.string.archived_empty_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -170,22 +161,26 @@ fun ArchivedScreen(
                         }
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            if (conv.locked) "🔒 Locked conversation" else conv.lastMessage,
+                            if (conv.locked) stringResource(R.string.conversation_locked_preview) else conv.lastMessage,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    // V2-36: read in composition, used from the coroutine.
+                    // `stringResource` is @Composable and onClick is not, so the
+                    // lookup has to happen out here.
+                    val unarchived = stringResource(R.string.archived_unarchived_snackbar)
                     IconButton(onClick = {
                         vm.unarchive(conv.threadId)
                         scope.launch {
-                            snackbarHostState.showSnackbar("Moved back to Home")
+                            snackbarHostState.showSnackbar(unarchived)
                         }
                     }) {
                         Icon(
                             Icons.Outlined.Unarchive,
-                            contentDescription = "Unarchive",
+                            contentDescription = stringResource(R.string.archived_unarchive),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }

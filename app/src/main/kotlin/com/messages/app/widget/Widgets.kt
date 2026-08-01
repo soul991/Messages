@@ -59,8 +59,14 @@ object WidgetUpdater {
             val total = repo.db.messages().totalSilenced()
             val views = RemoteViews(context.packageName, R.layout.widget_protection).apply {
                 setTextViewText(R.id.widget_count, "%,d".format(week))
-                setTextViewText(R.id.widget_subtitle, "spam blocked this week")
-                setTextViewText(R.id.widget_total, "%,d silenced all-time".format(total))
+                setTextViewText(
+                    R.id.widget_subtitle,
+                    context.getString(R.string.widget_protection_subtitle),
+                )
+                setTextViewText(
+                    R.id.widget_total,
+                    context.getString(R.string.widget_protection_total, "%,d".format(total)),
+                )
                 setOnClickPendingIntent(R.id.widget_root, openApp(context, dashboard = true))
             }
             mgr.updateAppWidget(protectionIds, views)
@@ -73,7 +79,7 @@ object WidgetUpdater {
             // additionally excludes legacy locked rows and the LOCKED space.
             val privateSurface = AppLock.isEnabled(context) || AppLock.hidePreviews(context)
             val lines = if (privateSurface) {
-                if (count == 0) "" else "Open Messages to view"
+                if (count == 0) "" else context.getString(R.string.widget_unread_locked)
             } else {
                 repo.db.conversations().recentUnreadInbox(3).joinToString("\n") { conv ->
                     val name = conv.contactName ?: conv.address
@@ -85,7 +91,15 @@ object WidgetUpdater {
             val views = RemoteViews(context.packageName, R.layout.widget_unread).apply {
                 setTextViewText(
                     R.id.widget_unread_count,
-                    if (count == 0) "All caught up" else "$count unread",
+                    if (count == 0) {
+                        context.getString(R.string.widget_unread_none)
+                    } else {
+                        // V2-36: a plural, not "$count unread" — Polish, Arabic
+                        // and Russian all need more forms than an "s" can give.
+                        context.resources.getQuantityString(
+                            R.plurals.widget_unread_count, count, count,
+                        )
+                    },
                 )
                 setTextViewText(R.id.widget_unread_lines, lines)
                 setOnClickPendingIntent(R.id.widget_root, openApp(context, dashboard = false))

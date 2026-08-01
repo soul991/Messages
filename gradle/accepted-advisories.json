@@ -1,0 +1,78 @@
+{
+  "$note": [
+    "V2-18 baseline for scripts/scan-dependencies.py. See docs/ops/SUPPLY_CHAIN.md §6.",
+    "",
+    "Every entry below is scope 'build': the artifact runs on the machine that",
+    "compiles the app and is not packaged into the APK. Nothing here is reachable",
+    "from a received message; reaching any of it requires already controlling the",
+    "build. The shipped scope has no entries, and adding one should be an argument,",
+    "not a formality — it would mean knowingly publishing vulnerable code to users.",
+    "",
+    "Why a baseline instead of an upgrade. All six groups arrive through",
+    "com.android.tools.build:gradle. On 2026-08-01 the tree carried 23 blocking",
+    "advisories; resolving the newest Android Gradle Plugin the toolchain can reach",
+    "(8.13.2 on Gradle 8.13) was measured to leave 24 — one more, because newer AGP",
+    "adds protobuf variants faster than it retires them. There is no version of AGP",
+    "that clears these. A gate nobody can satisfy gets deleted, so the gate is set",
+    "where it can still do work: anything NOT listed here fails.",
+    "",
+    "Advisory ids are exact and the scanner refuses wildcards. A new advisory in",
+    "any of these same artifacts is therefore still a build failure — which is the",
+    "whole point of writing them out rather than muting the coordinate.",
+    "",
+    "On expiry: these are not fixed by then, and are not expected to be. The date",
+    "forces someone to re-run the measurement and confirm the reasoning still",
+    "holds — that AGP still vendors these, and that none has moved into the APK."
+  ],
+  "accepted": [
+    {
+      "ids": [
+        "GHSA-3qp7-7mw8-wx86", "GHSA-4g8c-wm8x-jfhw", "GHSA-558v-64gr-wgg4",
+        "GHSA-57rv-r2g8-2cj3", "GHSA-6jqx-86gh-f27w", "GHSA-93wv-jw9v-4972",
+        "GHSA-c653-97m9-rcg9", "GHSA-f6hv-jmp6-3vwv", "GHSA-jppx-w49h-x2qq",
+        "GHSA-mj4r-2hfc-f8p6", "GHSA-mvh2-crg5-v77c", "GHSA-prj3-ccx8-p6x4",
+        "GHSA-pwqr-wmgm-9rr8", "GHSA-w9fj-cfpg-grvv", "GHSA-x4gw-5cx5-pgmh",
+        "GHSA-xpw8-rcwv-8f8p"
+      ],
+      "coordinate": "io.netty:*",
+      "scope": "build",
+      "reason": "netty 4.1.93 via io.grpc:grpc-netty <- android-test-plugin-result-listener-gradle-proto <- AGP. It backs the gRPC channel the Unified Test Platform uses to stream instrumentation results, which this project does not run: there are no androidTest sources and CI runs unit tests only. These are HTTP/2 and codec parsing flaws that need a hostile peer on that channel; the channel is loopback and only exists during a connected-device test run. AGP 8.13.2 still resolves netty 4.1.110, which carries the same set.",
+      "expires": "2027-02-01"
+    },
+    {
+      "ids": ["GHSA-574f-3g2m-x479"],
+      "coordinate": "org.bouncycastle:*",
+      "scope": "build",
+      "reason": "bcprov 1.77/1.78.1 via com.android.tools:sdk-common <- AGP, used for APK signing. The advisory is in Ed25519 signature verification; our signing path verifies nothing with BouncyCastle, and the key material is the release keystore, which never reaches an untrusted input. AGP 8.13.2 moves this only to 1.79, which is still affected.",
+      "expires": "2027-02-01"
+    },
+    {
+      "ids": ["GHSA-3677-xxcr-wjqv"],
+      "coordinate": "org.bitbucket.b_c:jose4j",
+      "scope": "build",
+      "reason": "jose4j 0.9.5 via com.android.tools.build:bundletool <- AGP. A JWT/JWE decompression-bomb denial of service; nothing in this build parses a JWT, and bundletool is only invoked for AAB packaging with input we produced. Unchanged in AGP 8.13.2.",
+      "expires": "2027-02-01"
+    },
+    {
+      "ids": ["GHSA-2363-cqg2-863c"],
+      "coordinate": "org.jdom:jdom2",
+      "scope": "build",
+      "reason": "jdom2 2.0.6 via jetifier-processor <- AGP. XXE in XML parsing. Jetifier rewrites legacy support-library references and is not enabled here (android.enableJetifier is absent from gradle.properties), so the code path does not run at all; the artifact is on the classpath because AGP declares it unconditionally. Unchanged in AGP 8.13.2.",
+      "expires": "2027-02-01"
+    },
+    {
+      "ids": ["GHSA-735f-pc8j-v9w8"],
+      "coordinate": "com.google.protobuf:protobuf-java",
+      "scope": "build",
+      "reason": "protobuf-java 3.22.3 via com.android.tools.analytics-library <- AGP. Denial of service on parsing an untrusted protobuf; the only messages this library parses are AGP's own analytics payloads. AGP 8.13.2 adds 3.19.3, 3.24.4 and 3.25.5 alongside it and remains affected.",
+      "expires": "2027-02-01"
+    },
+    {
+      "ids": ["GHSA-78wr-2p64-hpwj"],
+      "coordinate": "commons-io:commons-io",
+      "scope": "build",
+      "reason": "commons-io 2.13.0 via androidx.databinding:databinding-compiler-common <- AGP. Path traversal in FileNameUtils on untrusted input; data binding compiles our own layouts. Fixed upstream in 2.14.0, and AGP 8.13.2 does resolve 2.16.1 — this one entry would clear on a toolchain migration.",
+      "expires": "2027-02-01"
+    }
+  ]
+}

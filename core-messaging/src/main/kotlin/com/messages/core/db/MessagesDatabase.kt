@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -57,6 +58,10 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE smsId = :smsId LIMIT 1")
     suspend fun bySmsId(smsId: Long): MessageEntity?
 
+    /** V2-25: dedupe key for the MMS half of the historical backfill. */
+    @Query("SELECT * FROM messages WHERE mmsId = :mmsId LIMIT 1")
+    suspend fun byMmsId(mmsId: Long): MessageEntity?
+
     @Query("SELECT * FROM messages WHERE mmsTransactionId = :transactionId LIMIT 1")
     suspend fun byMmsTransactionId(transactionId: String): MessageEntity?
 
@@ -72,6 +77,20 @@ interface MessageDao {
             "AND body = :body AND isOutgoing = 0 LIMIT 1"
     )
     suspend fun findIncomingDuplicate(address: String, timestamp: Long, body: String): MessageEntity?
+
+    /**
+     * V2-6 companion to [findIncomingDuplicate]. A locked row's body column
+     * holds AES-GCM ciphertext under a random nonce, so `body = :body` can
+     * never match it and redelivery detection would silently stop working for
+     * exactly the space where a duplicate is most annoying. Address + carrier
+     * timestamp narrows it to at most a couple of rows; the caller opens those
+     * and compares the plaintext itself.
+     */
+    @Query(
+        "SELECT * FROM messages WHERE address = :address AND timestamp = :timestamp " +
+            "AND isOutgoing = 0 AND space = 'LOCKED'"
+    )
+    suspend fun lockedIncomingAt(address: String, timestamp: Long): List<MessageEntity>
 
     @Query("UPDATE messages SET category = :category, dangerous = 0 WHERE id = :id")
     suspend fun recategorize(id: Long, category: String)
@@ -89,8 +108,12 @@ interface MessageDao {
     )
     suspend fun clearClassifierVerdict(id: Long, category: String)
 
+    // V2-24: `space` is REQUIRED on every mutation that names a threadId. The
+    // same threadId exists once per space, so a defaulted `space` does not
+    // fail — it silently writes to the wrong conversation. Reads keep their
+    // default (a wrong-space read returns nothing); writes do not.
     @Query("UPDATE messages SET read = 1 WHERE threadId = :threadId AND space = :space")
-    suspend fun markThreadRead(threadId: Long, space: String = Spaces.NORMAL)
+    suspend fun markThreadRead(threadId: Long, space: String)
 
     /** Mark-all-read for one folder (Phase 4 item 12) — Home surface, NORMAL only. */
     @Query("UPDATE messages SET read = 1 WHERE category = :category AND trashed = 0 AND space = 'NORMAL'")
@@ -122,6 +145,123 @@ interface MessageDao {
     suspend fun setSendStatus(id: Long, status: String, resultCode: Int?)
 
     /**
+     * V2-19: atomically claim a SCHEDULED message for sending.
+     *
+     * The worker's fire and the user's "Send now" can race — both used to read
+     * the row, both see `SCHEDULED`, and both go on to send it. This is a
+     * compare-and-set: SQLite applies the `WHERE sendStatus = 'SCHEDULED'`
+     * predicate and the write as one statement, so exactly one caller gets a
+     * return of 1 and every other caller gets 0 and must abandon the send.
+     *
+     * Marked CLAIMED rather than SENDING so the claim is distinguishable from a
+     * send already in flight; the caller flips it to SENDING once the provider
+     * row exists, and back to SCHEDULED via [releaseScheduledClaim] if it could
+     * not get that far.
+     */
+    @Query(
+        "UPDATE messages SET sendStatus = 'CLAIMED' " +
+            "WHERE id = :id AND sendStatus = 'SCHEDULED'"
+    )
+    suspend fun claimScheduled(id: Long): Int
+
+    /** V2-19: hand a failed claim back so a retry can pick it up. */
+    @Query("UPDATE messages SET sendStatus = 'SCHEDULED' WHERE id = :id AND sendStatus = 'CLAIMED'")
+    suspend fun releaseScheduledClaim(id: Long)
+
+    /**
+     * V2-19: release every claim left behind by a process death.
+     *
+     * CLAIMED is only ever held across the provider write inside
+     * `promoteScheduledToSending`, which is milliseconds. Anything still
+     * CLAIMED at app start belongs to a process that no longer exists, so the
+     * send never happened and the row must become schedulable again. Called
+     * once from `Application.onCreate`, where no send can be in flight.
+     */
+    @Query("UPDATE messages SET sendStatus = 'SCHEDULED' WHERE sendStatus = 'CLAIMED'")
+    suspend fun releaseAllScheduledClaims(): Int
+
+    // ---- V2-48: the outbox ---------------------------------------------
+
+    /**
+     * Everything outgoing that has not finished: scheduled, claimed, in flight,
+     * failed. Newest first, so a fresh failure is at the top where it will be
+     * seen.
+     *
+     * Restricted to `space = 'NORMAL'` on purpose. A locked-space message in
+     * the outbox would put its recipient — and, in a list this small, its
+     * existence — on a screen reachable without the locked-space credential,
+     * which is the one thing the whole space is for. Locked sends surface
+     * inside the locked space instead.
+     */
+    @Query(
+        "SELECT * FROM messages WHERE isOutgoing = 1 AND trashed = 0 " +
+            "AND space = 'NORMAL' " +
+            "AND sendStatus IN ('SCHEDULED', 'CLAIMED', 'SENDING', 'FAILED') " +
+            "ORDER BY timestamp DESC"
+    )
+    fun outbox(): Flow<List<MessageEntity>>
+
+    /** Badge count for the outbox entry point. Same predicate as [outbox]. */
+    @Query(
+        "SELECT COUNT(*) FROM messages WHERE isOutgoing = 1 AND trashed = 0 " +
+            "AND space = 'NORMAL' " +
+            "AND sendStatus IN ('SCHEDULED', 'CLAIMED', 'SENDING', 'FAILED')"
+    )
+    fun outboxCount(): Flow<Int>
+
+    /**
+     * V2-48: record that an automatic retry is due.
+     *
+     * Guarded on FAILED so a retry cannot be armed for a message that has since
+     * been resent by hand and is now in flight — the callback that failed and
+     * the user's button press can race, and the user's action must win.
+     */
+    @Query(
+        "UPDATE messages SET retryCount = :attempts, nextRetryAt = :at " +
+            "WHERE id = :id AND sendStatus = 'FAILED'"
+    )
+    suspend fun armRetry(id: Long, attempts: Int, at: Long): Int
+
+    /**
+     * V2-48: clear a pending retry. Called when the user takes over (resend,
+     * edit, cancel) and when a retry actually starts, so `nextRetryAt` always
+     * describes a wait that is still ahead.
+     */
+    @Query("UPDATE messages SET nextRetryAt = NULL WHERE id = :id")
+    suspend fun clearRetry(id: Long)
+
+    /** V2-48: a manual resend starts the retry budget over — see [MessageEntity.retryCount]. */
+    @Query("UPDATE messages SET retryCount = 0, nextRetryAt = NULL WHERE id = :id")
+    suspend fun resetRetry(id: Long)
+
+    /**
+     * V2-48: claim a FAILED message for one send attempt, atomically.
+     *
+     * Same shape as [claimScheduled] and for the same reason: an automatic
+     * retry worker and a user pressing Resend can arrive together, and exactly
+     * one of them may hand the message to the radio. The compare-and-set on
+     * FAILED is what decides.
+     */
+    @Query(
+        "UPDATE messages SET sendStatus = 'SENDING', nextRetryAt = NULL " +
+            "WHERE id = :id AND sendStatus = 'FAILED'"
+    )
+    suspend fun claimFailedForResend(id: Long): Int
+
+    /**
+     * V2-48: change which SIM a message that has not left yet will use.
+     *
+     * Restricted to states where nothing has been dispatched. Editing the
+     * subscription of a message already handed to the radio would describe a
+     * send that did not happen.
+     */
+    @Query(
+        "UPDATE messages SET subId = :subId WHERE id = :id " +
+            "AND sendStatus IN ('SCHEDULED', 'FAILED')"
+    )
+    suspend fun setSendSubId(id: Long, subId: Int?): Int
+
+    /**
      * Secret space: move a whole thread's live messages between spaces
      * ("Move entire chat" / "Unlock chat"). Trash rows move too — a locked
      * chat's deletions must not resurface in the normal Trash screen.
@@ -133,6 +273,17 @@ interface MessageDao {
      *  wipe (hard delete; locked content must never pass through Trash). */
     @Query("SELECT * FROM messages WHERE space = :space")
     suspend fun allInSpace(space: String): List<MessageEntity>
+
+    /**
+     * V2-6: every row of ONE thread in one space, trash included.
+     *
+     * [listForThread] hides trash, and [setThreadSpace] is a bulk UPDATE that
+     * cannot re-encrypt anything. Moving a thread into or out of the locked
+     * space has to re-encode every row it just moved — including the trashed
+     * ones, whose bodies are every bit as sensitive as the live ones.
+     */
+    @Query("SELECT * FROM messages WHERE threadId = :threadId AND space = :space")
+    suspend fun allForThreadInSpace(threadId: Long, space: String): List<MessageEntity>
 
     // User-initiated only — the filter itself never calls delete (§6). Normal
     // user deletions go through the Trash flags below (§6.4); the permitted
@@ -151,7 +302,8 @@ interface MessageDao {
         "UPDATE messages SET trashed = 1, trashedAt = :at " +
             "WHERE threadId = :threadId AND space = :space AND trashed = 0"
     )
-    suspend fun moveThreadToTrash(threadId: Long, at: Long, space: String = Spaces.NORMAL)
+    // V2-24: space is explicit — see markThreadRead.
+    suspend fun moveThreadToTrash(threadId: Long, at: Long, space: String)
 
     @Query(
         "SELECT id FROM messages WHERE threadId = :threadId AND space = :space " +
@@ -212,7 +364,14 @@ interface MessageDao {
     @Query("UPDATE messages SET normalizedBody = :normalized WHERE id = :id")
     suspend fun setNormalizedBody(id: Long, normalized: String)
 
-    @Query("SELECT id, body FROM messages WHERE normalizedBody = ''")
+    /**
+     * V2-6: NORMAL only. A locked row's body is sealed, so normalising it would
+     * write a lowercased slice of base64 ciphertext into `normalizedBody` — and
+     * `normalizedBody` is one of the FTS4 mirror's source columns, so that
+     * garbage would land in the search index the sealing exists to keep clean.
+     * Locked rows are normalised at write time, before they are sealed.
+     */
+    @Query("SELECT id, body FROM messages WHERE normalizedBody = '' AND space = 'NORMAL'")
     suspend fun rowsNeedingNormalization(): List<IdBody>
 
     @Query(
@@ -362,14 +521,17 @@ interface ConversationDao {
     )
     suspend fun searchByNameOrAddress(q: String): List<ConversationEntity>
 
+    // V2-24: every conversation mutation below takes `space` explicitly. A
+    // defaulted space writes to whichever row happens to sit in NORMAL under
+    // the same threadId, which is a different person's conversation.
     @Query("UPDATE conversations SET pinned = :pinned WHERE threadId = :threadId AND space = :space")
-    suspend fun setPinned(threadId: Long, pinned: Boolean, space: String = Spaces.NORMAL)
+    suspend fun setPinned(threadId: Long, pinned: Boolean, space: String)
 
     @Query("UPDATE conversations SET archived = :archived WHERE threadId = :threadId AND space = :space")
-    suspend fun setArchived(threadId: Long, archived: Boolean, space: String = Spaces.NORMAL)
+    suspend fun setArchived(threadId: Long, archived: Boolean, space: String)
 
     @Query("UPDATE conversations SET muted = :muted WHERE threadId = :threadId AND space = :space")
-    suspend fun setMuted(threadId: Long, muted: Boolean, space: String = Spaces.NORMAL)
+    suspend fun setMuted(threadId: Long, muted: Boolean, space: String)
 
     /** LEGACY biometric locked-conversation flag — normal space only. */
     @Query("UPDATE conversations SET locked = :locked WHERE threadId = :threadId AND space = 'NORMAL'")
@@ -380,7 +542,7 @@ interface ConversationDao {
     suspend fun legacyLockedConversations(): List<ConversationEntity>
 
     @Query("UPDATE conversations SET unreadCount = 0 WHERE threadId = :threadId AND space = :space")
-    suspend fun clearUnread(threadId: Long, space: String = Spaces.NORMAL)
+    suspend fun clearUnread(threadId: Long, space: String)
 
     /** Mark-all-read for one folder (Phase 4 item 12) — Home surface. */
     @Query("UPDATE conversations SET unreadCount = 0 WHERE category = :category AND space = 'NORMAL'")
@@ -395,16 +557,16 @@ interface ConversationDao {
             "CASE WHEN unreadCount = 0 THEN 1 ELSE unreadCount END " +
             "WHERE threadId = :threadId AND space = :space"
     )
-    suspend fun markUnread(threadId: Long, space: String = Spaces.NORMAL)
+    suspend fun markUnread(threadId: Long, space: String)
 
     @Query("UPDATE conversations SET preferredSubId = :subId WHERE threadId = :threadId AND space = :space")
-    suspend fun setPreferredSubId(threadId: Long, subId: Int?, space: String = Spaces.NORMAL)
+    suspend fun setPreferredSubId(threadId: Long, subId: Int?, space: String)
 
     @Query("UPDATE conversations SET contactName = :name WHERE threadId = :threadId AND space = :space")
-    suspend fun setContactName(threadId: Long, name: String?, space: String = Spaces.NORMAL)
+    suspend fun setContactName(threadId: Long, name: String?, space: String)
 
     @Query("DELETE FROM conversations WHERE threadId = :threadId AND space = :space")
-    suspend fun deleteByThreadId(threadId: Long, space: String = Spaces.NORMAL)
+    suspend fun deleteByThreadId(threadId: Long, space: String)
 
     @Query(
         "SELECT COUNT(*) FROM conversations WHERE category = :category " +
@@ -544,6 +706,42 @@ interface ThreadAliasDao {
     /** Synthetic IDs are negative so they can never hit a real provider ID. */
     @Query("UPDATE thread_aliases SET threadId = -id WHERE id = :id")
     suspend fun assignThreadId(id: Long)
+
+    /**
+     * V2-20: allocate (or fetch) the synthetic thread ID for [key], atomically.
+     *
+     * The previous caller-side sequence had two ways to return a *positive* ID,
+     * which is the one thing a synthetic ID may never be — positive IDs belong
+     * to the Telephony provider, so returning one silently merges an unrelated
+     * real conversation into this one:
+     *
+     *  - `INSERT ... ON CONFLICT IGNORE` returns `-1` when another caller won
+     *    the race, and the caller negated that rowId: `-(-1) == 1`, i.e. real
+     *    thread 1.
+     *  - Even without a conflict there was a window where the winner had
+     *    inserted but not yet run `assignThreadId`, leaving `threadId == 0` for
+     *    a concurrent reader, which then took the same `-rowId` fallback.
+     *
+     * Wrapping insert + assign + read in one transaction removes the race
+     * outright, and the conflict branch now resolves the *existing* row instead
+     * of negating a sentinel. Returns a strictly negative ID, or 0 if the row
+     * genuinely cannot be resolved (caller must treat that as a failure).
+     */
+    @Transaction
+    suspend fun allocate(key: String): Long {
+        byKey(key)?.let { if (it.threadId != 0L) return it.threadId }
+        val rowId = insert(ThreadAliasEntity(recipientKey = key))
+        if (rowId > 0) {
+            assignThreadId(rowId)
+            return -rowId
+        }
+        // Conflict: a row for this key already exists. Resolve THAT row — never
+        // negate the -1 sentinel. Finish the allocation if the winner had not.
+        val existing = byKey(key) ?: return 0L
+        if (existing.threadId != 0L) return existing.threadId
+        assignThreadId(existing.id)
+        return -existing.id
+    }
 }
 
 @Database(
@@ -553,7 +751,7 @@ interface ThreadAliasDao {
         MessageFtsEntity::class,
         ProviderRowEntity::class, SmsAttemptEntity::class, ThreadAliasEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class MessagesDatabase : RoomDatabase() {

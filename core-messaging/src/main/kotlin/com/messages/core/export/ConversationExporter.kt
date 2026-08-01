@@ -22,6 +22,11 @@ object ConversationExporter {
         conversationName: String,
         ownLabel: String = "Me",
     ): String {
+        // V2-45 note: intentionally left on a fixed locale, and intentionally
+        // not on AppDateFormat. This is a file format, not a rendered row —
+        // built per call (so it cannot go stale the way the UI formatters did)
+        // and stable across devices, which is what makes an exported transcript
+        // comparable and parseable by eye months later.
         val fmt = SimpleDateFormat("EEE, d MMM yyyy HH:mm", Locale.US)
         val sb = StringBuilder()
         sb.append("Conversation with ").append(conversationName).append('\n')

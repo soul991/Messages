@@ -116,7 +116,19 @@ class LockedBackupTest {
         assertFalse(SecretSpace.hasPendingRestore(context))
 
         val lockedRows = db.messages().allMessages().filter { it.space == Spaces.LOCKED }
-        assertTrue(lockedRows.any { it.body == secretBody })
+        // V2-6: restored locked rows are sealed at rest, so the stored column
+        // must NOT equal the plaintext — and must open back to it. Asserting
+        // both directions is the point: a seal that silently no-ops would
+        // still satisfy the second assertion on its own.
+        assertTrue(
+            "a restored locked body must not be stored in the clear",
+            lockedRows.none { it.body == secretBody },
+        )
+        assertTrue(
+            lockedRows.any {
+                com.messages.core.secret.LockedContent.open(context, it).body == secretBody
+            },
+        )
         // Locked conversation recreated (routing rule restored) and invisible
         // to the normal list.
         val lockedThread = lockedRows.first().threadId

@@ -7,10 +7,6 @@ import android.provider.Telephony
 import com.messages.app.notify.MessageNotifier
 import com.messages.app.widget.WidgetUpdater
 import com.messages.core.MessageRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 
 /**
  * Default-SMS mandatory component: SMS_DELIVER. Runs the full
@@ -32,24 +28,23 @@ class SmsDeliverReceiver : BroadcastReceiver() {
         val subId = intent.getIntExtra("android.telephony.extra.SUBSCRIPTION_INDEX",
             intent.getIntExtra("subscription", -1)).takeIf { it >= 0 }
 
-        val pending = goAsync()
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            try {
-                val repo = MessageRepository.get(context)
-                val intake = repo.onIncomingSms(address, body, timestamp, subId)
-                // R-16: a redelivered broadcast stored nothing the second time.
-                // Notifying again would double-alert for one message.
-                if (!intake.isNew) return@launch
-                MessageNotifier(context)
-                    .notifyFor(intake.message, intake.verdict, repo.lookupContactName(address))
-                WidgetUpdater.requestUpdate(context)
-            } catch (t: Throwable) {
-                // The provider write inside onIncomingSms happens first, so the
-                // message itself is safe; never crash the process over the rest.
-                android.util.Log.e("SmsDeliverReceiver", "receive pipeline failed", t)
-            } finally {
-                pending.finish()
-            }
+        // V2-34: supervised, time-budgeted, and finished exactly once. The
+        // provider write inside onIncomingSms happens first, so the message
+        // itself is safe if the rest fails; the process is never crashed over
+        // notification or widget work.
+        ReceiverWork.launch(goAsync(), TAG) {
+            val repo = MessageRepository.get(context)
+            val intake = repo.onIncomingSms(address, body, timestamp, subId)
+            // R-16: a redelivered broadcast stored nothing the second time.
+            // Notifying again would double-alert for one message.
+            if (!intake.isNew) return@launch
+            MessageNotifier(context)
+                .notifyFor(intake.message, intake.verdict, repo.lookupContactName(address))
+            WidgetUpdater.requestUpdate(context)
         }
+    }
+
+    private companion object {
+        const val TAG = "SmsDeliverReceiver"
     }
 }

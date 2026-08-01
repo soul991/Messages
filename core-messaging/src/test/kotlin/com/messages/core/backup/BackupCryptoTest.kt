@@ -151,7 +151,7 @@ class RestoreDedupeTest {
     ) = BackupManager.BackupMessage(
         address = address, body = body, timestamp = timestamp, isOutgoing = outgoing,
         read = true, category = "TRANSACTIONS", dangerous = false, fraudWarning = false,
-        protectedLabel = "Bank", score = 0, matchedPatternIds = "", matchedComboIds = "",
+        protectedLabel = "BANK", score = 0, matchedPatternIds = "", matchedComboIds = "",
         explanations = "", starred = false,
     )
 

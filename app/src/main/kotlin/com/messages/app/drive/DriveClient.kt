@@ -34,7 +34,15 @@ class DriveClient(private val context: Context, private val account: Account) {
         val createdTime: String,
     )
 
-    class DriveHttpException(val code: Int, message: String) : Exception("HTTP $code: $message")
+    /**
+     * V2-13: [detail] usually comes from the server's error body. That body is
+     * echoed into the "last backup error" preference and into user-facing
+     * snackbars via `message`, so in a release build the message is the status
+     * code alone. The detail is kept as a field for debug logging.
+     */
+    class DriveHttpException(val code: Int, val detail: String) : Exception(
+        if (com.messages.app.diag.Diag.verbose) "HTTP $code: $detail" else "HTTP $code",
+    )
 
     /** Thrown when GMS needs the user to re-consent; [intent] must be launched to recover. */
     class RecoverableAuthException(val intent: Intent) :
@@ -213,7 +221,15 @@ class DriveClient(private val context: Context, private val account: Account) {
             val code = conn.responseCode
             if (code !in 200..299) {
                 val err = conn.errorStream?.readBytes()?.toString(Charsets.UTF_8) ?: ""
-                Log.w(TAG, "Drive HTTP $method $url -> $code: ${err.take(400)}")
+                // V2-13: the URL's query carries file ids and search filters and
+                // the body can carry account context — neither belongs in a
+                // release log. Method, redacted URL and status code are enough
+                // to diagnose; the body is debug-only.
+                Log.w(
+                    TAG,
+                    "Drive HTTP $method ${com.messages.app.diag.Diag.redactUrl(url)} -> $code" +
+                        com.messages.app.diag.Diag.debugOnly { ": ${err.take(400)}" },
+                )
                 // An expired token must not poison the GMS cache — clear the
                 // exact token we just used, not a freshly re-fetched one.
                 if (code == 401) {

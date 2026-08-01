@@ -12,12 +12,26 @@ name: CI
 # what runs here. Each SHA below was resolved from the action's `v4` ref and is
 # annotated with the tag and the date it was resolved; re-resolve deliberately
 # when bumping, never by pasting an unreviewed hash.
+#
+# V2-18: pinning proves we got the bytes upstream published; it says nothing
+# about whether those bytes are known-vulnerable. The `dependency-scan` job
+# below asks that question — on every change, nightly, and as a gate on the
+# signed release.
 
 on:
   push:
     branches: [main, master]
     tags: ["v*"]
   pull_request:
+  # V2-18: the dependency scan needs a trigger that is not a code change.
+  # A new advisory is published against code we already have — the repository
+  # does not move, so nothing on push or pull_request will ever fire, and a
+  # scan that only runs when someone commits cannot find it. Daily, off the
+  # hour because every scheduled workflow on the platform asks for :00.
+  schedule:
+    - cron: "37 5 * * *"
+  # Re-runnable by hand, for the morning the OSV API was down.
+  workflow_dispatch:
 
 # A superseded run on the same branch tells us nothing worth paying for.
 concurrency:
@@ -37,6 +51,10 @@ env:
 jobs:
   verify:
     name: "Tests, lint, and release build"
+    # The nightly trigger exists for the dependency scan alone. Rebuilding and
+    # re-linting unchanged code every night would burn most of the runtime for
+    # a result that cannot have changed.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -100,13 +118,70 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  dependency-scan:
+    name: "Dependency vulnerability scan"
+    # V2-18. Checksum pinning (gradle/verification-metadata.xml) proves we got
+    # the bytes upstream published; it says nothing about whether those bytes
+    # have a CVE. Nothing in this build asked until this job existed.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4, resolved 2026-07-28
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4, resolved 2026-07-28
+
+      # Separates the code that ships from the code that only builds it. An
+      # advisory in the Android Gradle Plugin's netty and one inside the APK
+      # are not the same finding, and a scan that merges them reports a number
+      # nobody acts on.
+      - name: Resolve the shipped dependency set
+        run: ./gradlew :app:shippedDependencies
+
+      # Fails on any advisory against shipped code, and on anything new in the
+      # build-time tree that is not in the reviewed baseline. Fails closed if
+      # the OSV API cannot be reached: a green check that means "we could not
+      # ask" is worse than no check.
+      - name: Scan against OSV
+        run: |
+          python3 scripts/scan-dependencies.py \
+            --json app/build/reports/dependency-scan.json
+
+      - name: Software bill of materials
+        run: |
+          python3 scripts/generate-sbom.py \
+            --out app/build/reports/sbom-release.cdx.json
+
+      - name: Upload scan results and SBOM
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, resolved 2026-07-28
+        with:
+          name: dependency-scan
+          path: |
+            app/build/reports/dependency-scan.json
+            app/build/reports/sbom-release.cdx.json
+            app/build/reports/shipped-dependencies.txt
+          retention-days: 90
+          if-no-files-found: warn
+
   release:
     name: "Signed release artifact"
     # Tags only. This job is the one that must not be able to emit an unsigned
     # or wrongly-signed APK, so it fails loudly when the signing configuration
     # is absent instead of quietly producing something that looks shippable.
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: verify
+    # V2-18: the scan gates the release too. Shipping a tagged build past a
+    # known advisory in code that lands on users' phones is the one outcome
+    # this whole job exists to prevent, and "the scan was red but the tests
+    # passed" must not be a way to reach it.
+    needs: [verify, dependency-scan]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: release
@@ -170,13 +245,27 @@ jobs:
           EXPECTED_CERT_SHA256: ${{ vars.EXPECTED_CERT_SHA256 }}
         run: ./scripts/verify-release-artifact.sh app/build/outputs/apk/release/app-release.apk
 
+      # V2-18: the bill of materials is generated here, from the same
+      # resolution that produced the APK above, and shipped with it. Kept
+      # beside the artifact because the question it answers arrives later —
+      # "an advisory landed against library X; was it in the build we
+      # released?" — and by then the build machine is long gone.
+      - name: Software bill of materials for the released artifact
+        run: |
+          ./gradlew :app:shippedDependencies
+          python3 scripts/generate-sbom.py \
+            --out app/build/outputs/apk/release/sbom-release.cdx.json \
+            --timestamp
+
       - name: Remove signing material
         if: always()
         run: rm -f keystore.properties "$RUNNER_TEMP/release.jks"
 
-      - name: Upload signed APK
+      - name: Upload signed APK and SBOM
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, resolved 2026-07-28
         with:
           name: app-release
-          path: app/build/outputs/apk/release/app-release.apk
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/sbom-release.cdx.json
           retention-days: 90

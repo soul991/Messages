@@ -72,6 +72,10 @@ object ContactSync {
         pending?.cancel()
         pending = scope.launch {
             delay(OBSERVER_DEBOUNCE_MS)
+            // V2-28: the shared name cache is now the thing lists read from, so
+            // it has to go before the rows are re-resolved — otherwise a rename
+            // would heal on the conversation rows and stay stale in search.
+            ContactNameCache.invalidate()
             val changed = try {
                 MessageRepository.get(context).refreshContactNames()
             } catch (_: Exception) {

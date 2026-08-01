@@ -1,68 +1,86 @@
 package com.messages.app.drive
 
+import com.messages.app.drive.DriveBackup.LockedNote
+import com.messages.app.drive.DriveBackup.RestoreOutcome
 import com.messages.core.backup.BackupCrypto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Restore-outcome UI states + the legacy-password prompt decision. */
+/**
+ * Restore-outcome UI states + the legacy-password prompt decision.
+ *
+ * V2-36. These assert on the outcome [DriveBackup.restoreOutcome] picks, not on
+ * the sentence it produces — the sentences live in the resource table now, and
+ * the thing that must not regress is which of them applies. A re-restore that
+ * adds nothing has to read as "already here", never as an empty backup.
+ */
 class RestoreResultMessageTest {
 
     @Test
     fun `re-restore with nothing new shows the nothing-to-restore state`() {
         assertEquals(
-            "Nothing to restore — all messages are already on this device",
-            DriveBackup.restoreResultMessage(restored = 0, skipped = 1204),
+            RestoreOutcome.NOTHING_NEW to LockedNote.NONE,
+            DriveBackup.restoreOutcome(restored = 0, skipped = 1204),
         )
     }
 
     @Test
-    fun `fresh restore reports the real inserted count`() {
+    fun `fresh restore is the counted state, whatever the overlap`() {
         assertEquals(
-            "Restored 4569 new messages",
-            DriveBackup.restoreResultMessage(restored = 4569, skipped = 0),
+            RestoreOutcome.RESTORED to LockedNote.NONE,
+            DriveBackup.restoreOutcome(restored = 4569, skipped = 0),
         )
         // Partial overlap still reports only what was actually added.
         assertEquals(
-            "Restored 12 new messages",
-            DriveBackup.restoreResultMessage(restored = 12, skipped = 300),
+            RestoreOutcome.RESTORED to LockedNote.NONE,
+            DriveBackup.restoreOutcome(restored = 12, skipped = 300),
         )
-        assertEquals("Restored 1 new message", DriveBackup.restoreResultMessage(1, 0))
+        assertEquals(
+            RestoreOutcome.RESTORED to LockedNote.NONE,
+            DriveBackup.restoreOutcome(1, 0),
+        )
     }
 
     @Test
     fun `empty backup is reported as such, not as already-restored`() {
         assertEquals(
-            "Backup contained no messages",
-            DriveBackup.restoreResultMessage(restored = 0, skipped = 0),
+            RestoreOutcome.EMPTY_BACKUP to LockedNote.NONE,
+            DriveBackup.restoreOutcome(restored = 0, skipped = 0),
         )
     }
 
     @Test
     fun `pending locked chats surface the opaque enter-your-code state`() {
-        val msg = DriveBackup.restoreResultMessage(
-            restored = 120, skipped = 0, lockedPending = true,
+        assertEquals(
+            RestoreOutcome.RESTORED to LockedNote.PENDING,
+            DriveBackup.restoreOutcome(restored = 120, skipped = 0, lockedPending = true),
         )
-        assertTrue(msg.startsWith("Restored 120 new messages"))
-        assertTrue(msg.contains("Locked chats present — enter your secret code to unlock"))
-        // A locked-only backup (all normal rows deduped) still explains itself.
-        val lockedOnly = DriveBackup.restoreResultMessage(
-            restored = 0, skipped = 0, lockedPending = true,
+        // A locked-only backup (all normal rows deduped) still explains itself,
+        // and must not fall through to the empty-backup wording.
+        assertEquals(
+            RestoreOutcome.LOCKED_ONLY to LockedNote.PENDING,
+            DriveBackup.restoreOutcome(restored = 0, skipped = 0, lockedPending = true),
         )
-        assertTrue(lockedOnly.contains("Locked chats present"))
-        assertFalse(lockedOnly.contains("contained no messages"))
     }
 
     @Test
     fun `same-credential restore reports locked chats placed silently`() {
-        val msg = DriveBackup.restoreResultMessage(
-            restored = 10, skipped = 2, lockedPending = false, lockedRestored = 4,
+        assertEquals(
+            RestoreOutcome.RESTORED to LockedNote.RESTORED,
+            DriveBackup.restoreOutcome(
+                restored = 10, skipped = 2, lockedPending = false, lockedRestored = 4,
+            ),
         )
-        assertTrue(msg.contains("Locked chats restored to your locked space"))
-        // The locked-chat count is deliberately not broken out — the toast
-        // may be seen by whoever performed the restore.
-        assertFalse(msg.contains("4"))
+        // Pending outranks restored: if anything is still locked, that is what
+        // the user needs told, and the count of what landed stays out of it.
+        assertEquals(
+            LockedNote.PENDING,
+            DriveBackup.restoreOutcome(
+                restored = 10, skipped = 0, lockedPending = true, lockedRestored = 4,
+            ).second,
+        )
     }
 
     private fun header(vararg methods: String) = BackupCrypto.Header(

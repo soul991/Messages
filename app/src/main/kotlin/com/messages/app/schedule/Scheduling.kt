@@ -1,5 +1,6 @@
 package com.messages.app.schedule
 
+import com.messages.app.R
 import android.app.Application
 import android.app.PendingIntent
 import android.content.Context
@@ -143,6 +144,35 @@ class ScheduledSendWorker(
 }
 
 /**
+ * V2-48: one automatic retry of a failed send.
+ *
+ * The claim is the safety property. `claimFailedForResend` is a compare-and-set
+ * on FAILED, so if the user pressed Resend while this worker was waiting — or
+ * if two workers somehow raced — exactly one send happens and the rest return
+ * success having done nothing. That is why this returns `Result.success()` on a
+ * null claim rather than retrying: there is nothing left to do, and a
+ * WorkManager retry here would be a second attempt at a message someone else
+ * already took.
+ *
+ * A failure that happens *during* this send arms the next retry through the
+ * normal receiver path, so the budget is enforced in one place
+ * ([SendRetry.MAX_AUTO_RETRIES]) rather than by this worker counting.
+ */
+class SendRetryWorker(
+    context: Context,
+    params: WorkerParameters,
+) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        val messageId = inputData.getLong(Scheduler.KEY_MESSAGE_ID, -1)
+        if (messageId == -1L) return Result.failure()
+        val repo = MessageRepository.get(applicationContext)
+        val entity = repo.claimFailedForResend(messageId) ?: return Result.success()
+        SmsRadio.send(applicationContext, repo, entity)
+        return Result.success()
+    }
+}
+
+/**
  * Snooze / remind-me-about-this-message (§8.2): re-surface the message as a
  * reminder notification at the chosen time.
  */
@@ -155,7 +185,13 @@ class SnoozeWorker(
         val messageId = inputData.getLong(Scheduler.KEY_MESSAGE_ID, -1)
         if (messageId == -1L) return Result.failure()
         val repo = MessageRepository.get(ctx)
-        val msg = repo.db.messages().byId(messageId) ?: return Result.success() // deleted meanwhile
+        // V2-6: deleted meanwhile → nothing to remind about. open() is a no-op
+        // unless the row is a sealed locked one, in which case `hidden` below
+        // suppresses the body anyway — but the name lookup and the fallback
+        // paths both read it, so it is opened once here rather than guessed at.
+        val msg = repo.db.messages().byId(messageId)
+            ?.let { com.messages.core.secret.LockedContent.open(ctx, it) }
+            ?: return Result.success()
         if (ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED
         ) return Result.success()
@@ -168,12 +204,21 @@ class SnoozeWorker(
         val conversationLocked = inLockedSpace ||
             repo.db.conversations().byThreadId(msg.threadId)?.locked == true
         val hidden = com.messages.app.security.AppLock.hidePreviews(ctx) || conversationLocked
-        val title = if (conversationLocked) "Reminder" else "Reminder · $name"
-        val body = if (hidden) "You asked to be reminded about a message" else msg.body
+        val title = if (conversationLocked) ctx.getString(R.string.reminder_title)
+        else ctx.getString(R.string.reminder_title_named, name)
+        val body = if (hidden) ctx.getString(R.string.reminder_body_hidden) else msg.body
+        // V2-31: `threadId.toInt()` truncated the id and the intent differed
+        // from the message notification's only by extras, which `filterEquals`
+        // ignores — so a reminder could open the wrong conversation. Distinct
+        // data URI, request code over the whole 64 bits.
         val openIntent = PendingIntent.getActivity(
-            ctx, msg.threadId.toInt(),
+            ctx,
+            com.messages.app.notify.NotificationIds.requestCode(messageId, "snooze"),
             Intent(ctx, MainActivity::class.java).apply {
                 if (!inLockedSpace) putExtra("threadId", msg.threadId)
+                data = android.net.Uri.parse(
+                    com.messages.app.notify.NotificationIds.actionUri(messageId, "snooze")
+                )
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -187,12 +232,15 @@ class SnoozeWorker(
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .build()
-        NotificationManagerCompat.from(ctx).notify(SNOOZE_TAG, messageId.toInt(), notification)
+        // The tag used to be a single shared "snooze" with `messageId.toInt()`
+        // as the id, so two messages whose ids differ above bit 32 replaced
+        // each other's reminder. Tag per message, constant id.
+        NotificationManagerCompat.from(ctx).notify(
+            com.messages.app.notify.NotificationIds.reminderTag(messageId),
+            com.messages.app.notify.NotificationIds.ID_REMINDER,
+            notification,
+        )
         return Result.success()
-    }
-
-    companion object {
-        const val SNOOZE_TAG = "snooze"
     }
 }
 
@@ -217,6 +265,35 @@ object Scheduler {
     /** Cancel a pending scheduled send (the DB row is handled by the caller). */
     fun cancelSend(context: Context, messageId: Long) {
         WorkManager.getInstance(app(context)).cancelUniqueWork("scheduled_send_$messageId")
+    }
+
+    /**
+     * V2-48: queue one automatic retry of a failed send, [delayMs] from now.
+     *
+     * Unique per message and REPLACE, so an arriving failure for a second part
+     * of the same message cannot stack a second worker on top of the first —
+     * two workers would both claim, and only one would win, but the loser would
+     * still have spun up the radio path for nothing.
+     *
+     * No network constraint: the failures on [SendRetry]'s allowlist are radio
+     * and carrier conditions, and WorkManager's connectivity signal describes
+     * data, not the SMS bearer. Constraining on it would postpone retries on a
+     * device that can send perfectly well over 2G with mobile data off.
+     */
+    fun scheduleRetry(context: Context, messageId: Long, delayMs: Long) {
+        WorkManager.getInstance(app(context)).enqueueUniqueWork(
+            "send_retry_$messageId",
+            ExistingWorkPolicy.REPLACE,
+            OneTimeWorkRequestBuilder<SendRetryWorker>()
+                .setInitialDelay(delayMs.coerceAtLeast(0), TimeUnit.MILLISECONDS)
+                .setInputData(workDataOf(KEY_MESSAGE_ID to messageId))
+                .build(),
+        )
+    }
+
+    /** V2-48: the user took over — drop any automatic retry still queued. */
+    fun cancelRetry(context: Context, messageId: Long) {
+        WorkManager.getInstance(app(context)).cancelUniqueWork("send_retry_$messageId")
     }
 
     /** Remind me about this message at [remindAt]. */

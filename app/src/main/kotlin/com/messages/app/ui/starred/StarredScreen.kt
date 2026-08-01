@@ -24,7 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,34 +34,40 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.ui.common.ContactAvatar
+import com.messages.app.ui.common.AppDateFormat
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 
 class StarredViewModel(app: Application, threadId: Long? = null) : AndroidViewModel(app) {
 
     private val repo = MessageRepository.get(app)
-    private val nameCache = HashMap<String, String?>()
 
     data class Row(val message: MessageEntity, val displayName: String?)
 
     // Phase 5 §4: null = global list (Home entry); a threadId scopes the list
     // to one conversation (ContactDetail "Starred messages" row).
+    //
+    // V2-28: the name lookup is a contacts-provider query. It ran once per row
+    // on the collector's dispatcher (the main thread) behind a per-ViewModel map
+    // that never expired, so a renamed contact stayed wrong for the life of the
+    // screen. Now: one batched resolution through the shared cache, on IO.
     val rows: StateFlow<List<Row>> =
         (if (threadId == null) repo.db.messages().starred()
         else repo.db.messages().starredForThread(threadId))
             .map { list ->
-                list.map { m ->
-                    Row(m, nameCache.getOrPut(m.address) { repo.displayNameFor(m.address) })
-                }
+                val names = repo.displayNamesFor(list.map { it.address })
+                list.map { m -> Row(m, names[m.address]) }
             }
+            .flowOn(Dispatchers.IO)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun unstar(id: Long) = viewModelScope.launch { repo.db.messages().setStarred(id, false) }
@@ -76,7 +82,7 @@ class StarredViewModelFactory(
         StarredViewModel(app, threadId) as T
 }
 
-private val STARRED_FMT = SimpleDateFormat("d MMM yyyy", Locale.US)
+// V2-45: locale and zone read at render time, not at class-init.
 
 /** Starred-messages screen (Phase 4 item 11); rows open the chat at the message. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,15 +99,15 @@ fun StarredScreen(
         ),
     ),
 ) {
-    val rows by vm.rows.collectAsState()
+    val rows by vm.rows.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Starred messages") },
+                title = { Text(stringResource(R.string.starred_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -119,13 +125,13 @@ fun StarredScreen(
                         modifier = Modifier.size(48.dp),
                     )
                     Text(
-                        if (threadId == null) "No starred messages"
-                        else "No starred messages in this conversation",
+                        if (threadId == null) stringResource(R.string.starred_empty_title)
+                        else stringResource(R.string.starred_empty_title_thread),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(top = 12.dp),
                     )
                     Text(
-                        "Long-press a message and tap Star to keep it here.",
+                        stringResource(R.string.starred_empty_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -161,7 +167,7 @@ fun StarredScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                STARRED_FMT.format(Date(m.timestamp)),
+                                AppDateFormat.dayMonthYear(m.timestamp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -177,7 +183,7 @@ fun StarredScreen(
                     IconButton(onClick = { vm.unstar(m.id) }) {
                         Icon(
                             Icons.Filled.Star,
-                            contentDescription = "Unstar",
+                            contentDescription = stringResource(R.string.starred_unstar),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }

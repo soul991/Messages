@@ -31,7 +31,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.messages.app.R
 import com.messages.app.ui.settings.SettingsSectionDivider
 import com.messages.app.ui.settings.SettingsSectionHeader
 import com.messages.app.ui.settings.SettingsSwitchRow
@@ -60,15 +62,18 @@ fun SecretSettingsScreen(
         mutableStateOf(SecretSpace.notifyMode(context) == SecretSpace.NOTIFY_GENERIC)
     }
     var changing by remember { mutableStateOf(false) }
+    // Keyed on `changing` so returning from the change flow re-reads the flag
+    // and the card goes away the moment the code is strengthened.
+    val weakCredential = remember(changing) { SecretSpace.isCredentialWeak(context) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text("Locked chats settings") },
+                title = { Text(stringResource(R.string.secret_settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = { if (changing) changing = false else onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -85,19 +90,23 @@ fun SecretSettingsScreen(
             return@Scaffold
         }
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())) {
-            SettingsSectionHeader("Security")
+            // V2-7: the existing code is below today's floor. This is the whole
+            // enforcement mechanism — a card the user can ignore forever. Read
+            // once per composition of the screen, so it disappears as soon as
+            // the change flow returns here.
+            if (weakCredential) WeakCredentialCard(onChange = { changing = true })
+            SettingsSectionHeader(stringResource(R.string.secret_section_security))
             com.messages.app.ui.settings.SettingsNavRow(
                 icon = Icons.Filled.Key,
-                title = "Change secret code",
-                subtitle = "Requires your current code. Backups re-key automatically.",
+                title = stringResource(R.string.secret_change_code),
+                subtitle = stringResource(R.string.secret_change_code_subtitle),
                 onClick = { changing = true },
             )
             SettingsSectionDivider()
-            SettingsSectionHeader("Notifications")
+            SettingsSectionHeader(stringResource(R.string.settings_section_notifications))
             SettingsSwitchRow(
-                title = "Notify for locked chats",
-                subtitle = "On: a generic \"New message\" with no sender or content. " +
-                    "Off: locked chats never notify at all.",
+                title = stringResource(R.string.secret_notify_title),
+                subtitle = stringResource(R.string.secret_notify_subtitle),
                 checked = notifyGeneric,
                 onChange = { on ->
                     notifyGeneric = on
@@ -108,17 +117,49 @@ fun SecretSettingsScreen(
                 },
             )
             SettingsSectionDivider()
-            SettingsSectionHeader("About")
+            SettingsSectionHeader(stringResource(R.string.secret_section_about))
             Text(
-                "Locked chats are protected by your secret code only — not your " +
-                    "fingerprint or the phone's lock. If you forget the code there " +
-                    "is no way to recover these chats. SMS content still lives in " +
-                    "Android's shared message storage; locked chats hide it inside " +
-                    "this app only.",
+                stringResource(R.string.secret_about_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
             )
+        }
+    }
+}
+
+/**
+ * V2-7: shown when the stored credential is below the current setup floors.
+ *
+ * Deliberately a card and not a dialog, and deliberately dismissible by simply
+ * not tapping it: NIST SP 800-63B-4 prohibits forcing rotation without evidence
+ * of compromise, and a modal that reappears every visit would train people to
+ * dismiss it without reading. The body says the code still works, because it
+ * does, and because a warning that overstates its case gets ignored.
+ */
+@Composable
+private fun WeakCredentialCard(onChange: () -> Unit) {
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                stringResource(R.string.secret_weak_credential_title),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                stringResource(R.string.secret_weak_credential_body),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            androidx.compose.material3.TextButton(
+                onClick = onChange,
+                modifier = Modifier.padding(top = 8.dp),
+            ) { Text(stringResource(R.string.secret_weak_credential_action)) }
         }
     }
 }
@@ -156,11 +197,17 @@ private fun ChangeCredentialFlow(
                 is SecretSpace.Attempt.Wrong -> {
                     current = ""; patternClear++
                     error = if (result.cooldownMs > 0) {
-                        "Wrong code. Try again in ${formatCooldown(result.cooldownMs)}."
-                    } else "Current code was wrong — try again"
+                        context.getString(
+                            R.string.secret_wrong_code_cooldown,
+                            formatCooldown(context, result.cooldownMs),
+                        )
+                    } else context.getString(R.string.secret_current_code_wrong_retry)
                 }
                 is SecretSpace.Attempt.Cooldown ->
-                    error = "Too many attempts. Try again in ${formatCooldown(result.remainingMs)}."
+                    error = context.getString(
+                        R.string.secret_too_many_attempts,
+                        formatCooldown(context, result.remainingMs),
+                    )
             }
         }
     }
@@ -174,15 +221,19 @@ private fun ChangeCredentialFlow(
             }
             working = false
             when (result) {
-                is SecretSpace.Attempt.Success -> onDone("Secret code changed")
+                is SecretSpace.Attempt.Success ->
+                    onDone(context.getString(R.string.secret_code_changed))
                 // Re-verification can only fail if state changed underneath —
                 // fall back to the verify step rather than guessing.
                 is SecretSpace.Attempt.Wrong -> {
                     verifiedCurrent = null; current = ""; patternClear++
-                    error = "Current code was wrong"
+                    error = context.getString(R.string.secret_current_code_wrong)
                 }
                 is SecretSpace.Attempt.Cooldown ->
-                    error = "Too many attempts. Try again in ${formatCooldown(result.remainingMs)}."
+                    error = context.getString(
+                        R.string.secret_too_many_attempts,
+                        formatCooldown(context, result.remainingMs),
+                    )
             }
         }
     }
@@ -192,7 +243,7 @@ private fun ChangeCredentialFlow(
         verticalArrangement = SecretScreenSpacing,
     ) {
         if (verifiedCurrent == null) {
-            Text("Enter your current code", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.secret_enter_current_code), style = MaterialTheme.typography.titleLarge)
             if (currentKind == SecretCrypto.KIND_PATTERN) {
                 PatternGrid(enabled = !working, clearSignal = patternClear) { cells ->
                     verifyCurrent(SecretCrypto.patternToCredential(cells))
@@ -200,7 +251,10 @@ private fun ChangeCredentialFlow(
             } else {
                 PinOrPasswordField(
                     kind = currentKind, value = current, onValueChange = { current = it },
-                    label = if (currentKind == SecretCrypto.KIND_PIN) "Current PIN" else "Current password",
+                    label = stringResource(
+                        if (currentKind == SecretCrypto.KIND_PIN) R.string.secret_current_pin
+                        else R.string.secret_current_password,
+                    ),
                     enabled = !working,
                     isError = error != null,
                     onDone = { if (current.isNotEmpty()) verifyCurrent(current.toCharArray()) },
@@ -209,7 +263,7 @@ private fun ChangeCredentialFlow(
                     onClick = { verifyCurrent(current.toCharArray()) },
                     enabled = current.isNotEmpty() && !working,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Next") }
+                ) { Text(stringResource(R.string.action_next)) }
             }
             error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
@@ -217,8 +271,8 @@ private fun ChangeCredentialFlow(
         } else {
             // Current code verified — full type re-pick, exactly like setup.
             CredentialCreationSteps(
-                heading = "Choose a new secret code",
-                subtitle = "Pick any type — it doesn't have to match your current one.",
+                heading = stringResource(R.string.secret_choose_new_code),
+                subtitle = stringResource(R.string.secret_choose_new_code_subtitle),
                 working = working,
                 onChosen = { newKind, new -> commitChange(newKind, new) },
             )

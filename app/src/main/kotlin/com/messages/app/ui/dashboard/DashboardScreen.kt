@@ -28,7 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,12 +36,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
+import java.util.Locale
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.core.MessageRepository
 import com.messages.designsystem.CategoryColors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.messages.app.R
 
 /** Protection dashboard (§8.2): satisfying counters, families, top senders. */
 class DashboardViewModel(app: Application) : AndroidViewModel(app) {
@@ -90,13 +94,20 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
+    /**
+     * V2-36. `family` is a detection-engine identifier, not copy — it is
+     * title-cased for display with [Locale.ROOT] so a Turkish locale does not
+     * turn "link" into "L\u0131nk". The two fallback labels are ours, so they
+     * come from the resource table.
+     */
     private fun familyDisplayName(family: String?, patternId: String): String? = when {
-        family != null -> family.split('-', ' ').joinToString(" ") {
-            it.replaceFirstChar { c -> c.uppercase() }
+        family != null -> family.split('-', ' ').joinToString(" ") { word ->
+            word.replaceFirstChar { c -> c.titlecase(Locale.ROOT) }
         }
-        patternId.startsWith("link-") || patternId.startsWith("format-") -> "Links & Format"
+        patternId.startsWith("link-") || patternId.startsWith("format-") ->
+            getApplication<Application>().getString(R.string.dashboard_family_links_format)
         patternId.startsWith("C") && patternId.length <= 3 -> null // combo ids: shown via categories
-        else -> "Other"
+        else -> getApplication<Application>().getString(R.string.dashboard_family_other)
     }
 }
 
@@ -106,16 +117,16 @@ fun DashboardScreen(
     onBack: () -> Unit,
     vm: DashboardViewModel = viewModel(),
 ) {
-    val period by vm.period.collectAsState()
-    val stats by vm.stats.collectAsState()
+    val period by vm.period.collectAsStateWithLifecycle()
+    val stats by vm.stats.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Protection") },
+                title = { Text(stringResource(R.string.dashboard_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -146,7 +157,7 @@ fun DashboardScreen(
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        "spam & promo messages silenced",
+                        stringResource(R.string.dashboard_silenced_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
@@ -162,12 +173,12 @@ fun DashboardScreen(
                     FilterChip(
                         selected = period == "WEEK",
                         onClick = { vm.setPeriod("WEEK") },
-                        label = { Text("This week") },
+                        label = { Text(stringResource(R.string.dashboard_period_week)) },
                     )
                     FilterChip(
                         selected = period == "MONTH",
                         onClick = { vm.setPeriod("MONTH") },
-                        label = { Text("This month") },
+                        label = { Text(stringResource(R.string.dashboard_period_month)) },
                     )
                 }
             }
@@ -178,13 +189,17 @@ fun DashboardScreen(
                     Modifier.fillMaxWidth().padding(20.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    StatCard("Spam", stats.byCategory["SPAM"] ?: 0, CategoryColors.Fraud, Modifier.weight(1f))
-                    StatCard("Promos", stats.byCategory["PROMOTIONS"] ?: 0, CategoryColors.Promo, Modifier.weight(1f))
-                    StatCard("Blocked", stats.byCategory["BLOCKED"] ?: 0, MaterialTheme.colorScheme.outline, Modifier.weight(1f))
+                    StatCard(stringResource(R.string.category_spam), stats.byCategory["SPAM"] ?: 0, CategoryColors.Fraud, Modifier.weight(1f))
+                    StatCard(stringResource(R.string.dashboard_stat_promos), stats.byCategory["PROMOTIONS"] ?: 0, CategoryColors.Promo, Modifier.weight(1f))
+                    StatCard(stringResource(R.string.dashboard_stat_blocked), stats.byCategory["BLOCKED"] ?: 0, MaterialTheme.colorScheme.outline, Modifier.weight(1f))
                 }
                 if (stats.dangerous > 0) {
                     Text(
-                        "⚠️ ${stats.dangerous} dangerous fraud attempts stopped",
+                        pluralStringResource(
+                            R.plurals.dashboard_dangerous_stopped,
+                            stats.dangerous,
+                            stats.dangerous,
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = CategoryColors.Fraud,
                         fontWeight = FontWeight.SemiBold,
@@ -198,7 +213,7 @@ fun DashboardScreen(
                 item {
                     HorizontalDivider(Modifier.padding(vertical = 16.dp))
                     Text(
-                        "What was caught",
+                        stringResource(R.string.dashboard_what_was_caught),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 20.dp),
@@ -235,7 +250,7 @@ fun DashboardScreen(
                 item {
                     HorizontalDivider(Modifier.padding(vertical = 16.dp))
                     Text(
-                        "Top blocked senders",
+                        stringResource(R.string.dashboard_top_senders),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 20.dp),
@@ -268,7 +283,9 @@ fun DashboardScreen(
                                     modifier = Modifier.weight(1f),
                                 )
                                 Text(
-                                    "$count filtered",
+                                    pluralStringResource(
+                                        R.plurals.dashboard_sender_filtered, count, count,
+                                    ),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.outline,
                                 )
@@ -286,10 +303,13 @@ fun DashboardScreen(
                         Modifier.fillMaxWidth().padding(40.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("🛡️", style = MaterialTheme.typography.displaySmall)
+                        Text(
+                            stringResource(R.string.dashboard_empty_glyph),
+                            style = MaterialTheme.typography.displaySmall,
+                        )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Nothing filtered in this period —\nenjoy the silence",
+                            stringResource(R.string.dashboard_empty_body),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.outline,
                         )

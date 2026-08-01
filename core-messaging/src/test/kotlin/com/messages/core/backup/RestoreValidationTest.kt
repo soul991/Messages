@@ -33,7 +33,9 @@ class RestoreValidationTest {
         category = "INBOX",
         dangerous = false,
         fraudWarning = false,
-        protectedLabel = "",
+        // V2-10: "" was never a value a real export writes — the exporter emits
+        // `verdict.protectedLabel.name`, and NONE is the absent case.
+        protectedLabel = "NONE",
         score = 0,
         matchedPatternIds = "",
         matchedComboIds = "",

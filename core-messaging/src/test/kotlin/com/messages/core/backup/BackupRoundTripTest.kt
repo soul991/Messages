@@ -96,7 +96,7 @@ private fun fixtureBackupFile(
     hidePreviews = true,
     patternLibraryVersion = 1,
     importedPatternPack = MARKER_PATTERN_PACK,
-    rules = listOf(BackupManager.BackupRule(0, "BLOCK", "BODY", MARKER_RULE_PATTERN, "SPAM")),
+    rules = listOf(BackupManager.BackupRule(0, "BLOCK", "SENDER", MARKER_RULE_PATTERN, "SPAM")),
     reputations = listOf(BackupManager.BackupReputation(MARKER_ADDRESS, -3, 1, 0)),
     conversationPrefs = listOf(
         BackupManager.BackupConversationPrefs(MARKER_ADDRESS, pinned = true, archived = false, muted = true, locked = false),

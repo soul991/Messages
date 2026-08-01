@@ -39,6 +39,18 @@
          The app ships an explicit end-to-end encrypted Drive backup instead;
          dataExtractionRules default-denies cloud backup and D2D transfer on
          Android 12+, fullBackupContent covers Android 11 and below. -->
+
+    <!-- V2-17: the network policy is stated rather than inherited from the
+         targetSdk default. @xml/network_security_config carries the reasoning
+         and is the file that actually governs, since minSdk is 26 and the
+         config supersedes usesCleartextTraffic on API 24+.
+
+         usesCleartextTraffic is therefore redundant here, and is present
+         anyway for two reasons: it is what an APK scanner and a reviewer read
+         first, and a redundant "false" is harmless where a missing one invites
+         someone to add "true". Note the corollary — flipping THIS attribute to
+         true would not actually permit cleartext on any device this app runs
+         on. The config is the thing to change, and the test will stop you. -->
     <application
         android:name=".MessagesApp"
         android:allowBackup="false"
@@ -48,7 +60,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Messages">
+        android:theme="@style/Theme.Messages"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".MainActivity"

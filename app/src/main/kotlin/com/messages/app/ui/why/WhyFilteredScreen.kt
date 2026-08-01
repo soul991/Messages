@@ -31,7 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,25 +47,38 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
+import com.messages.core.secret.LockedContent
 import com.messages.designsystem.CategoryColors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 
 class WhyFilteredViewModel(app: Application, private val messageId: Long) : AndroidViewModel(app) {
 
     private val repo = MessageRepository.get(app)
 
+    /** Held as a property: `app` is a plain constructor parameter, so it is out
+     *  of scope inside member functions. */
+    private val ctx = app.applicationContext
+
     private val _message = MutableStateFlow<MessageEntity?>(null)
     val message: StateFlow<MessageEntity?> = _message
 
+    // V2-6: this screen can be reached for a locked row (the "Why?" sheet is
+    // offered in the locked space too), and a sealed body would render as a
+    // base64 blob. open() is a no-op on everything else.
+    private suspend fun load(): MessageEntity? =
+        repo.db.messages().byId(messageId)?.let { LockedContent.open(ctx, it) }
+
     init {
-        viewModelScope.launch { _message.value = repo.db.messages().byId(messageId) }
+        viewModelScope.launch { _message.value = load() }
     }
 
     fun moveToInbox() = viewModelScope.launch {
         repo.moveToInbox(messageId)
-        _message.value = repo.db.messages().byId(messageId)
+        _message.value = load()
     }
 }
 
@@ -93,15 +106,15 @@ fun WhyFilteredScreen(
     val vm: WhyFilteredViewModel = viewModel(
         factory = WhyFilteredViewModelFactory(context.applicationContext as Application, messageId)
     )
-    val message by vm.message.collectAsState()
+    val message by vm.message.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Why was this filtered?") },
+                title = { Text(stringResource(R.string.why_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -127,11 +140,10 @@ fun WhyFilteredScreen(
             ExplanationList(msg)
             if (msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED")) {
                 Button(onClick = vm::moveToInbox, modifier = Modifier.fillMaxWidth()) {
-                    Text("Not spam — move to Inbox")
+                    Text(stringResource(R.string.why_not_spam_action))
                 }
                 Text(
-                    "Moving it also boosts this sender's local trust score, so " +
-                        "future messages from ${msg.address} are less likely to be filtered.",
+                    stringResource(R.string.why_not_spam_effect, msg.address),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -143,13 +155,20 @@ fun WhyFilteredScreen(
 @Composable
 private fun VerdictHeader(msg: MessageEntity) {
     val (color, container, label) = when {
-        msg.dangerous -> Triple(CategoryColors.Fraud, CategoryColors.FraudContainer, "Spam · Dangerous")
-        msg.category == "SPAM" -> Triple(CategoryColors.Fraud, CategoryColors.FraudContainer, "Spam")
-        msg.category == "PROMOTIONS" -> Triple(CategoryColors.Promo, CategoryColors.PromoContainer, "Promotions")
-        msg.category == "REVIEW" -> Triple(CategoryColors.Review, CategoryColors.ReviewContainer, "Review")
-        msg.category == "BLOCKED" -> Triple(CategoryColors.Review, CategoryColors.ReviewContainer, "Blocked by you")
-        msg.category == "TRANSACTIONS" -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer, "Transactions")
-        else -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer, "Inbox")
+        msg.dangerous -> Triple(CategoryColors.Fraud, CategoryColors.FraudContainer,
+            stringResource(R.string.category_spam_dangerous))
+        msg.category == "SPAM" -> Triple(CategoryColors.Fraud, CategoryColors.FraudContainer,
+            stringResource(R.string.category_spam))
+        msg.category == "PROMOTIONS" -> Triple(CategoryColors.Promo, CategoryColors.PromoContainer,
+            stringResource(R.string.category_promotions))
+        msg.category == "REVIEW" -> Triple(CategoryColors.Review, CategoryColors.ReviewContainer,
+            stringResource(R.string.category_review))
+        msg.category == "BLOCKED" -> Triple(CategoryColors.Review, CategoryColors.ReviewContainer,
+            stringResource(R.string.category_blocked))
+        msg.category == "TRANSACTIONS" -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer,
+            stringResource(R.string.category_transactions))
+        else -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer,
+            stringResource(R.string.category_inbox))
     }
     Row(
         Modifier
@@ -173,7 +192,7 @@ private fun VerdictHeader(msg: MessageEntity) {
         Column {
             Text(label, style = MaterialTheme.typography.titleMedium, color = color)
             Text(
-                "Score ${msg.score} · from ${msg.address}",
+                stringResource(R.string.why_verdict_score, msg.score, msg.address),
                 style = MaterialTheme.typography.bodySmall,
                 color = color,
             )
@@ -198,10 +217,12 @@ private fun DangerousLinksSection(msg: MessageEntity) {
         androidx.compose.runtime.mutableStateOf(setOf<String>())
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Links in this message", style = MaterialTheme.typography.titleSmall)
         Text(
-            "Links are disabled everywhere for this message. Revealing one below " +
-                "makes it readable, never tappable. Do not visit it.",
+            stringResource(R.string.why_links_title),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Text(
+            stringResource(R.string.why_links_body),
             style = MaterialTheme.typography.bodySmall,
             color = CategoryColors.Fraud,
         )
@@ -227,14 +248,14 @@ private fun DangerousLinksSection(msg: MessageEntity) {
                         }
                     } else {
                         Text(
-                            "Hidden dangerous link",
+                            stringResource(R.string.why_link_hidden),
                             style = MaterialTheme.typography.bodySmall,
                             color = CategoryColors.Fraud,
                             modifier = Modifier.weight(1f),
                         )
                         androidx.compose.material3.TextButton(
                             onClick = { revealed = revealed + url },
-                        ) { Text("Show link") }
+                        ) { Text(stringResource(R.string.why_link_reveal)) }
                     }
                 }
             }
@@ -264,10 +285,13 @@ private fun ExplanationList(msg: MessageEntity) {
     val comboIds = msg.matchedComboIds.split(',').filter { it.isNotBlank() }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Matched rules", style = MaterialTheme.typography.titleSmall)
+        Text(
+            stringResource(R.string.why_matched_rules),
+            style = MaterialTheme.typography.titleSmall,
+        )
         if (explanations.isEmpty() && patternIds.isEmpty() && comboIds.isEmpty()) {
             Text(
-                "No patterns matched — this message scored 0 and was delivered normally.",
+                stringResource(R.string.why_no_patterns),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline,
             )
@@ -283,15 +307,17 @@ private fun ExplanationList(msg: MessageEntity) {
         if (patternIds.isNotEmpty() || comboIds.isNotEmpty()) {
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             Text(
-                "Pattern IDs: ${(patternIds + comboIds).joinToString(", ")}",
+                stringResource(
+                    R.string.why_pattern_ids,
+                    (patternIds + comboIds).joinToString(", "),
+                ),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
             )
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "The protection engine is fully deterministic — no AI, no network. " +
-                "Every verdict comes from the rules listed above.",
+            stringResource(R.string.why_deterministic),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outline,
         )

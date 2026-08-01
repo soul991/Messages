@@ -9,9 +9,14 @@ import androidx.room.PrimaryKey
  * Message/conversation spaces. LOCKED rows belong to the secret locked space:
  * they must never surface in any query that feeds normal UI — list, folders,
  * search/FTS, suggested chips, notifications with content, widgets, dashboard
- * stats, Starred, Trash, export, or multi-select surfaces. The Telephony
- * provider is unaffected (SMS stays in shared storage — stated honestly in
- * the locked-chats disclaimer); the space lives only in this index.
+ * stats, Starred, Trash, export, or multi-select surfaces.
+ *
+ * V2-6: a LOCKED row's `body`/`normalizedBody` are stored encrypted
+ * ([com.messages.core.secret.LockedContent]) and its Telephony copy is deleted
+ * when it enters the space, so the plaintext exists in exactly one place —
+ * nowhere. `address`, timestamps and state columns stay in the clear because
+ * routing, contact resolution and dedupe all join on them; that residual is
+ * stated in the locked-chats disclaimer rather than left to inference.
  */
 object Spaces {
     const val NORMAL = "NORMAL"
@@ -83,6 +88,20 @@ data class MessageEntity(
     val sendResultCode: Int? = null,
     /** Dual-SIM: subscription this message was sent/received on, when known. */
     val subId: Int? = null,
+    /**
+     * V2-48: how many *automatic* retries this outgoing message has already
+     * had. A manual resend from the outbox resets it to 0 — the user pressing
+     * the button is a fresh decision, not the continuation of a policy the app
+     * was running on its own.
+     */
+    val retryCount: Int = 0,
+    /**
+     * V2-48: when the pending automatic retry is due, or null when none is
+     * scheduled. Stored rather than left to WorkManager alone so the outbox can
+     * say *when* without querying the scheduler, and so a retry that was
+     * dropped with its worker is visible as overdue instead of invisible.
+     */
+    val nextRetryAt: Long? = null,
     /**
      * Trash (§6.4): user deletions remove the Telephony-provider row but keep
      * this index row flagged as trash for 60 days, restorable from the Trash

@@ -35,7 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -51,6 +51,9 @@ import com.messages.core.backfill.Backfill
 import com.messages.core.backfill.BackfillWorker
 import com.messages.designsystem.CategoryColors
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.messages.app.R
 
 /**
  * Onboarding (§9): 3 screens max — what it does → set as default → done,
@@ -90,27 +93,30 @@ fun OnboardingScreen(
             0 -> Button(
                 onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Continue") }
+            ) { Text(stringResource(R.string.action_continue)) }
 
             1 -> Column {
                 Button(
                     onClick = { if (isDefaultSmsApp) scope.launch { pagerState.animateScrollToPage(2) } else onRequestDefault() },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (isDefaultSmsApp) "Continue" else "Set as default") }
+                ) { Text(
+                        if (isDefaultSmsApp) stringResource(R.string.action_continue)
+                        else stringResource(R.string.onboarding_set_default),
+                    ) }
                 TextButton(
                     onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Not now") }
+                ) { Text(stringResource(R.string.action_not_now)) }
             }
 
             2 -> Column {
                 Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
-                    Text("Start messaging")
+                    Text(stringResource(R.string.onboarding_start_messaging))
                 }
                 // §8.3: offer restore during onboarding, right after the
                 // default-app step — lands on the Drive backup screen.
                 TextButton(onClick = onRestoreFromDrive, modifier = Modifier.fillMaxWidth()) {
-                    Text("Restore from Google Drive backup")
+                    Text(stringResource(R.string.onboarding_restore_from_drive))
                 }
             }
         }
@@ -127,15 +133,24 @@ private fun IntroPage() {
         HeroIcon(Icons.Filled.Shield, CategoryColors.Protected, CategoryColors.ProtectedContainer)
         Spacer(Modifier.height(24.dp))
         Text(
-            "A calm inbox,\nby design",
+            stringResource(R.string.onboarding_hero_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
-        FeatureRow(Icons.Filled.NotificationsOff, "Spam, scams and promos are filed silently — you're only notified for messages that matter.")
-        FeatureRow(Icons.Filled.Shield, "100% on-device pattern matching. No AI, no cloud — every decision is explainable.")
-        FeatureRow(Icons.Filled.Inbox, "Nothing is ever deleted. Every filtered message stays reviewable, forever.")
+        FeatureRow(
+            Icons.Filled.NotificationsOff,
+            stringResource(R.string.onboarding_feature_silent),
+        )
+        FeatureRow(
+            Icons.Filled.Shield,
+            stringResource(R.string.onboarding_feature_on_device),
+        )
+        FeatureRow(
+            Icons.Filled.Inbox,
+            stringResource(R.string.onboarding_feature_nothing_deleted),
+        )
     }
 }
 
@@ -154,15 +169,16 @@ private fun DefaultAppPage(isDefault: Boolean) {
         }
         Spacer(Modifier.height(24.dp))
         Text(
-            if (isDefault) "You're all set" else "Make it your\nmessaging app",
+            if (isDefault) stringResource(R.string.onboarding_default_done_title)
+            else stringResource(R.string.onboarding_default_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            if (isDefault) "Messages is now your default SMS app."
-            else "To receive and protect your messages, Messages needs to be your default SMS app. Android will ask you to confirm.",
+            if (isDefault) stringResource(R.string.onboarding_default_done_body)
+            else stringResource(R.string.onboarding_default_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.outline,
             textAlign = TextAlign.Center,
@@ -173,7 +189,7 @@ private fun DefaultAppPage(isDefault: Boolean) {
 @Composable
 private fun DonePage() {
     val context = LocalContext.current
-    val workInfos by Backfill.progressFlow(context).collectAsState(initial = emptyList())
+    val workInfos by Backfill.progressFlow(context).collectAsStateWithLifecycle(initialValue = emptyList())
     val info = workInfos.firstOrNull()
     val finished = info?.state == WorkInfo.State.SUCCEEDED
 
@@ -205,9 +221,9 @@ private fun DonePage() {
         Spacer(Modifier.height(24.dp))
         Text(
             when {
-                info == null -> "Ready when you are"
-                finished -> "History organized"
-                else -> "Organizing your messages…"
+                info == null -> stringResource(R.string.onboarding_backfill_ready)
+                finished -> stringResource(R.string.onboarding_backfill_done)
+                else -> stringResource(R.string.onboarding_backfill_running)
             },
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
@@ -216,10 +232,14 @@ private fun DonePage() {
         Spacer(Modifier.height(12.dp))
         Text(
             when {
-                info == null -> "Your existing messages will be organized once permissions are granted."
-                finished -> "$animated messages classified into folders."
-                total > 0 -> "$animated of $total messages classified"
-                else -> "Scanning your message history…"
+                info == null -> stringResource(R.string.onboarding_backfill_ready_body)
+                finished -> pluralStringResource(
+                    R.plurals.onboarding_backfill_done_body, animated, animated,
+                )
+                total > 0 -> pluralStringResource(
+                    R.plurals.onboarding_backfill_progress, total, animated, total,
+                )
+                else -> stringResource(R.string.onboarding_backfill_scanning)
             },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.outline,

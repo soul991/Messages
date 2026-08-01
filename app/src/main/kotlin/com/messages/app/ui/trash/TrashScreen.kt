@@ -34,7 +34,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +50,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.ui.search.SearchHighlight
+import com.messages.app.ui.common.AppDateFormat
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
 import com.messages.core.trash.TrashRetention
@@ -58,9 +59,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalContext
+import com.messages.app.R
 
 class TrashViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -70,21 +72,26 @@ class TrashViewModel(app: Application) : AndroidViewModel(app) {
         repo.db.messages().trashedMessages()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val lastAction = MutableStateFlow<String?>(null)
+    /**
+     * V2-36: a resource id, not a sentence. Resolving it in composition means
+     * the snackbar follows a locale change even if the flow emitted before it,
+     * and it keeps the last piece of user-visible English out of the ViewModel.
+     */
+    val lastAction = MutableStateFlow<Int?>(null)
 
     fun restore(messageId: Long) = viewModelScope.launch {
         repo.restoreFromTrash(messageId)
-        lastAction.value = "Message restored"
+        lastAction.value = R.string.trash_restored_snackbar
     }
 
     fun deleteForever(messageId: Long) = viewModelScope.launch {
         repo.deleteForever(messageId)
-        lastAction.value = "Deleted forever"
+        lastAction.value = R.string.trash_deleted_forever_snackbar
     }
 
     fun emptyTrash() = viewModelScope.launch {
         trashed.value.forEach { repo.deleteForever(it.id) }
-        lastAction.value = "Trash emptied"
+        lastAction.value = R.string.trash_emptied_snackbar
     }
 
     fun clearLastAction() {
@@ -93,8 +100,9 @@ class TrashViewModel(app: Application) : AndroidViewModel(app) {
 }
 
 /**
- * Trash folder (§6.4): user-deleted messages, browsable + restorable for 60
- * days; per-item Delete forever and a guarded Empty-trash action.
+ * Trash folder (§6.4): user-deleted messages, browsable + restorable for
+ * [TrashRetention.RETENTION_DAYS] days; per-item Delete forever and a
+ * guarded Empty-trash action.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,8 +110,8 @@ fun TrashScreen(
     onBack: () -> Unit,
     vm: TrashViewModel = viewModel(),
 ) {
-    val trashed by vm.trashed.collectAsState()
-    val lastAction by vm.lastAction.collectAsState()
+    val trashed by vm.trashed.collectAsStateWithLifecycle()
+    val lastAction by vm.lastAction.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmForever by remember { mutableStateOf<MessageEntity?>(null) }
     var confirmEmpty by remember { mutableStateOf(false) }
@@ -122,9 +130,10 @@ fun TrashScreen(
         }
     }
 
+    val context = LocalContext.current
     LaunchedEffect(lastAction) {
         lastAction?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showSnackbar(context.getString(it))
             vm.clearLastAction()
         }
     }
@@ -133,15 +142,15 @@ fun TrashScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Trash") },
+                title = { Text(stringResource(R.string.trash_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     if (trashed.isNotEmpty()) {
-                        TextButton(onClick = { confirmEmpty = true }) { Text("Empty trash") }
+                        TextButton(onClick = { confirmEmpty = true }) { Text(stringResource(R.string.trash_empty_action)) }
                     }
                 },
             )
@@ -149,7 +158,14 @@ fun TrashScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             Text(
-                "Deleted messages are kept here for 60 days, then removed permanently.",
+                // V2-36: the window comes from the constant the purge worker
+                // actually enforces, so the sentence cannot drift from the
+                // behaviour it describes.
+                pluralStringResource(
+                    R.plurals.trash_retention_notice,
+                    TrashRetention.RETENTION_DAYS,
+                    TrashRetention.RETENTION_DAYS,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -158,7 +174,7 @@ fun TrashScreen(
                 TextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search in Trash") },
+                    placeholder = { Text(stringResource(R.string.trash_search_placeholder)) },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     singleLine = true,
                     shape = CircleShape,
@@ -179,7 +195,7 @@ fun TrashScreen(
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            "Trash is empty",
+                            stringResource(R.string.trash_is_empty),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.outline,
                         )
@@ -198,7 +214,7 @@ fun TrashScreen(
                     if (shown.isEmpty()) {
                         item {
                             Text(
-                                "No trashed messages match",
+                                stringResource(R.string.trash_no_match),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.padding(16.dp),
@@ -213,38 +229,44 @@ fun TrashScreen(
     confirmForever?.let { msg ->
         AlertDialog(
             onDismissRequest = { confirmForever = null },
-            title = { Text("Delete forever?") },
-            text = { Text("This message will be permanently deleted. This cannot be undone.") },
+            title = { Text(stringResource(R.string.trash_delete_forever_title)) },
+            text = { Text(stringResource(R.string.trash_delete_forever_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     vm.deleteForever(msg.id)
                     confirmForever = null
-                }) { Text("Delete forever") }
+                }) { Text(stringResource(R.string.trash_delete_forever_action)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmForever = null }) { Text("Cancel") }
+                TextButton(onClick = { confirmForever = null }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
     if (confirmEmpty) {
         AlertDialog(
             onDismissRequest = { confirmEmpty = false },
-            title = { Text("Empty trash?") },
-            text = { Text("All ${trashed.size} messages in Trash will be permanently deleted. This cannot be undone.") },
+            title = { Text(stringResource(R.string.trash_empty_title)) },
+            text = {
+                Text(
+                    pluralStringResource(
+                        R.plurals.trash_empty_confirm_body, trashed.size, trashed.size,
+                    ),
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     vm.emptyTrash()
                     confirmEmpty = false
-                }) { Text("Empty trash") }
+                }) { Text(stringResource(R.string.trash_empty_action)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmEmpty = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmEmpty = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
 }
 
-private val TRASH_TIME_FMT = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.US)
+// V2-45: locale and zone read at render time, not at class-init.
 
 @Composable
 private fun TrashRow(
@@ -266,7 +288,17 @@ private fun TrashRow(
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    SearchHighlight.annotate((if (msg.isOutgoing) "To " else "") + msg.address, terms, highlight),
+                    // V2-36: formatted whole rather than glued together — a
+                    // recipient marker is not a prefix in every language.
+                    SearchHighlight.annotate(
+                        if (msg.isOutgoing) {
+                            stringResource(R.string.trash_row_outgoing_to, msg.address)
+                        } else {
+                            msg.address
+                        },
+                        terms,
+                        highlight,
+                    ),
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -274,7 +306,7 @@ private fun TrashRow(
                 )
                 Spacer(Modifier.padding(horizontal = 4.dp))
                 Text(
-                    TRASH_TIME_FMT.format(Date(msg.timestamp)),
+                    AppDateFormat.dayMonthYearClock(msg.timestamp),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -288,20 +320,24 @@ private fun TrashRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                if (daysLeft > 0) "Deleted forever in $daysLeft days" else "Deleted forever soon",
+                if (daysLeft > 0) {
+                    pluralStringResource(R.plurals.trash_purge_countdown, daysLeft, daysLeft)
+                } else {
+                    stringResource(R.string.trash_purge_imminent)
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
             )
         }
         IconButton(onClick = onRestore) {
             Icon(
-                Icons.Filled.RestoreFromTrash, contentDescription = "Restore",
+                Icons.Filled.RestoreFromTrash, contentDescription = stringResource(R.string.trash_restore),
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
         IconButton(onClick = onDeleteForever) {
             Icon(
-                Icons.Filled.DeleteForever, contentDescription = "Delete forever",
+                Icons.Filled.DeleteForever, contentDescription = stringResource(R.string.trash_delete_forever_action),
                 tint = MaterialTheme.colorScheme.error,
             )
         }

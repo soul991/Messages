@@ -15,6 +15,9 @@ androidxTestCore = "1.6.1"
 navigationCompose = "2.8.2"
 datastore = "1.1.1"
 coil = "2.7.0"
+# Already on the classpath transitively via Coil; declared explicitly so the
+# link-preview fetcher (V2-08/09) can depend on it directly.
+okhttp = "4.12.0"
 accompanist = "0.36.0"
 ksp = "2.0.20-1.0.25"
 biometric = "1.2.0-alpha05"
@@ -47,6 +50,7 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

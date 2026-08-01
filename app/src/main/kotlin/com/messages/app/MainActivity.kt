@@ -22,6 +22,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -162,7 +164,11 @@ class MainActivity : FragmentActivity() {
             Backfill.ensureScheduled(this)
         }
 
-        val initialRoute = routeFor(intent)
+        // V2-21: resolving a `smsto:` recipient can need a Room round trip (the
+        // persisted thread alias), so the route is computed in a coroutine
+        // below rather than here. The launch intent is captured now — onNewIntent
+        // replaces `intent` and the cold-start destination must not move.
+        val startIntent = intent
         folderRequest = intent.getStringExtra("folder")
         val onboardingPrefs = getSharedPreferences("onboarding", MODE_PRIVATE)
 
@@ -183,12 +189,15 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             MessagesTheme(mode = themeMode, accent = accentSeed) {
+                // V2-37: the window theme guessed from the system night setting;
+                // this corrects the bar icons to the scheme actually resolved.
+                com.messages.app.ui.common.SyncSystemBars()
                 // App lock gate (§8.2): everything below stays hidden until unlocked.
                 if (!appUnlocked) {
                     LockScreen(
                         onRequestUnlock = {
                             AppLock.authenticate(
-                                this, "Unlock Messages",
+                                this, getString(R.string.lock_unlock_prompt),
                                 onSuccess = { appUnlocked = true },
                             )
                         },
@@ -217,14 +226,19 @@ class MainActivity : FragmentActivity() {
                 // (notification taps, ACTION_SENDTO from other apps).
                 DisposableEffect(nav) {
                     intentNavigator = { newIntent ->
-                        routeFor(newIntent)?.let { route ->
-                            // launchSingleTop would silently keep the OLD nav
-                            // arguments when the target route pattern matches the
-                            // current top (chat→chat via a notification tap for a
-                            // different thread). Pop back to home instead so the
-                            // stack stays home→chat and the new args always apply.
-                            nav.navigate(route) {
-                                popUpTo("home")
+                        // lifecycleScope is main-dispatched, so navigation still
+                        // happens on the main thread; only the thread-id lookup
+                        // inside routeFor suspends.
+                        lifecycleScope.launch {
+                            routeFor(newIntent)?.let { route ->
+                                // launchSingleTop would silently keep the OLD nav
+                                // arguments when the target route pattern matches the
+                                // current top (chat→chat via a notification tap for a
+                                // different thread). Pop back to home instead so the
+                                // stack stays home→chat and the new args always apply.
+                                nav.navigate(route) {
+                                    popUpTo("home")
+                                }
                             }
                         }
                     }
@@ -242,7 +256,7 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(Unit) {
                     if (!deepLinkConsumed) {
                         deepLinkConsumed = true
-                        initialRoute?.let { route ->
+                        routeFor(startIntent)?.let { route ->
                             nav.navigate(route) { popUpTo("home") }
                         }
                     }
@@ -299,6 +313,7 @@ class MainActivity : FragmentActivity() {
                             onDashboard = { nav.navigate("dashboard") },
                             onOpenStarred = { nav.navigate("starred") },
                             onOpenArchived = { nav.navigate("archived") },
+                            onOpenOutbox = { nav.navigate("outbox") },
                             // Secret space entry: 3s long-press on the title.
                             // First time → setup; afterwards → credential prompt.
                             onSecretEntry = {
@@ -451,6 +466,12 @@ class MainActivity : FragmentActivity() {
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
                         )
                     }
+                    composable("outbox") {
+                        com.messages.app.ui.outbox.OutboxScreen(
+                            onBack = { nav.popBackStack() },
+                            onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
+                        )
+                    }
                     composable("dashboard") {
                         DashboardScreen(onBack = { nav.popBackStack() })
                     }
@@ -483,6 +504,16 @@ class MainActivity : FragmentActivity() {
                             onOpenTrash = { nav.navigate("trash") },
                             onOpenDriveBackup = { nav.navigate("drive_backup") },
                             onOpenNotificationSettings = { nav.navigate("notification_settings") },
+                            // V2-39: the same destination as the Home-title
+                            // press, reached without the gesture. Setup or
+                            // prompt — never past either.
+                            onSecretEntry = {
+                                if (com.messages.core.secret.SecretSpace.exists(this@MainActivity)) {
+                                    nav.navigate("secret_prompt")
+                                } else {
+                                    nav.navigate("secret_setup")
+                                }
+                            },
                             themeMode = themeMode,
                             accent = accentSeed,
                             onAccentChange = { seed ->
@@ -688,8 +719,11 @@ class MainActivity : FragmentActivity() {
      * ACTION_SENDTO/ACTION_SEND `sms:/smsto:/mms:/mmsto:` data URI → the chat for
      * that thread/recipient; a `folder` extra (Review notification) → home with
      * that folder selected. Null when the intent carries no destination.
+     *
+     * Suspends: a recipient with no Telephony thread has to be resolved through
+     * the repository's persisted alias allocator (V2-21).
      */
-    private fun routeFor(intent: Intent): String? {
+    private suspend fun routeFor(intent: Intent): String? {
         val threadId = intent.getLongExtra("threadId", -1L)
         if (threadId != -1L) return "chat/$threadId"
 
@@ -710,11 +744,15 @@ class MainActivity : FragmentActivity() {
             ?.schemeSpecificPart?.substringBefore('?')?.trim()
             ?.takeIf { it.isNotBlank() }
         if (sendToAddress != null) {
-            val sendToThreadId = try {
-                Telephony.Threads.getOrCreateThreadId(this, sendToAddress)
-            } catch (_: Exception) {
-                sendToAddress.hashCode().toLong()
-            }
+            // V2-21: this used to fall back to `sendToAddress.hashCode()`. Java
+            // string hashes collide (and are only 32 bits), so two unrelated
+            // recipients could land in the same local conversation — and the
+            // value collides with real Telephony thread IDs besides. The
+            // repository owns the one collision-free allocator: it tries
+            // Telephony first and otherwise hands out a *persisted negative*
+            // alias keyed by the normalized address.
+            val sendToThreadId = com.messages.core.MessageRepository.get(application)
+                .threadIdFor(sendToAddress)
             return "chat/$sendToThreadId?address=${Uri.encode(sendToAddress)}"
         }
 

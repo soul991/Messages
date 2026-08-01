@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PersistableBundle
 import android.widget.Toast
+import com.messages.app.R
 
 /**
  * OTP → clipboard, shared by the notification "Copy" action and the opt-in
@@ -66,7 +67,7 @@ object OtpClipboard {
         }
         cm.setPrimaryClip(clip)
         if (toast && Build.VERSION.SDK_INT < 33) {
-            Toast.makeText(app, "OTP copied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(app, app.getString(R.string.notif_otp_copied), Toast.LENGTH_SHORT).show()
         }
         scheduleClear(app, cm, code)
     }

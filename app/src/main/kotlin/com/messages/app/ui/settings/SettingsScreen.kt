@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.annotation.PluralsRes
+import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +31,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Accessibility
 import androidx.compose.material.icons.outlined.AutoDelete
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CleaningServices
@@ -37,6 +40,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Summarize
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
@@ -58,7 +62,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,13 +76,19 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.security.AppLock
+import com.messages.app.ui.common.categoryLabelRes
+import com.messages.app.ui.secret.SecretEntryAccess
 import com.messages.core.MessageRepository
+import com.messages.core.backup.BackupCrypto
 import com.messages.core.backup.BackupManager
+import com.messages.core.backup.LocalArchive
+import com.messages.core.secret.SecretStrength
 import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.db.UserRuleEntity
 import com.messages.designsystem.AccentSeed
@@ -92,6 +102,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 
 class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -190,6 +203,24 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         sensitivity.value = name
     }
 
+    /**
+     * V2-36. Status and error text raised from here lands on screen, so it comes
+     * out of the resource table like every other user-visible string. A
+     * ViewModel has no composition to read `stringResource` from — the
+     * Application it already holds is the context that resolves them.
+     */
+    private fun string(@StringRes id: Int, vararg args: Any): String =
+        getApplication<Application>().getString(id, *args)
+
+    /**
+     * The counted-noun form of [string]. [count] selects the grammatical form
+     * and is *not* passed as an argument — repeat it in [args] where the number
+     * should appear, because a language may need the count in a different slot
+     * than English does, or not at all.
+     */
+    private fun plural(@PluralsRes id: Int, count: Int, vararg args: Any): String =
+        getApplication<Application>().resources.getQuantityString(id, count, *args)
+
     /** Non-null when the last [addRule] was refused; cleared on the next attempt. */
     val ruleError = MutableStateFlow<String?>(null)
 
@@ -204,13 +235,17 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         // comparison, which is how plain-text rules like "+9198…" work. What we
         // refuse is a pattern that DOES compile and can backtrack pathologically.
         if (trimmed.length > SafeRegexPolicy.MAX_REGEX_LENGTH) {
-            ruleError.value = "Rule is longer than ${SafeRegexPolicy.MAX_REGEX_LENGTH} characters"
+            ruleError.value = plural(
+                R.plurals.settings_rule_error_too_long,
+                SafeRegexPolicy.MAX_REGEX_LENGTH,
+                SafeRegexPolicy.MAX_REGEX_LENGTH,
+            )
             return
         }
         val isRegex = runCatching { Regex(trimmed) }.isSuccess
         if (isRegex && !SafeRegexPolicy.accepts(trimmed)) {
             ruleError.value = runCatching { SafeRegexPolicy.requireAccepted(trimmed) }
-                .exceptionOrNull()?.message ?: "That pattern isn't allowed"
+                .exceptionOrNull()?.message ?: string(R.string.settings_rule_error_rejected)
             return
         }
 
@@ -236,27 +271,32 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
             )
         }
         if (bytes == null) {
-            importStatus.value = "Couldn't read the file, or it is larger than " +
-                "${com.messages.protection.PatternPackPolicy.MAX_PACK_BYTES / 1024} KB"
+            importStatus.value = string(
+                R.string.settings_pack_too_large,
+                com.messages.protection.PatternPackPolicy.MAX_PACK_BYTES / 1024,
+            )
             return@launch
         }
         val text = runCatching { bytes.toString(Charsets.UTF_8) }.getOrNull()
         if (text == null) {
-            importStatus.value = "Couldn't read the selected file"
+            importStatus.value = string(R.string.settings_file_unreadable)
             return@launch
         }
         repo.importPatternPack(text).fold(
             onSuccess = { (version, count) ->
-                importStatus.value = "Imported pattern pack v$version — $count patterns active"
+                importStatus.value =
+                    plural(R.plurals.settings_pack_imported, count, version, count)
                 refreshLibraryInfo()
             },
-            onFailure = { importStatus.value = "Invalid pattern pack: ${it.message}" },
+            onFailure = {
+                importStatus.value = string(R.string.settings_pack_invalid, it.message.orEmpty())
+            },
         )
     }
 
     fun revertPack() = viewModelScope.launch {
         repo.revertToBundledPatterns()
-        importStatus.value = "Reverted to the bundled library"
+        importStatus.value = string(R.string.settings_pack_reverted)
         refreshLibraryInfo()
     }
 
@@ -269,51 +309,127 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     val backupStatus = MutableStateFlow<String?>(null)
 
-    fun exportBackup(uri: Uri) = viewModelScope.launch {
+    /**
+     * V2-49: which password the UI is currently waiting for, if any. Null
+     * whenever no archive operation is mid-flight.
+     */
+    enum class ArchivePromptKind { EXPORT, IMPORT }
+    data class ArchivePrompt(val kind: ArchivePromptKind, val uri: Uri)
+
+    val archivePrompt = MutableStateFlow<ArchivePrompt?>(null)
+
+    fun cancelArchivePrompt() { archivePrompt.value = null }
+
+    /** The picker returned a destination; the password comes next. */
+    fun askExportPassword(uri: Uri) {
+        archivePrompt.value = ArchivePrompt(ArchivePromptKind.EXPORT, uri)
+    }
+
+    /**
+     * The picker returned a file. Whether a password is needed is a property of
+     * the file, not a question for the user — an encrypted envelope announces
+     * itself in its first four bytes, so plain files are never asked for a
+     * password they do not have.
+     */
+    fun beginImport(uri: Uri) = viewModelScope.launch {
         val app = getApplication<Application>()
-        backupStatus.value = "Exporting…"
-        val result = withContext(Dispatchers.IO) {
-            runCatching {
-                val text = BackupManager.export(app)
-                app.contentResolver.openOutputStream(uri, "wt")?.use {
-                    it.write(text.toByteArray())
-                } ?: error("Couldn't open the selected location")
-            }
+        val encrypted = withContext(Dispatchers.IO) { LocalArchive.isEncrypted(app, uri) }
+        when (encrypted) {
+            null -> backupStatus.value = string(R.string.settings_file_unreadable)
+            true -> archivePrompt.value = ArchivePrompt(ArchivePromptKind.IMPORT, uri)
+            false -> importBackup(uri, null)
+        }
+    }
+
+    /**
+     * V2-49. [password] is zeroed here rather than by the caller: this is the
+     * last hop before the crypto, the UI has no reason to keep holding it, and
+     * a `finally` is the only place that survives a failed export.
+     */
+    fun exportBackup(uri: Uri, password: CharArray) = viewModelScope.launch {
+        val app = getApplication<Application>()
+        backupStatus.value = string(R.string.settings_archive_verifying)
+        val result = try {
+            LocalArchive.export(app, uri, password)
+        } finally {
+            password.fill('\u0000')
         }
         backupStatus.value = result.fold(
-            onSuccess = { "Backup saved" },
-            onFailure = { "Backup failed: ${it.message}" },
+            onSuccess = {
+                plural(
+                    R.plurals.settings_archive_saved,
+                    it.messageCount, it.messageCount,
+                )
+            },
+            onFailure = { string(R.string.settings_backup_failed, it.message.orEmpty()) },
         )
     }
 
-    fun importBackup(uri: Uri) = viewModelScope.launch {
+    fun importBackup(uri: Uri, password: CharArray?) = viewModelScope.launch {
         val app = getApplication<Application>()
-        backupStatus.value = "Restoring…"
-        val text = withContext(Dispatchers.IO) {
-            runCatching {
-                app.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
-            }.getOrNull()
+        backupStatus.value = string(R.string.settings_backup_restoring)
+        // V2-12: read against this device's budget rather than reading first
+        // and discovering the size afterwards — the picker can hand back a file
+        // of any size, and the old readText() allocated all of it.
+        // V2-49: LocalArchive routes to the encrypted or the plain reader; both
+        // sides of that branch keep those bounds.
+        val result = try {
+            LocalArchive.import(app, uri, password)
+        } finally {
+            password?.fill('\u0000')
         }
-        if (text == null) {
-            backupStatus.value = "Couldn't read the selected file"
-            return@launch
-        }
-        BackupManager.import(app, text).fold(
+        result.fold(
             onSuccess = { stats ->
-                backupStatus.value = "Restored ${stats.messagesRestored} messages " +
-                    "(${stats.messagesSkipped} already present), ${stats.rulesRestored} rules"
+                // Each count agrees with its own noun, then the frame puts the
+                // three finished clauses in whatever order the language wants.
+                backupStatus.value = string(
+                    R.string.settings_backup_restored,
+                    plural(
+                        R.plurals.settings_backup_restored_messages,
+                        stats.messagesRestored, stats.messagesRestored,
+                    ),
+                    plural(
+                        R.plurals.settings_backup_restored_skipped,
+                        stats.messagesSkipped, stats.messagesSkipped,
+                    ),
+                    plural(
+                        R.plurals.settings_backup_restored_rules,
+                        stats.rulesRestored, stats.rulesRestored,
+                    ),
+                )
                 // Restored settings may have changed these.
                 sensitivity.value = repo.sensitivityName()
                 otpAutoDelete.value = OtpCleanup.isEnabled(app)
                 hidePreviews.value = AppLock.hidePreviews(app)
                 refreshLibraryInfo()
             },
-            onFailure = { backupStatus.value = "Restore failed: ${it.message}" },
+            onFailure = {
+                backupStatus.value = when (it) {
+                    // V2-49: "wrong password" is a different instruction from
+                    // "this file is broken", and only one of them is the user's
+                    // to act on.
+                    is BackupCrypto.WrongPasswordException ->
+                        string(R.string.settings_archive_wrong_password)
+                    else -> string(R.string.settings_restore_failed, it.message.orEmpty())
+                }
+            },
         )
     }
 }
 
 private val SENSITIVITY_STEPS = listOf("RELAXED", "DEFAULT", "STRICT")
+
+/**
+ * V2-36. The slider ticks used to be the step id lowercased and re-capitalised.
+ * That is a locale-dependent transform of an internal constant — it stays
+ * English everywhere, and in Turkish "STRICT" lowercases to "strıct".
+ */
+@StringRes
+private fun sensitivityLabelRes(step: String): Int = when (step) {
+    "RELAXED" -> R.string.settings_sensitivity_relaxed
+    "STRICT" -> R.string.settings_sensitivity_strict
+    else -> R.string.settings_sensitivity_default
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -322,22 +438,27 @@ fun SettingsScreen(
     onOpenTrash: () -> Unit = {},
     onOpenDriveBackup: () -> Unit = {},
     onOpenNotificationSettings: () -> Unit = {},
+    /**
+     * V2-39: routes to the locked space's credential prompt — the same
+     * destination as the Home-title press, not a way around it.
+     */
+    onSecretEntry: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     accent: AccentSeed = AccentSeed.DYNAMIC,
     onAccentChange: (AccentSeed) -> Unit = {},
     vm: SettingsViewModel = viewModel(),
 ) {
-    val rules by vm.rules.collectAsState()
-    val sensitivity by vm.sensitivity.collectAsState()
-    val libraryInfo by vm.libraryInfo.collectAsState()
-    val hasImportedPack by vm.hasImportedPack.collectAsState()
-    val importStatus by vm.importStatus.collectAsState()
-    val otpAutoDelete by vm.otpAutoDelete.collectAsState()
-    val spamAutoClean by vm.spamAutoClean.collectAsState()
-    val appLock by vm.appLock.collectAsState()
-    val lockAfterMs by vm.lockAfterMs.collectAsState()
-    val hidePreviews by vm.hidePreviews.collectAsState()
+    val rules by vm.rules.collectAsStateWithLifecycle()
+    val sensitivity by vm.sensitivity.collectAsStateWithLifecycle()
+    val libraryInfo by vm.libraryInfo.collectAsStateWithLifecycle()
+    val hasImportedPack by vm.hasImportedPack.collectAsStateWithLifecycle()
+    val importStatus by vm.importStatus.collectAsStateWithLifecycle()
+    val otpAutoDelete by vm.otpAutoDelete.collectAsStateWithLifecycle()
+    val spamAutoClean by vm.spamAutoClean.collectAsStateWithLifecycle()
+    val appLock by vm.appLock.collectAsStateWithLifecycle()
+    val lockAfterMs by vm.lockAfterMs.collectAsStateWithLifecycle()
+    val hidePreviews by vm.hidePreviews.collectAsStateWithLifecycle()
     val activity = androidx.compose.ui.platform.LocalContext.current
         as? androidx.fragment.app.FragmentActivity
 
@@ -347,23 +468,42 @@ fun SettingsScreen(
         ActivityResultContracts.OpenDocument()
     ) { uri -> if (uri != null) vm.importPack(uri) }
 
-    val backupStatus by vm.backupStatus.collectAsState()
+    val backupStatus by vm.backupStatus.collectAsStateWithLifecycle()
+    // V2-49: the archive is an encrypted envelope, not JSON. Declaring the type
+    // honestly matters — a `.json` claim invites other apps to open it and
+    // present the user with a parse error instead of a backup.
     val backupCreator = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri -> if (uri != null) vm.exportBackup(uri) }
+        ActivityResultContracts.CreateDocument(LocalArchive.MIME_TYPE)
+    ) { uri -> if (uri != null) vm.askExportPassword(uri) }
     val backupPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
-    ) { uri -> if (uri != null) vm.importBackup(uri) }
+    ) { uri -> if (uri != null) vm.beginImport(uri) }
+    val archivePrompt by vm.archivePrompt.collectAsStateWithLifecycle()
     var confirmRestore by remember { mutableStateOf(false) }
+
+    archivePrompt?.let { prompt ->
+        ArchivePasswordDialog(
+            kind = prompt.kind,
+            onDismiss = { vm.cancelArchivePrompt() },
+            onConfirm = { password ->
+                vm.cancelArchivePrompt()
+                when (prompt.kind) {
+                    SettingsViewModel.ArchivePromptKind.EXPORT ->
+                        vm.exportBackup(prompt.uri, password)
+                    SettingsViewModel.ArchivePromptKind.IMPORT ->
+                        vm.importBackup(prompt.uri, password)
+                }
+            },
+        )
+    }
 
     if (confirmRestore) {
         AlertDialog(
             onDismissRequest = { confirmRestore = false },
-            title = { Text("Restore from backup?") },
+            title = { Text(stringResource(R.string.settings_restore_confirm_title)) },
             text = {
                 Text(
-                    "Messages, rules, and settings from the backup will be added. " +
-                        "Nothing on this device is deleted or overwritten; duplicates are skipped."
+                    stringResource(R.string.settings_restore_confirm_body)
                 )
             },
             confirmButton = {
@@ -372,16 +512,16 @@ fun SettingsScreen(
                     backupPicker.launch(
                         arrayOf("application/json", "text/plain", "application/octet-stream")
                     )
-                }) { Text("Choose file") }
+                }) { Text(stringResource(R.string.settings_choose_file)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmRestore = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmRestore = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
 
     if (addRuleKind != null) {
-        val ruleError by vm.ruleError.collectAsState()
+        val ruleError by vm.ruleError.collectAsStateWithLifecycle()
         AddRuleDialog(
             kind = addRuleKind!!,
             onDismiss = { addRuleKind = null },
@@ -398,10 +538,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -411,13 +551,13 @@ fun SettingsScreen(
 
             // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
             item {
-                SettingsSectionHeader("Appearance")
+                SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
                 SettingsDropdownRow(
                     icon = Icons.Outlined.DarkMode,
-                    title = "Theme",
-                    subtitle = "Choose how Messages looks across the app.",
-                    value = themeMode.displayName(),
-                    options = ThemeMode.values().map { it to it.displayName() },
+                    title = stringResource(R.string.settings_theme),
+                    subtitle = stringResource(R.string.settings_theme_subtitle),
+                    value = stringResource(themeMode.labelRes()),
+                    options = ThemeMode.values().map { it to stringResource(it.labelRes()) },
                     onSelect = onThemeModeChange,
                 )
                 AccentPickerRow(selected = accent, onSelect = onAccentChange)
@@ -427,7 +567,7 @@ fun SettingsScreen(
             // ---- Protection sensitivity (§3 Stage 5) ----
             item {
                 SettingsSectionDivider()
-                SettingsSectionHeader("Protection sensitivity")
+                SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
                 val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     Slider(
@@ -439,7 +579,7 @@ fun SettingsScreen(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         SENSITIVITY_STEPS.forEachIndexed { i, step ->
                             Text(
-                                step.lowercase().replaceFirstChar { it.uppercase() },
+                                stringResource(sensitivityLabelRes(step)),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (i == index) FontWeight.Bold else FontWeight.Normal,
                                 color = if (i == index) MaterialTheme.colorScheme.primary
@@ -450,9 +590,9 @@ fun SettingsScreen(
                     Spacer(Modifier.height(6.dp))
                     Text(
                         when (sensitivity) {
-                            "RELAXED" -> "Fewer messages filtered — borderline messages stay in your Inbox or Review."
-                            "STRICT" -> "Aggressive filtering — borderline messages go to Spam sooner. Protected messages (OTPs, bank alerts) are never filtered at any level."
-                            else -> "Balanced filtering, recommended for most people. Protected messages (OTPs, bank alerts) are never filtered."
+                            "RELAXED" -> stringResource(R.string.settings_sensitivity_relaxed_body)
+                            "STRICT" -> stringResource(R.string.settings_sensitivity_strict_body)
+                            else -> stringResource(R.string.settings_sensitivity_default_body)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
@@ -463,23 +603,23 @@ fun SettingsScreen(
             // ---- Rules (§3 Stage 1) ----
             item {
                 SettingsSectionDivider()
-                SettingsSectionHeader("Your rules")
+                SettingsSectionHeader(stringResource(R.string.settings_section_rules))
                 Text(
-                    "Rules outrank everything, including the pattern library.",
+                    stringResource(R.string.settings_rules_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
-            item { RuleGroupHeader("Always allow", "ALLOW", onAdd = { addRuleKind = "ALLOW" }) }
+            item { RuleGroupHeader(stringResource(R.string.settings_rules_always_allow), "ALLOW", onAdd = { addRuleKind = "ALLOW" }) }
             items(rules.filter { it.kind == "ALLOW" }, key = { it.id }) { rule ->
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
             }
-            item { RuleGroupHeader("Always block", "BLOCK", onAdd = { addRuleKind = "BLOCK" }) }
+            item { RuleGroupHeader(stringResource(R.string.settings_rules_always_block), "BLOCK", onAdd = { addRuleKind = "BLOCK" }) }
             items(rules.filter { it.kind == "BLOCK" }, key = { it.id }) { rule ->
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
             }
-            item { RuleGroupHeader("Custom rules", "CUSTOM", onAdd = { addRuleKind = "CUSTOM" }) }
+            item { RuleGroupHeader(stringResource(R.string.settings_rules_custom), "CUSTOM", onAdd = { addRuleKind = "CUSTOM" }) }
             items(rules.filter { it.kind == "CUSTOM" }, key = { it.id }) { rule ->
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
             }
@@ -487,11 +627,11 @@ fun SettingsScreen(
             // ---- Notifications (Phase 4 item 3: full per-folder screen) ----
             item {
                 SettingsSectionDivider()
-                SettingsSectionHeader("Notifications")
+                SettingsSectionHeader(stringResource(R.string.settings_section_notifications))
                 SettingsNavRow(
                     icon = Icons.Outlined.Notifications,
-                    title = "Notification behavior",
-                    subtitle = "Per-folder alerts, sounds, and OTP copy options.",
+                    title = stringResource(R.string.settings_notification_behavior),
+                    subtitle = stringResource(R.string.settings_notification_behavior_subtitle),
                     onClick = onOpenNotificationSettings,
                 )
             }
@@ -499,14 +639,18 @@ fun SettingsScreen(
             // ---- Privacy & security (§8.2) ----
             item {
                 SettingsSectionDivider()
-                SettingsSectionHeader("Privacy & security")
+                SettingsSectionHeader(stringResource(R.string.settings_section_privacy))
+                // The biometric prompt is raised from onChange, which is not a
+                // composable scope; both titles are resolved here instead.
+                val enablePrompt = stringResource(R.string.settings_app_lock_prompt_enable)
+                val disablePrompt = stringResource(R.string.settings_app_lock_prompt_disable)
                 SettingsSwitchRow(
                     icon = Icons.Outlined.Lock,
-                    title = "App lock",
+                    title = stringResource(R.string.settings_app_lock),
                     subtitle = if (vm.canAuthenticate) {
-                        "Require fingerprint, face, or device PIN to open Messages."
+                        stringResource(R.string.settings_app_lock_subtitle)
                     } else {
-                        "Set up a screen lock or biometrics on this device first."
+                        stringResource(R.string.settings_app_lock_unavailable)
                     },
                     checked = appLock,
                     enabled = vm.canAuthenticate,
@@ -518,8 +662,7 @@ fun SettingsScreen(
                         if (activity != null) {
                             AppLock.authenticate(
                                 activity,
-                                if (enable) "Confirm to enable app lock"
-                                else "Confirm to turn off app lock",
+                                if (enable) enablePrompt else disablePrompt,
                                 onSuccess = { vm.setAppLock(enable) },
                             )
                         }
@@ -528,8 +671,8 @@ fun SettingsScreen(
                 if (appLock) {
                     SettingsDropdownRow(
                         icon = Icons.Outlined.Timer,
-                        title = "Lock after",
-                        subtitle = "Skip re-unlock when returning within this window.",
+                        title = stringResource(R.string.settings_lock_after),
+                        subtitle = stringResource(R.string.settings_lock_after_subtitle),
                         value = com.messages.app.security.LockGrace.label(lockAfterMs),
                         options = com.messages.app.security.LockGrace.options.map { it.first to it.second },
                         onSelect = { vm.setLockAfter(it) },
@@ -537,13 +680,49 @@ fun SettingsScreen(
                 }
                 SettingsSwitchRow(
                     icon = Icons.Outlined.VisibilityOff,
-                    title = "Hide message previews",
-                    subtitle = "Notifications show \"New message\" instead of the text.",
+                    title = stringResource(R.string.settings_hide_previews),
+                    subtitle = stringResource(R.string.settings_hide_previews_subtitle),
                     checked = hidePreviews,
                     onChange = { vm.setHidePreviews(it) },
                 )
+                // V2-39. The locked space's only entrance was a 1.5-second
+                // press on the Home title — raw pointer input, so it does not
+                // exist for a screen reader, Switch Access, a keyboard or a
+                // D-pad, and is out of reach for many motor impairments.
+                //
+                // This switch is the user's own call on the trade: a labelled
+                // action is discoverable by definition, which is the opposite
+                // of what concealment wants. It ships on every install and
+                // defaults off, so its presence says something about the app,
+                // never about this user. Both rows lead to the credential
+                // prompt; nothing here weakens it.
+                val entryCtx = androidx.compose.ui.platform.LocalContext.current
+                var accessibleEntry by remember {
+                    mutableStateOf(SecretEntryAccess.enabled(entryCtx))
+                }
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.Accessibility,
+                    title = stringResource(R.string.settings_accessible_entry_title),
+                    subtitle = stringResource(R.string.settings_accessible_entry_subtitle),
+                    checked = accessibleEntry,
+                    onChange = {
+                        accessibleEntry = it
+                        SecretEntryAccess.setEnabled(entryCtx, it)
+                    },
+                )
+                if (accessibleEntry) {
+                    SettingsRow(
+                        icon = Icons.Outlined.Lock,
+                        title = stringResource(SecretEntryAccess.ACTION_LABEL),
+                        subtitle = stringResource(
+                            R.string.settings_accessible_entry_row_subtitle,
+                        ),
+                        onClick = onSecretEntry,
+                        indented = true,
+                    )
+                }
                 Text(
-                    "Tip: lock individual conversations from the ⋮ menu inside a chat.",
+                    stringResource(R.string.settings_lock_chat_tip),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -553,22 +732,22 @@ fun SettingsScreen(
             // ---- Conversations (§8.1/§8.2): swipe actions + delivery reports ----
             item {
                 SettingsSectionDivider()
-                SettingsSectionHeader("Conversations")
+                SettingsSectionHeader(stringResource(R.string.settings_section_conversations))
                 val ctx = androidx.compose.ui.platform.LocalContext.current
-                val rightAction by com.messages.app.ui.home.SwipeActions.right.collectAsState()
-                val leftAction by com.messages.app.ui.home.SwipeActions.left.collectAsState()
+                val rightAction by com.messages.app.ui.home.SwipeActions.right.collectAsStateWithLifecycle()
+                val leftAction by com.messages.app.ui.home.SwipeActions.left.collectAsStateWithLifecycle()
                 SettingsDropdownRow(
                     icon = Icons.Outlined.SwipeRight,
-                    title = "Swipe right",
-                    subtitle = "Left-to-right swipe on a conversation",
+                    title = stringResource(R.string.settings_swipe_right),
+                    subtitle = stringResource(R.string.settings_swipe_right_subtitle),
                     value = com.messages.app.ui.home.SwipeActions.label(rightAction),
                     options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
                     onSelect = { com.messages.app.ui.home.SwipeActions.setRight(ctx, it) },
                 )
                 SettingsDropdownRow(
                     icon = Icons.Outlined.SwipeLeft,
-                    title = "Swipe left",
-                    subtitle = "Right-to-left swipe on a conversation",
+                    title = stringResource(R.string.settings_swipe_left),
+                    subtitle = stringResource(R.string.settings_swipe_left_subtitle),
                     value = com.messages.app.ui.home.SwipeActions.label(leftAction),
                     options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
                     onSelect = { com.messages.app.ui.home.SwipeActions.setLeft(ctx, it) },
@@ -581,8 +760,8 @@ fun SettingsScreen(
                 }
                 SettingsSwitchRow(
                     icon = Icons.Outlined.DoneAll,
-                    title = "Delivery reports",
-                    subtitle = "Show \"Delivered\" on sent messages when the carrier confirms.",
+                    title = stringResource(R.string.settings_delivery_reports),
+                    subtitle = stringResource(R.string.settings_delivery_reports_subtitle),
                     checked = deliveryReports,
                     onChange = {
                         deliveryReports = it
@@ -597,13 +776,29 @@ fun SettingsScreen(
                 }
                 SettingsSwitchRow(
                     icon = Icons.Outlined.Link,
-                    title = "Link previews",
-                    subtitle = "Show a small preview card for links in Inbox messages. " +
-                        "Never for filtered folders or dangerous messages; no cookies are sent.",
+                    title = stringResource(R.string.settings_link_previews),
+                    subtitle = stringResource(R.string.settings_link_previews_subtitle),
                     checked = linkPreviews,
                     onChange = {
                         linkPreviews = it
                         com.messages.app.ui.chat.LinkPreview.setEnabled(ctx, it)
+                    },
+                )
+                // V2-51: summary cards. On by default and entirely offline —
+                // the subtitle says where the numbers come from, because a card
+                // that looks like it phoned the bank is exactly what this
+                // feature must not be mistaken for.
+                var summaryCards by remember {
+                    mutableStateOf(com.messages.app.ui.chat.MessageCards.enabled(ctx))
+                }
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.Summarize,
+                    title = stringResource(R.string.settings_summary_cards),
+                    subtitle = stringResource(R.string.settings_summary_cards_subtitle),
+                    checked = summaryCards,
+                    onChange = {
+                        summaryCards = it
+                        com.messages.app.ui.chat.MessageCards.setEnabled(ctx, it)
                     },
                 )
                 Spacer(Modifier.height(8.dp))
@@ -614,12 +809,11 @@ fun SettingsScreen(
             // ---- Auto-clean features ----
             item {
                 SettingsSectionDivider()
-                SettingsSectionHeader("Auto-clean features")
+                SettingsSectionHeader(stringResource(R.string.settings_section_auto_clean))
                 SettingsSwitchRow(
                     icon = Icons.Outlined.AutoDelete,
-                    title = "Delete OTP messages after 24 hours",
-                    subtitle = "Only OTP-labeled messages in your Inbox. Starred OTPs and " +
-                        "filtered folders are never touched.",
+                    title = stringResource(R.string.settings_otp_auto_delete),
+                    subtitle = stringResource(R.string.settings_otp_auto_delete_subtitle),
                     checked = otpAutoDelete,
                     onChange = { vm.setOtpAutoDelete(it) },
                 )
@@ -627,9 +821,8 @@ fun SettingsScreen(
                 var confirmSpamClean by remember { mutableStateOf(false) }
                 SettingsSwitchRow(
                     icon = Icons.Outlined.CleaningServices,
-                    title = "Auto-clean Spam older than 90 days",
-                    subtitle = "Old Spam moves to Trash (restorable for 60 days). " +
-                        "Starred messages, Review, and Blocked are never touched.",
+                    title = stringResource(R.string.settings_spam_auto_clean),
+                    subtitle = stringResource(R.string.settings_spam_auto_clean_subtitle),
                     checked = spamAutoClean,
                     onChange = { enable ->
                         if (enable) confirmSpamClean = true
@@ -639,23 +832,20 @@ fun SettingsScreen(
                 if (confirmSpamClean) {
                     AlertDialog(
                         onDismissRequest = { confirmSpamClean = false },
-                        title = { Text("Auto-clean old Spam?") },
+                        title = { Text(stringResource(R.string.settings_spam_auto_clean_confirm_title)) },
                         text = {
                             Text(
-                                "Spam messages older than 90 days will be moved to " +
-                                    "Trash automatically (once a week) and stay " +
-                                    "restorable there for 60 days. Review and Blocked " +
-                                    "folders are never cleaned."
+                                stringResource(R.string.settings_spam_auto_clean_confirm_body)
                             )
                         },
                         confirmButton = {
                             TextButton(onClick = {
                                 confirmSpamClean = false
                                 vm.setSpamAutoClean(true)
-                            }) { Text("Turn on") }
+                            }) { Text(stringResource(R.string.settings_turn_on)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { confirmSpamClean = false }) { Text("Cancel") }
+                            TextButton(onClick = { confirmSpamClean = false }) { Text(stringResource(R.string.action_cancel)) }
                         },
                     )
                 }
@@ -664,11 +854,15 @@ fun SettingsScreen(
             // ---- Pattern library (§7.5) ----
             item {
                 SettingsSectionDivider()
-                SettingsSectionHeader("Pattern library")
+                SettingsSectionHeader(stringResource(R.string.settings_section_pattern_library))
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     Text(
-                        "Version ${libraryInfo.first} — ${libraryInfo.second} patterns" +
-                            if (hasImportedPack) " (imported pack)" else " (bundled)",
+                        pluralStringResource(
+                            if (hasImportedPack) R.plurals.settings_library_version_imported
+                            else R.plurals.settings_library_version_bundled,
+                            libraryInfo.second,
+                            libraryInfo.first, libraryInfo.second,
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     if (importStatus != null) {
@@ -684,9 +878,9 @@ fun SettingsScreen(
                             packPicker.launch(
                                 arrayOf("application/json", "text/plain", "application/octet-stream")
                             )
-                        }) { Text("Import pattern pack") }
+                        }) { Text(stringResource(R.string.settings_import_pattern_pack)) }
                         if (hasImportedPack) {
-                            TextButton(onClick = { vm.revertPack() }) { Text("Revert to bundled") }
+                            TextButton(onClick = { vm.revertPack() }) { Text(stringResource(R.string.settings_revert_to_bundled)) }
                         }
                     }
                 }
@@ -695,11 +889,10 @@ fun SettingsScreen(
             // ---- Backup & restore (§8.2) ----
             item {
                 SettingsSectionDivider()
-                SettingsSectionHeader("Backup & restore")
+                SettingsSectionHeader(stringResource(R.string.settings_section_backup))
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     Text(
-                        "Everything stays on this device: messages, categories, rules, " +
-                            "sender trust, and settings go into one local file.",
+                        stringResource(R.string.settings_backup_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -713,15 +906,21 @@ fun SettingsScreen(
                     }
                     Row {
                         TextButton(onClick = {
+                            // V2-45: deliberately NOT AppDateFormat. This goes
+                            // into a file name, so it must stay invariant — a
+                            // localized month name or a non-Gregorian calendar
+                            // would make backups sort wrongly and, in some
+                            // scripts, produce characters the picker rejects.
+                            // Built per click, so no stale-locale risk either.
                             val stamp = java.text.SimpleDateFormat(
                                 "yyyy-MM-dd", java.util.Locale.US
                             ).format(java.util.Date())
-                            backupCreator.launch("messages-backup-$stamp.json")
-                        }) { Text("Back up now") }
-                        TextButton(onClick = { confirmRestore = true }) { Text("Restore") }
+                            backupCreator.launch(LocalArchive.suggestedName(stamp))
+                        }) { Text(stringResource(R.string.settings_back_up_now)) }
+                        TextButton(onClick = { confirmRestore = true }) { Text(stringResource(R.string.settings_restore)) }
                     }
                     // §8.3: encrypted, scheduled cloud backup.
-                    TextButton(onClick = onOpenDriveBackup) { Text("Google Drive backup…") }
+                    TextButton(onClick = onOpenDriveBackup) { Text(stringResource(R.string.settings_google_drive_backup)) }
                 }
                 Spacer(Modifier.height(24.dp))
             }
@@ -729,16 +928,15 @@ fun SettingsScreen(
             // ---- Message import (BUG-1 safety net: §10 backfill re-run) ----
             item {
                 SettingsSectionDivider()
-                SettingsSectionHeader("Message import")
+                SettingsSectionHeader(stringResource(R.string.settings_section_import))
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     val context = androidx.compose.ui.platform.LocalContext.current
                     val backfillInfos by com.messages.core.backfill.Backfill
-                        .progressFlow(context).collectAsState(initial = emptyList())
+                        .progressFlow(context).collectAsStateWithLifecycle(initialValue = emptyList())
                     val running = backfillInfos.firstOrNull()
                         ?.takeIf { it.state == androidx.work.WorkInfo.State.RUNNING }
                     Text(
-                        "If your existing messages are missing from the app, import them " +
-                            "again from the phone's SMS store. Already-imported messages are skipped.",
+                        stringResource(R.string.settings_reimport_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -749,8 +947,14 @@ fun SettingsScreen(
                             com.messages.core.backfill.BackfillWorker.KEY_TOTAL, 0)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            if (total > 0) "Importing… $processed of $total messages"
-                            else "Importing…",
+                            if (total > 0) {
+                                pluralStringResource(
+                                    R.plurals.settings_importing_progress,
+                                    total, processed, total,
+                                )
+                            } else {
+                                stringResource(R.string.settings_importing)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -758,7 +962,7 @@ fun SettingsScreen(
                     TextButton(
                         onClick = { com.messages.core.backfill.Backfill.reimport(context) },
                         enabled = running == null,
-                    ) { Text("Re-import messages") }
+                    ) { Text(stringResource(R.string.settings_reimport)) }
                 }
                 Spacer(Modifier.height(24.dp))
             }
@@ -766,11 +970,15 @@ fun SettingsScreen(
             // ---- Trash (§6.4) ----
             item {
                 SettingsSectionDivider()
-                val trashCount by vm.trashCount.collectAsState(initial = 0)
+                val trashCount by vm.trashCount.collectAsStateWithLifecycle(initialValue = 0)
                 SettingsNavRow(
                     icon = Icons.Outlined.Delete,
-                    title = if (trashCount > 0) "Trash ($trashCount)" else "Trash",
-                    subtitle = "Deleted messages are kept for 60 days and can be restored.",
+                    title = if (trashCount > 0) {
+                        stringResource(R.string.settings_trash_with_count, trashCount)
+                    } else {
+                        stringResource(R.string.settings_trash)
+                    },
+                    subtitle = stringResource(R.string.settings_trash_subtitle),
                     onClick = onOpenTrash,
                 )
                 Spacer(Modifier.height(24.dp))
@@ -779,11 +987,30 @@ fun SettingsScreen(
     }
 }
 
-internal fun ThemeMode.displayName(): String = when (this) {
-    ThemeMode.SYSTEM -> "System default"
-    ThemeMode.LIGHT -> "Light"
-    ThemeMode.DARK -> "Dark"
-    ThemeMode.AMOLED -> "AMOLED black"
+@StringRes
+internal fun ThemeMode.labelRes(): Int = when (this) {
+    ThemeMode.SYSTEM -> R.string.settings_theme_system
+    ThemeMode.LIGHT -> R.string.settings_theme_light
+    ThemeMode.DARK -> R.string.settings_theme_dark
+    ThemeMode.AMOLED -> R.string.settings_theme_amoled
+}
+
+/**
+ * V2-36. [AccentSeed.displayName] is the enum's own stable identifier, kept in
+ * :design-system where there is no resource table. The name the user reads
+ * comes from here.
+ */
+@StringRes
+internal fun AccentSeed.labelRes(): Int = when (this) {
+    AccentSeed.DYNAMIC -> R.string.accent_dynamic
+    AccentSeed.BLUE -> R.string.accent_blue
+    AccentSeed.TEAL -> R.string.accent_teal
+    AccentSeed.GREEN -> R.string.accent_green
+    AccentSeed.AMBER -> R.string.accent_amber
+    AccentSeed.CORAL -> R.string.accent_coral
+    AccentSeed.PINK -> R.string.accent_pink
+    AccentSeed.PURPLE -> R.string.accent_purple
+    AccentSeed.GRAPHITE -> R.string.accent_graphite
 }
 
 /**
@@ -803,10 +1030,13 @@ private fun AccentPickerRow(selected: AccentSeed, onSelect: (AccentSeed) -> Unit
             )
             Spacer(Modifier.width(16.dp))
             Column {
-                Text("App color", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.settings_app_color), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    if (selected == AccentSeed.DYNAMIC) "Dynamic — follows your wallpaper"
-                    else selected.displayName,
+                    if (selected == AccentSeed.DYNAMIC) {
+                        stringResource(R.string.settings_accent_dynamic_subtitle)
+                    } else {
+                        stringResource(selected.labelRes())
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -830,6 +1060,9 @@ private fun AccentPickerRow(selected: AccentSeed, onSelect: (AccentSeed) -> Unit
 @Composable
 private fun AccentSwatch(seed: AccentSeed, selected: Boolean, onClick: () -> Unit) {
     val dynamic = seed == AccentSeed.DYNAMIC
+    // `semantics { }` is not a composable scope; resolved here and read inside.
+    val swatchDescription =
+        stringResource(R.string.settings_accent_swatch, stringResource(seed.labelRes()))
     val fill = if (dynamic) {
         // The dynamic swatch previews the CURRENT dynamic primary; on pre-S
         // devices it shows the static fallback blue, which is equally honest.
@@ -855,7 +1088,7 @@ private fun AccentSwatch(seed: AccentSeed, selected: Boolean, onClick: () -> Uni
                 ) else Modifier
             )
             .clickable(onClick = onClick)
-            .semantics { contentDescription = "${seed.displayName} accent" },
+            .semantics { contentDescription = swatchDescription },
         contentAlignment = Alignment.Center,
     ) {
         if (selected) {
@@ -882,7 +1115,7 @@ private fun AccentSwatch(seed: AccentSeed, selected: Boolean, onClick: () -> Uni
 @Composable
 private fun MessageTextSizeRow() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val options = listOf("Small" to 0.85f, "Default" to 1f, "Large" to 1.15f, "Extra large" to 1.3f)
+    val options = listOf(stringResource(R.string.settings_text_size_small) to 0.85f, stringResource(R.string.settings_text_size_default) to 1f, stringResource(R.string.settings_text_size_large) to 1.15f, stringResource(R.string.settings_text_size_extra_large) to 1.3f)
     var scale by remember {
         mutableStateOf(
             ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
@@ -898,9 +1131,9 @@ private fun MessageTextSizeRow() {
             )
             Spacer(Modifier.width(16.dp))
             Column {
-                Text("Message text size", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.settings_text_size), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Size of message text in conversations.",
+                    stringResource(R.string.settings_text_size_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -931,7 +1164,7 @@ private fun MessageTextSizeRow() {
 
 /** Quick-reply template manager (Phase 4 item 8): list + add + delete. */@Composable
 private fun QuickRepliesEditor(ctx: android.content.Context) {
-    val templates by com.messages.app.ui.chat.QuickReplies.templates.collectAsState()
+    val templates by com.messages.app.ui.chat.QuickReplies.templates.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { com.messages.app.ui.chat.QuickReplies.load(ctx) }
     var newTemplate by remember { mutableStateOf("") }
 
@@ -944,9 +1177,9 @@ private fun QuickRepliesEditor(ctx: android.content.Context) {
             )
             Spacer(Modifier.width(16.dp))
             Column {
-                Text("Quick replies", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.settings_quick_replies), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "One-tap templates offered by the ⚡ button in the composer.",
+                    stringResource(R.string.settings_quick_replies_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -967,7 +1200,7 @@ private fun QuickRepliesEditor(ctx: android.content.Context) {
                         com.messages.app.ui.chat.QuickReplies.remove(ctx, template)
                     }) {
                         Icon(
-                            Icons.Filled.Delete, contentDescription = "Delete template",
+                            Icons.Filled.Delete, contentDescription = stringResource(R.string.settings_delete_template),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -980,7 +1213,7 @@ private fun QuickRepliesEditor(ctx: android.content.Context) {
                 OutlinedTextField(
                     value = newTemplate,
                     onValueChange = { newTemplate = it },
-                    placeholder = { Text("New quick reply") },
+                    placeholder = { Text(stringResource(R.string.settings_new_quick_reply)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
@@ -991,7 +1224,7 @@ private fun QuickRepliesEditor(ctx: android.content.Context) {
                     },
                     enabled = newTemplate.isNotBlank(),
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add template")
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.settings_add_template))
                 }
             }
         }
@@ -1010,7 +1243,10 @@ private fun RuleGroupHeader(title: String, kind: String, onAdd: () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = onAdd) {
-            Icon(Icons.Filled.Add, contentDescription = "Add $title rule")
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = stringResource(R.string.settings_add_rule_to_group, title),
+            )
         }
     }
 }
@@ -1025,8 +1261,11 @@ private fun RuleRow(rule: UserRuleEntity, onDelete: () -> Unit) {
             Text(rule.pattern, style = MaterialTheme.typography.bodyMedium)
             if (rule.kind == "CUSTOM") {
                 Text(
-                    "When ${if (rule.target == "TEXT") "message text" else "sender"} matches → " +
-                        rule.category.lowercase().replaceFirstChar { it.uppercase() },
+                    stringResource(
+                        if (rule.target == "TEXT") R.string.settings_rule_summary_text
+                        else R.string.settings_rule_summary_sender,
+                        stringResource(categoryLabelRes(rule.category)),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -1034,7 +1273,7 @@ private fun RuleRow(rule: UserRuleEntity, onDelete: () -> Unit) {
         }
         IconButton(onClick = onDelete) {
             Icon(
-                Icons.Filled.Delete, contentDescription = "Delete rule",
+                Icons.Filled.Delete, contentDescription = stringResource(R.string.settings_delete_rule),
                 tint = MaterialTheme.colorScheme.outline,
             )
         }
@@ -1059,9 +1298,9 @@ private fun AddRuleDialog(
         title = {
             Text(
                 when (kind) {
-                    "ALLOW" -> "Always allow sender"
-                    "BLOCK" -> "Always block sender"
-                    else -> "Add custom rule"
+                    "ALLOW" -> stringResource(R.string.settings_rule_dialog_allow_title)
+                    "BLOCK" -> stringResource(R.string.settings_rule_dialog_block_title)
+                    else -> stringResource(R.string.settings_rule_dialog_custom_title)
                 }
             )
         },
@@ -1071,7 +1310,7 @@ private fun AddRuleDialog(
                     value = pattern,
                     onValueChange = { pattern = it },
                     label = {
-                        Text(if (kind == "CUSTOM" && target == "TEXT") "Text pattern (regex ok)" else "Sender number, header, or regex")
+                        Text(if (kind == "CUSTOM" && target == "TEXT") stringResource(R.string.settings_rule_pattern_hint_text) else stringResource(R.string.settings_rule_pattern_hint_sender))
                     },
                     singleLine = true,
                     isError = error != null,
@@ -1089,21 +1328,21 @@ private fun AddRuleDialog(
                 }
                 if (kind == "CUSTOM") {
                     Spacer(Modifier.height(12.dp))
-                    Text("Match against", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.settings_rule_match_against), style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
                             selected = target == "SENDER",
                             onClick = { target = "SENDER" },
-                            label = { Text("Sender") },
+                            label = { Text(stringResource(R.string.settings_rule_target_sender)) },
                         )
                         FilterChip(
                             selected = target == "TEXT",
                             onClick = { target = "TEXT" },
-                            label = { Text("Message text") },
+                            label = { Text(stringResource(R.string.settings_rule_target_text)) },
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("Move to", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.settings_rule_move_to), style = MaterialTheme.typography.labelMedium)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -1114,7 +1353,7 @@ private fun AddRuleDialog(
                                 onClick = { category = cat },
                                 label = {
                                     Text(
-                                        cat.lowercase().replaceFirstChar { it.uppercase() },
+                                        stringResource(categoryLabelRes(cat)),
                                         style = MaterialTheme.typography.labelSmall,
                                     )
                                 },
@@ -1128,8 +1367,130 @@ private fun AddRuleDialog(
             TextButton(
                 onClick = { onAdd(target, pattern, category) },
                 enabled = pattern.isNotBlank(),
-            ) { Text("Add") }
+            ) { Text(stringResource(R.string.action_add)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+/**
+ * V2-49: the one place a local archive's password is asked for.
+ *
+ * Export and import share a dialog because they share a shape, but they do not
+ * share a policy. On **export** the password is being *created*, so it is
+ * screened by [SecretStrength.isWeakPassword] — the same floor and the same
+ * blocklist the locked space applies at setup — and typed twice, because the
+ * one thing that cannot be recovered later is a password that was mistyped
+ * once. On **import** the password already exists and is only being repeated
+ * back; screening it there would refuse to open a file the user legitimately
+ * owns, which is the failure mode a strength rule must never have.
+ *
+ * The confirm button is disabled rather than the entry being rejected on
+ * press: a rule that is visible before the mistake costs nothing, and one that
+ * fires afterwards costs a round trip through a file picker.
+ *
+ * ### The unavoidable caveat
+ *
+ * `OutlinedTextField` holds its value as a `String`, so between the keystroke
+ * and [onConfirm] the password exists as an immutable object this code cannot
+ * zero — only drop and leave to the collector. Everything below that boundary
+ * ([LocalArchive], [BackupCrypto]) takes a `CharArray` and zeroes it, so the
+ * exposure is the composition's lifetime rather than the process's. Closing it
+ * properly needs a text field that never builds a String, which Compose does
+ * not currently offer.
+ */
+@Composable
+private fun ArchivePasswordDialog(
+    kind: SettingsViewModel.ArchivePromptKind,
+    onDismiss: () -> Unit,
+    onConfirm: (CharArray) -> Unit,
+) {
+    val exporting = kind == SettingsViewModel.ArchivePromptKind.EXPORT
+    var password by remember { mutableStateOf("") }
+    var repeated by remember { mutableStateOf("") }
+
+    val weak = exporting && password.isNotEmpty() &&
+        SecretStrength.isWeakPassword(password.toCharArray())
+    val mismatch = exporting && repeated.isNotEmpty() && repeated != password
+    val ready = if (exporting) {
+        password.isNotEmpty() && !weak && password == repeated
+    } else {
+        password.isNotEmpty()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                stringResource(
+                    if (exporting) R.string.settings_archive_export_title
+                    else R.string.settings_archive_import_title,
+                ),
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    stringResource(
+                        if (exporting) R.string.settings_archive_export_body
+                        else R.string.settings_archive_import_body,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    label = { Text(stringResource(R.string.settings_archive_password)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (exporting) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = repeated,
+                        onValueChange = { repeated = it },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        label = { Text(stringResource(R.string.settings_archive_password_repeat)) },
+                        isError = mismatch,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    // Only one line at a time: "too weak" and "they don't
+                    // match" answered together read as two failures for one
+                    // mistake.
+                    val problem = when {
+                        weak -> R.string.settings_archive_weak
+                        mismatch -> R.string.settings_archive_mismatch
+                        else -> 0
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        if (problem != 0) stringResource(problem)
+                        else stringResource(R.string.settings_archive_no_recovery),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (problem != 0) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(password.toCharArray()) },
+                enabled = ready,
+            ) {
+                Text(
+                    stringResource(
+                        if (exporting) R.string.settings_archive_export_action
+                        else R.string.settings_archive_import_action,
+                    ),
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
     )
 }

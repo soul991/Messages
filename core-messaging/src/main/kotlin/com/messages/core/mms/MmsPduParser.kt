@@ -1,5 +1,7 @@
 package com.messages.core.mms
 
+import java.nio.charset.Charset
+
 /**
  * Minimal WSP/MMS PDU parser — just enough of OMA-MMS-ENC to handle the two
  * PDUs an SMS app receives: m-notification-ind (arrives in WAP_PUSH_DELIVER)
@@ -41,6 +43,15 @@ object MmsPduParser {
 
     private const val TYPE_NOTIFICATION_IND = 0x82
     private const val TYPE_RETRIEVE_CONF = 0x84
+
+    // WSP content-type parameter tokens (well-known values, high bit set).
+    private const val P_CHARSET = 0x81
+    private const val P_NAME = 0x85
+    private const val P_FILENAME = 0x97
+    private const val P_FILENAME_ALT = 0x98
+
+    /** WSP Short-length tops out at 30; 31 introduces a uintvar instead. */
+    private const val MAX_SHORT_LENGTH = 30
 
     fun parseNotificationInd(pdu: ByteArray): NotificationInd? = try {
         // R-17: a notification-ind is a few hundred bytes; anything PDU-sized
@@ -102,14 +113,14 @@ object MmsPduParser {
         val to = mutableListOf<String>()
         var subject: String? = null
         var messageType = -1
-        var bodyContentType: String? = null
+        var bodyType: MediaType? = null
 
         while (r.hasMore()) {
             val field = r.readByte()
             if (field < 0x80) break
             if (field == H_CONTENT_TYPE) {
                 // Content-Type is always the last header; the body follows it.
-                bodyContentType = r.readContentTypeValue()
+                bodyType = r.readMediaType()
                 break
             }
             when (field) {
@@ -125,7 +136,7 @@ object MmsPduParser {
 
         val texts = mutableListOf<String>()
         val attachments = mutableListOf<Attachment>()
-        if (bodyContentType != null && bodyContentType.startsWith("application/vnd.wap.multipart")) {
+        if (bodyType != null && bodyType.mime.startsWith("application/vnd.wap.multipart")) {
             // R-17: the claimed part count is attacker-controlled; cap it.
             var count = r.readUintvar().toInt().coerceIn(0, MAX_PARTS)
             while (count-- > 0 && r.hasMore()) {
@@ -138,23 +149,72 @@ object MmsPduParser {
                 if (dataLen < 0 || dataLen > MAX_PART_BYTES) break
                 val headersEnd = r.pos + headersLen
                 if (headersEnd > pdu.size || headersEnd + dataLen > pdu.size) break
-                val (mime, name) = r.readPartContentType()
+                val partType = r.readMediaType()
                 r.pos = headersEnd // skip remaining part headers
                 val data = r.readBytes(dataLen)
                 when {
-                    mime.startsWith("text/plain") -> texts += data.toString(Charsets.UTF_8)
-                    mime.startsWith("application/smil") -> Unit // layout markup, not content
-                    else -> attachments += Attachment(mime, name, data)
+                    partType.mime.startsWith("text/plain") ->
+                        texts += decodeText(data, partType.charset)
+                    partType.mime.startsWith("application/smil") -> Unit // layout markup, not content
+                    else -> attachments += Attachment(partType.mime, partType.name, data)
                 }
             }
-        } else if (bodyContentType != null && r.hasMore()) {
+        } else if (bodyType != null && r.hasMore()) {
             // Single-part body
             val data = r.readBytes(pdu.size - r.pos)
-            if (bodyContentType.startsWith("text/plain")) texts += data.toString(Charsets.UTF_8)
-            else attachments += Attachment(bodyContentType, null, data)
+            if (bodyType.mime.startsWith("text/plain")) texts += decodeText(data, bodyType.charset)
+            else attachments += Attachment(bodyType.mime, bodyType.name, data)
         }
         return RetrieveConf(from, to, subject, texts.joinToString("\n").trim(), attachments)
     }
+
+    /**
+     * V2-29: WSP encodes a text charset as an IANA MIBenum, and a message from
+     * a non-UTF-8 locale carries one routinely — a Cyrillic or Shift_JIS body
+     * decoded as UTF-8 is not a rare corruption, it is the normal result. Only
+     * charsets a handset can actually emit are listed; anything else falls back
+     * to UTF-8 with replacement characters rather than failing the parse.
+     *
+     * MIBenum 36 (KS_C_5601) is mapped to its EUC-KR superset, which is what
+     * encoders that announce it actually produce.
+     */
+    private val CHARSET_NAMES = mapOf(
+        3 to "US-ASCII", 4 to "ISO-8859-1", 5 to "ISO-8859-2", 6 to "ISO-8859-3",
+        7 to "ISO-8859-4", 8 to "ISO-8859-5", 9 to "ISO-8859-6", 10 to "ISO-8859-7",
+        11 to "ISO-8859-8", 12 to "ISO-8859-9", 13 to "ISO-8859-10",
+        17 to "Shift_JIS", 18 to "EUC-JP", 36 to "EUC-KR", 37 to "ISO-2022-KR",
+        38 to "EUC-KR", 39 to "ISO-2022-JP", 106 to "UTF-8", 113 to "GBK",
+        1000 to "UTF-16BE", 1013 to "UTF-16BE", 1014 to "UTF-16LE", 1015 to "UTF-16",
+        2025 to "GB2312", 2026 to "Big5", 2084 to "KOI8-R",
+        2250 to "windows-1250", 2251 to "windows-1251", 2252 to "windows-1252",
+        2253 to "windows-1253", 2254 to "windows-1254", 2255 to "windows-1255",
+        2256 to "windows-1256", 2257 to "windows-1257", 2258 to "windows-1258",
+    )
+
+    /**
+     * Body text in whatever the part declared, never failing over a bad
+     * declaration: an unknown charset falls back to UTF-8 with replacement
+     * characters, which is still readable, where throwing would lose the whole
+     * message.
+     */
+    private fun decodeText(data: ByteArray, charset: Charset?): String =
+        runCatching { data.toString(charset ?: Charsets.UTF_8) }
+            .getOrElse { data.toString(Charsets.UTF_8) }
+
+    /** Null when the MIBenum is unknown or the platform lacks that charset. */
+    internal fun charsetForMib(mib: Int): Charset? =
+        CHARSET_NAMES[mib]?.let { runCatching { Charset.forName(it) }.getOrNull() }
+
+    /** Wide encodings embed NUL bytes, so byte-wise NUL termination is wrong for them. */
+    private fun Charset.isWide(): Boolean =
+        name().startsWith("UTF-16") || name().startsWith("UTF-32")
+
+    /** Content type, plus the two parameters we care about. */
+    private data class MediaType(
+        val mime: String,
+        val name: String?,
+        val charset: Charset?,
+    )
 
     /** WSP well-known content types we expect; others arrive as literal strings. */
     private val WELL_KNOWN_TYPES = mapOf(
@@ -198,11 +258,75 @@ object MmsPduParser {
             return if (first <= 30) first else readUintvar().toInt()
         }
 
-        fun readLongInteger(): Long {
+        /**
+         * Long-integer: Short-length (0–30) followed by that many octets.
+         *
+         * V2-29: this used to consume only the first eight octets of a longer
+         * field, leaving the rest to be read as if they were the next header —
+         * one over-wide integer misaligned everything after it and corrupted an
+         * otherwise parseable PDU. Every declared octet is now consumed; only
+         * the representable ones are accumulated, and a value too large for a
+         * Long saturates rather than silently wrapping to a small number.
+         *
+         * A declared length above 30 is not a Long-integer at all, so no length
+         * is trusted: null is returned without consuming, and the caller's
+         * header loop terminates on the next unrecognised octet.
+         */
+        fun readLongInteger(): Long? {
+            if (!hasMore()) return null
             val len = readByte()
-            var v = 0L
-            repeat(len.coerceAtMost(8)) { v = (v shl 8) or readByte().toLong() }
-            return v
+            if (len > MAX_SHORT_LENGTH) return null
+            var value = 0L
+            var overflow = false
+            repeat(len) {
+                if (!hasMore()) return if (overflow) Long.MAX_VALUE else value
+                val b = readByte()
+                if (value > (Long.MAX_VALUE ushr 8)) overflow = true
+                if (!overflow) value = (value shl 8) or b.toLong()
+            }
+            return if (overflow) Long.MAX_VALUE else value
+        }
+
+        /**
+         * Integer-value used as a charset: Short-integer (one octet, high bit
+         * set) or Long-integer. Returns null when the field is absent or names
+         * a charset this platform does not have.
+         */
+        fun readCharsetValue(end: Int): Charset? {
+            if (pos >= end || !hasMore()) return null
+            val first = peek()
+            return when {
+                first >= 0x80 -> { pos++; charsetForMib(first and 0x7F) }
+                first in 1..MAX_SHORT_LENGTH -> readLongInteger()?.let {
+                    if (it in 0..Int.MAX_VALUE.toLong()) charsetForMib(it.toInt()) else null
+                }
+                // Not a charset: the text starts here (or it is Any-charset).
+                else -> null
+            }
+        }
+
+        /** Decode with a replacement-safe fallback — never fail a whole PDU over one field. */
+        private fun decode(bytes: ByteArray, charset: Charset?): String =
+            runCatching { bytes.toString(charset ?: Charsets.UTF_8) }
+                .getOrElse { bytes.toString(Charsets.UTF_8) }
+
+        /**
+         * The text between [start] and [end], NUL-terminated the way the
+         * charset actually terminates: byte-wise for 8-bit encodings, but a
+         * UTF-16 body is full of legitimate 0x00 bytes and must be taken whole
+         * with only its trailing NUL unit trimmed.
+         */
+        private fun sliceText(start: Int, end: Int, charset: Charset?): String {
+            if (charset != null && charset.isWide()) {
+                var stop = end
+                while (stop - 2 >= start && buf[stop - 1].toInt() == 0 && buf[stop - 2].toInt() == 0) {
+                    stop -= 2
+                }
+                return decode(buf.copyOfRange(start, stop.coerceAtLeast(start)), charset)
+            }
+            var stop = start
+            while (stop < end && buf[stop].toInt() != 0) stop++
+            return decode(buf.copyOfRange(start, stop), charset)
         }
 
         /** Null-terminated text; a leading 0x7F quote octet is skipped. */
@@ -222,11 +346,11 @@ object MmsPduParser {
             if (first <= 31) {
                 val len = readValueLength()
                 val end = (pos + len).coerceAtMost(buf.size)
-                if (hasMore() && peek() >= 0x80) pos++ // charset short-integer — assume UTF-8-compatible
-                val start = pos
-                var stop = start
-                while (stop < end && buf[stop].toInt() != 0) stop++
-                val s = buf.copyOfRange(start, stop).toString(Charsets.UTF_8)
+                // V2-29: the charset was previously skipped and the bytes read
+                // as UTF-8, which mangles every non-UTF-8 sender name and
+                // subject line.
+                val charset = readCharsetValue(end)
+                val s = sliceText(pos, end, charset)
                 pos = end
                 return s
             }
@@ -246,56 +370,47 @@ object MmsPduParser {
             return addr
         }
 
-        /** Content-type-value at message level: constrained-media or general-form. */
-        fun readContentTypeValue(): String {
+        /**
+         * Content-type-value: constrained-media or general-form. The message
+         * body and each multipart part use the same grammar, so both go through
+         * here — which is how the body of a single-part MMS finally gets its
+         * charset parameter honoured (V2-29) instead of being read as UTF-8.
+         */
+        fun readMediaType(): MediaType {
+            if (!hasMore()) return MediaType("application/octet-stream", null, null)
             val first = peek()
             return when {
-                first in 0x80..0xFF -> { pos++; WELL_KNOWN_TYPES[first and 0x7F] ?: "application/octet-stream" }
-                first in 0x20..0x7F -> readTextString()
+                first in 0x80..0xFF -> { pos++; MediaType(wellKnown(first and 0x7F), null, null) }
+                first in 0x20..0x7F -> MediaType(readTextString(), null, null)
                 else -> { // general form: value-length + media-type + parameters
                     val len = readValueLength()
                     val end = (pos + len).coerceAtMost(buf.size)
                     val media = when {
-                        peek() >= 0x80 -> WELL_KNOWN_TYPES[readByte() and 0x7F] ?: "application/octet-stream"
+                        !hasMore() -> "application/octet-stream"
+                        peek() >= 0x80 -> wellKnown(readByte() and 0x7F)
                         else -> readTextString()
                     }
-                    pos = end // skip parameters (start-part, type, …)
-                    media
-                }
-            }
-        }
-
-        /** Part content type + best-effort name/filename parameter. */
-        fun readPartContentType(): Pair<String, String?> {
-            val first = peek()
-            var name: String? = null
-            val mime: String = when {
-                first in 0x80..0xFF -> { pos++; WELL_KNOWN_TYPES[first and 0x7F] ?: "application/octet-stream" }
-                first in 0x20..0x7F -> readTextString()
-                else -> {
-                    val len = readValueLength()
-                    val end = (pos + len).coerceAtMost(buf.size)
-                    val media = when {
-                        peek() >= 0x80 -> WELL_KNOWN_TYPES[readByte() and 0x7F] ?: "application/octet-stream"
-                        else -> readTextString()
-                    }
-                    // Scan parameters for Name (0x85) / Filename (0x98 in params space)
+                    var name: String? = null
+                    var charset: Charset? = null
                     while (pos < end) {
-                        val p = readByte()
-                        when (p) {
-                            0x85, 0x97, 0x98 -> name = readTextString() // name / filename variants
+                        when (readByte()) {
+                            P_CHARSET -> charset = readCharsetValue(end)
+                            // name / filename variants across encoder vintages
+                            P_NAME, P_FILENAME, P_FILENAME_ALT -> name = readTextString()
                             else -> {
                                 if (pos >= end) break
                                 skipHeaderValueBounded(end)
                             }
                         }
                     }
-                    pos = end
-                    media
+                    pos = end // any parameters we did not recognise (start-part, type, …)
+                    MediaType(media, name, charset)
                 }
             }
-            return mime to name
         }
+
+        private fun wellKnown(code: Int): String =
+            WELL_KNOWN_TYPES[code] ?: "application/octet-stream"
 
         /** Generic WSP rule for skipping a header value we don't understand. */
         fun skipHeaderValue() {

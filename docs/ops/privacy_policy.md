@@ -29,9 +29,20 @@ Everything, unless you switch on one of the optional features in section 3.
 - **Contacts.** Read from the device to show names and photos. Matched contact
   names are cached in the local database so the conversation list can render
   without re-reading contacts each time.
-- **Locked space.** Conversations you move into the secret space are stored
-  under a separate credential and are excluded from every normal-surface query,
-  notification, widget and shortcut.
+- **Locked space.** Conversations you move into the secret space are gated by a
+  separate credential and excluded from every normal-surface query,
+  notification, widget and shortcut. Their **message text is encrypted at rest**
+  (AES-256-GCM) under a key held in the Android Keystore, which never leaves the
+  device, and the copy the system message store held is **deleted** when a
+  conversation is locked — so a locked chat's words are not readable from a
+  device image, a filesystem dump, or another SMS app. What is *not* encrypted,
+  because the app has to join on it: the correspondent's phone number, message
+  timestamps, and read/sent state. Locking is therefore a claim about *what was
+  said*, not about *who you said it to or when*. Two consequences follow and are
+  stated on screen when you set the space up: a locked chat no longer exists
+  outside this app, so it will not appear in another messaging app and reaches a
+  new phone only via section 3.1; and if you forget the credential there is no
+  recovery path.
 
 There is **no analytics SDK, no crash reporter, no advertising identifier and no
 telemetry** of any kind in this app.
@@ -64,7 +75,11 @@ If you enable Drive backup:
   means it cannot see, read or modify any other file in your Drive.
 - **Encryption:** each snapshot is encrypted with a fresh random data key using
   AES-256-GCM. That data key is wrapped under a random master key.
-- **Key custody — read this carefully.** The master key is stored **in the same
+- **Key custody — read this carefully.** You choose who holds the master key.
+  Both choices encrypt the snapshots identically; what differs is what an
+  attacker needs in order to open them.
+
+  **Your Google Account (the default).** The master key is stored **in the same
   Drive `appDataFolder` as the snapshots**. This is deliberate: it is what lets
   you restore on a new phone by signing in, with no password to remember. The
   direct consequence is that **anyone who can sign in to your Google account can
@@ -72,9 +87,30 @@ If you enable Drive backup:
   obtains the files alone; they are **not** protected from someone who controls
   your Google account. We do not claim otherwise. Protect the Google account
   with a strong password and two-factor authentication.
-  - Older backups created with a password are still restored with that password.
+
+  **A code only you have (opt-in).** In backup settings you can lock the master
+  key with a recovery code the app generates, or with a password you choose.
+  The key is then stored on Drive only in locked form, and **the unprotected
+  copy is deleted**. The code itself never leaves your phone and is never sent
+  anywhere, so signing in to your Google account is no longer enough to open a
+  backup. Three things follow, and all three are on screen when you turn it on:
+  - **Nobody can reset the code.** We have no copy and no server. If you lose
+    it and no phone still holds the unlocked key, the backups cannot be opened
+    by anyone, including us.
+  - **A password is weaker than the generated code.** Because we run no server,
+    there is nothing to rate-limit guesses: someone holding a backup file can
+    try passwords offline as fast as their hardware allows. The key-stretching
+    used (PBKDF2-HMAC-SHA256, 600,000 iterations) raises that cost but does not
+    remove it. The generated recovery code is 160 random bits and is not
+    guessable.
+  - **Changing the code does not re-encrypt anything.** It re-locks the same
+    master key, so existing backups keep working and the old code stops working.
+    Turning the protection off puts the key back into Drive in the clear.
+
+  Older backups created with a password are still restored with that password.
 - **Retention:** the app keeps the **two most recent** snapshots in your Drive
-  and deletes older ones automatically. The master key file is never pruned.
+  and deletes older ones automatically. The master key file — locked or not — is
+  never pruned.
 - **Who else is involved:** Google, as the provider of Google Sign-In and Google
   Drive. Their handling of the data is governed by Google's own privacy policy.
   We operate no server and receive nothing.

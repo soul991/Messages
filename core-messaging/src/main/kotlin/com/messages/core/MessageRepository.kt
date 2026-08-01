@@ -14,9 +14,13 @@ import com.messages.core.db.SenderReputationEntity
 import com.messages.core.db.SmsAttemptEntity
 import com.messages.core.db.Spaces
 import com.messages.core.db.ThreadAliasEntity
+import com.messages.core.media.MediaRef
 import com.messages.core.mms.MmsPduParser
 import com.messages.core.search.MessageSearch
+import com.messages.core.secret.LockedContent
+import kotlinx.coroutines.flow.Flow
 import com.messages.core.send.SendAggregate
+import com.messages.core.send.SendRetry
 import com.messages.core.trash.TrashRetention
 import com.messages.protection.Category
 import com.messages.protection.Normalizer
@@ -51,6 +55,29 @@ class MessageRepository private constructor(private val context: Context) {
 
     /** §8.5 multi-keyword FTS search. */
     val search: MessageSearch by lazy { MessageSearch(db.messages()) }
+
+    // ---- V2-6: locked-space text is sealed on the way in, opened on the way out ----
+    //
+    // These two are deliberately unconditional and total. `sealed()` decides for
+    // itself whether the row is locked, and `opened()` is a no-op for anything
+    // not carrying the marker — so a write path that forgets one is the only bug
+    // shape possible here, and it shows up immediately as a base64 blob in the
+    // chat rather than as a silent plaintext leak nobody notices.
+
+    // open-then-seal, not seal: a row moving OUT of the locked space arrives
+    // here still carrying ciphertext, and a plain seal() would leave it that way
+    // forever because the row is no longer locked. Open first and the same call
+    // is correct in both directions and idempotent in both.
+
+    private fun MessageEntity.sealed(): MessageEntity =
+        LockedContent.seal(context, LockedContent.open(context, this))
+
+    private fun MessageEntity.opened(): MessageEntity = LockedContent.open(context, this)
+
+    private fun ConversationEntity.sealed(): ConversationEntity =
+        LockedContent.seal(context, LockedContent.open(context, this))
+
+    private fun ConversationEntity.opened(): ConversationEntity = LockedContent.open(context, this)
 
     /** Stage-0 normalization for the FTS index (§8.5) — never fails the caller. */
     fun normalizedOf(body: String): String =
@@ -157,6 +184,9 @@ class MessageRepository private constructor(private val context: Context) {
             // it up front: no second provider row, no second index row, no
             // inflated unread count, no duplicate notification.
             val existing = db.messages().findIncomingDuplicate(address, timestamp, body)
+            // V2-6: sealed locked bodies cannot be matched by the SQL above.
+                ?: db.messages().lockedIncomingAt(address, timestamp)
+                    .firstOrNull { it.opened().body == body }
             if (existing != null) {
                 return@withContext Intake(
                     existing,
@@ -216,11 +246,11 @@ class MessageRepository private constructor(private val context: Context) {
                 explanations = verdict.explanations.joinToString("\n"),
                 space = space,
             )
-            val id = db.messages().insert(entity)
+            val id = db.messages().insert(entity.sealed())
             // R-16: IGNORE-on-conflict returns -1 when the smsId unique index
             // rejected the row. Nothing was stored, so nothing may be counted.
             if (id == -1L) {
-                val stored = smsId?.let { db.messages().bySmsId(it) }
+                val stored = smsId?.let { db.messages().bySmsId(it)?.opened() }
                 return@withContext Intake(stored ?: entity, verdict, isNew = false)
             }
             if (smsId != null) {
@@ -228,6 +258,10 @@ class MessageRepository private constructor(private val context: Context) {
                     ProviderRowEntity("content://sms/$smsId", id, address, "SMS")
                 )
             }
+            // The mapping is written first even for a locked message: the purge
+            // below deletes through it, and if the purge fails the mapping is
+            // what lets retryFailedProviderDeletions try again later.
+            purgeProviderCopyIfLocked(entity.copy(id = id))
             updateConversation(threadId, address, body, timestamp, verdict.category.name, incrementUnread = true, space = space)
             Intake(entity.copy(id = id), verdict)
         }
@@ -237,6 +271,15 @@ class MessageRepository private constructor(private val context: Context) {
      * thread claims every incoming message. Cheap fast path — the COUNT query
      * short-circuits to nothing on devices that never set up the space.
      */
+    /**
+     * V2-6: a message that arrived directly into the locked space was written to
+     * the Telephony provider before anything knew where it belonged (the SMS
+     * role obliges us to store it). Remove that copy now.
+     */
+    private suspend fun purgeProviderCopyIfLocked(message: MessageEntity) {
+        if (message.space == Spaces.LOCKED) deleteProviderRows(message)
+    }
+
     private suspend fun spaceForIncoming(threadId: Long): String =
         if (db.conversations().lockedConversationCount() > 0 &&
             db.conversations().byThreadId(threadId, Spaces.LOCKED) != null
@@ -260,12 +303,64 @@ class MessageRepository private constructor(private val context: Context) {
         read: Boolean,
     ): Boolean = withContext(Dispatchers.IO) {
         if (db.messages().bySmsId(smsId) != null) return@withContext false
+        indexHistoricalRow(
+            smsId = smsId, mmsId = null, threadId = threadId, address = address, body = body,
+            timestamp = timestamp, isOutgoing = isOutgoing, read = read,
+            mediaRef = null, mediaMimeType = null,
+        )
+    }
+
+    /**
+     * V2-25: the MMS half of the backfill. Same contract as [indexHistorical] —
+     * no provider write, no unread bump, no notification — keyed on the
+     * provider's MMS `_id` for dedupe.
+     *
+     * [mediaRef] is a `content://mms/part/<id>` URI, not a local file: the
+     * bytes already exist in the Telephony provider and copying an entire MMS
+     * history into app storage could mean gigabytes. Rows written by the live
+     * receive path still carry a real file path — see `MediaRef`, which is what
+     * every consumer uses to tell the two apart.
+     */
+    suspend fun indexHistoricalMms(
+        mmsId: Long,
+        threadId: Long,
+        address: String,
+        body: String,
+        timestamp: Long,
+        isOutgoing: Boolean,
+        read: Boolean,
+        mediaRef: String?,
+        mediaMimeType: String?,
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (db.messages().byMmsId(mmsId) != null) return@withContext false
+        indexHistoricalRow(
+            smsId = null, mmsId = mmsId, threadId = threadId, address = address, body = body,
+            timestamp = timestamp, isOutgoing = isOutgoing, read = read,
+            mediaRef = mediaRef, mediaMimeType = mediaMimeType,
+        )
+    }
+
+    private suspend fun indexHistoricalRow(
+        smsId: Long?,
+        mmsId: Long?,
+        threadId: Long,
+        address: String,
+        body: String,
+        timestamp: Long,
+        isOutgoing: Boolean,
+        read: Boolean,
+        mediaRef: String?,
+        mediaMimeType: String?,
+    ): Boolean {
         // Same never-lose fallback as onIncomingSms: a broken classifier must
         // not keep history out of the index (it made the whole backfill vanish
         // on-device once). Backfilled fallbacks stay quiet — no notification.
         val verdict = if (isOutgoing) null else classifyIncomingOrInbox(address, body, source = "backfill")
         val entity = MessageEntity(
             smsId = smsId,
+            mmsId = mmsId,
+            mediaUri = mediaRef,
+            mediaMimeType = mediaMimeType,
             threadId = threadId,
             address = address,
             body = body,
@@ -283,12 +378,12 @@ class MessageRepository private constructor(private val context: Context) {
             explanations = verdict?.explanations?.joinToString("\n") ?: "",
             sendStatus = if (isOutgoing) "SENT" else "NONE",
         )
-        val inserted = db.messages().insert(entity) != -1L
+        val inserted = db.messages().insert(entity.sealed()) != -1L
         if (inserted) {
             // Backfill always indexes into the NORMAL space: it walks the
             // shared Telephony provider (historical rows predate any locking;
             // rows already claimed by the locked space are skipped above by
-            // their smsId). New arrivals route through onIncomingSms instead.
+            // their smsId/mmsId). New arrivals route through onIncomingSms instead.
             val existing = db.conversations().byThreadId(threadId)
             if (existing == null || timestamp > existing.lastTimestamp) {
                 db.conversations().upsert(
@@ -297,7 +392,10 @@ class MessageRepository private constructor(private val context: Context) {
                         threadId = threadId,
                         address = address,
                         contactName = existing?.contactName ?: displayNameFor(address),
-                        lastMessage = body,
+                        // A picture message with no caption gets the same
+                        // "Photo"/"Attachment" summary the live path uses,
+                        // instead of an empty Home row.
+                        lastMessage = body.ifBlank { mediaPreview(mediaMimeType) },
                         lastTimestamp = timestamp,
                         unreadCount = existing?.unreadCount ?: 0,
                         category = verdict?.category?.name ?: existing?.category ?: "INBOX",
@@ -310,7 +408,7 @@ class MessageRepository private constructor(private val context: Context) {
                 )
             }
         }
-        inserted
+        return inserted
     }
 
     /**
@@ -372,7 +470,7 @@ class MessageRepository private constructor(private val context: Context) {
             mediaMimeType = media?.mimeType,
             space = space,
         )
-        val id = db.messages().insert(entity)
+        val id = db.messages().insert(entity.sealed())
         // R-16: an IGNOREd insert stored nothing, so nothing may be counted or
         // notified for it — the same rule the SMS intake follows.
         if (id == -1L) return@withContext null
@@ -389,6 +487,7 @@ class MessageRepository private constructor(private val context: Context) {
             )
         }
         val preview = textBody.ifBlank { mediaPreview(media?.mimeType) }
+        purgeProviderCopyIfLocked(entity.copy(id = id))
         updateConversation(threadId, address, preview, timestamp, verdict.category.name, incrementUnread = true, space = space)
         entity.copy(id = id) to verdict
     }
@@ -589,12 +688,13 @@ class MessageRepository private constructor(private val context: Context) {
      */
     private suspend fun syntheticThreadId(address: String): Long {
         val key = canonicalRecipientKey(address)
-        db.threadAliases().byKey(key)?.let { if (it.threadId != 0L) return it.threadId }
-        val rowId = db.threadAliases().insert(ThreadAliasEntity(recipientKey = key))
-        // IGNORE on conflict returns -1 when another caller won the race; its
-        // row already carries (or is about to carry) the id, so re-read.
-        if (rowId > 0) db.threadAliases().assignThreadId(rowId)
-        return db.threadAliases().byKey(key)?.threadId?.takeIf { it != 0L } ?: -rowId
+        // V2-20: allocation is transactional inside the DAO now. The old
+        // caller-side insert/assign/re-read could return a POSITIVE id — on
+        // conflict `insert` yields -1 and the code negated it into thread 1,
+        // merging this conversation into a real provider thread.
+        val id = db.threadAliases().allocate(key)
+        check(id < 0L) { "synthetic thread id must be negative, got $id" }
+        return id
     }
 
     /** Digits-only, de-duplicated, sorted, ';'-joined — order-independent. */
@@ -613,12 +713,27 @@ class MessageRepository private constructor(private val context: Context) {
         val rules = db.userRules().all()
         val allow = rules.any { it.kind == "ALLOW" && matchesRule(it.pattern, address) }
         val block = rules.any { it.kind == "BLOCK" && matchesRule(it.pattern, address) }
-        val custom = rules.filter { it.kind == "CUSTOM" }.map {
+        // V2-10: a rule's category is read back by name, and `Category.valueOf`
+        // THROWS on an unknown one. That exception escaped the whole classify
+        // call, and the caller's safety net routed the message to Inbox — so a
+        // single malformed rule row disabled every OTHER rule too, including
+        // BLOCK. Backups are now validated at the boundary; this handles rows
+        // that predate that check by dropping just the unusable rule. Leaving a
+        // message in Inbox is the recoverable direction; hiding it is not.
+        val custom = rules.filter { it.kind == "CUSTOM" }.mapNotNull { rule ->
+            val category = Category.entries.firstOrNull { it.name == rule.category }
+            if (category == null) {
+                android.util.Log.w(
+                    "MessageRepository",
+                    "Skipping custom rule ${rule.id}: unknown category '${rule.category}'",
+                )
+                return@mapNotNull null
+            }
             ProtectionEngine.UserRule(
-                it.id, it.pattern,
-                if (it.target == "TEXT") ProtectionEngine.UserRule.Target.TEXT
+                rule.id, rule.pattern,
+                if (rule.target == "TEXT") ProtectionEngine.UserRule.Target.TEXT
                 else ProtectionEngine.UserRule.Target.SENDER,
-                Category.valueOf(it.category),
+                category,
             )
         }
         return engine.classify(ProtectionEngine.Input(body, senderInfo, allow, block, custom))
@@ -750,7 +865,7 @@ class MessageRepository private constructor(private val context: Context) {
             sendStatus = "SENDING",
             space = space,
         )
-        val id = db.messages().insert(entity)
+        val id = db.messages().insert(entity.sealed())
         // R-05: one mapping per provider row this message owns, so deletion
         // reaches it without depending on the `mmsId` column.
         mmsId?.let {
@@ -764,14 +879,15 @@ class MessageRepository private constructor(private val context: Context) {
             )
         }
         val preview = textBody.ifBlank { mediaPreview(attachment?.mimeType) }
+        purgeProviderCopyIfLocked(entity.copy(id = id))
         updateConversation(threadId, address, preview, timestamp, category = null, incrementUnread = false, space = space)
         entity.copy(id = id)
     }
 
     /** Move a sent/failed outgoing MMS to the right provider box + index status. */
     suspend fun onMmsSendResult(messageId: Long, success: Boolean) = withContext(Dispatchers.IO) {
-        val msg = db.messages().byId(messageId) ?: return@withContext
-        db.messages().update(msg.copy(sendStatus = if (success) "SENT" else "FAILED"))
+        val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
+        db.messages().update(msg.copy(sendStatus = if (success) "SENT" else "FAILED").sealed())
         val mmsId = msg.mmsId ?: return@withContext
         try {
             context.contentResolver.update(
@@ -815,11 +931,12 @@ class MessageRepository private constructor(private val context: Context) {
             // then write can be mapped back to it. (Provider-first ordering is
             // the never-lose rule for INCOMING messages; for outgoing, the row
             // the user is looking at is the local one.)
-            val id = db.messages().insert(entity)
+            val id = db.messages().insert(entity.sealed())
             val firstSmsId =
                 writeOutgoingSmsToProvider(address, body, timestamp, threadId, subId, id)
             val stored = entity.copy(id = id, smsId = firstSmsId)
-            if (firstSmsId != null) db.messages().update(stored)
+            if (firstSmsId != null) db.messages().update(stored.sealed())
+            purgeProviderCopyIfLocked(stored)
             updateConversation(threadId, address, body, timestamp, category = null, incrementUnread = false, space = space)
             stored
         }
@@ -902,7 +1019,7 @@ class MessageRepository private constructor(private val context: Context) {
             subId = subId,
             space = space,
         )
-        val id = db.messages().insert(entity)
+        val id = db.messages().insert(entity.sealed())
         updateConversation(threadId, address, body, sendAt, category = null, incrementUnread = false, space = space)
         entity.copy(id = id)
     }
@@ -915,13 +1032,26 @@ class MessageRepository private constructor(private val context: Context) {
      */
     suspend fun promoteScheduledToSending(messageId: Long): MessageEntity? =
         withContext(Dispatchers.IO) {
-            val msg = db.messages().byId(messageId) ?: return@withContext null
-            if (msg.sendStatus != "SCHEDULED") return@withContext null
+            // V2-19: claim the row FIRST, atomically. The read-then-check this
+            // replaced let the worker's fire and the user's "Send now" both
+            // observe SCHEDULED and both send the same message. Only the caller
+            // whose compare-and-set actually updated a row may proceed.
+            if (db.messages().claimScheduled(messageId) != 1) return@withContext null
+            val msg = db.messages().byId(messageId)?.opened() ?: return@withContext null
             val now = System.currentTimeMillis()
-            val smsId =
-                writeOutgoingSmsToProvider(msg.address, msg.body, now, msg.threadId, msg.subId, msg.id)
+            val smsId = try {
+                writeOutgoingSmsToProvider(
+                    msg.address, msg.body, now, msg.threadId, msg.subId, msg.id,
+                )
+            } catch (t: Throwable) {
+                // Never strand a claimed row: without this the message would sit
+                // in CLAIMED forever, invisible to both the worker and the user.
+                db.messages().releaseScheduledClaim(messageId)
+                throw t
+            }
             val updated = msg.copy(smsId = smsId, timestamp = now, sendStatus = "SENDING")
-            db.messages().update(updated)
+            db.messages().update(updated.sealed())
+            purgeProviderCopyIfLocked(updated)
             updateConversation(
                 msg.threadId, msg.address, msg.body, now,
                 category = null, incrementUnread = false, space = msg.space,
@@ -929,12 +1059,136 @@ class MessageRepository private constructor(private val context: Context) {
             updated
         }
 
+    /**
+     * V2-19: startup recovery for scheduled sends. A process killed between the
+     * atomic claim and the provider write leaves the row CLAIMED, where neither
+     * the worker nor the user can reach it. At app start no send can be in
+     * flight, so every surviving claim is stale by definition.
+     */
+    suspend fun releaseStaleScheduledClaims(): Int = withContext(Dispatchers.IO) {
+        db.messages().releaseAllScheduledClaims()
+    }
+
     /** Cancel a scheduled message: remove its index row (it was never in the provider). */
     suspend fun cancelScheduled(messageId: Long) = withContext(Dispatchers.IO) {
-        val msg = db.messages().byId(messageId) ?: return@withContext
+        val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         if (msg.sendStatus != "SCHEDULED") return@withContext
         db.messages().userDelete(messageId)
         refreshConversationSummary(msg.threadId, msg.space)
+    }
+
+    // ---- V2-48: the outbox ---------------------------------------------
+
+    /**
+     * Everything outgoing that has not finished, newest first. NORMAL space
+     * only — see the DAO for why.
+     */
+    fun observeOutbox(): Flow<List<MessageEntity>> = db.messages().outbox()
+
+    /** Badge count for the outbox entry point. */
+    fun outboxCount(): Flow<Int> = db.messages().outboxCount()
+
+    /** Per-(recipient, part) rows behind one outbox entry. */
+    suspend fun sendAttemptsFor(messageId: Long): List<SmsAttemptEntity> =
+        withContext(Dispatchers.IO) { db.smsAttempts().forMessage(messageId) }
+
+    /**
+     * V2-48: edit a message that has not been sent.
+     *
+     * Only SCHEDULED and FAILED rows are editable, and the guard is the DAO's
+     * compare-and-set rather than a read-then-write: a scheduled message can
+     * fire while the edit dialog is open, and the edit must lose that race
+     * rather than rewrite the text of a message already on its way.
+     *
+     * Returns the updated row, or null when the message moved on first.
+     */
+    suspend fun editUnsentMessage(
+        messageId: Long,
+        body: String,
+        sendAt: Long? = null,
+    ): MessageEntity? = withContext(Dispatchers.IO) {
+        val current = db.messages().byId(messageId)?.opened() ?: return@withContext null
+        if (current.sendStatus != "SCHEDULED" && current.sendStatus != SendAggregate.FAILED) {
+            return@withContext null
+        }
+        // Re-claiming a SCHEDULED row is what makes this safe: if the worker
+        // took it a moment ago the claim fails and the edit is abandoned.
+        if (current.sendStatus == "SCHEDULED" && db.messages().claimScheduled(messageId) != 1) {
+            return@withContext null
+        }
+        val updated = current.copy(
+            body = body,
+            normalizedBody = normalizedOf(body),
+            timestamp = sendAt ?: current.timestamp,
+            // An edited message is a new decision: the automatic retry budget
+            // it accumulated belonged to the old text.
+            retryCount = 0,
+            nextRetryAt = null,
+            sendStatus = current.sendStatus,
+        )
+        db.messages().update(updated.sealed())
+        if (current.sendStatus == "SCHEDULED") db.messages().releaseScheduledClaim(messageId)
+        updateConversation(
+            updated.threadId, updated.address, body, updated.timestamp,
+            category = null, incrementUnread = false, space = updated.space,
+        )
+        updated
+    }
+
+    /**
+     * V2-48: change the SIM a not-yet-sent message will go out on. False when
+     * the message had already been dispatched, in which case the stored
+     * subscription still describes what actually happened.
+     */
+    suspend fun changeSendSubId(messageId: Long, subId: Int?): Boolean =
+        withContext(Dispatchers.IO) {
+            val changed = db.messages().setSendSubId(messageId, subId) == 1
+            changed
+        }
+
+    /**
+     * V2-48: claim a FAILED message for exactly one resend, from the outbox
+     * button or from the retry worker.
+     *
+     * The compare-and-set is the whole point — an automatic retry firing at the
+     * same moment the user presses Resend must not produce two messages. The
+     * loser gets null and does nothing. Returns the row to hand to the radio.
+     */
+    suspend fun claimFailedForResend(messageId: Long): MessageEntity? =
+        withContext(Dispatchers.IO) {
+            if (db.messages().claimFailedForResend(messageId) != 1) return@withContext null
+            val msg = db.messages().byId(messageId)?.opened()
+            msg?.let { refreshConversationSummary(it.threadId, it.space) }
+            msg
+        }
+
+    /** V2-48: the user took over, so the automatic budget starts again. */
+    suspend fun resetRetryBudget(messageId: Long) = withContext(Dispatchers.IO) {
+        db.messages().resetRetry(messageId)
+    }
+
+    /**
+     * V2-48: decide whether this failure earns an automatic retry and, if so,
+     * record when it is due. Returns the delay in milliseconds for the caller
+     * to hand to the scheduler, or null when the message stays in the outbox
+     * for the user.
+     *
+     * The decision lives in [SendRetry] — a pure allowlist — and the *effect*
+     * lives here, so the policy can be argued with in a unit test rather than
+     * on a device. Scheduling the actual work is the app layer's job: this
+     * module has no business knowing what a WorkManager is.
+     */
+    suspend fun armAutoRetry(messageId: Long): Long? = withContext(Dispatchers.IO) {
+        val msg = db.messages().byId(messageId) ?: return@withContext null
+        if (msg.sendStatus != SendAggregate.FAILED) return@withContext null
+        if (!SendRetry.shouldAutoRetry(msg.sendResultCode, msg.retryCount)) return@withContext null
+        val delay = SendRetry.delayMs(msg.retryCount)
+        val due = System.currentTimeMillis() + delay
+        // armRetry is guarded on FAILED too: between the read above and here the
+        // user may have pressed Resend, and their send must not be shadowed by
+        // a retry arming itself behind it.
+        if (db.messages().armRetry(messageId, msg.retryCount + 1, due) != 1) return@withContext null
+        delay
     }
 
     // ---- R-13: per-(recipient, part) send tracking ----
@@ -1023,7 +1277,7 @@ class MessageRepository private constructor(private val context: Context) {
                 db.smsAttempts().settleSent(it.attemptId, AttemptState.FAILED, resultCode)
             }
             db.messages().markFailed(messageId, resultCode)
-            db.messages().byId(messageId)
+            db.messages().byId(messageId)?.opened()
                 ?.let { refreshConversationSummary(it.threadId, it.space) }
         }
 
@@ -1052,7 +1306,7 @@ class MessageRepository private constructor(private val context: Context) {
         incrementUnread: Boolean,
         space: String = Spaces.NORMAL,
     ) {
-        val existing = db.conversations().byThreadId(threadId, space)
+        val existing = db.conversations().byThreadId(threadId, space)?.opened()
         val name = displayNameFor(address)
         // R-06: a late-arriving OLD message (delayed carrier delivery, backfill)
         // must not roll the preview backwards. Unread still counts — the message
@@ -1079,9 +1333,25 @@ class MessageRepository private constructor(private val context: Context) {
                 locked = existing?.locked ?: false,
                 preferredSubId = existing?.preferredSubId,
                 space = space,
-            )
+            ).sealed()
         )
     }
+
+    /**
+     * V2-28: the batched, cached, off-main-thread form of [displayNameFor] —
+     * what every list of rows should use.
+     *
+     * A search result set of 200 rows typically covers a couple of dozen
+     * distinct correspondents; this resolves each of those once, reuses
+     * anything another screen already resolved, and does the remaining provider
+     * work on IO. [com.messages.core.contacts.ContactSync] invalidates the
+     * cache when contacts change, so a rename shows up without waiting for a
+     * ViewModel to die.
+     */
+    suspend fun displayNamesFor(addresses: Collection<String>): Map<String, String?> =
+        withContext(Dispatchers.IO) {
+            com.messages.core.contacts.ContactNameCache.resolveAll(addresses) { displayNameFor(it) }
+        }
 
     /** Group addresses (';'-joined) resolve each member; singles use PhoneLookup. */
     fun displayNameFor(address: String): String? {
@@ -1143,7 +1413,7 @@ class MessageRepository private constructor(private val context: Context) {
 
     /** "Not spam / Move to Inbox" — reclassify + local trust boost (§6.3). */
     suspend fun moveToInbox(messageId: Long) = withContext(Dispatchers.IO) {
-        val msg = db.messages().byId(messageId) ?: return@withContext
+        val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         // R-15: clear the FULL classifier verdict, not just the category. Leaving
         // fraudWarning/dangerous/score/matched-IDs behind meant a message the
         // user explicitly rescued still rendered as fraudulent, and its red
@@ -1157,7 +1427,7 @@ class MessageRepository private constructor(private val context: Context) {
 
     /** "Mark spam" — reclassify + distrust the sender. */
     suspend fun moveToSpam(messageId: Long) = withContext(Dispatchers.IO) {
-        val msg = db.messages().byId(messageId) ?: return@withContext
+        val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         db.messages().recategorize(messageId, "SPAM")
         adjustReputation(msg.address, delta = -2, notSpam = false)
         refreshConversationSummary(msg.threadId, msg.space)
@@ -1189,7 +1459,7 @@ class MessageRepository private constructor(private val context: Context) {
                     muted = normal?.muted ?: false,
                     preferredSubId = normal?.preferredSubId,
                     space = Spaces.LOCKED,
-                )
+                ).sealed()
             )
         }
 
@@ -1212,6 +1482,11 @@ class MessageRepository private constructor(private val context: Context) {
         db.conversations().allConversations()
             .filter { it.space == Spaces.LOCKED }
             .forEach { db.conversations().deleteByThreadId(it.threadId, Spaces.LOCKED) }
+        // V2-6: nothing sealed under this key remains, so the key goes too. If a
+        // row escaped the delete above — a failed provider delete, a row written
+        // by a concurrent intake — destroying the key is what makes it
+        // unreadable rather than merely deleted.
+        LockedContent.destroyKey(context)
         locked.size
     }
 
@@ -1226,18 +1501,102 @@ class MessageRepository private constructor(private val context: Context) {
         withContext(Dispatchers.IO) {
             val source = db.conversations().byThreadId(threadId, from) ?: return@withContext
             db.messages().setThreadSpace(threadId, from, to)
+            // V2-6: setThreadSpace is a bulk UPDATE of one column — it cannot
+            // re-encrypt anything. Every row it just moved has to be re-encoded
+            // in the direction it moved, trash included.
+            recodeThread(threadId, to)
+            if (to == Spaces.LOCKED) purgeProviderCopies(threadId, to)
             val target = db.conversations().byThreadId(threadId, to)
             if (target == null) {
                 // REPLACE-by-PK flips the same row's space in place.
-                db.conversations().upsert(source.copy(space = to, locked = false))
+                db.conversations().upsert(source.copy(space = to, locked = false).sealed())
             } else {
                 db.conversations().upsert(
-                    target.copy(unreadCount = target.unreadCount + source.unreadCount)
+                    target.copy(unreadCount = target.unreadCount + source.unreadCount).sealed()
                 )
                 db.conversations().deleteByThreadId(threadId, from)
             }
             refreshConversationSummary(threadId, to)
         }
+
+    /**
+     * Re-encode every row of one thread for the space it is now in: sealed on
+     * the way into the locked space, opened on the way out. Rows already in the
+     * right form are left alone rather than rewritten, so this is cheap to call
+     * on a thread that does not need it.
+     */
+    private suspend fun recodeThread(threadId: Long, space: String) {
+        db.messages().allForThreadInSpace(threadId, space).forEach { row ->
+            // isCanonical, not a before/after comparison: sealing draws a fresh
+            // nonce every time, so a re-sealed row never equals its stored self
+            // and "cheap to call on a thread that does not need it" would be
+            // false — every row would be rewritten on every move.
+            if (LockedContent.isCanonical(row)) return@forEach
+            val recoded = row.sealed()
+            if (recoded != row) db.messages().update(recoded)
+        }
+    }
+
+    /**
+     * V2-6: drop the Telephony-provider copy of every message in a thread that
+     * has entered the locked space.
+     *
+     * This is the half of the fix that encryption alone cannot deliver. Sealing
+     * the Room index is pointless while an identical plaintext row sits in
+     * `content://sms`, readable by anything holding the SMS role and by any
+     * forensic tool that knows where mmssms.db lives.
+     *
+     * The cost is real and is stated in the setup disclaimer: once a chat is
+     * locked, its messages exist only in this app's database. Making another app
+     * the default SMS app will not show them, and uninstalling this app without
+     * a backup destroys them. That is the same bargain the Reset flow already
+     * makes, and it is the only way "locked" can mean more than "hidden".
+     */
+    private suspend fun purgeProviderCopies(threadId: Long, space: String) {
+        db.messages().allForThreadInSpace(threadId, space).forEach { deleteProviderRows(it) }
+    }
+
+    /**
+     * V2-6 backlog repair: seal locked rows written before this app version and
+     * drop their provider copies. Idempotent, resumable, and safe to call on
+     * every cold start — a fully-sealed space costs one indexed query.
+     *
+     * Deliberately not a Room migration. Sealing needs the Android Keystore,
+     * which a `SupportSQLiteDatabase` migration has no business reaching into,
+     * and a migration that fails halfway leaves the user unable to open the app
+     * at all. Rows are updated one at a time, so an interruption leaves a
+     * partially-sealed space that the next run simply finishes — the marker
+     * prefix means both halves read correctly meanwhile.
+     */
+    suspend fun sealLockedBacklog(): Int = withContext(Dispatchers.IO) {
+        if (!LockedContent.available(context)) return@withContext 0
+        var changed = 0
+        db.messages().allInSpace(Spaces.LOCKED).forEach { row ->
+            // isCanonical decides this, NOT a before/after comparison of the
+            // ciphertext. Sealing draws a fresh nonce every time, so a re-sealed
+            // row never equals its stored self — a comparison would report every
+            // locked row as repaired on every cold start, rewriting the whole
+            // space and re-firing the FTS triggers for each row, forever.
+            if (!LockedContent.isCanonical(row)) {
+                val recoded = row.sealed()
+                // Unequal only if sealing actually succeeded; if the cipher
+                // failed for this row it stays non-canonical and the next run
+                // retries it, which is the behaviour we want.
+                if (recoded != row) {
+                    db.messages().update(recoded)
+                    changed++
+                }
+            }
+            // A row sealed by an earlier run may still have a provider copy if
+            // that run was interrupted between the two; deleteProviderRows is a
+            // no-op once the mapping is gone.
+            deleteProviderRows(row)
+        }
+        db.conversations().allConversations()
+            .filter { it.space == Spaces.LOCKED && !LockedContent.isCanonical(it) }
+            .forEach { db.conversations().upsert(it.sealed()) }
+        changed
+    }
 
     /**
      * First secret-space setup: legacy biometric-locked conversations move
@@ -1265,7 +1624,7 @@ class MessageRepository private constructor(private val context: Context) {
      * deletes it outright (nothing to retain).
      */
     suspend fun moveToTrash(messageId: Long) = withContext(Dispatchers.IO) {
-        val msg = db.messages().byId(messageId) ?: return@withContext
+        val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         if (msg.sendStatus == "SCHEDULED") {
             db.messages().userDelete(messageId)
         } else {
@@ -1286,8 +1645,9 @@ class MessageRepository private constructor(private val context: Context) {
             }
         }
 
-    /** Delete a whole conversation to Trash (§6.4). */
-    suspend fun moveThreadToTrash(threadId: Long, space: String = Spaces.NORMAL) =
+    /** Delete a whole conversation to Trash (§6.4). V2-24: `space` is explicit
+     *  — the same threadId names a different conversation in each space. */
+    suspend fun moveThreadToTrash(threadId: Long, space: String) =
         withContext(Dispatchers.IO) {
             val now = System.currentTimeMillis()
             db.messages().listForThread(threadId, space).forEach { msg ->
@@ -1306,7 +1666,7 @@ class MessageRepository private constructor(private val context: Context) {
      * file was kept, the provider PDU was not.
      */
     suspend fun restoreFromTrash(messageId: Long) = withContext(Dispatchers.IO) {
-        val msg = db.messages().byId(messageId) ?: return@withContext
+        val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         if (!msg.trashed) return@withContext
         var restored = msg.copy(trashed = false, trashedAt = null)
         // R-05: split the old mapping in two.
@@ -1349,12 +1709,12 @@ class MessageRepository private constructor(private val context: Context) {
                     ?.uri?.substringAfterLast('/')?.toLongOrNull(),
             )
         }
-        db.messages().update(restored)
+        db.messages().update(restored.sealed())
         // Rebuild the conversation row (it may have been dropped when the
         // thread emptied) without disturbing unread counts. Space-scoped: a
         // locked message restores into the locked conversation, never normal.
-        val conv = db.conversations().byThreadId(msg.threadId, msg.space)
-        val latest = db.messages().latestForThread(msg.threadId, msg.space)
+        val conv = db.conversations().byThreadId(msg.threadId, msg.space)?.opened()
+        val latest = db.messages().latestForThread(msg.threadId, msg.space)?.opened()
         if (latest != null && (conv == null || latest.timestamp >= conv.lastTimestamp)) {
             db.conversations().upsert(
                 ConversationEntity(
@@ -1372,7 +1732,7 @@ class MessageRepository private constructor(private val context: Context) {
                     locked = conv?.locked ?: false,
                     preferredSubId = conv?.preferredSubId,
                     space = msg.space,
-                )
+                ).sealed()
             )
         }
     }
@@ -1405,7 +1765,7 @@ class MessageRepository private constructor(private val context: Context) {
 
     /** "Delete forever" from within Trash — immediate permanent deletion. */
     suspend fun deleteForever(messageId: Long) = withContext(Dispatchers.IO) {
-        val msg = db.messages().byId(messageId) ?: return@withContext
+        val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         deleteLocalMedia(msg)
         // R-05: a row whose deletion never succeeded stays in provider_rows for
         // the retry sweep; everything already gone is dropped with the message.
@@ -1458,9 +1818,18 @@ class MessageRepository private constructor(private val context: Context) {
                 ).map { it to first }
             }
         targets.forEach { (uri, recipient) ->
+            // V2-26: the delete COUNT is the only evidence the row actually
+            // went away. The previous code discarded it and reported success
+            // for any call that merely didn't throw — which is exactly what
+            // happens when the provider refuses the delete without an
+            // exception: the row survived, the mapping was dropped, and
+            // retryFailedProviderDeletions could never find it again.
+            //
+            // 0 rows affected is treated as "already gone" only when we can
+            // confirm it is gone; otherwise it is a failure to retry.
             val deleted = try {
-                context.contentResolver.delete(android.net.Uri.parse(uri), null, null)
-                true
+                val count = context.contentResolver.delete(android.net.Uri.parse(uri), null, null)
+                count > 0 || !providerRowExists(uri)
             } catch (_: Exception) {
                 // Needs the default-SMS role; the index-side trash flag still applies.
                 false
@@ -1470,6 +1839,21 @@ class MessageRepository private constructor(private val context: Context) {
                 ProviderRowEntity(uri, msg.id, recipient, kindOf(uri), deleteFailed = true)
             )
         }
+    }
+
+    /**
+     * V2-26: does this provider row still exist? Used to tell "the delete
+     * affected 0 rows because it was already gone" (success — nothing to retry)
+     * apart from "the delete affected 0 rows because it was refused" (failure —
+     * must be retried). A query that itself fails is reported as "still there",
+     * because assuming success is the outcome that loses the row forever.
+     */
+    private fun providerRowExists(uri: String): Boolean = try {
+        context.contentResolver.query(
+            android.net.Uri.parse(uri), arrayOf("_id"), null, null, null,
+        )?.use { it.moveToFirst() } ?: true
+    } catch (_: Exception) {
+        true
     }
 
     private fun kindOf(uri: String): String = if (uri.startsWith("content://mms")) "MMS" else "SMS"
@@ -1497,7 +1881,11 @@ class MessageRepository private constructor(private val context: Context) {
     }
 
     private fun deleteLocalMedia(msg: MessageEntity) {
-        msg.mediaUri?.let { path -> runCatching { java.io.File(path).delete() } }
+        // V2-25: only files we own. A backfilled row references a
+        // `content://mms/part/…` in the shared Telephony provider — those bytes
+        // belong to the system store (the provider row deletion handles them),
+        // and `File("content://…")` would be a stray relative path anyway.
+        MediaRef.asFile(msg.mediaUri)?.let { file -> runCatching { file.delete() } }
     }
 
     /**
@@ -1552,8 +1940,8 @@ class MessageRepository private constructor(private val context: Context) {
      * newest message in the thread.
      */
     suspend fun refreshConversationSummary(threadId: Long, space: String = Spaces.NORMAL) {
-        val conv = db.conversations().byThreadId(threadId, space) ?: return
-        val latest = db.messages().latestForThread(threadId, space)
+        val conv = db.conversations().byThreadId(threadId, space)?.opened() ?: return
+        val latest = db.messages().latestForThread(threadId, space)?.opened()
         if (latest == null) {
             db.conversations().deleteByThreadId(threadId, space)
             return
@@ -1571,7 +1959,7 @@ class MessageRepository private constructor(private val context: Context) {
                     lastMessage = preview,
                     lastTimestamp = latest.timestamp,
                     category = latest.category,
-                )
+                ).sealed()
             )
         }
     }

@@ -1,5 +1,6 @@
 package com.messages.app.ui.chat
 
+import com.messages.app.R
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.builtins.ListSerializer
@@ -17,13 +18,22 @@ object QuickReplies {
 
     private const val KEY = "quick_reply_templates"
 
-    private val DEFAULTS = listOf(
-        "On my way",
-        "Can't talk now — call you later",
-        "Yes",
-        "No",
-        "Thank you!",
+    /**
+     * V2-36. The seeds are sentences the user sends to other people, so they
+     * have to be in the user's language. They are read once, on the first
+     * launch that has no saved list, and then persist as ordinary user data —
+     * changing the phone's language later does not rewrite replies the user
+     * has since edited, which is the behaviour you want here.
+     */
+    private val DEFAULT_RES = listOf(
+        R.string.quick_reply_on_my_way,
+        R.string.quick_reply_call_later,
+        R.string.quick_reply_yes,
+        R.string.quick_reply_no,
+        R.string.quick_reply_thanks,
     )
+
+    private fun defaults(ctx: Context): List<String> = DEFAULT_RES.map(ctx::getString)
 
     val templates = MutableStateFlow<List<String>>(emptyList())
 
@@ -35,7 +45,7 @@ object QuickReplies {
         if (!loaded) {
             loaded = true
             val raw = prefs(ctx).getString(KEY, null)
-            templates.value = if (raw == null) DEFAULTS else decode(raw)
+            templates.value = if (raw == null) defaults(ctx) else decode(ctx, raw)
         }
         return templates.value
     }
@@ -56,7 +66,7 @@ object QuickReplies {
     private fun encode(list: List<String>): String =
         Json.encodeToString(ListSerializer(String.serializer()), list)
 
-    private fun decode(raw: String): List<String> =
+    private fun decode(ctx: Context, raw: String): List<String> =
         runCatching { Json.decodeFromString(ListSerializer(String.serializer()), raw) }
-            .getOrDefault(DEFAULTS)
+            .getOrDefault(defaults(ctx))
 }

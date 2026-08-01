@@ -25,13 +25,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.MessagesApp
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 
 /**
  * Per-folder notification behavior (Phase 4 item 3, PRD §4 "per-folder
@@ -46,10 +48,10 @@ import com.messages.app.MessagesApp
 fun NotificationSettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val vm: SettingsViewModel = viewModel()
-    val notifyTransactions by vm.notifyTransactions.collectAsState()
-    val notifyPromotions by vm.notifyPromotions.collectAsState()
-    val notifyReview by vm.notifyReview.collectAsState()
-    val otpAutoCopy by vm.otpAutoCopy.collectAsState()
+    val notifyTransactions by vm.notifyTransactions.collectAsStateWithLifecycle()
+    val notifyPromotions by vm.notifyPromotions.collectAsStateWithLifecycle()
+    val notifyReview by vm.notifyReview.collectAsStateWithLifecycle()
+    val otpAutoCopy by vm.otpAutoCopy.collectAsStateWithLifecycle()
 
     fun openChannelSettings(channelId: String) {
         runCatching {
@@ -65,10 +67,10 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notifications") },
+                title = { Text(stringResource(R.string.notif_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -80,28 +82,27 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            SettingsSectionHeader("Folders")
+            SettingsSectionHeader(stringResource(R.string.notif_section_folders))
 
             SettingsNavRow(
                 icon = Icons.Outlined.Inbox,
-                title = "Inbox",
-                subtitle = "Personal and important messages always notify. " +
-                    "Tap to pick sound and style.",
+                title = stringResource(R.string.category_inbox),
+                subtitle = stringResource(R.string.notif_inbox_subtitle),
                 onClick = { openChannelSettings(MessagesApp.CH_PERSONAL) },
                 external = true,
             )
 
             SettingsSwitchRow(
                 icon = Icons.Outlined.Receipt,
-                title = "Transactions",
-                subtitle = "Notify for bank alerts, receipts, and bills.",
+                title = stringResource(R.string.category_transactions),
+                subtitle = stringResource(R.string.notif_transactions_subtitle),
                 checked = notifyTransactions,
                 onChange = { vm.setNotifyTransactions(it) },
             )
             if (notifyTransactions) {
                 SettingsNavRow(
                     icon = null,
-                    title = "Sound & style for Transactions",
+                    title = stringResource(R.string.notif_sound_transactions),
                     subtitle = null,
                     onClick = { openChannelSettings(MessagesApp.CH_TRANSACTIONS) },
                     external = true,
@@ -111,15 +112,15 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
 
             SettingsSwitchRow(
                 icon = Icons.Outlined.LocalOffer,
-                title = "Promotions",
-                subtitle = "Notify for offers and marketing messages. Off keeps them badge-only.",
+                title = stringResource(R.string.category_promotions),
+                subtitle = stringResource(R.string.notif_promotions_subtitle),
                 checked = notifyPromotions,
                 onChange = { vm.setNotifyPromotions(it) },
             )
             if (notifyPromotions) {
                 SettingsNavRow(
                     icon = null,
-                    title = "Sound & style for Promotions",
+                    title = stringResource(R.string.notif_sound_promotions),
                     subtitle = null,
                     onClick = { openChannelSettings(MessagesApp.CH_PROMOTIONS) },
                     external = true,
@@ -129,15 +130,15 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
 
             SettingsSwitchRow(
                 icon = Icons.Outlined.RateReview,
-                title = "Review folder",
-                subtitle = "One quiet, batched notification when messages arrive here.",
+                title = stringResource(R.string.notif_review_title),
+                subtitle = stringResource(R.string.notif_review_subtitle),
                 checked = notifyReview,
                 onChange = { vm.setNotifyReview(it) },
             )
             if (notifyReview) {
                 SettingsNavRow(
                     icon = null,
-                    title = "Sound & style for Review",
+                    title = stringResource(R.string.notif_sound_review),
                     subtitle = null,
                     onClick = { openChannelSettings(MessagesApp.CH_REVIEW) },
                     external = true,
@@ -146,32 +147,29 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
             }
 
             Text(
-                "Spam and Blocked never notify — they stay silent with badge counts only.",
+                stringResource(R.string.notif_silent_folders_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
             )
 
             SettingsSectionDivider()
-            SettingsSectionHeader("Protection")
-            val warnDangerous by vm.warnDangerous.collectAsState()
+            SettingsSectionHeader(stringResource(R.string.notif_section_protection))
+            val warnDangerous by vm.warnDangerous.collectAsStateWithLifecycle()
             SettingsSwitchRow(
                 icon = Icons.Outlined.GppMaybe,
-                title = "Warn me about dangerous messages",
-                subtitle = "A red warning notification when a message looks like fraud. " +
-                    "It stays until you dismiss it. Ordinary spam never notifies.",
+                title = stringResource(R.string.notif_warn_dangerous_title),
+                subtitle = stringResource(R.string.notif_warn_dangerous_subtitle),
                 checked = warnDangerous,
                 onChange = { vm.setWarnDangerous(it) },
             )
 
             SettingsSectionDivider()
-            SettingsSectionHeader("OTP codes")
+            SettingsSectionHeader(stringResource(R.string.notif_section_otp))
             SettingsSwitchRow(
                 icon = Icons.Outlined.ContentCopy,
-                title = "Auto-copy OTP codes",
-                subtitle = "Copy the code to the clipboard the moment an OTP arrives, " +
-                    "then clear it a minute later. Never runs for locked chats or " +
-                    "messages flagged as fraud. Android may show a clipboard notice each time.",
+                title = stringResource(R.string.notif_otp_autocopy_title),
+                subtitle = stringResource(R.string.notif_otp_autocopy_subtitle),
                 checked = otpAutoCopy,
                 onChange = { vm.setOtpAutoCopy(it) },
             )
@@ -181,16 +179,14 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
             // rather than letting the switch imply parity across versions.
             if (android.os.Build.VERSION.SDK_INT < 33) {
                 Text(
-                    "On this Android version the clipboard is readable by any app running " +
-                        "in the foreground, and the system shows no warning when that happens. " +
-                        "Leaving auto-copy off and using the Copy button is safer.",
+                    stringResource(R.string.notif_otp_clipboard_warning),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
                 )
             }
             Text(
-                "OTP notifications always include a one-tap Copy button.",
+                stringResource(R.string.notif_otp_copy_button_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),

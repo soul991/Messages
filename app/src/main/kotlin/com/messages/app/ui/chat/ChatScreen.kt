@@ -74,8 +74,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -87,9 +89,10 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -105,6 +108,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -115,17 +119,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.messages.app.ui.common.ContactAvatar
 import com.messages.app.ui.common.sharedThreadAvatar
+import com.messages.app.ui.common.AppDateFormat
+import com.messages.app.ui.common.minTouchTarget
 import com.messages.core.db.MessageEntity
 import com.messages.designsystem.Haptics
 import com.messages.designsystem.Motion
 import com.messages.designsystem.categoryPalette
-import java.io.File
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 
 class ChatViewModelFactory(
     private val app: Application,
@@ -223,19 +228,19 @@ fun ChatScreen(
     val vm: ChatViewModel = viewModel(
         factory = ChatViewModelFactory(context.applicationContext as Application, threadId, fallbackAddress, space)
     )
-    val messages by vm.messages.collectAsState()
-    val contactName by vm.contactName.collectAsState()
-    val address by vm.address.collectAsState()
-    val category by vm.category.collectAsState()
-    val locked by vm.locked.collectAsState()
-    val chatUnlocked by vm.chatUnlocked.collectAsState()
-    val pendingAttachment by vm.pendingAttachment.collectAsState()
-    val sendError by vm.sendError.collectAsState()
-    val simOptions by vm.simOptions.collectAsState()
-    val selectedSubId by vm.selectedSubId.collectAsState()
-    val bubbleStyleId by vm.bubbleStyleId.collectAsState()
-    val wallpaperId by vm.wallpaperId.collectAsState()
-    val wallpaperVersion by vm.wallpaperVersion.collectAsState()
+    val messages by vm.messages.collectAsStateWithLifecycle()
+    val contactName by vm.contactName.collectAsStateWithLifecycle()
+    val address by vm.address.collectAsStateWithLifecycle()
+    val category by vm.category.collectAsStateWithLifecycle()
+    val locked by vm.locked.collectAsStateWithLifecycle()
+    val chatUnlocked by vm.chatUnlocked.collectAsStateWithLifecycle()
+    val pendingAttachment by vm.pendingAttachment.collectAsStateWithLifecycle()
+    val sendProblem by vm.sendProblem.collectAsStateWithLifecycle()
+    val simOptions by vm.simOptions.collectAsStateWithLifecycle()
+    val selectedSubId by vm.selectedSubId.collectAsStateWithLifecycle()
+    val bubbleStyleId by vm.bubbleStyleId.collectAsStateWithLifecycle()
+    val wallpaperId by vm.wallpaperId.collectAsStateWithLifecycle()
+    val wallpaperVersion by vm.wallpaperVersion.collectAsStateWithLifecycle()
     var showSimMenu by remember { mutableStateOf(false) }
     var showCustomizeSheet by remember { mutableStateOf(false) }
     // Verified-sender badge (Phase 2): decided by the engine from the sender
@@ -284,6 +289,15 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // V2-36. These five reach the user from a callback — a snackbar raised in a
+    // coroutine, a chooser title built in an onClick — none of which is a
+    // composable scope. Resolved here, where one is, and read from the lambda.
+    val resendLabel = stringResource(R.string.chat_resend)
+    val shareChooserTitle = stringResource(R.string.chat_share_messages)
+    val movedToInboxMessage = stringResource(R.string.chat_moved_to_inbox)
+    val movedToSpamMessage = stringResource(R.string.chat_moved_to_spam)
+    val lockedChatCreatedMessage = stringResource(R.string.chat_lock_new_snackbar)
+
     val items = remember(messages) { buildChatItems(messages) }
 
     // Attachment sources: gallery (photo picker) and camera (FileProvider target).
@@ -296,9 +310,13 @@ fun ChatScreen(
     // Camera target lives in the VM's SavedStateHandle: the camera app kills
     // our process at will, and TakePicture only reports success — the URI must
     // survive so the result can still be attached after a cold restart.
+    //
+    // V2-32: this used to be `if (ok) attach(...)` with no else, so a cancelled
+    // capture left both the file and `camera_target` behind. The ViewModel now
+    // owns both outcomes.
     val cameraCapture = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
-    ) { ok -> if (ok) vm.cameraTarget.value?.let { vm.attach(it) } }
+    ) { ok -> vm.onCameraResult(ok) }
     var showAttachSheet by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
     // Secret space: "Lock this chat" bottom sheet (New locked chat / Move entire chat).
@@ -343,7 +361,7 @@ fun ChatScreen(
     val linkPreviewsEnabled = remember { LinkPreview.enabled(context) }
 
     // Pinned messages (Phase 4 item 6): local-only ids from PinStore.
-    val allPins by PinStore.pins.collectAsState()
+    val allPins by PinStore.pins.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { PinStore.pinsFor(context, threadId, space) } // triggers initial load
     val pinnedIds = allPins[space to threadId].orEmpty()
     val pinnedMessages = remember(messages, pinnedIds) {
@@ -416,16 +434,30 @@ fun ChatScreen(
 
     // Locked-conversation gate (§8.2): nothing renders until authenticated.
     if (locked && !chatUnlocked) {
+        // V2-16: this used to unlock the conversation when the host could not be
+        // cast to FragmentActivity, on the reasoning that the user should not be
+        // stranded. That turns a type mismatch — a preview, a wrapper context, a
+        // future activity, any refactor — into an authentication bypass. An auth
+        // gate has to fail closed: no biometric host means still locked, with an
+        // explanation instead of a silent pass.
+        var noAuthHost by remember { mutableStateOf(false) }
+        // onRequestUnlock is a plain lambda, not a composable scope.
+        val unlockConversationPrompt = stringResource(R.string.chat_unlock_prompt)
         com.messages.app.ui.lock.LockScreen(
-            title = "This conversation is locked",
+            title = stringResource(R.string.chat_locked_title),
+            message = if (!noAuthHost) null else
+                stringResource(R.string.chat_locked_no_auth_host),
             onRequestUnlock = {
-                (context as? androidx.fragment.app.FragmentActivity)?.let { activity ->
+                val activity = context as? androidx.fragment.app.FragmentActivity
+                if (activity == null) {
+                    noAuthHost = true
+                } else {
                     com.messages.app.security.AppLock.authenticate(
-                        activity, "Unlock conversation",
+                        activity, unlockConversationPrompt,
                         onSuccess = { vm.markChatUnlocked() },
                         onFailure = { onBack() },
                     )
-                } ?: vm.markChatUnlocked() // no auth host available — don't strand the user
+                }
             },
         )
         return
@@ -441,10 +473,19 @@ fun ChatScreen(
         }
         if (items.isNotEmpty()) firstScroll = false
     }
-    LaunchedEffect(sendError) {
-        sendError?.let {
-            snackbarHostState.showSnackbar(it)
-            vm.clearSendError()
+    // V2-30: the failure carries its own recovery action (retry / send text
+    // only), so the snackbar is the retry contract rather than a dead notice.
+    LaunchedEffect(sendProblem) {
+        sendProblem?.let { problem ->
+            val result = snackbarHostState.showSnackbar(
+                message = problem.message,
+                actionLabel = problem.actionLabel,
+                withDismissAction = problem.actionLabel != null,
+                duration = if (problem.actionLabel != null) SnackbarDuration.Long
+                else SnackbarDuration.Short,
+            )
+            vm.clearSendProblem()
+            if (result == SnackbarResult.ActionPerformed) problem.action?.invoke()
         }
     }
     // Failed-send feedback: when a message flips to FAILED while this chat is
@@ -465,7 +506,7 @@ fun ChatScreen(
         // Short = standard M3 auto-dismiss (~4s); swipe still dismisses early.
         val result = snackbarHostState.showSnackbar(
             message = com.messages.core.send.SendFailure.reasonFor(fresh.sendResultCode),
-            actionLabel = "Resend",
+            actionLabel = resendLabel,
             duration = androidx.compose.material3.SnackbarDuration.Short,
         )
         if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
@@ -479,10 +520,18 @@ fun ChatScreen(
             if (msgSelectionActive) {
                 // Message multi-select bar (Phase 4 item 14).
                 TopAppBar(
-                    title = { Text("${selectedMsgIds.size} selected") },
+                    title = {
+                        Text(
+                            pluralStringResource(
+                                R.plurals.chat_selected_count,
+                                selectedMsgIds.size,
+                                selectedMsgIds.size,
+                            )
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = { selectedMsgIds = emptySet() }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Clear selection")
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.chat_clear_selection))
                         }
                     },
                     actions = {
@@ -493,19 +542,19 @@ fun ChatScreen(
                             }
                             selectedMsgIds = emptySet()
                         }) {
-                            Icon(Icons.Filled.ContentCopy, contentDescription = "Copy")
+                            Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.action_copy))
                         }
                         IconButton(onClick = {
                             selectedMsgIds.forEach { vm.star(it, true) }
                             selectedMsgIds = emptySet()
                         }) {
-                            Icon(Icons.Filled.Star, contentDescription = "Star")
+                            Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.chat_star))
                         }
                         IconButton(
                             onClick = { showForwardPicker = true },
                             enabled = selectedTexts().isNotBlank(),
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = "Forward")
+                            Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = stringResource(R.string.chat_forward))
                         }
                         IconButton(onClick = {
                             val text = selectedTexts()
@@ -517,14 +566,14 @@ fun ChatScreen(
                                                 type = "text/plain"
                                                 putExtra(android.content.Intent.EXTRA_TEXT, text)
                                             },
-                                            "Share messages",
+                                            shareChooserTitle,
                                         )
                                     )
                                 }
                             }
                             selectedMsgIds = emptySet()
                         }) {
-                            Icon(Icons.Filled.Share, contentDescription = "Share")
+                            Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.action_share))
                         }
                         IconButton(onClick = {
                             selectedMsgIds.forEach { vm.delete(it) }
@@ -536,7 +585,7 @@ fun ChatScreen(
                                 )
                             }
                         }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
                         }
                     },
                 )
@@ -548,7 +597,7 @@ fun ChatScreen(
                         TextField(
                             value = chatSearchQuery,
                             onValueChange = { chatSearchQuery = it; currentMatch = 0 },
-                            placeholder = { Text("Search in conversation") },
+                            placeholder = { Text(stringResource(R.string.chat_search_in_conversation)) },
                             singleLine = true,
                             colors = TextFieldDefaults.colors(
                                 focusedIndicatorColor = Color.Transparent,
@@ -564,7 +613,7 @@ fun ChatScreen(
                             chatSearchActive = false
                             chatSearchQuery = ""
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.chat_close_search))
                         }
                     },
                     actions = {
@@ -589,7 +638,7 @@ fun ChatScreen(
                             },
                             enabled = matchIndices.isNotEmpty(),
                         ) {
-                            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
+                            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.chat_previous_match))
                         }
                         IconButton(
                             onClick = {
@@ -599,7 +648,7 @@ fun ChatScreen(
                             },
                             enabled = matchIndices.isNotEmpty(),
                         ) {
-                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
+                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.chat_next_match))
                         }
                     },
                 )
@@ -656,7 +705,7 @@ fun ChatScreen(
                             }
                             when {
                                 !contactHintDone -> Text(
-                                    "Tap here for contact info",
+                                    stringResource(R.string.chat_tap_for_contact_info),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -670,30 +719,30 @@ fun ChatScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { chatSearchActive = true }) {
-                        Icon(Icons.Filled.Search, contentDescription = "Search in conversation")
+                        Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.chat_search_in_conversation))
                     }
                     if (locked) {
                         Icon(
-                            Icons.Filled.Lock, contentDescription = "Locked conversation",
+                            Icons.Filled.Lock, contentDescription = stringResource(R.string.chat_locked_conversation),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.width(18.dp),
                         )
                     }
                     Box {
                         IconButton(onClick = { showChatMenu = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more_options))
                         }
                         DropdownMenu(
                             expanded = showChatMenu,
                             onDismissRequest = { showChatMenu = false },
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Customize chat") },
+                                text = { Text(stringResource(R.string.chat_customize_chat)) },
                                 onClick = {
                                     showChatMenu = false
                                     showCustomizeSheet = true
@@ -704,7 +753,7 @@ fun ChatScreen(
                             // the action is "Unlock chat" (move back).
                             if (!inLockedSpace) {
                                 DropdownMenuItem(
-                                    text = { Text("Lock chat") },
+                                    text = { Text(stringResource(R.string.chat_lock_chat)) },
                                     onClick = {
                                         showChatMenu = false
                                         showLockSheet = true
@@ -712,7 +761,7 @@ fun ChatScreen(
                                 )
                             } else {
                                 DropdownMenuItem(
-                                    text = { Text("Unlock chat") },
+                                    text = { Text(stringResource(R.string.chat_unlock_chat)) },
                                     onClick = {
                                         showChatMenu = false
                                         vm.unlockChat(onDone = onBack)
@@ -720,7 +769,7 @@ fun ChatScreen(
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("Export conversation") },
+                                text = { Text(stringResource(R.string.chat_export_conversation)) },
                                 onClick = {
                                     showChatMenu = false
                                     val safeName = (contactName ?: address).replace(
@@ -730,7 +779,7 @@ fun ChatScreen(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Delete conversation") },
+                                text = { Text(stringResource(R.string.chat_delete_conversation)) },
                                 onClick = {
                                     showChatMenu = false
                                     showDeleteThreadConfirm = true
@@ -763,7 +812,7 @@ fun ChatScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            Icons.Filled.PushPin, contentDescription = "Pinned message",
+                            Icons.Filled.PushPin, contentDescription = stringResource(R.string.chat_pinned_message),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp),
                         )
@@ -778,7 +827,11 @@ fun ChatScreen(
                         if (pinnedMessages.size > 1) {
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                "${(pinnedCursor % pinnedMessages.size) + 1}/${pinnedMessages.size}",
+                                stringResource(
+                                    R.string.chat_pinned_position,
+                                    (pinnedCursor % pinnedMessages.size) + 1,
+                                    pinnedMessages.size,
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -843,12 +896,12 @@ fun ChatScreen(
                                     // §9: satisfying "message moved" moment.
                                     Haptics.confirm(view)
                                     vm.moveToInbox(item.m.id)
-                                    scope.launch { snackbarHostState.showSnackbar("Moved to Inbox") }
+                                    scope.launch { snackbarHostState.showSnackbar(movedToInboxMessage) }
                                 },
                                 onMarkSpam = {
                                     Haptics.confirm(view)
                                     vm.moveToSpam(item.m.id)
-                                    scope.launch { snackbarHostState.showSnackbar("Moved to Spam") }
+                                    scope.launch { snackbarHostState.showSnackbar(movedToSpamMessage) }
                                 },
                                 onResend = { vm.resend(item.m) },
                                 onSendNow = { vm.sendScheduledNow(item.m.id) },
@@ -899,7 +952,7 @@ fun ChatScreen(
                             }
                         },
                     ) {
-                        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Scroll to latest")
+                        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.chat_scroll_to_latest))
                     }
                 }
             }
@@ -919,7 +972,7 @@ fun ChatScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        "You can't reply to this conversation",
+                        stringResource(R.string.chat_cannot_reply),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -937,7 +990,7 @@ fun ChatScreen(
                 ) {
                     AsyncImage(
                         model = pendingAttachment,
-                        contentDescription = "Attachment preview",
+                        contentDescription = stringResource(R.string.chat_attachment_preview),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .width(72.dp)
@@ -946,7 +999,7 @@ fun ChatScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     IconButton(onClick = { vm.attach(null) }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Remove attachment")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.chat_remove_attachment))
                     }
                 }
             }
@@ -959,7 +1012,7 @@ fun ChatScreen(
                 IconButton(onClick = { showAttachSheet = true }) {
                     Icon(
                         Icons.Filled.Attachment,
-                        contentDescription = "Attach",
+                        contentDescription = stringResource(R.string.chat_attach),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -976,7 +1029,7 @@ fun ChatScreen(
                     IconButton(onClick = { showScheduleDialog = true }) {
                         Icon(
                             Icons.Filled.Schedule,
-                            contentDescription = "Schedule send",
+                            contentDescription = stringResource(R.string.chat_schedule_send),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -987,7 +1040,7 @@ fun ChatScreen(
                         IconButton(onClick = { showSimMenu = true }) {
                             Icon(
                                 Icons.Filled.SimCard,
-                                contentDescription = "Choose SIM",
+                                contentDescription = stringResource(R.string.chat_choose_sim),
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         }
@@ -1003,8 +1056,15 @@ fun ChatScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            (if (selectedSubId == sim.subId) "• " else "") +
-                                                "SIM ${sim.slotIndex + 1} — ${sim.displayName}"
+                                            stringResource(
+                                                if (selectedSubId == sim.subId) {
+                                                    R.string.chat_sim_option_selected
+                                                } else {
+                                                    R.string.chat_sim_option
+                                                },
+                                                sim.slotIndex + 1,
+                                                sim.displayName,
+                                            )
                                         )
                                     },
                                     onClick = { vm.selectSim(sim.subId); showSimMenu = false },
@@ -1027,7 +1087,7 @@ fun ChatScreen(
                         },
                         modifier = Modifier.size(48.dp),
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.action_send))
                     }
                 }
             }
@@ -1056,21 +1116,20 @@ fun ChatScreen(
             AlertDialog(
                 properties = com.messages.app.ui.secret.secureDialogProperties(),
                 onDismissRequest = { showDeleteThreadConfirm = false },
-                title = { Text("Delete this conversation?") },
+                title = { Text(stringResource(R.string.chat_delete_thread_title)) },
                 text = {
                     Text(
-                        "All its messages move to Trash and can be restored for " +
-                            "60 days (Settings → Trash)."
+                        stringResource(R.string.chat_delete_thread_body)
                     )
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         showDeleteThreadConfirm = false
                         vm.deleteThread(onDone = onBack)
-                    }) { Text("Delete") }
+                    }) { Text(stringResource(R.string.action_delete)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteThreadConfirm = false }) { Text("Cancel") }
+                    TextButton(onClick = { showDeleteThreadConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
                 },
             )
         }
@@ -1103,12 +1162,12 @@ fun ChatScreen(
                     value = vm.conversationsForForward(query)
                 }
                 Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
-                    Text("Forward to…", style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.chat_forward_to), style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(12.dp))
                     TextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text("Search conversations") },
+                        placeholder = { Text(stringResource(R.string.chat_forward_search)) },
                         singleLine = true,
                         shape = RoundedCornerShape(24.dp),
                         colors = TextFieldDefaults.colors(
@@ -1147,7 +1206,7 @@ fun ChatScreen(
                     }
                     if (candidates.isEmpty()) {
                         Text(
-                            "No conversations found",
+                            stringResource(R.string.chat_forward_no_results),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 12.dp),
@@ -1162,13 +1221,13 @@ fun ChatScreen(
             androidx.compose.material3.ModalBottomSheet(
                 properties = com.messages.app.ui.secret.secureSheetProperties(),
                 onDismissRequest = { showQuickReplies = false }) {
-                val templates by QuickReplies.templates.collectAsState()
+                val templates by QuickReplies.templates.collectAsStateWithLifecycle()
                 LaunchedEffect(Unit) { QuickReplies.load(context) }
                 Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
-                    Text("Quick replies", style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.chat_quick_replies), style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Manage templates in Settings → Conversations.",
+                        stringResource(R.string.chat_quick_replies_manage),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1188,7 +1247,7 @@ fun ChatScreen(
                     }
                     if (templates.isEmpty()) {
                         Text(
-                            "No templates yet — add some in Settings → Conversations.",
+                            stringResource(R.string.chat_quick_replies_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 12.dp),
@@ -1214,8 +1273,14 @@ fun ChatScreen(
                     }
                     AttachOption(Icons.Filled.PhotoCamera, "Camera") {
                         showAttachSheet = false
-                        val dir = File(context.cacheDir, "camera").apply { mkdirs() }
-                        val file = File(dir, "capture_${System.currentTimeMillis()}.jpg")
+                        // V2-32: sweep captures nothing is waiting on before
+                        // adding another. A capture in flight when Android kills
+                        // us delivers its result to a dead process, so that file
+                        // would otherwise never be reachable again.
+                        vm.pruneCameraCaptures()
+                        val file = CameraCaptures.newTarget(
+                            context.cacheDir, System.currentTimeMillis(),
+                        )
                         val uri = androidx.core.content.FileProvider.getUriForFile(
                             context, "${context.packageName}.fileprovider", file,
                         )
@@ -1235,17 +1300,15 @@ fun ChatScreen(
                 androidx.compose.material3.AlertDialog(
                     properties = com.messages.app.ui.secret.secureDialogProperties(),
                     onDismissRequest = { showLockSheet = false },
-                    title = { Text("Locked chats aren't set up") },
+                    title = { Text(stringResource(R.string.chat_locked_setup_title)) },
                     text = {
                         Text(
-                            "To use locked chats, first set your secret code: " +
-                                "press and hold the \"Messages\" title on the home " +
-                                "screen.",
+                            stringResource(R.string.chat_locked_setup_body),
                         )
                     },
                     confirmButton = {
                         androidx.compose.material3.TextButton(onClick = { showLockSheet = false }) {
-                            Text("Got it")
+                            Text(stringResource(R.string.action_got_it))
                         }
                     },
                 )
@@ -1254,17 +1317,15 @@ fun ChatScreen(
                 properties = com.messages.app.ui.secret.secureSheetProperties(),
                 onDismissRequest = { showLockSheet = false }) {
                     Text(
-                        "Lock this chat",
+                        stringResource(R.string.chat_lock_sheet_title),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                     )
                     androidx.compose.material3.ListItem(
-                        headlineContent = { Text("New locked chat") },
+                        headlineContent = { Text(stringResource(R.string.chat_lock_new_title)) },
                         supportingContent = {
                             Text(
-                                "This chat and its history stay here. A locked chat for " +
-                                    "this sender starts in your locked space — all future " +
-                                    "messages from them go there, never here.",
+                                stringResource(R.string.chat_lock_new_body),
                             )
                         },
                         leadingContent = {
@@ -1274,19 +1335,16 @@ fun ChatScreen(
                             showLockSheet = false
                             vm.lockNewChat {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        "Locked chat created — new messages from this sender go to your locked space"
-                                    )
+                                    snackbarHostState.showSnackbar(lockedChatCreatedMessage)
                                 }
                             }
                         },
                     )
                     androidx.compose.material3.ListItem(
-                        headlineContent = { Text("Move entire chat") },
+                        headlineContent = { Text(stringResource(R.string.chat_lock_move_title)) },
                         supportingContent = {
                             Text(
-                                "The whole conversation moves to your locked space and " +
-                                    "disappears from this list and search.",
+                                stringResource(R.string.chat_lock_move_body),
                             )
                         },
                         leadingContent = {
@@ -1338,7 +1396,7 @@ private fun ComposerField(
                 Box(Modifier.weight(1f).padding(vertical = 8.dp)) {
                     if (value.isEmpty()) {
                         Text(
-                            "Text message",
+                            stringResource(R.string.chat_composer_placeholder),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -1346,10 +1404,15 @@ private fun ComposerField(
                     }
                     inner()
                 }
-                IconButton(onClick = onQuickReplies, modifier = Modifier.size(36.dp)) {
+                // V2-40: `.size(36.dp)` overrode the 48 dp IconButton default
+                // to keep the composer pill at 40 dp. The pill now settles at
+                // 48 — which is where Material's composer sits anyway — rather
+                // than shipping a 36 dp target inside the most-tapped row in
+                // the app. The glyph stays 20 dp, so nothing looks heavier.
+                IconButton(onClick = onQuickReplies) {
                     Icon(
                         Icons.Filled.Bolt,
-                        contentDescription = "Quick replies",
+                        contentDescription = stringResource(R.string.chat_quick_replies),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp),
                     )
@@ -1374,11 +1437,11 @@ private fun CustomizeChatSheet(
                 properties = com.messages.app.ui.secret.secureSheetProperties(),
                 onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
-            Text("Customize chat", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.chat_customize_chat), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(20.dp))
 
             Text(
-                "Bubble color",
+                stringResource(R.string.chat_bubble_color),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1415,7 +1478,7 @@ private fun CustomizeChatSheet(
 
             Spacer(Modifier.height(24.dp))
             Text(
-                "Wallpaper",
+                stringResource(R.string.chat_wallpaper),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1451,7 +1514,7 @@ private fun CustomizeChatSheet(
                     }
                 }
                 WallpaperTile(
-                    label = "Photo",
+                    label = stringResource(R.string.chat_wallpaper_photo),
                     selected = currentWallpaper == ChatStyle.WALLPAPER_PHOTO,
                     onClick = onPickPhoto,
                 ) {
@@ -1478,6 +1541,12 @@ private fun WallpaperTile(
     onClick: () -> Unit,
     preview: @Composable () -> Unit,
 ) {
+    // `semantics { }` is not a composable scope, so the description is resolved
+    // here and read inside the lambda.
+    val tileDescription = stringResource(
+        if (selected) R.string.chat_wallpaper_option_selected else R.string.chat_wallpaper_option,
+        label,
+    )
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             Modifier
@@ -1490,7 +1559,7 @@ private fun WallpaperTile(
                 )
                 .clickable(onClick = onClick)
                 .semantics {
-                    contentDescription = "$label wallpaper" + if (selected) ", selected" else ""
+                    contentDescription = tileDescription
                 },
         ) { preview() }
         Spacer(Modifier.height(4.dp))
@@ -1537,9 +1606,9 @@ private fun timePresets(): List<Pair<String, Long>> {
     )
 }
 
-private val SCHEDULED_FMT = SimpleDateFormat("EEE, MMM d · h:mm a", Locale.US)
-private val DATE_PILL_FMT = SimpleDateFormat("EEE, d MMM", Locale.US)
-private val DATE_PILL_YEAR_FMT = SimpleDateFormat("d MMM yyyy", Locale.US)
+// V2-45: these were file-level SimpleDateFormats pinned to Locale.US, so they
+// froze both the locale and the time zone at class-init and wrote dates the way
+// one language writes them. AppDateFormat resolves both at render time.
 
 @Composable
 private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
@@ -1551,8 +1620,8 @@ private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
         when {
             sameDay(ts, now) -> "Today"
             sameDay(ts, now - 24 * 60 * 60 * 1000) -> "Yesterday"
-            cal.get(Calendar.YEAR) == thisYear -> DATE_PILL_FMT.format(Date(ts))
-            else -> DATE_PILL_YEAR_FMT.format(Date(ts))
+            cal.get(Calendar.YEAR) == thisYear -> AppDateFormat.weekdayDayMonth(ts)
+            else -> AppDateFormat.dayMonthYear(ts)
         }
     }
     Box(modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
@@ -1612,6 +1681,11 @@ private fun MessageBubble(
     var showInfoSheet by remember { mutableStateOf(false) }
     var showSelectDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
+    // V2-51: bumped when the user corrects or hides the summary card, so the
+    // memoised extraction is recomputed against the new dismissals. The
+    // dismissals themselves live in prefs, not in composition — a card that
+    // came back on the next scroll would read as the app overruling the user.
+    var cardTick by remember(msg.id) { mutableIntStateOf(0) }
     val fraudPalette = categoryPalette("SPAM")
     // Refs' bubble grid (plan §2): bubbles cap at ~76% of screen width.
     val maxBubbleWidth = (LocalConfiguration.current.screenWidthDp * 0.76f).dp
@@ -1705,8 +1779,14 @@ private fun MessageBubble(
                 if (msg.mediaUri != null) {
                     if (msg.mediaMimeType?.startsWith("image/") == true) {
                         AsyncImage(
-                            model = File(msg.mediaUri!!),
-                            contentDescription = "MMS image",
+                            // V2-25: a live attachment is a file we copied into
+                            // app storage; a backfilled one is a
+                            // `content://mms/part/…` row we reference in place.
+                            // Coil loads either, but only if we hand it the
+                            // right kind of model.
+                            model = com.messages.core.media.MediaRef.asFile(msg.mediaUri)
+                                ?: android.net.Uri.parse(msg.mediaUri!!),
+                            contentDescription = stringResource(R.string.chat_mms_image),
                             contentScale = ContentScale.FillWidth,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -1807,7 +1887,7 @@ private fun MessageBubble(
             // Long-press actions: copy, select, star, pin, snooze, info, delete
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 DropdownMenuItem(
-                    text = { Text("Copy text") },
+                    text = { Text(stringResource(R.string.chat_copy_text)) },
                     onClick = {
                         clipboard.setText(AnnotatedString(msg.body))
                         showMenu = false
@@ -1815,12 +1895,12 @@ private fun MessageBubble(
                 )
                 if (msg.body.isNotBlank()) {
                     DropdownMenuItem(
-                        text = { Text("Select text") },
+                        text = { Text(stringResource(R.string.chat_select_text)) },
                         onClick = { showMenu = false; showSelectDialog = true },
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Select messages") },
+                    text = { Text(stringResource(R.string.chat_select_messages)) },
                     onClick = { showMenu = false; onToggleSelect() },
                 )
                 DropdownMenuItem(
@@ -1833,7 +1913,7 @@ private fun MessageBubble(
                         onClick = { onPinToggle(); showMenu = false },
                     )
                     DropdownMenuItem(
-                        text = { Text("Remind me…") },
+                        text = { Text(stringResource(R.string.chat_remind_me)) },
                         onClick = { showMenu = false; showSnoozeMenu = true },
                     )
                 }
@@ -1842,16 +1922,29 @@ private fun MessageBubble(
                 // any folder; reputation learns from it like Not-spam does.
                 if (!isOut && msg.category != "SPAM" && msg.category != "BLOCKED") {
                     DropdownMenuItem(
-                        text = { Text("Mark as spam") },
+                        text = { Text(stringResource(R.string.chat_mark_as_spam)) },
                         onClick = { onMarkSpam(); showMenu = false },
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Info") },
+                    text = { Text(stringResource(R.string.chat_info)) },
                     onClick = { showMenu = false; showInfoSheet = true },
                 )
+                // V2-51: the way back from a dismissed summary. Offered only
+                // when there is something to restore — a permanent menu entry
+                // for a card the user has never seen is noise.
+                if (MessageCards.dismissedFor(context, msg.id).isNotEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.summary_action_restore)) },
+                        onClick = {
+                            showMenu = false
+                            MessageCards.restore(context, msg.id)
+                            cardTick++
+                        },
+                    )
+                }
                 DropdownMenuItem(
-                    text = { Text("Delete") },
+                    text = { Text(stringResource(R.string.action_delete)) },
                     onClick = { onDelete(); showMenu = false },
                 )
             }
@@ -1870,7 +1963,7 @@ private fun MessageBubble(
         // their status (and its actions) is never hidden.
         if (isScheduled) {
             Text(
-                "Scheduled · " + SCHEDULED_FMT.format(Date(msg.timestamp)),
+                "Scheduled · " + AppDateFormat.weekdayDayMonthClock(msg.timestamp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp),
@@ -1892,13 +1985,13 @@ private fun MessageBubble(
                         .weight(1f, fill = false)
                         .padding(start = 4.dp),
                 )
-                TextButton(onClick = onResend) { Text("Resend") }
+                TextButton(onClick = onResend) { Text(stringResource(R.string.chat_resend)) }
             }
         }
         if (isScheduled) {
             Row {
-                TextButton(onClick = onSendNow) { Text("Send now") }
-                TextButton(onClick = onCancelScheduled) { Text("Cancel") }
+                TextButton(onClick = onSendNow) { Text(stringResource(R.string.chat_send_now)) }
+                TextButton(onClick = onCancelScheduled) { Text(stringResource(R.string.action_cancel)) }
             }
         }
 
@@ -1916,14 +2009,14 @@ private fun MessageBubble(
             AlertDialog(
                 properties = com.messages.app.ui.secret.secureDialogProperties(),
                 onDismissRequest = { showSelectDialog = false },
-                title = { Text("Select text") },
+                title = { Text(stringResource(R.string.chat_select_text)) },
                 text = {
                     androidx.compose.foundation.text.selection.SelectionContainer {
                         Text(msg.body, style = MaterialTheme.typography.bodyLarge)
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showSelectDialog = false }) { Text("Done") }
+                    TextButton(onClick = { showSelectDialog = false }) { Text(stringResource(R.string.action_done)) }
                 },
             )
         }
@@ -1936,12 +2029,36 @@ private fun MessageBubble(
             )
         }
 
+        // V2-51: deterministic summary card, under the bubble and never
+        // instead of it — the body above stays the source of truth. Gated
+        // inside MessageCards on the engine's stored verdict, so a spam or
+        // fraud-flagged message can never acquire one by a caller here
+        // forgetting a condition.
+        val summaryCard = remember(msg.id, msg.body, cardTick) {
+            MessageCards.cardFor(
+                context, msg.id, msg.body, msg.category, msg.protectedLabel,
+                msg.dangerous, msg.fraudWarning,
+            )
+        }
+        summaryCard?.let { card ->
+            SummaryCard(
+                card = card,
+                body = msg.body,
+                maxWidth = maxBubbleWidth,
+                onDismissField = { kind ->
+                    MessageCards.dismissField(context, msg.id, kind); cardTick++
+                },
+                onHideCard = { MessageCards.dismissCard(context, msg.id); cardTick++ },
+                onTurnOff = { MessageCards.setEnabled(context, false); cardTick++ },
+            )
+        }
+
         // One-tap OTP copy chip (§8.2); same extractor as the notification action.
         if (msg.protectedLabel == "OTP") {
             com.messages.protection.OtpExtractor.extract(msg.body)?.let { code ->
                 AssistChip(
                     onClick = { clipboard.setText(AnnotatedString(code)) },
-                    label = { Text("Copy OTP $code") },
+                    label = { Text(stringResource(R.string.chat_copy_otp, code)) },
                     leadingIcon = {
                         Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.width(16.dp))
                     },
@@ -1952,7 +2069,11 @@ private fun MessageBubble(
         // Filtered-message actions — compact row in the banner's visual
         // language (plan §2), not full-height buttons.
         if (msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED")) {
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            // V2-40: 2 dp between targets left adjacent 48 dp areas effectively
+            // touching, so a tap near an edge was a coin flip between "Not
+            // spam" and "Report". 8 dp is the smallest gap that reads as
+            // separate targets without wrapping the row on a narrow screen.
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CompactAction("Not spam", onNotSpam)
                 CompactAction("Why?", onWhy)
                 // Carrier spam reporting (Phase 4 item 17): incoming spam only.
@@ -1968,7 +2089,7 @@ private fun MessageBubble(
     }
 }
 
-private val BUBBLE_TIME_FMT = SimpleDateFormat("HH:mm", Locale.US)
+// V2-45: see the note above DatePill.
 
 /**
  * In-bubble time + delivery status (plan §2), bottom-right like both refs:
@@ -1984,7 +2105,7 @@ private fun BubbleMetaRow(
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Text(
-            BUBBLE_TIME_FMT.format(Date(msg.timestamp)),
+            AppDateFormat.clock(msg.timestamp),
             style = MaterialTheme.typography.labelSmall,
             color = color,
         )
@@ -1993,14 +2114,14 @@ private fun BubbleMetaRow(
                 "DELIVERED" -> {
                     Spacer(Modifier.width(3.dp))
                     Icon(
-                        Icons.Filled.DoneAll, contentDescription = "Delivered",
+                        Icons.Filled.DoneAll, contentDescription = stringResource(R.string.chat_delivered),
                         tint = color, modifier = Modifier.size(14.dp),
                     )
                 }
                 "SENT" -> {
                     Spacer(Modifier.width(3.dp))
                     Icon(
-                        Icons.Filled.Done, contentDescription = "Sent",
+                        Icons.Filled.Done, contentDescription = stringResource(R.string.chat_sent),
                         tint = color, modifier = Modifier.size(14.dp),
                     )
                 }
@@ -2023,7 +2144,7 @@ private fun ScheduleSendDialog(
         "presets" -> AlertDialog(
             properties = com.messages.app.ui.secret.secureDialogProperties(),
             onDismissRequest = onDismiss,
-            title = { Text("Send later") },
+            title = { Text(stringResource(R.string.chat_send_later)) },
             text = {
                 Column {
                     timePresets().forEach { (label, time) ->
@@ -2032,12 +2153,12 @@ private fun ScheduleSendDialog(
                         }
                     }
                     TextButton(onClick = { step = "date" }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Pick date & time…", modifier = Modifier.fillMaxWidth())
+                        Text(stringResource(R.string.chat_pick_date_time), modifier = Modifier.fillMaxWidth())
                     }
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
         )
         "date" -> DatePickerDialog(
             onDismissRequest = onDismiss,
@@ -2045,14 +2166,14 @@ private fun ScheduleSendDialog(
                 TextButton(
                     onClick = { step = "time" },
                     enabled = dateState.selectedDateMillis != null,
-                ) { Text("Next") }
+                ) { Text(stringResource(R.string.action_next)) }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
         ) { DatePicker(state = dateState) }
         "time" -> AlertDialog(
             properties = com.messages.app.ui.secret.secureDialogProperties(),
             onDismissRequest = onDismiss,
-            title = { Text("Send at") },
+            title = { Text(stringResource(R.string.chat_send_at)) },
             text = { TimePicker(state = timeState) },
             confirmButton = {
                 TextButton(onClick = {
@@ -2068,21 +2189,44 @@ private fun ScheduleSendDialog(
                         set(Calendar.MILLISECOND, 0)
                     }
                     onPick(local.timeInMillis.coerceAtLeast(System.currentTimeMillis() + 60_000))
-                }) { Text("Schedule") }
+                }) { Text(stringResource(R.string.chat_schedule)) }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }
 
-/** Compact 32dp text action under filtered bubbles (plan §2). */
+/**
+ * Compact text action under filtered bubbles (plan §2).
+ *
+ * V2-40: this was a `TextButton` pinned to `heightIn(min = 32.dp, max = 32.dp)`.
+ * The 32 dp was a visual decision — these sit in the banner's language, not as
+ * full-height buttons — but the hard `max` also capped the *interactive* height
+ * at 32 dp, below the 48 dp minimum, and overrode the enforcement Material
+ * applies to its own buttons. These are the actions that undo a
+ * misclassification ("Not spam") and report a sender, so a missed tap on them
+ * costs more than most.
+ *
+ * The click now lives on a 48 dp-tall box and the label keeps the compact
+ * treatment inside it. The ripple is bounded to the touch area, which is also
+ * the honest thing to show: the ripple is where the tap lands.
+ */
 @Composable
 private fun CompactAction(label: String, onClick: () -> Unit) {
-    TextButton(
-        onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-        modifier = Modifier.heightIn(min = 32.dp, max = 32.dp),
-    ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+    Box(
+        modifier = Modifier
+            .minTouchTarget()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick, role = Role.Button)
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
 }
 
 /** Small OG-scrape card under an Inbox bubble (Phase 4 item 9, opt-in). */
@@ -2090,7 +2234,9 @@ private fun CompactAction(label: String, onClick: () -> Unit) {
 private fun LinkPreviewCard(url: String) {
     val context = LocalContext.current
     val preview by androidx.compose.runtime.produceState<LinkPreviewParser.Preview?>(null, url) {
-        value = LinkPreview.fetch(url)
+        // V2-08: what comes back has a local file:// imageUrl or none at all, so
+        // the AsyncImage below never makes a network request of its own.
+        value = LinkPreview.fetch(context, url)
     }
     val p = preview ?: return
     Surface(
@@ -2138,7 +2284,7 @@ private fun LinkPreviewCard(url: String) {
     }
 }
 
-private val INFO_FMT = SimpleDateFormat("EEE, d MMM yyyy · h:mm:ss a", Locale.US)
+// V2-45: see the note above DatePill.
 
 /**
  * Carrier spam reporting (Phase 4 item 17). India (SIM country "in"): the
@@ -2174,12 +2320,11 @@ private fun CarrierReportDialog(msg: MessageEntity, onDismiss: () -> Unit) {
         AlertDialog(
             properties = com.messages.app.ui.secret.secureDialogProperties(),
             onDismissRequest = onDismiss,
-            title = { Text("Report to carrier") },
+            title = { Text(stringResource(R.string.chat_report_title)) },
             text = {
                 Column {
                     Text(
-                        "Reporting forwards this message to your carrier's spam " +
-                            "service by SMS. Standard SMS rates may apply.",
+                        stringResource(R.string.chat_report_body),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(Modifier.height(12.dp))
@@ -2189,11 +2334,10 @@ private fun CarrierReportDialog(msg: MessageEntity, onDismiss: () -> Unit) {
                                 com.messages.app.report.CarrierReportFormat.traiComplaint(
                                     msg.body, msg.address, msg.timestamp,
                                 )
-                        }) { Text("Report to 1909 (TRAI DND)") }
+                        }) { Text(stringResource(R.string.chat_report_1909)) }
                         if (!withinWindow) {
                             Text(
-                                "This message is older than 3 days, so TRAI treats it " +
-                                    "as an intelligence report rather than an actionable complaint.",
+                                stringResource(R.string.chat_report_1909_stale),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -2202,21 +2346,21 @@ private fun CarrierReportDialog(msg: MessageEntity, onDismiss: () -> Unit) {
                     TextButton(onClick = {
                         picked = com.messages.app.report.CarrierReportFormat.GSMA_SHORT_CODE to
                             com.messages.app.report.CarrierReportFormat.gsmaReport(msg.body)
-                    }) { Text("Forward to 7726 (SPAM)") }
+                    }) { Text(stringResource(R.string.chat_report_7726)) }
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
         )
     } else {
         AlertDialog(
             properties = com.messages.app.ui.secret.secureDialogProperties(),
             onDismissRequest = onDismiss,
-            title = { Text("Send to ${current.first}?") },
+            title = { Text(stringResource(R.string.chat_report_send_to, current.first)) },
             text = {
                 Column {
                     Text(
-                        "This exact message will be sent:",
+                        stringResource(R.string.chat_report_preview_label),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(Modifier.height(8.dp))
@@ -2233,9 +2377,9 @@ private fun CarrierReportDialog(msg: MessageEntity, onDismiss: () -> Unit) {
                 }
             },
             confirmButton = {
-                TextButton(onClick = { send(current.first, current.second) }) { Text("Send report") }
+                TextButton(onClick = { send(current.first, current.second) }) { Text(stringResource(R.string.chat_report_send)) }
             },
-            dismissButton = { TextButton(onClick = { picked = null }) { Text("Back") } },
+            dismissButton = { TextButton(onClick = { picked = null }) { Text(stringResource(R.string.action_back)) } },
         )
     }
 }
@@ -2252,7 +2396,7 @@ private fun MessageInfoSheet(
                 properties = com.messages.app.ui.secret.secureSheetProperties(),
                 onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
-            Text("Message info", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.chat_message_info), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(16.dp))
             InfoRow("Type", buildString {
                 append(if (msg.mmsId != null) "MMS" else "SMS")
@@ -2260,7 +2404,7 @@ private fun MessageInfoSheet(
             })
             InfoRow(
                 if (msg.isOutgoing) "Sent" else "Received",
-                INFO_FMT.format(Date(msg.timestamp)),
+                AppDateFormat.fullWithSeconds(msg.timestamp),
             )
             if (msg.isOutgoing && msg.sendStatus != "NONE") {
                 InfoRow("Status", msg.sendStatus.lowercase().replaceFirstChar { it.uppercase() })

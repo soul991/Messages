@@ -1,11 +1,13 @@
 package com.messages.app.ui.chat
 
 import android.content.Context
+import android.net.Uri
 import android.util.LruCache
-import java.net.HttpURLConnection
-import java.net.InetAddress
-import java.net.URL
+import com.messages.app.net.SafeHttp
+import java.io.File
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -16,36 +18,43 @@ import kotlinx.coroutines.withContext
  *   message content"; previews are the one user-opted exception.
  * - Callers gate WHO gets previews (Inbox only, never filtered folders, never
  *   Dangerous/fraud-flagged messages) — enforced in ChatScreen, restated here.
- * - No cookies are ever sent or stored (no CookieHandler is installed
- *   app-wide; the request carries no Cookie header), no redirects across
- *   scheme downgrades, HTTPS only.
- * - Timeout-safe: 5s connect / 5s read, response capped at 256 KB, failures
- *   cached as misses so a dead link is fetched once per process, not per
- *   recomposition.
+ * - No cookies are ever sent or stored, no redirects across scheme downgrades,
+ *   HTTPS only.
+ * - Timeout-safe: 5s connect / 5s read with a whole-call ceiling, HTML capped
+ *   at 256 KB and images at 512 KB, failures cached as misses so a dead link is
+ *   fetched once per process, not per recomposition.
  *
- * R-20 (SSRF): the URL in a preview is chosen by whoever sent the message, so
- * every hop is treated as hostile:
+ * R-20 / V2-09 (SSRF, DNS rebinding, TLS): every hop goes through [SafeHttp],
+ * which connects **by hostname** — so SNI and certificate verification use the
+ * real host — while resolving through a DNS override that only ever yields
+ * public addresses. The earlier approach (connect to a literal IP, carry a
+ * `Host:` header) sent no usable SNI and broke every shared-certificate host.
  *
- * - [requirePublicHttps] rejects non-HTTPS, embedded credentials, non-443
- *   ports, and any host that resolves to a loopback/private/link-local/
- *   multicast/ULA address — closing off routers, cloud metadata endpoints and
- *   other LAN services.
- * - EVERY redirect target is re-validated, not just the first URL.
- * - The connection is pinned to the address that passed validation, so a second
- *   DNS lookup cannot swap in a private address afterwards (DNS rebinding).
- * - og:image URLs are validated with the SAME policy before Coil ever sees
- *   them; an image on a private host is dropped rather than fetched.
+ * V2-08 (the image): an `og:image` URL used to be validated here and then handed
+ * to Coil, which resolved the hostname a *second* time — the gap a rebinding
+ * attack lives in. Now the bytes are fetched through the same validated client
+ * and written to the app cache, and [LinkPreviewParser.Preview.imageUrl] is
+ * rewritten to that local `file://` URI.
+ *
+ * **Invariant:** after [fetch] returns, `imageUrl` is either a local file URI or
+ * null. It is never a remote URL, so no image loader ever performs a network
+ * fetch on message-derived content.
  */
 object LinkPreview {
 
-    private const val MAX_BYTES = 256 * 1024
-    private const val TIMEOUT_MS = 5_000
-    private const val MAX_REDIRECTS = 3
+    private const val MAX_HTML_BYTES = 256 * 1024
+    private const val MAX_IMAGE_BYTES = 512 * 1024
+
+    private const val IMAGE_DIR = "link_previews"
+    private const val IMAGE_MAX_AGE_MS = 24L * 60 * 60 * 1000
 
     /** url → Result-ish: Preview, or null = known miss. */
     private val cache = LruCache<String, Optional>(64)
 
     private class Optional(val value: LinkPreviewParser.Preview?)
+
+    /** Cached images are swept once per process; nothing here is hot enough to warrant more. */
+    private val pruned = AtomicBoolean(false)
 
     fun enabled(context: Context): Boolean =
         context.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -59,125 +68,82 @@ object LinkPreview {
     /** First https URL in the body, if any (http is never previewed). */
     fun firstUrl(body: String): String? = LinkPreviewParser.firstUrl(body)
 
-    suspend fun fetch(url: String): LinkPreviewParser.Preview? = withContext(Dispatchers.IO) {
-        cache.get(url)?.let { return@withContext it.value }
-        val result = runCatching { fetchOnce(url) }.getOrNull()
-        cache.put(url, Optional(result))
-        result
+    suspend fun fetch(context: Context, url: String): LinkPreviewParser.Preview? =
+        withContext(Dispatchers.IO) {
+            cache.get(url)?.let { return@withContext it.value }
+            val appContext = context.applicationContext
+            val result = runCatching { fetchOnce(appContext, url) }.getOrNull()
+            cache.put(url, Optional(result))
+            result
+        }
+
+    private fun fetchOnce(context: Context, rawUrl: String): LinkPreviewParser.Preview? {
+        val page = SafeHttp.get(
+            rawUrl = rawUrl,
+            accept = "text/html",
+            maxBytes = MAX_HTML_BYTES,
+            contentTypeOk = { it?.contains("text/html", ignoreCase = true) == true },
+        ) ?: return null
+
+        // Parse against the URL we actually landed on, so relative OG values and
+        // the displayed link agree with the final hop rather than the first.
+        val html = String(page.bytes, StandardCharsets.UTF_8)
+        val preview = LinkPreviewParser.parse(page.url.toString(), html) ?: return null
+
+        return preview.copy(imageUrl = localImageUriOrNull(context, preview.imageUrl))
     }
 
     /**
-     * R-20: public-internet HTTPS only. Returns the validated URL paired with
-     * the address it resolved to, so the caller can pin the connection to that
-     * exact address instead of re-resolving.
+     * Fetch [remoteUrl] through the validated client and return a `file://` URI
+     * for the cached bytes, or null if it cannot be fetched safely.
+     *
+     * A preview without a thumbnail is a fine outcome; handing out a remote URL
+     * is not, so every failure path here returns null rather than falling back.
      */
-    internal fun requirePublicHttps(raw: String): Pair<URL, InetAddress>? {
-        val url = runCatching { URL(raw) }.getOrNull() ?: return null
-        if (!url.protocol.equals("https", ignoreCase = true)) return null
-        if (url.userInfo != null) return null
-        if (url.port != -1 && url.port != 443) return null
-        val addresses = runCatching { InetAddress.getAllByName(url.host) }.getOrNull()
-        if (addresses.isNullOrEmpty()) return null
-        // ALL resolved addresses must be public: a host that returns one public
-        // and one private address must not be reachable via the private one.
-        if (addresses.any { !isPublicAddress(it) }) return null
-        return url to addresses.first()
+    private fun localImageUriOrNull(context: Context, remoteUrl: String?): String? {
+        val url = remoteUrl ?: return null
+        val dir = File(context.cacheDir, IMAGE_DIR)
+        if (pruned.compareAndSet(false, true)) pruneStaleImages(dir)
+
+        val cached = File(dir, cacheName(url))
+        if (cached.isFile && cached.length() > 0) return Uri.fromFile(cached).toString()
+
+        val image = SafeHttp.get(
+            rawUrl = url,
+            accept = "image/*",
+            maxBytes = MAX_IMAGE_BYTES,
+            contentTypeOk = { it?.startsWith("image/", ignoreCase = true) == true },
+        ) ?: return null
+        if (image.bytes.isEmpty()) return null
+
+        if (!dir.isDirectory && !dir.mkdirs()) return null
+        // Write-then-rename: a torn file would otherwise be served from cache
+        // forever, since presence is what the hit check tests.
+        val tmp = File(dir, cacheName(url) + ".tmp")
+        val ok = runCatching {
+            tmp.writeBytes(image.bytes)
+            tmp.renameTo(cached)
+        }.getOrDefault(false)
+        if (!ok) {
+            tmp.delete()
+            return null
+        }
+        return Uri.fromFile(cached).toString()
     }
 
-    private fun isPublicAddress(address: InetAddress): Boolean {
-        val bytes = address.address
-        // IPv6 unique-local (fc00::/7) has no isSiteLocalAddress equivalent.
-        val ipv6Ula = bytes.size == 16 && (bytes[0].toInt() and 0xfe) == 0xfc
-        return !address.isAnyLocalAddress &&
-            !address.isLoopbackAddress &&
-            !address.isLinkLocalAddress &&
-            !address.isSiteLocalAddress &&
-            !address.isMulticastAddress &&
-            !ipv6Ula
+    /** Content-addressed by URL: no attacker-controlled bytes reach the filename. */
+    private fun cacheName(url: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(url.toByteArray(StandardCharsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) } + ".img"
     }
 
-    /**
-     * Validate an og:image URL under the same policy as the page fetch. Returns
-     * null when the image must not be loaded — ChatScreen drops the thumbnail
-     * rather than handing an unvalidated URL to Coil.
-     */
-    fun safeImageUrlOrNull(raw: String?): String? {
-        val candidate = raw ?: return null
-        return requirePublicHttps(candidate)?.first?.toString()
-    }
-
-    private fun fetchOnce(rawUrl: String): LinkPreviewParser.Preview? {
-        var current = rawUrl
-        // Follow at most 3 redirects, https→https only, by hand so a redirect to
-        // plain http — or to a private address — can never happen silently.
-        repeat(MAX_REDIRECTS) {
-            val (url, pinned) = requirePublicHttps(current) ?: return null
-            val conn = openPinned(url, pinned) ?: return null
-            try {
-                conn.connectTimeout = TIMEOUT_MS
-                conn.readTimeout = TIMEOUT_MS
-                conn.instanceFollowRedirects = false
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android) MessagesPreview/1.0")
-                conn.setRequestProperty("Accept", "text/html")
-                val code = conn.responseCode
-                if (code in 300..399) {
-                    val next = conn.getHeaderField("Location") ?: return null
-                    val resolved = runCatching { URL(url, next).toString() }.getOrNull()
-                        ?: return null
-                    // Re-validated at the top of the next iteration.
-                    current = resolved
-                    return@repeat
-                }
-                if (code != 200) return null
-                if (conn.contentType?.contains("text/html") != true) return null
-                val html = conn.inputStream.use { input ->
-                    input.readNBytesCompat(MAX_BYTES).toString(StandardCharsets.UTF_8)
-                }
-                val preview = LinkPreviewParser.parse(url.toString(), html) ?: return null
-                // Drop an image that points anywhere non-public (R-20).
-                return preview.copy(imageUrl = safeImageUrlOrNull(preview.imageUrl))
-            } finally {
-                conn.disconnect()
+    private fun pruneStaleImages(dir: File) {
+        val cutoff = System.currentTimeMillis() - IMAGE_MAX_AGE_MS
+        runCatching {
+            dir.listFiles()?.forEach { file ->
+                if (file.isFile && file.lastModified() < cutoff) file.delete()
             }
         }
-        return null
-    }
-
-    /**
-     * Connect to the exact [pinned] address that passed validation, carrying the
-     * original Host header and verifying the certificate against the real
-     * hostname. Without this, HttpURLConnection performs its own DNS lookup and
-     * a rebinding attack can point that second lookup at a private address.
-     */
-    private fun openPinned(url: URL, pinned: InetAddress): HttpURLConnection? {
-        val hostAddress = pinned.hostAddress ?: return null
-        // Bracket IPv6 literals so they parse as a URL authority.
-        val literal = if (hostAddress.contains(':')) "[$hostAddress]" else hostAddress
-        val byAddress = runCatching {
-            URL(url.protocol, literal, url.port, url.file)
-        }.getOrNull() ?: return null
-        val conn = runCatching { byAddress.openConnection() as? HttpURLConnection }
-            .getOrNull() ?: return null
-        conn.setRequestProperty("Host", url.host)
-        (conn as? javax.net.ssl.HttpsURLConnection)?.let { https ->
-            val default = javax.net.ssl.HttpsURLConnection.getDefaultHostnameVerifier()
-            https.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, session ->
-                default.verify(url.host, session)
-            }
-        }
-        return conn
-    }
-
-    private fun java.io.InputStream.readNBytesCompat(limit: Int): ByteArray {
-        val buf = java.io.ByteArrayOutputStream()
-        val chunk = ByteArray(8 * 1024)
-        var total = 0
-        while (total < limit) {
-            val n = read(chunk, 0, minOf(chunk.size, limit - total))
-            if (n < 0) break
-            buf.write(chunk, 0, n)
-            total += n
-        }
-        return buf.toByteArray()
     }
 }

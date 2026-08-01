@@ -70,7 +70,16 @@ class FakeSmsProvider : ContentProvider() {
 class LockedResetTest {
 
     @org.junit.Before
-    fun freshSingleton() = MessageRepository.resetForTests()
+    fun freshSingleton() {
+        MessageRepository.resetForTests()
+        // V2-6: without a working key box the locked rows below would be
+        // stored in the clear, and the encryption assertions would pass
+        // vacuously for the wrong reason.
+        com.messages.core.secret.TestKeyBox.install()
+    }
+
+    @org.junit.After
+    fun restoreKeyBox() = com.messages.core.secret.TestKeyBox.uninstall()
 
     @Test
     fun `reset wipes locked rows and provider rows, reverts routing, old envelope stays sealed`() =
@@ -101,10 +110,23 @@ class LockedResetTest {
             repo.moveToTrash(routedB.id) // locked trash must die too, never resurface
             val lockedProviderIds = listOfNotNull(routedA.smsId, routedB.smsId)
             assertEquals(2, lockedProviderIds.size) // fake provider gave real ids
-            // Trashing already removed B's provider row (§6.4 — deletion is
-            // provider-immediate); A's live row is what Reset must destroy.
-            assertTrue(provider.rows.containsKey(routedA.smsId!!))
+            // V2-6: this used to assert A's provider row still EXISTED here —
+            // the locked space concealed a message inside this app while
+            // leaving a readable copy in shared storage for any app with the
+            // SMS role. Both copies must be gone the moment a message lands
+            // locked, so there is nothing left for Reset to find.
+            assertFalse(
+                "a locked message must leave no Telephony copy behind",
+                provider.rows.containsKey(routedA.smsId!!),
+            )
             assertFalse(provider.rows.containsKey(routedB.smsId!!))
+            // And the body it left in this app's own index is ciphertext.
+            db.messages().allInSpace(Spaces.LOCKED).forEach {
+                assertTrue(
+                    "locked row stored in the clear: ${it.body}",
+                    com.messages.core.secret.LockedContent.isSealed(it.body),
+                )
+            }
 
             // A backup taken BEFORE the reset (envelope sealed under "1122").
             val oldBackup = BackupManager.export(context)

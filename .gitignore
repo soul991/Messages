@@ -40,3 +40,9 @@ google-services.json
 # original community zips under design-refs/archives/) — never committed
 design-refs/
 /*.zip
+
+# Code-review working notes — the reviewer's findings and the running log of
+# fixing them. Session artefacts, not part of the app; the outcome lives in the
+# code and its tests.
+/codex_review_v2.md
+/52_issues_solve_progress.md

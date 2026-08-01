@@ -81,13 +81,13 @@ class UnreadPredicateTest {
     @Test
     fun `reading a chat drops it live and mark-as-unread adds it live`() = runTest {
         // Open chat 1 → clearUnread → drops out of filter AND chip count together.
-        db.conversations().clearUnread(1)
+        db.conversations().clearUnread(1, Spaces.NORMAL)
         assertEquals(listOf(6L, 5L), db.conversations().byCategoryUnread("INBOX").first().map { it.threadId })
         assertEquals(2, db.conversations().unreadConversationCount("INBOX").first())
 
         // Mark chat 2 as unread (badge-level marker; message rows stay read —
         // exactly the case the old message-level chip count missed).
-        db.conversations().markUnread(2)
+        db.conversations().markUnread(2, Spaces.NORMAL)
         val after = db.conversations().byCategoryUnread("INBOX").first().map { it.threadId }
         assertTrue(2L in after)
         assertEquals(3, db.conversations().unreadConversationCount("INBOX").first())

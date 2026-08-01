@@ -37,7 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,11 +45,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.messages.app.R
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.ui.common.AppDateFormat
 import com.messages.app.ui.common.ContactAvatar
 import com.messages.core.MessageRepository
 import com.messages.core.db.ConversationEntity
@@ -60,12 +64,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.messages.core.secret.LockedContent
 
 class LockedSpaceViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = MessageRepository.get(app)
+
+    /** Held as a property because `app` is a plain constructor parameter and so
+     *  is out of scope inside member functions. */
+    private val ctx = app.applicationContext
 
     val folder = MutableStateFlow("INBOX")
 
@@ -74,7 +80,10 @@ class LockedSpaceViewModel(app: Application) : AndroidViewModel(app) {
     fun conversationsFor(category: String): StateFlow<List<ConversationEntity>?> =
         cache.getOrPut(category) {
             repo.db.conversations().byCategory(category, Spaces.LOCKED)
-                .map<List<ConversationEntity>, List<ConversationEntity>?> { it }
+                // V2-6: the preview snippet of a locked conversation is sealed.
+                .map<List<ConversationEntity>, List<ConversationEntity>?> {
+                    LockedContent.open(ctx, it)
+                }
                 .stateIn(viewModelScope, SharingStarted.Lazily, null)
         }
 
@@ -96,12 +105,12 @@ class LockedSpaceViewModel(app: Application) : AndroidViewModel(app) {
 }
 
 private val FOLDERS = listOf(
-    "INBOX" to "Inbox",
-    "TRANSACTIONS" to "Transactions",
-    "PROMOTIONS" to "Promotions",
-    "SPAM" to "Spam",
-    "REVIEW" to "Review",
-    "BLOCKED" to "Blocked",
+    "INBOX" to R.string.category_inbox,
+    "TRANSACTIONS" to R.string.category_transactions,
+    "PROMOTIONS" to R.string.category_promotions,
+    "SPAM" to R.string.category_spam,
+    "REVIEW" to R.string.category_review,
+    "BLOCKED" to R.string.home_folder_blocked,
 )
 
 /**
@@ -121,8 +130,8 @@ fun LockedSpaceScreen(
     vm: LockedSpaceViewModel = viewModel(),
 ) {
     val context = LocalContext.current
-    val folder by vm.folder.collectAsState()
-    val conversations by vm.conversationsFor(folder).collectAsState()
+    val folder by vm.folder.collectAsStateWithLifecycle()
+    val conversations by vm.conversationsFor(folder).collectAsStateWithLifecycle()
     var sheetThread by remember { mutableStateOf<ConversationEntity?>(null) }
     val notifyOff = remember {
         com.messages.core.secret.SecretSpace.notifyMode(context) ==
@@ -137,7 +146,7 @@ fun LockedSpaceScreen(
                     title = {
                         if (notifyOff) {
                             Icon(
-                                Icons.Filled.NotificationsOff, contentDescription = "Notifications off",
+                                Icons.Filled.NotificationsOff, contentDescription = stringResource(R.string.secret_notifications_off),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp),
                             )
@@ -148,12 +157,15 @@ fun LockedSpaceScreen(
                     ),
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                            )
                         }
                     },
                     actions = {
                         IconButton(onClick = onOpenSettings) {
-                            Icon(Icons.Filled.Settings, contentDescription = "Locked chats settings")
+                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.secret_settings_title))
                         }
                     },
                 )
@@ -167,7 +179,7 @@ fun LockedSpaceScreen(
             androidx.compose.material3.ExtendedFloatingActionButton(
                 onClick = onCompose,
                 icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                text = { Text("New message") },
+                text = { Text(stringResource(R.string.secret_new_message)) },
             )
         },
     ) { padding ->
@@ -179,13 +191,22 @@ fun LockedSpaceScreen(
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FOLDERS.forEach { (key, label) ->
-                    val unread by vm.folderUnread(key).collectAsState(initial = 0)
+                FOLDERS.forEach { (key, labelRes) ->
+                    val unread by vm.folderUnread(key).collectAsStateWithLifecycle(initialValue = 0)
+                    val label = stringResource(labelRes)
                     FilterChip(
                         selected = folder == key,
                         onClick = { vm.setFolder(key) },
                         label = {
-                            Text(if (unread > 0) "$label $unread" else label)
+                            Text(
+                                if (unread > 0) {
+                                    pluralStringResource(
+                                        R.plurals.secret_folder_unread, unread, label, unread,
+                                    )
+                                } else {
+                                    label
+                                },
+                            )
                         },
                     )
                 }
@@ -198,13 +219,16 @@ fun LockedSpaceScreen(
                         VaultEmptyArt()
                         Spacer(Modifier.height(20.dp))
                         Text(
-                            if (folder == "INBOX") "No locked chats yet" else "Nothing here",
+                            stringResource(
+                                if (folder == "INBOX") R.string.secret_empty_inbox
+                                else R.string.secret_empty_folder,
+                            ),
                             style = MaterialTheme.typography.titleLarge,
                         )
                         if (folder == "INBOX") {
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                "Lock a chat from its ⋮ menu, or start one here.",
+                                stringResource(R.string.secret_empty_inbox_body),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -212,7 +236,7 @@ fun LockedSpaceScreen(
                             androidx.compose.material3.FilledTonalButton(onClick = onCompose) {
                                 Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
-                                Text("New message")
+                                Text(stringResource(R.string.secret_new_message))
                             }
                         }
                     }
@@ -241,9 +265,9 @@ fun LockedSpaceScreen(
             ),
         ) {
             ListItem(
-                headlineContent = { Text("Move back to normal chats") },
+                headlineContent = { Text(stringResource(R.string.secret_unlock_thread)) },
                 supportingContent = {
-                    Text("The whole chat returns to your normal list; new messages stop routing here.")
+                    Text(stringResource(R.string.secret_unlock_thread_body))
                 },
                 leadingContent = { Icon(Icons.Filled.LockOpen, contentDescription = null) },
                 modifier = Modifier.clickable {
@@ -252,7 +276,13 @@ fun LockedSpaceScreen(
                 },
             )
             ListItem(
-                headlineContent = { Text(if (conv.muted) "Unmute" else "Mute") },
+                headlineContent = {
+                    Text(
+                        stringResource(
+                            if (conv.muted) R.string.action_unmute else R.string.action_mute,
+                        ),
+                    )
+                },
                 leadingContent = { Icon(Icons.Filled.NotificationsOff, contentDescription = null) },
                 modifier = Modifier.clickable {
                     vm.toggleMute(conv.threadId, !conv.muted)
@@ -299,7 +329,7 @@ private fun LockedConversationRow(
             }
             Spacer(Modifier.height(2.dp))
             Text(
-                conv.lastMessage.ifBlank { "No messages yet" },
+                conv.lastMessage.ifBlank { stringResource(R.string.secret_no_messages_yet) },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
@@ -313,14 +343,9 @@ private fun LockedConversationRow(
     }
 }
 
-private val lockedTimeFormat = SimpleDateFormat("d MMM", Locale.getDefault())
-private val lockedClockFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-
-private fun formatLockedTime(ts: Long): String {
-    if (ts <= 0) return ""
-    val now = System.currentTimeMillis()
-    val sameDay = now - ts < 24 * 3600_000L &&
-        SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(now)) ==
-        SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(ts))
-    return if (sameDay) lockedClockFormat.format(Date(ts)) else lockedTimeFormat.format(Date(ts))
-}
+// V2-45: this was the file lint pointed at — two formatters built with
+// `Locale.getDefault()` at class-init, so a language change with the process
+// still alive left locked-space rows in the old language. The same-day check
+// also allocated two SimpleDateFormats and formatted two dates *per row* just
+// to compare calendar days; AppDateFormat compares day numbers instead.
+private fun formatLockedTime(ts: Long): String = AppDateFormat.listRowStamp(ts)
