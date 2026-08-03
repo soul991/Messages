@@ -48,7 +48,19 @@ class FakeSmsProvider : ContentProvider() {
     override fun query(
         uri: Uri, projection: Array<out String>?, selection: String?,
         selectionArgs: Array<out String>?, sortOrder: String?,
-    ): Cursor = MatrixCursor(arrayOf("_id")).apply { rows.keys.forEach { addRow(arrayOf(it)) } }
+    ): Cursor {
+        // V2-6b: honor a body projection against a specific row so the
+        // tombstone-recovery path (readProviderBody) is exercisable. The
+        // legacy _id-only shape is preserved for every other caller —
+        // providerRowExists depends on it.
+        val id = uri.lastPathSegment?.toLongOrNull()
+        if (id != null && projection?.contains("body") == true) {
+            return MatrixCursor(arrayOf("body")).apply {
+                rows[id]?.let { addRow(arrayOf(it.getAsString("body"))) }
+            }
+        }
+        return MatrixCursor(arrayOf("_id")).apply { rows.keys.forEach { addRow(arrayOf(it)) } }
+    }
 
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?) = 0
     override fun getType(uri: Uri): String? = null

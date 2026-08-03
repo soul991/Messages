@@ -58,13 +58,16 @@ import com.messages.app.ui.common.ContactAvatar
 import com.messages.core.MessageRepository
 import com.messages.core.db.ConversationEntity
 import com.messages.core.db.Spaces
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.messages.core.secret.LockedContent
+import com.messages.core.secret.LockedWriteBlockedException
 
 class LockedSpaceViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = MessageRepository.get(app)
@@ -95,8 +98,41 @@ class LockedSpaceViewModel(app: Application) : AndroidViewModel(app) {
 
     /** "Unlock chat": whole thread moves back to the normal space. */
     fun unlockThread(threadId: Long, onDone: () -> Unit = {}) = viewModelScope.launch {
-        repo.moveThreadToSpace(threadId, Spaces.LOCKED, Spaces.NORMAL)
+        try {
+            repo.moveThreadToSpace(threadId, Spaces.LOCKED, Spaces.NORMAL)
+        } catch (_: LockedWriteBlockedException) {
+            // V2-6b: unlocking needs the content key to open the rows on the
+            // way out. The banner above the list already says why.
+            return@launch
+        }
         onDone()
+    }
+
+    // ---- V2-6b: seal-health surface for the in-space warning banner ----
+
+    /** Locked rows still held at the degraded pending grade. */
+    val pendingCount: StateFlow<Int> =
+        repo.db.messages().pendingSealCount(LockedContent.PENDING_MARKER)
+            .stateIn(viewModelScope, SharingStarted.Lazily, 0)
+
+    /** Locked TOMBSTONES — rows whose only text copy is the provider row. */
+    val tombstoneCount: StateFlow<Int> =
+        repo.db.messages().lockedTombstoneCount()
+            .stateIn(viewModelScope, SharingStarted.Lazily, 0)
+
+    /** False while the Keystore content key cannot be obtained. */
+    val sealHealthy = MutableStateFlow(true)
+
+    /** The banner's Retry and the auto-repair on entering the space: run the
+     *  backlog pass (upgrades pending rows, recovers tombstones), then re-read
+     *  key health. Serialized against other runs by the repository's mutex. */
+    fun retrySeal() = viewModelScope.launch {
+        runCatching { repo.sealLockedBacklog() }
+        sealHealthy.value = withContext(Dispatchers.IO) { LockedContent.available(ctx) }
+    }
+
+    init {
+        retrySeal()
     }
 
     fun toggleMute(threadId: Long, muted: Boolean) = viewModelScope.launch {
@@ -184,6 +220,40 @@ fun LockedSpaceScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
+            // V2-6b: seal-health warning — rendered ONLY here, behind the
+            // credential. Nothing outside the space may reveal it exists, so
+            // this banner (and the write-blocks it explains) is the whole
+            // user-facing surface of a Keystore outage.
+            val pending by vm.pendingCount.collectAsStateWithLifecycle()
+            val tombstones by vm.tombstoneCount.collectAsStateWithLifecycle()
+            val sealHealthy by vm.sealHealthy.collectAsStateWithLifecycle()
+            if (!sealHealthy || pending > 0 || tombstones > 0) {
+                androidx.compose.material3.Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            stringResource(R.string.secret_seal_warning_title),
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            stringResource(R.string.secret_seal_warning_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                        androidx.compose.material3.TextButton(
+                            onClick = { vm.retrySeal() },
+                            modifier = Modifier.padding(top = 8.dp),
+                        ) { Text(stringResource(R.string.secret_seal_warning_action)) }
+                    }
+                }
+            }
             Row(
                 Modifier
                     .fillMaxWidth()

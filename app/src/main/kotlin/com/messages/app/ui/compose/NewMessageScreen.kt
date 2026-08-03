@@ -170,7 +170,19 @@ class NewMessageViewModel(app: Application) : AndroidViewModel(app) {
     ) = viewModelScope.launch {
         val threadId = repo.threadIdFor(address)
         if (space == com.messages.core.db.Spaces.LOCKED) {
-            repo.createLockedConversation(threadId, address)
+            try {
+                repo.createLockedConversation(threadId, address)
+            } catch (_: com.messages.core.secret.LockedWriteBlockedException) {
+                // V2-6b: the locked space refuses new conversations while its
+                // content key is down. A dead tap would look broken; say why.
+                android.widget.Toast.makeText(
+                    getApplication(),
+                    getApplication<android.app.Application>()
+                        .getString(R.string.secret_seal_blocked_write),
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+                return@launch
+            }
         }
         onResult(threadId)
     }

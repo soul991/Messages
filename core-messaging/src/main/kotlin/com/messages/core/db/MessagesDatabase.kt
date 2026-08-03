@@ -92,6 +92,30 @@ interface MessageDao {
     )
     suspend fun lockedIncomingAt(address: String, timestamp: Long): List<MessageEntity>
 
+    /**
+     * V2-6b: locked rows still sealed at the degraded pending grade (marker
+     * passed in as a bound prefix — it contains no LIKE wildcards). Drives the
+     * in-space warning banner; upgraded rows drop out as the backlog re-seals
+     * them.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM messages WHERE space = 'LOCKED' " +
+            "AND (body LIKE :prefix || '%' OR normalizedBody LIKE :prefix || '%')"
+    )
+    fun pendingSealCount(prefix: String): Flow<Int>
+
+    /**
+     * V2-6b: locked TOMBSTONES — rows whose text is withheld and whose only
+     * copy is the surviving Telephony-provider row. The un-flagged mapping is
+     * what distinguishes them from an attachment-only MMS whose purge failed
+     * (deleteFailed = 1).
+     */
+    @Query(
+        "SELECT COUNT(*) FROM messages m WHERE m.space = 'LOCKED' AND m.body = '' " +
+            "AND EXISTS (SELECT 1 FROM provider_rows p WHERE p.messageId = m.id AND p.deleteFailed = 0)"
+    )
+    fun lockedTombstoneCount(): Flow<Int>
+
     @Query("UPDATE messages SET category = :category, dangerous = 0 WHERE id = :id")
     suspend fun recategorize(id: Long, category: String)
 

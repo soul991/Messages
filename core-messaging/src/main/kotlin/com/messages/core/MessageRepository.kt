@@ -18,7 +18,11 @@ import com.messages.core.media.MediaRef
 import com.messages.core.mms.MmsPduParser
 import com.messages.core.search.MessageSearch
 import com.messages.core.secret.LockedContent
+import com.messages.core.secret.LockedSealException
+import com.messages.core.secret.LockedWriteBlockedException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.messages.core.send.SendAggregate
 import com.messages.core.send.SendRetry
 import com.messages.core.trash.TrashRetention
@@ -78,6 +82,16 @@ class MessageRepository private constructor(private val context: Context) {
         LockedContent.seal(context, LockedContent.open(context, this))
 
     private fun ConversationEntity.opened(): ConversationEntity = LockedContent.open(context, this)
+
+    /**
+     * V2-6b: user-initiated locked-space writes are refused while the content
+     * key is unavailable, rather than accepted at the degraded pending grade.
+     * The user is present to see the error and retry; arriving mail — which
+     * nobody can refuse — is the only thing that degrades (see [onIncomingSms]).
+     */
+    private fun requireLockedWrites() {
+        if (!LockedContent.available(context)) throw LockedWriteBlockedException()
+    }
 
     /** Stage-0 normalization for the FTS index (§8.5) — never fails the caller. */
     fun normalizedOf(body: String): String =
@@ -185,8 +199,13 @@ class MessageRepository private constructor(private val context: Context) {
             // inflated unread count, no duplicate notification.
             val existing = db.messages().findIncomingDuplicate(address, timestamp, body)
             // V2-6: sealed locked bodies cannot be matched by the SQL above.
+            // V2-6b: a TOMBSTONE (apocalypse-corner row, text withheld) cannot
+            // body-compare at all — match it by identity instead: same sender,
+            // same carrier millisecond, an SMS row with no text.
                 ?: db.messages().lockedIncomingAt(address, timestamp)
-                    .firstOrNull { it.opened().body == body }
+                    .firstOrNull {
+                        it.opened().body == body || (it.smsId != null && it.body.isEmpty())
+                    }
             if (existing != null) {
                 return@withContext Intake(
                     existing,
@@ -246,7 +265,18 @@ class MessageRepository private constructor(private val context: Context) {
                 explanations = verdict.explanations.joinToString("\n"),
                 space = space,
             )
-            val id = db.messages().insert(entity.sealed())
+            // V2-6b: sealing is fail-closed. In the worst corner — Keystore
+            // down AND the fallback key unusable — the row is stored as a
+            // TOMBSTONE: empty text, provider copy kept as the only copy for
+            // sealLockedBacklog to recover from. Never plaintext.
+            val sealedEntity = try {
+                entity.sealed()
+            } catch (_: LockedSealException) {
+                null
+            }
+            val id = db.messages().insert(
+                sealedEntity ?: entity.copy(body = "", normalizedBody = "")
+            )
             // R-16: IGNORE-on-conflict returns -1 when the smsId unique index
             // rejected the row. Nothing was stored, so nothing may be counted.
             if (id == -1L) {
@@ -261,8 +291,15 @@ class MessageRepository private constructor(private val context: Context) {
             // The mapping is written first even for a locked message: the purge
             // below deletes through it, and if the purge fails the mapping is
             // what lets retryFailedProviderDeletions try again later.
-            purgeProviderCopyIfLocked(entity.copy(id = id))
-            updateConversation(threadId, address, body, timestamp, verdict.category.name, incrementUnread = true, space = space)
+            // A tombstone skips the purge — its provider row IS the message.
+            if (sealedEntity != null) purgeProviderCopyIfLocked(entity.copy(id = id))
+            val preview = if (sealedEntity != null) body else ""
+            try {
+                updateConversation(threadId, address, preview, timestamp, verdict.category.name, incrementUnread = true, space = space)
+            } catch (_: LockedSealException) {
+                // Same corner racing the preview seal: record activity, not content.
+                updateConversation(threadId, address, "", timestamp, verdict.category.name, incrementUnread = true, space = space)
+            }
             Intake(entity.copy(id = id), verdict)
         }
 
@@ -470,7 +507,16 @@ class MessageRepository private constructor(private val context: Context) {
             mediaMimeType = media?.mimeType,
             space = space,
         )
-        val id = db.messages().insert(entity.sealed())
+        // V2-6b: fail-closed, same as SMS — the apocalypse corner stores a
+        // TOMBSTONE (empty text, provider copy kept), never plaintext.
+        val sealedEntity = try {
+            entity.sealed()
+        } catch (_: LockedSealException) {
+            null
+        }
+        val id = db.messages().insert(
+            sealedEntity ?: entity.copy(body = "", normalizedBody = "")
+        )
         // R-16: an IGNOREd insert stored nothing, so nothing may be counted or
         // notified for it — the same rule the SMS intake follows.
         if (id == -1L) return@withContext null
@@ -486,9 +532,14 @@ class MessageRepository private constructor(private val context: Context) {
                 )
             )
         }
-        val preview = textBody.ifBlank { mediaPreview(media?.mimeType) }
-        purgeProviderCopyIfLocked(entity.copy(id = id))
-        updateConversation(threadId, address, preview, timestamp, verdict.category.name, incrementUnread = true, space = space)
+        val preview =
+            if (sealedEntity != null) textBody.ifBlank { mediaPreview(media?.mimeType) } else ""
+        if (sealedEntity != null) purgeProviderCopyIfLocked(entity.copy(id = id))
+        try {
+            updateConversation(threadId, address, preview, timestamp, verdict.category.name, incrementUnread = true, space = space)
+        } catch (_: LockedSealException) {
+            updateConversation(threadId, address, "", timestamp, verdict.category.name, incrementUnread = true, space = space)
+        }
         entity.copy(id = id) to verdict
     }
 
@@ -774,6 +825,8 @@ class MessageRepository private constructor(private val context: Context) {
         attachment: MmsPduParser.Attachment?,
         space: String = Spaces.NORMAL,
     ): MessageEntity = withContext(Dispatchers.IO) {
+        // V2-6b: refuse a locked send while the content key is down.
+        if (space == Spaces.LOCKED) requireLockedWrites()
         val recipients = recipientsOf(address)
         val threadId = resolveThreadId(address)
         var createdMmsId: Long? = null
@@ -914,6 +967,8 @@ class MessageRepository private constructor(private val context: Context) {
         space: String = Spaces.NORMAL,
     ): MessageEntity =
         withContext(Dispatchers.IO) {
+            // V2-6b: refuse a locked send while the content key is down.
+            if (space == Spaces.LOCKED) requireLockedWrites()
             val threadId = resolveThreadId(address)
             val entity = MessageEntity(
                 threadId = threadId,
@@ -1006,6 +1061,8 @@ class MessageRepository private constructor(private val context: Context) {
         subId: Int? = null,
         space: String = Spaces.NORMAL,
     ): MessageEntity = withContext(Dispatchers.IO) {
+        // V2-6b: refuse a locked scheduled send while the content key is down.
+        if (space == Spaces.LOCKED) requireLockedWrites()
         val threadId = resolveThreadId(address)
         val entity = MessageEntity(
             threadId = threadId,
@@ -1038,6 +1095,13 @@ class MessageRepository private constructor(private val context: Context) {
             // whose compare-and-set actually updated a row may proceed.
             if (db.messages().claimScheduled(messageId) != 1) return@withContext null
             val msg = db.messages().byId(messageId)?.opened() ?: return@withContext null
+            // V2-6b: never hand ciphertext to the radio. A locked scheduled row
+            // whose body cannot be opened (content key unavailable) releases
+            // its claim and stays SCHEDULED until the key returns.
+            if (msg.space == Spaces.LOCKED && LockedContent.isSealed(msg.body)) {
+                db.messages().releaseScheduledClaim(messageId)
+                return@withContext null
+            }
             val now = System.currentTimeMillis()
             val smsId = try {
                 writeOutgoingSmsToProvider(
@@ -1108,6 +1172,8 @@ class MessageRepository private constructor(private val context: Context) {
         sendAt: Long? = null,
     ): MessageEntity? = withContext(Dispatchers.IO) {
         val current = db.messages().byId(messageId)?.opened() ?: return@withContext null
+        // V2-6b: editing rewrites the body — a locked write like any other.
+        if (current.space == Spaces.LOCKED) requireLockedWrites()
         if (current.sendStatus != "SCHEDULED" && current.sendStatus != SendAggregate.FAILED) {
             return@withContext null
         }
@@ -1445,6 +1511,10 @@ class MessageRepository private constructor(private val context: Context) {
     suspend fun createLockedConversation(threadId: Long, address: String? = null) =
         withContext(Dispatchers.IO) {
             if (db.conversations().byThreadId(threadId, Spaces.LOCKED) != null) return@withContext
+            // V2-6b: creating the routing row makes every future incoming
+            // message from this thread a locked write — refuse to start that
+            // while the content key is down.
+            requireLockedWrites()
             val normal = db.conversations().byThreadId(threadId, Spaces.NORMAL)
             val resolvedAddress = normal?.address ?: address ?: return@withContext
             db.conversations().upsert(
@@ -1499,6 +1569,11 @@ class MessageRepository private constructor(private val context: Context) {
      */
     suspend fun moveThreadToSpace(threadId: Long, from: String, to: String) =
         withContext(Dispatchers.IO) {
+            // V2-6b: BOTH directions need the content key. Moving in must seal;
+            // moving out must open — unlocking while the key is down would
+            // strand real-sealed ciphertext in the normal space, where the
+            // backlog repair (locked-space-scoped) could never find it again.
+            if (from == Spaces.LOCKED || to == Spaces.LOCKED) requireLockedWrites()
             val source = db.conversations().byThreadId(threadId, from) ?: return@withContext
             db.messages().setThreadSpace(threadId, from, to)
             // V2-6: setThreadSpace is a bulk UPDATE of one column — it cannot
@@ -1568,34 +1643,119 @@ class MessageRepository private constructor(private val context: Context) {
      * partially-sealed space that the next run simply finishes — the marker
      * prefix means both halves read correctly meanwhile.
      */
+    /** V2-6b: serializes backlog runs — cold start, entering the locked space
+     *  and the banner's Retry could otherwise race a tombstone repair against
+     *  its own provider-row delete. */
+    private val backlogMutex = Mutex()
+
     suspend fun sealLockedBacklog(): Int = withContext(Dispatchers.IO) {
-        if (!LockedContent.available(context)) return@withContext 0
-        var changed = 0
-        db.messages().allInSpace(Spaces.LOCKED).forEach { row ->
-            // isCanonical decides this, NOT a before/after comparison of the
-            // ciphertext. Sealing draws a fresh nonce every time, so a re-sealed
-            // row never equals its stored self — a comparison would report every
-            // locked row as repaired on every cold start, rewriting the whole
-            // space and re-firing the FTS triggers for each row, forever.
-            if (!LockedContent.isCanonical(row)) {
-                val recoded = row.sealed()
-                // Unequal only if sealing actually succeeded; if the cipher
-                // failed for this row it stays non-canonical and the next run
-                // retries it, which is the behaviour we want.
-                if (recoded != row) {
-                    db.messages().update(recoded)
-                    changed++
+        backlogMutex.withLock {
+            if (!LockedContent.available(context)) return@withLock 0
+            var changed = 0
+            val repairedThreads = mutableSetOf<Long>()
+            db.messages().allInSpace(Spaces.LOCKED).forEach { row ->
+                var current = row
+                // V2-6b: a TOMBSTONE — text withheld by the apocalypse corner,
+                // provider copy kept as the only copy. Its mapping is
+                // deliberately NOT flagged deleteFailed (flagged mappings are
+                // ordinary purge retries for rows that already hold their text),
+                // which is what tells the two apart from an attachment-only MMS
+                // whose purge failed.
+                val isTombstone = row.body.isEmpty() &&
+                    db.providerRows().forMessage(row.id).any { !it.deleteFailed }
+                if (isTombstone) {
+                    val text = readProviderBody(row)
+                        ?: return@forEach // provider unreadable: KEEP the only copy
+                    if (text.isNotBlank()) {
+                        current = try {
+                            row.copy(body = text, normalizedBody = normalizedOf(text)).sealed()
+                        } catch (_: LockedSealException) {
+                            return@forEach // still can't seal: keep the only copy
+                        }
+                        db.messages().update(current)
+                        repairedThreads += row.threadId
+                        changed++
+                    }
+                    // Blank text: nothing was withheld — fall through and let
+                    // the provider copy go.
+                } else if (!LockedContent.isCanonical(row)) {
+                    // isCanonical decides this, NOT a before/after comparison of
+                    // the ciphertext. Sealing draws a fresh nonce every time, so
+                    // a re-sealed row never equals its stored self — a comparison
+                    // would report every locked row as repaired on every cold
+                    // start, rewriting the whole space and re-firing the FTS
+                    // triggers for each row, forever. Pending-grade rows are
+                    // non-canonical, so this is also where they upgrade to the
+                    // real seal.
+                    val recoded = try {
+                        row.sealed()
+                    } catch (_: LockedSealException) {
+                        return@forEach // stays non-canonical; the next run retries
+                    }
+                    if (recoded != row) {
+                        db.messages().update(recoded)
+                        changed++
+                    }
+                    current = recoded
                 }
+                // A row sealed by an earlier run may still have a provider copy
+                // if that run was interrupted between the two; deleteProviderRows
+                // is a no-op once the mapping is gone. Runs strictly AFTER any
+                // tombstone repair — never before, or it destroys the only copy.
+                deleteProviderRows(current)
             }
-            // A row sealed by an earlier run may still have a provider copy if
-            // that run was interrupted between the two; deleteProviderRows is a
-            // no-op once the mapping is gone.
-            deleteProviderRows(row)
+            db.conversations().allConversations()
+                .filter { it.space == Spaces.LOCKED && !LockedContent.isCanonical(it) }
+                .forEach { conv ->
+                    runCatching { db.conversations().upsert(conv.sealed()) }
+                }
+            // A repaired tombstone has real text now; let its conversation row
+            // say so (the guard in refreshConversationSummary keeps this safe).
+            repairedThreads.forEach { refreshConversationSummary(it, Spaces.LOCKED) }
+            changed
         }
-        db.conversations().allConversations()
-            .filter { it.space == Spaces.LOCKED && !LockedContent.isCanonical(it) }
-            .forEach { db.conversations().upsert(it.sealed()) }
-        changed
+    }
+
+    /**
+     * V2-6b: recover the text of a tombstoned locked row from its surviving
+     * Telephony-provider copy. Null means "could not read" — the caller must
+     * then leave the provider row alone, because it is the only copy. An empty
+     * string means "read fine, nothing there" (or the row is gone — nothing
+     * left to recover), which lets the caller proceed.
+     */
+    private suspend fun readProviderBody(msg: MessageEntity): String? {
+        val mapped = db.providerRows().forMessage(msg.id)
+        mapped.firstOrNull { it.kind == "SMS" }?.let { row ->
+            return try {
+                context.contentResolver.query(
+                    android.net.Uri.parse(row.uri),
+                    arrayOf(Telephony.Sms.BODY), null, null, null,
+                )?.use { c ->
+                    if (c.moveToFirst()) c.getString(0).orEmpty() else ""
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+        mapped.firstOrNull { it.kind == "MMS" }?.let { row ->
+            val mmsId = row.uri.substringAfterLast('/').toLongOrNull() ?: return ""
+            return try {
+                context.contentResolver.query(
+                    android.net.Uri.parse("content://mms/part"),
+                    arrayOf(Telephony.Mms.Part.CONTENT_TYPE, Telephony.Mms.Part.TEXT),
+                    "${Telephony.Mms.Part.MSG_ID} = ?", arrayOf(mmsId.toString()), null,
+                )?.use { c ->
+                    buildString {
+                        while (c.moveToNext()) {
+                            if (c.getString(0) == "text/plain") append(c.getString(1).orEmpty())
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+        return ""
     }
 
     /**
@@ -1687,7 +1847,13 @@ class MessageRepository private constructor(private val context: Context) {
         val survivingSmsId = surviving.firstOrNull { it.kind == "SMS" }
             ?.uri?.substringAfterLast('/')?.toLongOrNull()
         if (msg.mmsId == null && msg.mmsTransactionId == null) {
-            val smsId = if (msg.isOutgoing) {
+            // V2-6b: a locked message is never re-published to the Telephony
+            // provider — the space's bargain is that its rows live only in this
+            // app's database. Surviving failed-deletion rows are purged below
+            // instead of being re-adopted.
+            val smsId = if (msg.space == Spaces.LOCKED) {
+                null
+            } else if (msg.isOutgoing) {
                 // Group SMS: restore one row per recipient that no longer has
                 // one, exactly as the original send did, and re-map each.
                 writeOutgoingSmsToProvider(
@@ -1710,12 +1876,22 @@ class MessageRepository private constructor(private val context: Context) {
             )
         }
         db.messages().update(restored.sealed())
+        // V2-6b: a restored locked message must leave no plaintext copy in the
+        // provider — this also finally deletes any surviving failed-deletion
+        // rows the restore would previously have re-adopted.
+        purgeProviderCopyIfLocked(restored)
         // Rebuild the conversation row (it may have been dropped when the
         // thread emptied) without disturbing unread counts. Space-scoped: a
         // locked message restores into the locked conversation, never normal.
+        // V2-6b: an unopenable latest body (content key down) must never become
+        // the preview — it would sit in the preview column as body-AAD
+        // ciphertext under the real marker: canonical to the repair pass,
+        // unopenable to every reader, forever.
         val conv = db.conversations().byThreadId(msg.threadId, msg.space)?.opened()
         val latest = db.messages().latestForThread(msg.threadId, msg.space)?.opened()
-        if (latest != null && (conv == null || latest.timestamp >= conv.lastTimestamp)) {
+        if (latest != null && !LockedContent.isSealed(latest.body) &&
+            (conv == null || latest.timestamp >= conv.lastTimestamp)
+        ) {
             db.conversations().upsert(
                 ConversationEntity(
                     id = conv?.id ?: 0,
@@ -1946,6 +2122,11 @@ class MessageRepository private constructor(private val context: Context) {
             db.conversations().deleteByThreadId(threadId, space)
             return
         }
+        // V2-6b: an unopenable body (content key down) must never become the
+        // preview — body-AAD ciphertext stored under the real marker in the
+        // preview column would be canonical to the repair pass and unopenable
+        // to every reader, forever. Keep the existing preview until it opens.
+        if (LockedContent.isSealed(latest.body)) return
         val preview = latest.body.ifBlank { mediaPreview(latest.mediaMimeType) }
         if (latest.timestamp != conv.lastTimestamp ||
             preview != conv.lastMessage ||

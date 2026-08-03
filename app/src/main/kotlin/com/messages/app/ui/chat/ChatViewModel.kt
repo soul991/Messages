@@ -161,6 +161,15 @@ class ChatViewModel(
     // Explicit return type: the retry closure below calls this function, and an
     // expression body that references itself cannot be type-inferred.
     fun sendScheduledNow(messageId: Long): kotlinx.coroutines.Job = viewModelScope.launch {
+        // V2-6b: promoteScheduledToSending declines locked rows it cannot open
+        // (content key down) by returning null — indistinguishable here from
+        // "the worker claimed it first". Say why up front instead of nothing.
+        if (space == com.messages.core.db.Spaces.LOCKED &&
+            !com.messages.core.secret.LockedContent.available(getApplication())
+        ) {
+            report(SendIssue.LOCKED_UNAVAILABLE, R.string.secret_seal_blocked_write)
+            return@launch
+        }
         guard(
             SendIssue.SEND_FAILED, R.string.chat_send_failed, R.string.action_retry,
             action = { sendScheduledNow(messageId) },
@@ -313,6 +322,10 @@ class ChatViewModel(
 
         /** Chat wallpaper import failed. */
         WALLPAPER_FAILED,
+
+        /** V2-6b: the locked space refuses writes while its content key is
+         *  unavailable (Keystore outage) — see LockedWriteBlockedException. */
+        LOCKED_UNAVAILABLE,
     }
 
     /**
@@ -365,6 +378,13 @@ class ChatViewModel(
             block()
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
+        } catch (e: com.messages.core.secret.LockedWriteBlockedException) {
+            // V2-6b: not the caller's generic failure — the locked space is
+            // refusing writes while the content key is down. Same retry
+            // closure: the composer is already cleared, so the closure owns
+            // the text, and the key may well be back by the time it's tapped.
+            runCatching { onFailure() }
+            report(SendIssue.LOCKED_UNAVAILABLE, R.string.secret_seal_blocked_write, actionLabel, action)
         } catch (e: Exception) {
             android.util.Log.w("ChatViewModel", "$issue: ${e.javaClass.simpleName}")
             runCatching { onFailure() }
@@ -513,7 +533,12 @@ class ChatViewModel(
      * and claims all future incoming messages from it.
      */
     fun lockNewChat(onDone: () -> Unit) = viewModelScope.launch {
-        repo.createLockedConversation(threadId)
+        try {
+            repo.createLockedConversation(threadId)
+        } catch (_: com.messages.core.secret.LockedWriteBlockedException) {
+            report(SendIssue.LOCKED_UNAVAILABLE, R.string.secret_seal_blocked_write)
+            return@launch
+        }
         removeLauncherIdentity()
         onDone()
     }
@@ -530,9 +555,14 @@ class ChatViewModel(
 
     /** "Unlock chat" from inside the locked space: whole thread returns. */
     fun unlockChat(onDone: () -> Unit) = viewModelScope.launch {
-        repo.moveThreadToSpace(
-            threadId, com.messages.core.db.Spaces.LOCKED, com.messages.core.db.Spaces.NORMAL,
-        )
+        try {
+            repo.moveThreadToSpace(
+                threadId, com.messages.core.db.Spaces.LOCKED, com.messages.core.db.Spaces.NORMAL,
+            )
+        } catch (_: com.messages.core.secret.LockedWriteBlockedException) {
+            report(SendIssue.LOCKED_UNAVAILABLE, R.string.secret_seal_blocked_write)
+            return@launch
+        }
         onDone()
     }
 
@@ -541,9 +571,14 @@ class ChatViewModel(
      * FTS, and search, and lands in the locked space.
      */
     fun lockMoveChat(onDone: () -> Unit) = viewModelScope.launch {
-        repo.moveThreadToSpace(
-            threadId, com.messages.core.db.Spaces.NORMAL, com.messages.core.db.Spaces.LOCKED,
-        )
+        try {
+            repo.moveThreadToSpace(
+                threadId, com.messages.core.db.Spaces.NORMAL, com.messages.core.db.Spaces.LOCKED,
+            )
+        } catch (_: com.messages.core.secret.LockedWriteBlockedException) {
+            report(SendIssue.LOCKED_UNAVAILABLE, R.string.secret_seal_blocked_write)
+            return@launch
+        }
         removeLauncherIdentity()
         com.messages.app.ui.common.DraftStore.clear(getApplication(), threadId)
         onDone()

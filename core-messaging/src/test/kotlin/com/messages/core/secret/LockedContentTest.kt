@@ -10,6 +10,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -127,16 +128,146 @@ class LockedContentTest {
     }
 
     @Test
-    fun `with no keystore the message is still stored, in the clear, and said so`() {
-        // Degrading to the pre-V2-6 behaviour is correct; refusing to store an
-        // arriving SMS because the Keystore is unhappy is not.
+    fun `with no keystore the message is stored sealed at pending grade, and said so`() {
+        // V2-6b: fail-closed. The old contract stored the row in the CLEAR here
+        // ("degrade to the pre-V2-6 behaviour"); the pending grade removes the
+        // dilemma that argument rested on — the arriving mail is still stored
+        // and still readable, but what reaches the database is ciphertext under
+        // the fallback key, upgraded to the real seal by the backlog once the
+        // Keystore returns. Plaintext-at-rest is no longer a reachable outcome.
         val box = TestKeyBox.install()
         LockedContent.destroyKey(context)
         box.failing = true
-        assertFalse(LockedContent.available(context))
+        // Inverse vacuity guard: with a healthy box everything real-seals and
+        // this test would pass without pinning the failure path at all.
+        assertFalse(
+            "keystore must be failing for this pin to mean anything",
+            LockedContent.available(context),
+        )
         val row = LockedContent.seal(context, locked("arrived anyway"))
-        assertEquals("arrived anyway", row.body)
-        assertFalse(LockedContent.isSealed(row.body))
+        assertNotEquals("never plaintext, even with no keystore", "arrived anyway", row.body)
+        assertTrue(LockedContent.isSealed(row.body))
+        assertTrue(LockedContent.isPending(row.body))
+        assertTrue(LockedContent.isPending(row.normalizedBody))
+        assertFalse(
+            "no substring of the plaintext may survive in the stored value",
+            row.body.contains("arrived"),
+        )
+        assertEquals(
+            "the space must stay readable meanwhile",
+            "arrived anyway", LockedContent.open(context, row).body,
+        )
+        assertFalse(
+            "pending grade must not report availability",
+            LockedContent.available(context),
+        )
+    }
+
+    @Test
+    fun `a pending row upgrades to the real seal once the keystore returns`() {
+        val box = TestKeyBox.install()
+        LockedContent.destroyKey(context)
+        box.failing = true
+        val pendingRow = LockedContent.seal(context, locked("waited it out"))
+        assertTrue(LockedContent.isPending(pendingRow.body))
+
+        box.failing = false
+        LockedContent.resetCacheForTests()
+        assertTrue(LockedContent.available(context))
+
+        // The repository's `.sealed()` composition: open, then seal — exactly
+        // what the backlog repair runs over every non-canonical row.
+        val upgraded = LockedContent.seal(context, LockedContent.open(context, pendingRow))
+        assertTrue(LockedContent.isSealed(upgraded.body))
+        assertFalse(LockedContent.isPending(upgraded.body))
+        assertTrue(LockedContent.isCanonical(upgraded))
+        assertEquals("waited it out", LockedContent.open(context, upgraded).body)
+    }
+
+    @Test
+    fun `a cipher failure with a live key degrades to pending, never plaintext`() {
+        // The other half of the old fail-open: the catch around the cipher.
+        // The key itself is obtainable here — the guard proves it, so this pin
+        // is about cipher failure, not key absence.
+        assertTrue(
+            "key must be live for this pin to mean anything",
+            LockedContent.available(context),
+        )
+        LockedContent.failRealCipherForTests = true
+        try {
+            val row = LockedContent.seal(context, locked("cipher hiccup"))
+            assertNotEquals("cipher hiccup", row.body)
+            assertTrue(LockedContent.isPending(row.body))
+            assertEquals("cipher hiccup", LockedContent.open(context, row).body)
+        } finally {
+            LockedContent.failRealCipherForTests = false
+        }
+    }
+
+    @Test
+    fun `when even the fallback cannot seal, sealing throws instead of leaking`() {
+        val box = TestKeyBox.install()
+        LockedContent.destroyKey(context)
+        box.failing = true
+        LockedContent.failPendingSealForTests = true
+        try {
+            LockedContent.sealText(context, "body", "must not leak")
+            fail("sealText must throw rather than return plaintext")
+        } catch (_: LockedSealException) {
+            // Expected: the typed failure the intake path answers with a
+            // tombstone and every user-initiated path surfaces.
+        } finally {
+            LockedContent.failPendingSealForTests = false
+        }
+    }
+
+    @Test
+    fun `a pending ciphertext moved to another column will not open there`() {
+        // AAD binding holds at the pending grade too.
+        val box = TestKeyBox.install()
+        LockedContent.destroyKey(context)
+        box.failing = true
+        val bodyCipher = LockedContent.sealText(context, "body", "the actual secret")
+        assertTrue(LockedContent.isPending(bodyCipher))
+        val asPreview = ConversationEntity(
+            threadId = 1, address = "+911111100001",
+            lastMessage = bodyCipher, lastTimestamp = 1_000, space = Spaces.LOCKED,
+        )
+        assertEquals(
+            "a pending body ciphertext must stay opaque in the preview column",
+            bodyCipher, LockedContent.open(context, asPreview).lastMessage,
+        )
+    }
+
+    @Test
+    fun `truncated or corrupted pending values are returned unchanged, never thrown on`() {
+        val box = TestKeyBox.install()
+        LockedContent.destroyKey(context)
+        box.failing = true
+        val sealed = LockedContent.sealText(context, "body", "important")
+        val truncated = sealed.substring(0, LockedContent.PENDING_MARKER.length + 4)
+        assertEquals(truncated, LockedContent.openText(context, "body", truncated))
+        val garbage = LockedContent.PENDING_MARKER + "!!!not base64!!!"
+        assertEquals(garbage, LockedContent.openText(context, "body", garbage))
+        val flipped = sealed.dropLast(2) + if (sealed.endsWith("A=")) "B=" else "A="
+        assertEquals(flipped, LockedContent.openText(context, "body", flipped))
+    }
+
+    @Test
+    fun `pending rows are not canonical, so the backlog repair will revisit them`() {
+        val box = TestKeyBox.install()
+        LockedContent.destroyKey(context)
+        box.failing = true
+        val pendingRow = LockedContent.seal(context, locked("upgrade me"))
+        assertTrue(LockedContent.isPending(pendingRow.body))
+        assertFalse(
+            "pending must not be canonical in the locked space",
+            LockedContent.isCanonical(pendingRow),
+        )
+        assertFalse(
+            "pending must not be canonical in the normal space either",
+            LockedContent.isCanonical(pendingRow.copy(space = Spaces.NORMAL)),
+        )
     }
 
     @Test

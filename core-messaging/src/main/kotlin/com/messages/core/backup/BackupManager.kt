@@ -12,6 +12,7 @@ import com.messages.core.db.Spaces
 import com.messages.core.db.UserRuleEntity
 import com.messages.core.media.MediaRef
 import com.messages.core.secret.LockedContent
+import com.messages.core.secret.LockedWriteBlockedException
 import com.messages.core.secret.SecretSpace
 import com.messages.protection.Category
 import com.messages.protection.ProtectedLabel
@@ -291,9 +292,19 @@ object BackupManager {
         val lockedConvs = db.conversations().allConversations()
             .filter { it.space == Spaces.LOCKED }
             .let { LockedContent.open(context, it) }
+        // V2-6b: a row that did not open (content key down) would ship as
+        // device-bound ciphertext inside the envelope — restored anywhere, it
+        // is unreadable forever, because the Keystore key does not travel.
+        // Degrade exactly like the kek == null branch below: this snapshot
+        // ships without locked chats; the next one after recovery carries them.
+        // (Pending-grade rows open via the fallback key and export normally.)
+        val unopenable = lockedRows.any { LockedContent.isSealed(it.body) } ||
+            lockedConvs.any { LockedContent.isSealed(it.lastMessage) }
         val kek = SecretSpace.kekOrNull(context)
         val saltK = SecretSpace.saltK(context)
-        if (kek == null || saltK == null || (lockedRows.isEmpty() && lockedConvs.isEmpty())) {
+        if (unopenable || kek == null || saltK == null ||
+            (lockedRows.isEmpty() && lockedConvs.isEmpty())
+        ) {
             // Not set up (or nothing locked): pass through a pending envelope
             // if one exists. Degenerate corner: locked rows exist but the KEK
             // cache was lost (Keystore wipe) — we cannot encrypt without the
@@ -822,7 +833,15 @@ object BackupManager {
                 val lockedBlob = backup.lockedEnvelope
                     ?.let { runCatching { java.util.Base64.getDecoder().decode(it) }.getOrNull() }
                 if (lockedBlob != null) {
-                    val kek = SecretSpace.kekOrNull(context)
+                    // V2-6b: with the content key down, importLockedPayload
+                    // could not seal what it stores — and its throw would roll
+                    // back the ENTIRE restore. Park the envelope as pending
+                    // instead; it completes after the key recovers.
+                    val kek = if (LockedContent.available(context)) {
+                        SecretSpace.kekOrNull(context)
+                    } else {
+                        null
+                    }
                     val opened = kek?.let {
                         runCatching {
                             BackupCrypto.open(
@@ -923,6 +942,10 @@ object BackupManager {
      */
     suspend fun importLockedPayload(context: Context, payloadJson: String): Int =
         withContext(Dispatchers.IO) {
+            // V2-6b: hard backstop — restoring locked rows is a user-initiated
+            // locked write; sealing an entire space at the degraded pending
+            // grade on a restore path would silently downgrade its protection.
+            if (!LockedContent.available(context)) throw LockedWriteBlockedException()
             // V2-11: bound the payload BEFORE decoding it and again before
             // applying it. Being inside an authenticated envelope proves who
             // wrote it, not that it is sane — and a restored backup can be one
@@ -1036,6 +1059,10 @@ object BackupManager {
      */
     suspend fun completeLockedRestore(context: Context): Int? = withContext(Dispatchers.IO) {
         if (!SecretSpace.hasPendingRestore(context)) return@withContext null
+        // V2-6b: without the content key the payload cannot be sealed for
+        // storage. Return null WITHOUT clearing the pending envelope — the
+        // next successful unlock after Keystore recovery retries it.
+        if (!LockedContent.available(context)) return@withContext null
         val kek = SecretSpace.kekOrNull(context) ?: return@withContext null
         val budget = RestoreBudget.forDevice(context)
         // V2-12: the pending envelope came in from a backup file, so its size

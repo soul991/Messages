@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.messages.core.db.MessageEntity
 import com.messages.core.db.Spaces
 import com.messages.core.secret.LockedContent
+import com.messages.core.secret.LockedWriteBlockedException
 import com.messages.core.secret.TestKeyBox
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -187,5 +188,202 @@ class LockedAtRestTest {
         val after = db.messages().byId(id)!!
         assertEquals("an already-sealed row must not be re-sealed", sealed.body, after.body)
         assertEquals("legacy thistle", LockedContent.open(context, after).body)
+    }
+
+    // ---- V2-6b: the fail-closed contract under a Keystore outage ----
+
+    /** Every raw value of one column, straight off the SQLite file via the
+     *  openHelper — bypassing every DAO and every space filter. */
+    private fun rawColumn(table: String, column: String): List<String> =
+        repo.db.openHelper.readableDatabase
+            .query("SELECT $column FROM $table")
+            .use { c -> buildList { while (c.moveToNext()) add(c.getString(0) ?: "") } }
+
+    @Test
+    fun `keystore outage - an incoming locked message is pending-sealed, never plaintext anywhere`() =
+        runTest {
+            val friend = "+919876522225"
+            val db = repo.db
+            val (seed, _) = repo.onIncomingSms(friend, "ordinary opener", 1_000)
+            repo.createLockedConversation(seed.threadId)
+
+            // Mid-life outage: the wrapped content key stops unwrapping — the
+            // "restored to different hardware / secure element reset" shape.
+            // install() swaps the box and drops the key cache.
+            val box = TestKeyBox.install()
+            box.failingDecrypt = true
+            // Inverse vacuity guard: with a healthy box everything real-seals
+            // and this test would pass without covering the outage at all.
+            assertFalse("outage must be in force", LockedContent.available(context))
+
+            val secret = "the safehouse is on Thursday, quixotic"
+            val (routed, _) = repo.onIncomingSms(friend, secret, 2_000)
+            assertEquals(Spaces.LOCKED, routed.space)
+
+            // 1) The stored row is pending-grade ciphertext in both columns.
+            val stored = db.messages().byId(routed.id)!!
+            assertTrue(LockedContent.isSealed(stored.body))
+            assertTrue(LockedContent.isPending(stored.body))
+            assertTrue(LockedContent.isPending(stored.normalizedBody))
+            assertFalse(stored.body.contains("quixotic"))
+
+            // 2) Raw scans, bypassing every DAO: neither the message columns
+            //    nor the conversation preview column holds the plaintext.
+            assertTrue(rawColumn("messages", "body").none { it.contains("quixotic") })
+            assertTrue(rawColumn("messages", "normalizedBody").none { it.contains("quixotic") })
+            assertTrue(
+                "the conversation preview must not leak the locked plaintext",
+                rawColumn("conversations", "lastMessage").none { it.contains("quixotic") },
+            )
+
+            // 3) The FTS mirror has nothing to give up.
+            assertEquals(0, ftsHits("quixotic"))
+
+            // 4) The provider copy was still purged: the pending ciphertext in
+            //    Room is the stronger copy; plaintext in shared storage would
+            //    be the leak.
+            assertFalse(provider.rows.values.any { it.getAsString("body") == secret })
+
+            // 5) And the space can still read it meanwhile, via the fallback key.
+            assertEquals(secret, LockedContent.open(context, stored).body)
+        }
+
+    @Test
+    fun `recovery - the backlog upgrades pending rows to the real seal, idempotently`() = runTest {
+        val friend = "+919876522226"
+        val db = repo.db
+        val (seed, _) = repo.onIncomingSms(friend, "ordinary opener", 1_000)
+        repo.createLockedConversation(seed.threadId)
+        val box = TestKeyBox.install()
+        box.failingDecrypt = true
+        assertFalse("outage must be in force", LockedContent.available(context))
+        val secret = "meet at the observatory, zeppelin"
+        val (routed, _) = repo.onIncomingSms(friend, secret, 2_000)
+        assertTrue(LockedContent.isPending(db.messages().byId(routed.id)!!.body))
+
+        // The Keystore recovers: the SAME wrapped key unwraps again.
+        box.failingDecrypt = false
+        LockedContent.resetCacheForTests()
+        assertTrue("recovery must be in force", LockedContent.available(context))
+
+        assertTrue("the pending row must be upgraded", repo.sealLockedBacklog() >= 1)
+        val upgraded = db.messages().byId(routed.id)!!
+        assertTrue(LockedContent.isSealed(upgraded.body))
+        assertFalse("still pending after recovery", LockedContent.isPending(upgraded.body))
+        assertEquals(secret, LockedContent.open(context, upgraded).body)
+        assertEquals(0, ftsHits("zeppelin"))
+        assertTrue(
+            "the upgraded preview must not stay pending",
+            rawColumn("conversations", "lastMessage").none { LockedContent.isPending(it) },
+        )
+
+        // Second pass: nothing to do, stored bytes untouched.
+        assertEquals(0, repo.sealLockedBacklog())
+        assertEquals(upgraded.body, db.messages().byId(routed.id)!!.body)
+    }
+
+    @Test
+    fun `outage - moving a chat into the locked space is refused and changes nothing`() = runTest {
+        val friend = "+919876522227"
+        val db = repo.db
+        val (a, _) = repo.onIncomingSms(friend, "stays normal, verdigris", 1_000)
+        assertEquals(1, ftsHits("verdigris"))
+
+        val box = TestKeyBox.install()
+        box.failingDecrypt = true
+        assertFalse("outage must be in force", LockedContent.available(context))
+
+        var refused = false
+        try {
+            repo.moveThreadToSpace(a.threadId, Spaces.NORMAL, Spaces.LOCKED)
+        } catch (_: LockedWriteBlockedException) {
+            refused = true
+        }
+        assertTrue("the move must be refused, not degraded", refused)
+
+        val row = db.messages().byId(a.id)!!
+        assertEquals(Spaces.NORMAL, row.space)
+        assertEquals("stays normal, verdigris", row.body)
+        assertEquals(1, ftsHits("verdigris"))
+        assertTrue(
+            "the provider copy must survive a refused move",
+            provider.rows.containsKey(a.smsId!!),
+        )
+    }
+
+    @Test
+    fun `outage - a redelivered SMS is still deduped through the fallback key`() = runTest {
+        val friend = "+919876522228"
+        val (seed, _) = repo.onIncomingSms(friend, "ordinary opener", 1_000)
+        repo.createLockedConversation(seed.threadId)
+        val box = TestKeyBox.install()
+        box.failingDecrypt = true
+        assertFalse("outage must be in force", LockedContent.available(context))
+
+        val secret = "redelivered secret, ocelot"
+        val first = repo.onIncomingSms(friend, secret, 2_000)
+        assertTrue(first.isNew)
+        // The carrier redelivers the identical message: the stored copy is
+        // pending-grade ciphertext, so the dedupe body-compare only works if
+        // opened() can decrypt it via the fallback key.
+        val second = repo.onIncomingSms(friend, secret, 2_000)
+        assertFalse("a redelivery must not become a second row", second.isNew)
+
+        val count = repo.db.openHelper.readableDatabase
+            .query("SELECT COUNT(*) FROM messages WHERE address = '$friend' AND timestamp = 2000")
+            .use { it.moveToFirst(); it.getLong(0) }
+        assertEquals(1L, count)
+        assertFalse(provider.rows.values.any { it.getAsString("body") == secret })
+    }
+
+    @Test
+    fun `apocalypse - a tombstone keeps the provider copy and the backlog repairs it`() = runTest {
+        val friend = "+919876522229"
+        val db = repo.db
+        val (seed, _) = repo.onIncomingSms(friend, "ordinary opener", 1_000)
+        repo.createLockedConversation(seed.threadId)
+
+        // Keystore down AND the fallback unusable: the deepest corner.
+        val box = TestKeyBox.install()
+        box.failingDecrypt = true
+        LockedContent.failPendingSealForTests = true
+        assertFalse("outage must be in force", LockedContent.available(context))
+
+        val secret = "held back until repair, wolfram"
+        val (routed, _) = repo.onIncomingSms(friend, secret, 2_000)
+        assertEquals(Spaces.LOCKED, routed.space)
+
+        // The stored row withholds the text entirely...
+        val stored = db.messages().byId(routed.id)!!
+        assertEquals("", stored.body)
+        assertEquals("", stored.normalizedBody)
+        assertTrue(rawColumn("messages", "body").none { it.contains("wolfram") })
+        assertEquals(0, ftsHits("wolfram"))
+        // ...and the provider row is retained as the ONLY copy.
+        assertTrue(
+            "the provider copy is the only copy and must survive",
+            provider.rows.values.any { it.getAsString("body") == secret },
+        )
+        // A redelivery dedupes against the tombstone by identity.
+        assertFalse(
+            "a redelivered apocalypse SMS must dedupe against its tombstone",
+            repo.onIncomingSms(friend, secret, 2_000).isNew,
+        )
+
+        // Recovery: the keystore and the fallback path both heal
+        // (resetCacheForTests clears the failure seams).
+        box.failingDecrypt = false
+        LockedContent.resetCacheForTests()
+        assertTrue(LockedContent.available(context))
+
+        assertTrue("the tombstone must be repaired", repo.sealLockedBacklog() >= 1)
+        val repaired = db.messages().byId(routed.id)!!
+        assertTrue(LockedContent.isSealed(repaired.body))
+        assertFalse(LockedContent.isPending(repaired.body))
+        assertEquals(secret, LockedContent.open(context, repaired).body)
+        // The provider copy has served its purpose and is finally purged.
+        assertFalse(provider.rows.values.any { it.getAsString("body") == secret })
+        assertEquals(0, ftsHits("wolfram"))
+        assertEquals("second pass must be a no-op", 0, repo.sealLockedBacklog())
     }
 }

@@ -1437,6 +1437,11 @@
     <string name="secret_weak_credential_title">Your secret code is below current strength guidance</string>
     <string name="secret_weak_credential_body">It still works, and nothing will stop working if you leave it. Changing it to a longer code — or a password — makes a stolen backup much harder to open.</string>
     <string name="secret_weak_credential_action">Change secret code</string>
+    <!-- V2-6b: locked-space seal health (Keystore outage). Shown ONLY inside the space. -->
+    <string name="secret_seal_warning_title">Some locked messages aren\'t fully protected yet</string>
+    <string name="secret_seal_warning_body">This device\'s secure key store isn\'t responding. New locked messages are still encrypted — under a temporary key — and will be re-protected automatically when it recovers. You can read everything meanwhile, but sending from or changing locked chats is paused.</string>
+    <string name="secret_seal_warning_action">Retry now</string>
+    <string name="secret_seal_blocked_write">Can\'t change locked chats right now — the secure key store is unavailable. Nothing was lost; try again shortly.</string>
 
     <!-- Toast after the one-tap OTP copy action on a notification. -->
     <string name="notif_otp_copied">OTP copied</string>
