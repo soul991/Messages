@@ -1,0 +1,25 @@
+<resources>
+    <!--
+      V2-37: the *window* theme — what the platform paints before the first
+      composition exists. It used to be light-only with a hardcoded
+      `windowLightStatusBar=true`, so launching in dark mode showed a bright
+      window and dark-on-dark status bar icons until Compose took over.
+
+      Two halves to the fix, and both are needed:
+
+       - This theme, overridden in values-night. It runs before any of our code
+         does, so it can only follow the *system* night setting — which is the
+         best available guess at launch, and is exactly right whenever the app's
+         theme is SYSTEM (the default).
+       - `SyncSystemBars` in the Compose tree, which corrects the bar icon
+         appearance once the real scheme is known. That is what makes an
+         explicit LIGHT/DARK/AMOLED app setting agree with the system bars even
+         when it disagrees with the system.
+    -->
+    <style name="Theme.Messages" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

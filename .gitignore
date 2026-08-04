@@ -1,0 +1,48 @@
+# Gradle
+.gradle/
+build/
+**/test-results/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration (SDK path, secrets)
+local.properties
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Claude Code local session settings
+.claude/settings.local.json
+
+# Android
+captures/
+*.apk
+*.aab
+*.keystore
+*.jks
+*.hprof
+!debug.keystore
+
+# Release signing secrets (see docs/ops/RELEASE_SIGNING.md) — never committed
+keystore.properties
+
+# Firebase config (contains API keys) — never committed
+google-services.json
+
+# Kotlin
+.kotlin/
+
+# Local design reference material (user-supplied, ~180MB including the
+# original community zips under design-refs/archives/) — never committed
+design-refs/
+/*.zip
+
+# Code-review working notes — the reviewer's findings and the running log of
+# fixing them. Session artefacts, not part of the app; the outcome lives in the
+# code and its tests.
+/codex_review_v2.md
+/52_issues_solve_progress.md

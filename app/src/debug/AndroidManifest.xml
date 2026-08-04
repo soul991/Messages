@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- R-24: the harness receivers must stay exported (adb broadcasts arrive as
+         the shell uid), so they are gated by a signature-level permission. Only
+         a component signed with this build's key — or adb, which may hold any
+         permission it requests — can reach them. DebugAuth adds a second gate:
+         an unpredictable per-install token the caller must echo back. -->
+    <permission
+        android:name="com.messages.app.permission.DEBUG_HARNESS"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.messages.app.permission.DEBUG_HARNESS" />
+
+    <!-- DEBUG-ONLY: test harness receiver for driving the incoming-SMS pipeline
+         from adb (system-protected SMS_DELIVER can't be broadcast). Merged only
+         into debug builds; never present in release. -->
+    <application>
+        <receiver
+            android:name=".debug.InjectSmsReceiver"
+            android:exported="true"
+            android:permission="com.messages.app.permission.DEBUG_HARNESS">
+            <intent-filter>
+                <action android:name="com.messages.app.DEBUG_INJECT_SMS" />
+            </intent-filter>
+        </receiver>
+        <!-- DEBUG-ONLY: removes InjectSmsReceiver residue from provider + index. -->
+        <receiver
+            android:name=".debug.CleanupTestResidueReceiver"
+            android:exported="true"
+            android:permission="com.messages.app.permission.DEBUG_HARNESS">
+            <intent-filter>
+                <action android:name="com.messages.app.DEBUG_CLEANUP_RESIDUE" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#00629E</color>
+
+    <!--
+      V2-37: the window behind the first composition. Before Compose has drawn
+      anything the platform paints this, so it has to match the scheme the app
+      is about to use or startup flashes. Tracks LightBase.background /
+      DarkBase.background in design-system Theme.kt; see values-night.
+    -->
+    <color name="window_background">#F8F9FC</color>
+
+    <!--
+      V2-44: widget colors. RemoteViews are inflated by the launcher, so these
+      resolve against the *host's* configuration — which is why day/night
+      resources are the mechanism here and the Compose theme is not available.
+      values-v31 maps them onto the device's dynamic palette; these static
+      values stay the fallback below Android 12.
+    -->
+    <color name="widget_background">#FFFBFE</color>
+    <color name="widget_text_primary">#1C1B1F</color>
+    <color name="widget_text_secondary">#49454F</color>
+    <color name="widget_text_tertiary">#79747E</color>
+</resources>

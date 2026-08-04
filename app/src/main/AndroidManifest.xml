@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Telephony is genuinely REQUIRED, not merely used: this app exists to be
+         the device's default SMS/MMS handler, and every core surface (intake,
+         send, dual-SIM routing, carrier reporting) is meaningless without a
+         radio. The SMS permissions below already imply this requirement
+         implicitly; declaring it explicitly changes no device filtering, it
+         just stops the implication from being a silent one. -->
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="true" />
+
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_MMS" />
+    <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Google Drive backup (§8.3) only — classification never touches the network -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Package visibility (API 30+): without this, ContentResolver.query on the
+         contacts provider returns a null cursor SILENTLY even with READ_CONTACTS
+         granted — root cause of contact names never resolving on-device. -->
+    <queries>
+        <provider android:authorities="com.android.contacts" />
+    </queries>
+
+    <!-- Platform backup is DISABLED (R-01). App-private state holds plaintext
+         indexed message bodies, drafts, secret-space verifier/salt material, a
+         cached secret-space KEK, Drive key material, pending locked restore
+         blobs and MMS media. Auto Backup / device transfer would copy all of
+         that off-device, defeating the app's own encrypted-backup boundary.
+         The app ships an explicit end-to-end encrypted Drive backup instead;
+         dataExtractionRules default-denies cloud backup and D2D transfer on
+         Android 12+, fullBackupContent covers Android 11 and below. -->
+
+    <!-- V2-17: the network policy is stated rather than inherited from the
+         targetSdk default. @xml/network_security_config carries the reasoning
+         and is the file that actually governs, since minSdk is 26 and the
+         config supersedes usesCleartextTraffic on API 24+.
+
+         usesCleartextTraffic is therefore redundant here, and is present
+         anyway for two reasons: it is what an APK scanner and a reviewer read
+         first, and a redundant "false" is harmless where a missing one invites
+         someone to add "true". Note the corollary — flipping THIS attribute to
+         true would not actually permit cleartext on any device this app runs
+         on. The config is the thing to change, and the test will stop you. -->
+    <application
+        android:name=".MessagesApp"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Messages"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Default-SMS mandatory component 3: ACTION_SENDTO -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SENDTO" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sms" />
+                <data android:scheme="smsto" />
+                <data android:scheme="mms" />
+                <data android:scheme="mmsto" />
+            </intent-filter>
+            <!-- Direct share (§8.2): conversation shortcuts as share targets -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+        </activity>
+
+        <!-- Conversation bubbles host (§8.2, Android 11+) -->
+        <activity
+            android:name=".BubbleActivity"
+            android:exported="false"
+            android:allowEmbedded="true"
+            android:resizeableActivity="true"
+            android:documentLaunchMode="always"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Default-SMS mandatory component 1: SMS_DELIVER receiver -->
+        <receiver
+            android:name=".receiver.SmsDeliverReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_DELIVER" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Default-SMS mandatory component 2: WAP_PUSH_DELIVER receiver (MMS) -->
+        <receiver
+            android:name=".receiver.MmsDeliverReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_WAP_PUSH">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
+                <data android:mimeType="application/vnd.wap.mms-message" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Default-SMS mandatory component 4: ACTION_RESPOND_VIA_MESSAGE service -->
+        <service
+            android:name=".service.HeadlessSmsSendService"
+            android:exported="true"
+            android:permission="android.permission.SEND_RESPOND_VIA_MESSAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.RESPOND_VIA_MESSAGE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="sms" />
+                <data android:scheme="smsto" />
+                <data android:scheme="mms" />
+                <data android:scheme="mmsto" />
+            </intent-filter>
+        </service>
+
+        <receiver android:name=".receiver.SmsSentReceiver" android:exported="false" />
+        <receiver android:name=".receiver.SmsDeliveredReceiver" android:exported="false" />
+        <receiver android:name=".receiver.MmsSentReceiver" android:exported="false" />
+        <receiver android:name=".receiver.MmsDownloadReceiver" android:exported="false" />
+        <receiver android:name=".receiver.NotificationActionReceiver" android:exported="false" />
+
+        <!-- Home-screen widgets (§8.2) -->
+        <receiver android:name=".widget.ProtectionStatsWidget" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_protection_info" />
+        </receiver>
+        <receiver android:name=".widget.UnreadWidget" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_unread_info" />
+        </receiver>
+
+        <!-- Hands the telephony process a writable target for downloaded MMS PDUs -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  V2-17, debug builds only. This file overlays the one in `src/main/res/xml/`
+  and is never packaged into a release APK — the release resource table does
+  not contain it at all, which is a stronger guarantee than `<debug-overrides>`
+  (that ships the override and relies on the platform ignoring it).
+
+  The ONE difference from the production policy is the user trust store, so a
+  debugging proxy — mitmproxy, Charles — can present its own CA. Cleartext
+  stays denied here too, on purpose: debug and release should behave the same
+  on the wire, and a policy that is looser in debug hides exactly the failures
+  you want to find before shipping.
+
+  `NetworkSecurityConfigTest` asserts that this file and the production one
+  differ only in the trust anchors, so the two cannot drift apart.
+-->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <!--
+              Lint's AcceptsUserCertificates warns that this "allows the use of
+              user certificates in the release version of your app". That is the
+              one thing it cannot see here: the file lives in src/debug/res, so
+              the release resource table does not contain it. (`lintRelease`
+              agrees — it reports no network findings at all.)
+
+              Suppressed on this element alone, so the check still fires if a
+              user anchor is ever added to the production config.
+            -->
+            <certificates src="user" tools:ignore="AcceptsUserCertificates" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

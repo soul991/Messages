@@ -1,0 +1,14 @@
+<resources>
+    <!--
+      V2-37: the dark counterpart. Same theme name, dark platform parent, and
+      `windowLightStatusBar` off so the status-bar icons are light from the
+      first frame instead of dark-on-dark until Compose runs.
+      `windowBackground` resolves through values-night/colors.xml.
+    -->
+    <style name="Theme.Messages" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

@@ -1,0 +1,1525 @@
+<resources>
+    <!--
+      V2-36. Every user-visible string lives here: screen copy, content
+      descriptions, error text and notification copy. Nothing user-facing
+      belongs in a Kotlin literal or an android:text attribute.
+
+      House rules for anyone adding to this file:
+
+      * Group strings by the surface they appear on, and keep the section
+        comments — they are the only context a translator gets.
+      * Counted nouns go in <plurals>, never "%d items". Languages with more
+        than two plural forms cannot be served by a suffixed "s".
+      * Use positional arguments (%1$s, %2$d) so translators can reorder.
+      * Security and privacy terms carry a translator note. "Locked space",
+        "silenced" and "spam" have narrow meanings here, and a loose synonym
+        changes what the user believes the app is doing.
+    -->
+
+    <string name="app_name">Messages</string>
+
+    <!-- ============================= Widgets ============================ -->
+
+    <string name="widget_protection_desc">Spam blocked this week, at a glance</string>
+    <string name="widget_unread_desc">Unread conversations at a glance</string>
+
+    <!--
+      Home-screen widget for the spam filter. "Protection" is the app's name for
+      the filtering feature as a whole; the shield is decorative and may be
+      dropped if it reads oddly in your locale.
+    -->
+    <string name="widget_protection_title">🛡️ Protection</string>
+    <!-- Sits under a large number: "1,204" / "spam blocked this week". -->
+    <string name="widget_protection_subtitle">spam blocked this week</string>
+    <!--
+      %1$s is an already-grouped number ("1,204"). "Silenced" means the message
+      was delivered but kept out of the inbox and out of notifications — it was
+      not deleted and not rejected. Prefer a word that carries "quietly set
+      aside" over one that suggests blocking or destruction.
+    -->
+    <string name="widget_protection_total">%1$s silenced all-time</string>
+
+    <!-- Unread-count widget, shown when there is nothing to report. -->
+    <string name="widget_unread_none">All caught up</string>
+    <plurals name="widget_unread_count">
+        <item quantity="one">%1$d unread</item>
+        <item quantity="other">%1$d unread</item>
+    </plurals>
+    <!--
+      Shown on the widget in place of message previews when the app lock is on
+      or previews are hidden. The widget is an unauthenticated surface, so the
+      sender and body are deliberately withheld.
+    -->
+    <string name="widget_unread_locked">Open Messages to view</string>
+
+    <!-- ======================== Locked space entry ====================== -->
+
+    <!--
+      Translator note: the "locked space" is a separate, credential-protected
+      area of the app whose existence is deliberately not advertised on screen.
+      Use consistent wording everywhere it appears. It is not a folder, not an
+      archive, and not a trash can.
+    -->
+    <string name="secret_entry_action">Open locked space</string>
+    <string name="settings_accessible_entry_title">Accessible locked-space entry</string>
+    <string name="settings_accessible_entry_subtitle">Adds a labelled action for screen readers, and a row below, so the locked space can be opened without the long press on the Messages title. The gesture keeps working; your code is still required either way.</string>
+    <string name="settings_accessible_entry_row_subtitle">Opens the code prompt.</string>
+    <!-- ===================== Shared actions and labels ================== -->
+
+    <!--
+      One resource per recurring label, shared across every screen. Translate
+      these once and the whole app agrees with itself: every dialog's dismiss
+      button says the same word, every back arrow announces the same way.
+    -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_share">Share</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_more_options">More options</string>
+    <string name="action_send">Send</string>
+    <string name="action_got_it">Got it</string>
+    <string name="action_done">Done</string>
+    <string name="action_next">Next</string>
+    <string name="action_add">Add</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_undo">Undo</string>
+
+    <!--
+      Stands in for the preview text of a conversation the user has locked. The
+      body is deliberately withheld — this string is what a shoulder-surfer
+      sees, so it must not hint at the content or the sender.
+    -->
+    <string name="conversation_locked_preview">🔒 Locked conversation</string>
+
+    <!--
+      Category names. The filter sorts every message into exactly one of these,
+      and the same name has to appear on the tab, in the verdict header and in
+      Settings — a user who reads "Promotions" in one place and a synonym in
+      another cannot tell they are the same bucket.
+
+      Translator note on the security terms:
+        * "Spam" — unwanted bulk, silenced but delivered.
+        * "Dangerous" — the engine believes this is an attempt to defraud the
+          user. Choose the strongest available word; understating it is a
+          safety problem, not a style one.
+        * "Blocked by you" — the *user* blocked this sender. Must not read as
+          though the app decided.
+        * "Review" — uncertain; parked for the user to judge, not condemned.
+    -->
+    <string name="category_inbox">Inbox</string>
+    <string name="category_spam">Spam</string>
+    <string name="category_spam_dangerous">Spam · Dangerous</string>
+    <string name="category_promotions">Promotions</string>
+    <string name="category_transactions">Transactions</string>
+    <string name="category_review">Review</string>
+    <string name="category_blocked">Blocked by you</string>
+
+    <!-- ============================ Archived =========================== -->
+
+    <string name="archived_title">Archived</string>
+    <string name="archived_empty_title">No archived conversations</string>
+    <string name="archived_empty_subtitle">Swipe a conversation on Home to archive it.</string>
+    <string name="archived_unarchive">Unarchive</string>
+    <!-- Confirms the conversation is back in the main list, not deleted. -->
+    <string name="archived_unarchived_snackbar">Moved back to Home</string>
+
+    <!-- ============================ Starred ============================ -->
+
+    <string name="starred_title">Starred messages</string>
+    <string name="starred_empty_title">No starred messages</string>
+    <string name="starred_empty_title_thread">No starred messages in this conversation</string>
+    <!-- "Star" here names the action in the message long-press menu. -->
+    <string name="starred_empty_subtitle">Long-press a message and tap Star to keep it here.</string>
+    <string name="starred_unstar">Unstar</string>
+
+    <!-- ============================= Trash ============================= -->
+
+    <string name="trash_title">Trash</string>
+    <string name="trash_empty_action">Empty trash</string>
+    <string name="trash_empty_title">Empty trash?</string>
+    <string name="trash_search_placeholder">Search in Trash</string>
+    <string name="trash_is_empty">Trash is empty</string>
+    <string name="trash_no_match">No trashed messages match</string>
+    <string name="trash_restore">Restore</string>
+    <string name="trash_delete_forever_title">Delete forever?</string>
+    <string name="trash_delete_forever_body">This message will be permanently deleted. This cannot be undone.</string>
+    <string name="trash_delete_forever_action">Delete forever</string>
+    <!-- %1$s is a phone number or contact name; marks a message the user sent. -->
+    <string name="trash_row_outgoing_to">To %1$s</string>
+    <!--
+      %1$d is the retention window in days, read from the constant the purge job
+      enforces. "Removed permanently" means unrecoverable — not moved elsewhere.
+    -->
+    <plurals name="trash_retention_notice">
+        <item quantity="one">Deleted messages are kept here for %1$d day, then removed permanently.</item>
+        <item quantity="other">Deleted messages are kept here for %1$d days, then removed permanently.</item>
+    </plurals>
+    <!-- %1$d is how many messages are currently in Trash. -->
+    <plurals name="trash_empty_confirm_body">
+        <item quantity="one">The %1$d message in Trash will be permanently deleted. This cannot be undone.</item>
+        <item quantity="other">All %1$d messages in Trash will be permanently deleted. This cannot be undone.</item>
+    </plurals>
+    <!-- Per-message countdown; %1$d is whole days remaining, always 1 or more. -->
+    <plurals name="trash_purge_countdown">
+        <item quantity="one">Deleted forever in %1$d day</item>
+        <item quantity="other">Deleted forever in %1$d days</item>
+    </plurals>
+    <!-- Shown once the countdown reaches zero and purge is due. -->
+    <string name="trash_purge_imminent">Deleted forever soon</string>
+    <string name="trash_restored_snackbar">Message restored</string>
+    <string name="trash_deleted_forever_snackbar">Deleted forever</string>
+    <string name="trash_emptied_snackbar">Trash emptied</string>
+
+    <!-- ========================== New message ========================== -->
+
+    <string name="compose_title">New message</string>
+    <!-- %1$d is how many recipients are staged so far. -->
+    <string name="compose_group_title">New group (%1$d)</string>
+    <string name="compose_start_conversation">Start conversation</string>
+    <string name="compose_remove_recipient">Remove</string>
+    <!-- Hint inside the recipient field; the colon mimics an address line. -->
+    <string name="compose_recipient_hint">To: name or number</string>
+    <string name="compose_new_group">New group</string>
+    <!-- %1$s is the number the user typed. Offered when it matches no contact. -->
+    <string name="compose_send_to_number">Send to %1$s</string>
+    <string name="compose_not_in_contacts">Not in your contacts</string>
+    <!-- %1$s is a phone number, %2$s its type ("Mobile", "Work", …). -->
+    <string name="compose_contact_number_label">%1$s · %2$s</string>
+
+    <!--
+      Two different failures, deliberately worded differently: the first is a
+      permission the user can grant, the second is a read that failed and can
+      be retried. Keep them distinguishable — a user who cannot tell them apart
+      cannot tell which action will help.
+    -->
+    <string name="compose_contacts_unavailable">Contacts are unavailable</string>
+    <string name="compose_contacts_denied_body">This app doesn\'t have permission to read your contacts, so it can\'t list them here. You can still type a number above to message it.</string>
+    <string name="compose_allow_contacts">Allow contacts</string>
+    <string name="compose_app_settings">App settings</string>
+    <string name="compose_contacts_failed">Couldn\'t load contacts</string>
+    <string name="compose_contacts_failed_body">Nothing has been deleted — the app couldn\'t read your address book. You can still type a number above to message it.</string>
+    <string name="action_try_again">Try again</string>
+
+    <!-- ========================= Contact details ======================= -->
+
+    <!-- Fallback heading when a conversation has neither a name nor a number. -->
+    <string name="contact_unnamed">Conversation</string>
+    <string name="contact_action_message">Message</string>
+    <string name="contact_action_call">Call</string>
+    <!-- Opens this person's entry in the system Contacts app. -->
+    <string name="contact_action_open_contact">Contact</string>
+    <!-- Creates a system contact for a number that is not saved yet. -->
+    <string name="contact_action_save">Save</string>
+
+    <string name="contact_starred_subtitle">Messages you starred in this conversation.</string>
+    <string name="contact_search_title">Search in conversation</string>
+    <string name="contact_search_subtitle">Find a message in this chat.</string>
+    <string name="contact_mute_title">Mute notifications</string>
+    <string name="contact_mute_subtitle">No alerts for this conversation.</string>
+    <!--
+      This row is a signpost, not a control: locking happens from the chat's
+      overflow menu. "⋮" is Android's overflow icon — keep the character.
+      "Locked chats" is the credential-protected space; see the note on
+      secret_entry_action and use the same wording.
+    -->
+    <string name="contact_lock_title">Lock chat</string>
+    <string name="contact_lock_subtitle">Use \"Lock chat\" in the conversation\'s ⋮ menu to move it into your locked chats.</string>
+
+    <string name="contact_tone_title">Notification sound &amp; style</string>
+    <string name="contact_tone_subtitle_custom">Customized for this conversation.</string>
+    <string name="contact_tone_subtitle_default">Pick a custom sound just for this conversation.</string>
+    <string name="contact_tone_reset">Reset to default notifications</string>
+
+    <!--
+      Blocking silences a sender; it never deletes anything and the user can
+      still read what arrived. Say so — a translation that implies deletion
+      would misdescribe what the button does.
+    -->
+    <string name="contact_block_title">Block sender</string>
+    <string name="contact_block_subtitle">Future messages land in Blocked, silently. Nothing is deleted.</string>
+    <string name="contact_unblock_title">Unblock sender</string>
+    <string name="contact_unblock_subtitle">Messages will arrive normally again.</string>
+
+    <!-- =========================== Onboarding ========================== -->
+
+    <string name="action_continue">Continue</string>
+    <string name="action_not_now">Not now</string>
+    <string name="onboarding_set_default">Set as default</string>
+    <string name="onboarding_start_messaging">Start messaging</string>
+    <string name="onboarding_restore_from_drive">Restore from Google Drive backup</string>
+
+    <!-- The line break is a deliberate two-line title; keep or move it. -->
+    <string name="onboarding_hero_title">A calm inbox,\nby design</string>
+    <!--
+      The three promises the app is built on. Each is a factual claim the code
+      keeps, so translate them precisely rather than idiomatically:
+        * filtered mail is silenced, not blocked or deleted;
+        * classification runs entirely on the device, with no network call;
+        * nothing is ever removed without the user asking.
+    -->
+    <string name="onboarding_feature_silent">Spam, scams and promos are filed silently — you\'re only notified for messages that matter.</string>
+    <!-- formatted="false": the literal per-cent sign is not a format specifier. -->
+    <string name="onboarding_feature_on_device" formatted="false">100% on-device pattern matching. No AI, no cloud — every decision is explainable.</string>
+    <string name="onboarding_feature_nothing_deleted">Nothing is ever deleted. Every filtered message stays reviewable, forever.</string>
+
+    <string name="onboarding_default_title">Make it your\nmessaging app</string>
+    <string name="onboarding_default_body">To receive and protect your messages, Messages needs to be your default SMS app. Android will ask you to confirm.</string>
+    <string name="onboarding_default_done_title">You\'re all set</string>
+    <string name="onboarding_default_done_body">Messages is now your default SMS app.</string>
+
+    <!-- First-run pass over the existing SMS history. -->
+    <string name="onboarding_backfill_ready">Ready when you are</string>
+    <string name="onboarding_backfill_running">Organizing your messages…</string>
+    <string name="onboarding_backfill_done">History organized</string>
+    <string name="onboarding_backfill_ready_body">Your existing messages will be organized once permissions are granted.</string>
+    <string name="onboarding_backfill_scanning">Scanning your message history…</string>
+    <!-- %1$d messages done so far, %2$d the total found. -->
+    <plurals name="onboarding_backfill_progress">
+        <item quantity="one">%1$d of %2$d message classified</item>
+        <item quantity="other">%1$d of %2$d messages classified</item>
+    </plurals>
+    <!-- %1$d is the number of messages sorted into folders. -->
+    <plurals name="onboarding_backfill_done_body">
+        <item quantity="one">%1$d message classified into folders.</item>
+        <item quantity="other">%1$d messages classified into folders.</item>
+    </plurals>
+
+    <!-- ==================== Notification settings ====================== -->
+
+    <string name="notif_title">Notifications</string>
+    <string name="notif_section_folders">Folders</string>
+    <string name="notif_section_protection">Protection</string>
+    <!-- "OTP" is a one-time passcode sent by SMS. Keep the abbreviation if it
+         is the common term in your locale; expand it if it is not. -->
+    <string name="notif_section_otp">OTP codes</string>
+
+    <string name="notif_inbox_subtitle">Personal and important messages always notify. Tap to pick sound and style.</string>
+    <string name="notif_transactions_subtitle">Notify for bank alerts, receipts, and bills.</string>
+    <!-- "Badge-only" means a count on the app icon and nothing else: no sound,
+         no banner, no entry in the notification shade. -->
+    <string name="notif_promotions_subtitle">Notify for offers and marketing messages. Off keeps them badge-only.</string>
+    <string name="notif_review_title">Review folder</string>
+    <string name="notif_review_subtitle">One quiet, batched notification when messages arrive here.</string>
+    <!-- %s-free titles for rows that open the system channel settings. -->
+    <string name="notif_sound_transactions">Sound &amp; style for Transactions</string>
+    <string name="notif_sound_promotions">Sound &amp; style for Promotions</string>
+    <string name="notif_sound_review">Sound &amp; style for Review</string>
+    <string name="notif_silent_folders_note">Spam and Blocked never notify — they stay silent with badge counts only.</string>
+
+    <string name="notif_warn_dangerous_title">Warn me about dangerous messages</string>
+    <string name="notif_warn_dangerous_subtitle">A red warning notification when a message looks like fraud. It stays until you dismiss it. Ordinary spam never notifies.</string>
+
+    <string name="notif_otp_autocopy_title">Auto-copy OTP codes</string>
+    <string name="notif_otp_autocopy_subtitle">Copy the code to the clipboard the moment an OTP arrives, then clear it a minute later. Never runs for locked chats or messages flagged as fraud. Android may show a clipboard notice each time.</string>
+    <!--
+      Shown only below Android 13, where the system neither warns on clipboard
+      reads nor masks sensitive content. This is a security disclosure, not a
+      tip: keep it direct and do not soften "readable by any app".
+    -->
+    <string name="notif_otp_clipboard_warning">On this Android version the clipboard is readable by any app running in the foreground, and the system shows no warning when that happens. Leaving auto-copy off and using the Copy button is safer.</string>
+    <string name="notif_otp_copy_button_note">OTP notifications always include a one-tap Copy button.</string>
+
+    <!-- ====================== Protection dashboard ===================== -->
+
+    <string name="dashboard_title">Protection</string>
+    <!-- Sits under a large total: "1,204" / "spam &amp; promo messages silenced". -->
+    <string name="dashboard_silenced_subtitle">spam &amp; promo messages silenced</string>
+    <string name="dashboard_period_week">This week</string>
+    <string name="dashboard_period_month">This month</string>
+    <!-- Short forms for narrow stat cards; the full names are the category_* strings. -->
+    <string name="dashboard_stat_promos">Promos</string>
+    <string name="dashboard_stat_blocked">Blocked</string>
+    <!--
+      %1$d is how many messages the engine judged to be fraud attempts. Only
+      shown when the count is above zero. The warning sign is part of the
+      message, not decoration.
+    -->
+    <plurals name="dashboard_dangerous_stopped">
+        <item quantity="one">⚠️ %1$d dangerous fraud attempt stopped</item>
+        <item quantity="other">⚠️ %1$d dangerous fraud attempts stopped</item>
+    </plurals>
+    <!-- Heading for a breakdown by rule family (phishing, loan spam, and so on). -->
+    <string name="dashboard_what_was_caught">What was caught</string>
+    <string name="dashboard_top_senders">Top blocked senders</string>
+    <!-- %1$d is how many of that sender's messages were filtered. -->
+    <plurals name="dashboard_sender_filtered">
+        <item quantity="one">%1$d filtered</item>
+        <item quantity="other">%1$d filtered</item>
+    </plurals>
+    <!-- Decorative shield above the empty state; drop it if it reads oddly. -->
+    <string name="dashboard_empty_glyph">🛡️</string>
+    <!-- The line break is intentional; keep one if the translation is long. -->
+    <string name="dashboard_empty_body">Nothing filtered in this period —\nenjoy the silence</string>
+
+    <!-- ======================== Why was this filtered =================== -->
+
+    <!--
+      The screen that explains a filtering verdict. Its job is to be believable
+      and checkable, so the copy stays concrete: no marketing language, no
+      claims the engine cannot back up.
+    -->
+    <string name="why_title">Why was this filtered?</string>
+    <!-- %1$d is the numeric risk score; %2$s the sender's number or name. -->
+    <string name="why_verdict_score">Score %1$d · from %2$s</string>
+    <string name="why_not_spam_action">Not spam — move to Inbox</string>
+    <!-- %1$s is the sender's number or name. "Local" means on this device. -->
+    <string name="why_not_spam_effect">Moving it also boosts this sender\'s local trust score, so future messages from %1$s are less likely to be filtered.</string>
+
+    <!--
+      Translator note, important: links in a message flagged as dangerous are
+      not clickable anywhere in the app. This copy has to make clear that
+      revealing a link only makes it *readable* — it is a warning, not a
+      convenience feature, and softening it puts users at risk.
+    -->
+    <string name="why_links_title">Links in this message</string>
+    <string name="why_links_body">Links are disabled everywhere for this message. Revealing one below makes it readable, never tappable. Do not visit it.</string>
+    <string name="why_link_hidden">Hidden dangerous link</string>
+    <string name="why_link_reveal">Show link</string>
+
+    <string name="why_matched_rules">Matched rules</string>
+    <string name="why_no_patterns">No patterns matched — this message scored 0 and was delivered normally.</string>
+    <!--
+      %1$s is a comma-separated list of internal rule identifiers. Do not
+      translate the identifiers themselves; they are shown so a user can quote
+      them when reporting a wrong verdict.
+    -->
+    <string name="why_pattern_ids">Pattern IDs: %1$s</string>
+    <!--
+      "Deterministic" is a factual claim about the engine: the same message
+      always produces the same verdict, decided by the listed rules alone. Keep
+      the claim exact — it is the reason the user is being shown this page.
+    -->
+    <string name="why_deterministic">The protection engine is fully deterministic — no AI, no network. Every verdict comes from the rules listed above.</string>
+
+    <!-- ======================== Conversation ============================ -->
+
+    <!-- Title of the selection toolbar; %1$d is how many messages are ticked. -->
+    <plurals name="chat_selected_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <!--
+      Position within the pinned messages of one conversation: %1$d is the one-based
+      index of the pinned message on screen, %2$d how many are pinned in total.
+    -->
+    <string name="chat_pinned_position">%1$d/%2$d</string>
+    <!--
+      An entry in the SIM picker. %1$d is the one-based SIM slot as printed on the
+      handset, %2$s the carrier name the system reports for it. The "selected"
+      variant carries the bullet so a right-to-left translation can move it to the
+      other side of the label.
+    -->
+    <string name="chat_sim_option">SIM %1$d — %2$s</string>
+    <string name="chat_sim_option_selected">• SIM %1$d — %2$s</string>
+    <!--
+      Spoken description of a chat-wallpaper swatch; %1$s is the wallpaper's own
+      name. Not shown on screen — the name is already rendered under the swatch.
+    -->
+    <string name="chat_wallpaper_option">%1$s wallpaper</string>
+    <string name="chat_wallpaper_option_selected">%1$s wallpaper, selected</string>
+    <!--
+      One-tap copy chip on a message carrying a one-time code. %1$s is the code
+      itself, shown so the user can check it before copying.
+    -->
+    <string name="chat_copy_otp">Copy OTP %1$s</string>
+    <!-- %1$s is the short code the spam report will be sent to, e.g. "1909". -->
+    <string name="chat_report_send_to">Send to %1$s?</string>
+    <string name="chat_locked_title">This conversation is locked</string>
+    <string name="chat_locked_no_auth_host">Unlocking isn\'t available here. Go back and open this conversation from the message list.</string>
+    <string name="chat_resend">Resend</string>
+    <string name="chat_clear_selection">Clear selection</string>
+    <string name="chat_star">Star</string>
+    <string name="chat_forward">Forward</string>
+    <string name="chat_share_messages">Share messages</string>
+    <string name="chat_search_in_conversation">Search in conversation</string>
+    <string name="chat_close_search">Close search</string>
+    <string name="chat_previous_match">Previous match</string>
+    <string name="chat_next_match">Next match</string>
+    <string name="chat_tap_for_contact_info">Tap here for contact info</string>
+    <string name="chat_locked_conversation">Locked conversation</string>
+    <string name="chat_customize_chat">Customize chat</string>
+    <string name="chat_lock_chat">Lock chat</string>
+    <string name="chat_unlock_chat">Unlock chat</string>
+    <string name="chat_export_conversation">Export conversation</string>
+    <string name="chat_delete_conversation">Delete conversation</string>
+    <string name="chat_pinned_message">Pinned message</string>
+    <string name="chat_moved_to_inbox">Moved to Inbox</string>
+    <string name="chat_moved_to_spam">Moved to Spam</string>
+    <string name="chat_scroll_to_latest">Scroll to latest</string>
+    <string name="chat_cannot_reply">You can\'t reply to this conversation</string>
+    <string name="chat_attachment_preview">Attachment preview</string>
+    <string name="chat_remove_attachment">Remove attachment</string>
+    <string name="chat_attach">Attach</string>
+    <string name="chat_schedule_send">Schedule send</string>
+    <string name="chat_choose_sim">Choose SIM</string>
+    <string name="chat_delete_thread_title">Delete this conversation?</string>
+    <string name="chat_delete_thread_body">All its messages move to Trash and can be restored for 60 days (Settings → Trash).</string>
+    <string name="chat_forward_to">Forward to…</string>
+    <string name="chat_forward_search">Search conversations</string>
+    <string name="chat_forward_no_results">No conversations found</string>
+    <string name="chat_quick_replies">Quick replies</string>
+    <string name="chat_quick_replies_manage">Manage templates in Settings → Conversations.</string>
+    <string name="chat_quick_replies_empty">No templates yet — add some in Settings → Conversations.</string>
+    <string name="chat_locked_setup_title">Locked chats aren\'t set up</string>
+    <string name="chat_locked_setup_body">To use locked chats, first set your secret code: press and hold the &quot;Messages&quot; title on the home screen.</string>
+    <string name="chat_lock_sheet_title">Lock this chat</string>
+    <string name="chat_lock_new_title">New locked chat</string>
+    <string name="chat_lock_new_body">This chat and its history stay here. A locked chat for this sender starts in your locked space — all future messages from them go there, never here.</string>
+    <string name="chat_lock_new_snackbar">Locked chat created — new messages from this sender go to your locked space</string>
+    <string name="chat_lock_move_title">Move entire chat</string>
+    <string name="chat_lock_move_body">The whole conversation moves to your locked space and disappears from this list and search.</string>
+    <string name="chat_composer_placeholder">Text message</string>
+    <string name="chat_bubble_color">Bubble color</string>
+    <string name="chat_wallpaper">Wallpaper</string>
+    <string name="chat_wallpaper_photo">Photo</string>
+    <string name="chat_mms_image">MMS image</string>
+    <string name="chat_copy_text">Copy text</string>
+    <string name="chat_select_text">Select text</string>
+    <string name="chat_select_messages">Select messages</string>
+    <string name="chat_remind_me">Remind me…</string>
+    <string name="chat_mark_as_spam">Mark as spam</string>
+    <string name="chat_info">Info</string>
+    <string name="chat_send_now">Send now</string>
+    <string name="chat_delivered">Delivered</string>
+    <string name="chat_sent">Sent</string>
+    <string name="chat_send_later">Send later</string>
+    <string name="chat_pick_date_time">Pick date &amp; time…</string>
+    <string name="chat_send_at">Send at</string>
+    <string name="chat_schedule">Schedule</string>
+    <string name="chat_report_title">Report to carrier</string>
+    <string name="chat_report_body">Reporting forwards this message to your carrier\'s spam service by SMS. Standard SMS rates may apply.</string>
+    <string name="chat_report_1909">Report to 1909 (TRAI DND)</string>
+    <string name="chat_report_1909_stale">This message is older than 3 days, so TRAI treats it as an intelligence report rather than an actionable complaint.</string>
+    <string name="chat_report_7726">Forward to 7726 (SPAM)</string>
+    <string name="chat_report_preview_label">This exact message will be sent:</string>
+    <string name="chat_report_send">Send report</string>
+    <string name="chat_message_info">Message info</string>
+
+    <!-- ============================ Settings =========================== -->
+
+    <!--
+      Settings copy. Most of these are a title/subtitle pair on one row: the
+      title names the control, the subtitle says what turning it on actually
+      does. Keep the subtitle honest about scope — several of them promise that
+      a folder is never touched, and a user who is deciding whether to switch
+      on an automatic deletion is relying on exactly that sentence.
+    -->
+    <string name="settings_restore_confirm_title">Restore from backup?</string>
+    <string name="settings_restore_confirm_body">Messages, rules, and settings from the backup will be added. Nothing on this device is deleted or overwritten; duplicates are skipped.</string>
+    <string name="settings_choose_file">Choose file</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_subtitle">Choose how Messages looks across the app.</string>
+    <string name="settings_section_sensitivity">Protection sensitivity</string>
+    <string name="settings_sensitivity_relaxed_body">Fewer messages filtered — borderline messages stay in your Inbox or Review.</string>
+    <string name="settings_sensitivity_strict_body">Aggressive filtering — borderline messages go to Spam sooner. Protected messages (OTPs, bank alerts) are never filtered at any level.</string>
+    <string name="settings_sensitivity_default_body">Balanced filtering, recommended for most people. Protected messages (OTPs, bank alerts) are never filtered.</string>
+    <string name="settings_section_rules">Your rules</string>
+    <string name="settings_rules_subtitle">Rules outrank everything, including the pattern library.</string>
+    <string name="settings_rules_always_allow">Always allow</string>
+    <string name="settings_rules_always_block">Always block</string>
+    <string name="settings_rules_custom">Custom rules</string>
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notification_behavior">Notification behavior</string>
+    <string name="settings_notification_behavior_subtitle">Per-folder alerts, sounds, and OTP copy options.</string>
+    <string name="settings_section_privacy">Privacy &amp; security</string>
+    <string name="settings_app_lock">App lock</string>
+    <string name="settings_app_lock_subtitle">Require fingerprint, face, or device PIN to open Messages.</string>
+    <string name="settings_app_lock_unavailable">Set up a screen lock or biometrics on this device first.</string>
+    <string name="settings_lock_after">Lock after</string>
+    <string name="settings_lock_after_subtitle">Skip re-unlock when returning within this window.</string>
+    <string name="settings_hide_previews">Hide message previews</string>
+    <string name="settings_hide_previews_subtitle">Notifications show &quot;New message&quot; instead of the text.</string>
+    <string name="settings_lock_chat_tip">Tip: lock individual conversations from the ⋮ menu inside a chat.</string>
+    <string name="settings_section_conversations">Conversations</string>
+    <string name="settings_swipe_right">Swipe right</string>
+    <string name="settings_swipe_right_subtitle">Left-to-right swipe on a conversation</string>
+    <string name="settings_swipe_left">Swipe left</string>
+    <string name="settings_swipe_left_subtitle">Right-to-left swipe on a conversation</string>
+    <string name="settings_delivery_reports">Delivery reports</string>
+    <string name="settings_delivery_reports_subtitle">Show &quot;Delivered&quot; on sent messages when the carrier confirms.</string>
+    <string name="settings_link_previews">Link previews</string>
+    <string name="settings_link_previews_subtitle">Show a small preview card for links in Inbox messages. Never for filtered folders or dangerous messages; no cookies are sent.</string>
+    <string name="settings_summary_cards">Summary cards</string>
+    <string name="settings_summary_cards_subtitle">Pull out the amount, due date and reference from bank, bill and delivery messages. Read on this phone, from the message itself. Never shown on spam or suspected fraud.</string>
+    <string name="settings_section_auto_clean">Auto-clean features</string>
+    <string name="settings_otp_auto_delete">Delete OTP messages after 24 hours</string>
+    <string name="settings_otp_auto_delete_subtitle">Only OTP-labeled messages in your Inbox. Starred OTPs and filtered folders are never touched.</string>
+    <string name="settings_spam_auto_clean">Auto-clean Spam older than 90 days</string>
+    <string name="settings_spam_auto_clean_subtitle">Old Spam moves to Trash (restorable for 60 days). Starred messages, Review, and Blocked are never touched.</string>
+    <string name="settings_spam_auto_clean_confirm_title">Auto-clean old Spam?</string>
+    <string name="settings_spam_auto_clean_confirm_body">Spam messages older than 90 days will be moved to Trash automatically (once a week) and stay restorable there for 60 days. Review and Blocked folders are never cleaned.</string>
+    <string name="settings_turn_on">Turn on</string>
+    <string name="settings_section_pattern_library">Pattern library</string>
+    <string name="settings_import_pattern_pack">Import pattern pack</string>
+    <string name="settings_revert_to_bundled">Revert to bundled</string>
+    <string name="settings_section_backup">Backup &amp; restore</string>
+    <string name="settings_backup_subtitle">Everything stays on this device: messages, categories, rules, sender trust, and settings go into one encrypted file, locked with a password you choose.</string>
+    <string name="settings_back_up_now">Back up now</string>
+    <string name="settings_restore">Restore</string>
+    <string name="settings_google_drive_backup">Google Drive backup…</string>
+    <string name="settings_section_import">Message import</string>
+    <string name="settings_reimport_subtitle">If your existing messages are missing from the app, import them again from the phone\'s SMS store. Already-imported messages are skipped.</string>
+    <string name="settings_reimport">Re-import messages</string>
+    <string name="settings_trash_subtitle">Deleted messages are kept for 60 days and can be restored.</string>
+    <string name="settings_app_color">App color</string>
+    <string name="settings_accent_dynamic_subtitle">Dynamic — follows your wallpaper</string>
+    <string name="settings_text_size_small">Small</string>
+    <string name="settings_text_size_default">Default</string>
+    <string name="settings_text_size_large">Large</string>
+    <string name="settings_text_size_extra_large">Extra large</string>
+    <string name="settings_text_size">Message text size</string>
+    <string name="settings_text_size_subtitle">Size of message text in conversations.</string>
+    <string name="settings_quick_replies">Quick replies</string>
+    <string name="settings_quick_replies_subtitle">One-tap templates offered by the ⚡ button in the composer.</string>
+    <string name="settings_delete_template">Delete template</string>
+    <string name="settings_new_quick_reply">New quick reply</string>
+    <string name="settings_add_template">Add template</string>
+    <string name="settings_delete_rule">Delete rule</string>
+    <string name="settings_rule_dialog_allow_title">Always allow sender</string>
+    <string name="settings_rule_dialog_block_title">Always block sender</string>
+    <string name="settings_rule_dialog_custom_title">Add custom rule</string>
+    <string name="settings_rule_pattern_hint_text">Text pattern (regex allowed)</string>
+    <string name="settings_rule_pattern_hint_sender">Sender number, header, or regex</string>
+    <string name="settings_rule_match_against">Match against</string>
+    <string name="settings_rule_target_sender">Sender</string>
+    <string name="settings_rule_target_text">Message text</string>
+    <string name="settings_rule_move_to">Move to</string>
+
+    <!--
+      Theme and accent names. The accent ids live in :design-system, which has
+      no resource table; these are the names the user actually reads. "AMOLED
+      black" means a true-black background that saves power on OLED panels —
+      keep the technical term if your locale uses it.
+    -->
+    <string name="settings_theme_system">System default</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_amoled">AMOLED black</string>
+    <string name="accent_dynamic">Dynamic</string>
+    <string name="accent_blue">Blue</string>
+    <string name="accent_teal">Teal</string>
+    <string name="accent_green">Green</string>
+    <string name="accent_amber">Amber</string>
+    <string name="accent_coral">Coral</string>
+    <string name="accent_pink">Pink</string>
+    <string name="accent_purple">Purple</string>
+    <string name="accent_graphite">Graphite</string>
+    <!-- %1$s is an accent name from the list above. Screen-reader only. -->
+    <string name="settings_accent_swatch">%1$s accent</string>
+
+    <!--
+      Protection-sensitivity slider ticks. These three label the same control
+      the settings_sensitivity_*_body strings describe, so keep them in step:
+      the tick is the short name, the body is the consequence.
+    -->
+    <string name="settings_sensitivity_relaxed">Relaxed</string>
+    <string name="settings_sensitivity_default">Default</string>
+    <string name="settings_sensitivity_strict">Strict</string>
+
+    <!--
+      Rule editor. A "rule" is the user\'s own always-allow / always-block /
+      route-to-folder instruction, and it overrides everything the filter would
+      otherwise decide. %1$s in the summaries is a category name (one of the
+      category_* strings).
+    -->
+    <!-- %1$s is the group name: "Always allow", "Always block", "Custom rules". -->
+    <string name="settings_add_rule_to_group">Add %1$s rule</string>
+    <string name="settings_rule_summary_sender">When sender matches → %1$s</string>
+    <string name="settings_rule_summary_text">When message text matches → %1$s</string>
+    <!-- %1$d is a character count. -->
+    <plurals name="settings_rule_error_too_long">
+        <item quantity="one">Rule is longer than %1$d character</item>
+        <item quantity="other">Rule is longer than %1$d characters</item>
+    </plurals>
+    <!--
+      Shown when a typed rule compiles as a regular expression but could take
+      pathologically long to run. It is a refusal, not a failure of the app.
+    -->
+    <string name="settings_rule_error_rejected">That pattern isn\'t allowed</string>
+
+    <!--
+      App-lock biometric prompt titles. The system shows these above the
+      fingerprint / face / PIN sheet, so they must read as an instruction.
+    -->
+    <string name="settings_app_lock_prompt_enable">Confirm to enable app lock</string>
+    <string name="settings_app_lock_prompt_disable">Confirm to turn off app lock</string>
+
+    <!--
+      Pattern-library status line and import results. "Pattern library" is the
+      bundled set of rules the spam filter matches against; an "imported pack"
+      is one the user loaded from a file, replacing the bundled set.
+      %1$d is the library version, %2$d the number of patterns.
+    -->
+    <plurals name="settings_library_version_bundled">
+        <item quantity="one">Version %1$d — %2$d pattern (bundled)</item>
+        <item quantity="other">Version %1$d — %2$d patterns (bundled)</item>
+    </plurals>
+    <plurals name="settings_library_version_imported">
+        <item quantity="one">Version %1$d — %2$d pattern (imported pack)</item>
+        <item quantity="other">Version %1$d — %2$d patterns (imported pack)</item>
+    </plurals>
+    <!-- %1$d is a size limit in kilobytes. -->
+    <string name="settings_pack_too_large">Couldn\'t read the file, or it is larger than %1$d KB</string>
+    <string name="settings_file_unreadable">Couldn\'t read the selected file</string>
+    <!-- %1$d is the pack version, %2$d the number of patterns it activated. -->
+    <plurals name="settings_pack_imported">
+        <item quantity="one">Imported pattern pack v%1$d — %2$d pattern active</item>
+        <item quantity="other">Imported pattern pack v%1$d — %2$d patterns active</item>
+    </plurals>
+    <!-- %1$s is a technical reason from the parser. -->
+    <string name="settings_pack_invalid">Invalid pattern pack: %1$s</string>
+    <string name="settings_pack_reverted">Reverted to the bundled library</string>
+
+    <!--
+      Backup and restore status. Restore never deletes: it adds what is missing
+      and skips what is already present, and the wording should not suggest
+      otherwise.
+    -->
+    <string name="settings_backup_exporting">Exporting…</string>
+    <string name="settings_backup_saved">Backup saved</string>
+    <!-- %1$s is a technical reason. -->
+    <string name="settings_backup_failed">Backup failed: %1$s</string>
+    <string name="settings_backup_no_output">Couldn\'t open the selected location</string>
+
+    <!--
+      V2-49: the local archive. Export is encrypted, always; import still reads
+      the plain JSON files earlier versions wrote.
+    -->
+    <string name="settings_archive_verifying">Encrypting and checking the file…</string>
+    <string name="settings_archive_wrong_password">That password didn\'t open this backup</string>
+    <plurals name="settings_archive_saved">
+        <item quantity="one">Encrypted backup saved (%1$d message)</item>
+        <item quantity="other">Encrypted backup saved (%1$d messages)</item>
+    </plurals>
+    <string name="settings_archive_export_title">Choose a backup password</string>
+    <string name="settings_archive_export_body">The file is encrypted with this password. It is the only way to open it later.</string>
+    <string name="settings_archive_import_title">This backup is encrypted</string>
+    <string name="settings_archive_import_body">Enter the password it was made with.</string>
+    <string name="settings_archive_password">Password</string>
+    <string name="settings_archive_password_repeat">Repeat password</string>
+    <string name="settings_archive_mismatch">The two passwords don\'t match</string>
+    <string name="settings_archive_weak">Use at least 8 characters, and not a common password.</string>
+    <string name="settings_archive_no_recovery">Nobody can recover this password for you — not even us.</string>
+    <string name="settings_archive_export_action">Encrypt and save</string>
+    <string name="settings_archive_import_action">Restore</string>
+    <string name="settings_backup_restoring">Restoring…</string>
+    <!-- %1$d restored, %2$d skipped as already present, %3$d rules restored. -->
+    <!--
+      Restore summary. Three separate counts have to agree with three different
+      nouns, and one <plurals> can only agree with one number — so each count is
+      its own complete clause and settings_backup_restored is the frame that
+      assembles them. Translators: reorder the %s slots freely and change the
+      punctuation to suit; each clause already reads as a whole statement.
+    -->
+    <plurals name="settings_backup_restored_messages">
+        <item quantity="one">Restored %1$d message</item>
+        <item quantity="other">Restored %1$d messages</item>
+    </plurals>
+    <plurals name="settings_backup_restored_skipped">
+        <item quantity="one">%1$d already present</item>
+        <item quantity="other">%1$d already present</item>
+    </plurals>
+    <plurals name="settings_backup_restored_rules">
+        <item quantity="one">%1$d rule</item>
+        <item quantity="other">%1$d rules</item>
+    </plurals>
+    <string name="settings_backup_restored">%1$s (%2$s), %3$s</string>
+    <!-- %1$s is a technical reason. -->
+    <string name="settings_restore_failed">Restore failed: %1$s</string>
+
+    <!-- Re-import from the phone\'s own SMS store. %1$d done of %2$d total. -->
+    <string name="settings_importing">Importing…</string>
+    <plurals name="settings_importing_progress">
+        <item quantity="one">Importing… %1$d of %2$d message</item>
+        <item quantity="other">Importing… %1$d of %2$d messages</item>
+    </plurals>
+
+    <!-- Trash row. %1$d is the number of messages currently in Trash. -->
+    <string name="settings_trash">Trash</string>
+    <string name="settings_trash_with_count">Trash (%1$d)</string>
+
+    <!-- ====================== Conversation list ======================== -->
+
+    <!--
+      The home screen: the folder tabs, the search sheet, the selection bar and
+      the empty states. Two things to watch when translating:
+
+        * The folder tab names come from the shared category block above, not
+          from here — the tab and the verdict header have to say the same word.
+          Only "Blocked" is local, because the tab is a place while
+          category_blocked ("Blocked by you") is an explanation.
+        * The empty states are reassurance, not error text. Each one says where
+          the missing messages would have gone and, where it matters, promises
+          nothing was deleted. Keep that promise in the translation.
+    -->
+    <string name="home_clear_selection">Clear selection</string>
+    <string name="home_mark_read">Mark read</string>
+    <string name="home_mark_unread">Mark unread</string>
+    <string name="home_archive">Archive</string>
+    <string name="home_protection_dashboard">Protection dashboard</string>
+    <string name="home_starred_messages">Starred messages</string>
+    <string name="home_mark_all_as_read">Mark all as read</string>
+    <string name="home_folder_marked_read">Folder marked as read</string>
+    <string name="home_new_message">New message</string>
+    <string name="home_search_placeholder">Search messages</string>
+    <string name="home_search_add_keyword">Add another keyword</string>
+    <string name="home_filter_unread">Unread</string>
+    <string name="home_clear_unread_filter">Clear unread filter</string>
+    <string name="home_loading_conversations">Loading conversations</string>
+    <string name="home_load_failed">Couldn\'t load your conversations</string>
+    <string name="home_no_unread">No unread conversations</string>
+    <string name="home_back_to_top">Back to top</string>
+    <string name="home_search_min_length">Type at least 3 characters</string>
+    <string name="home_recent_searches">Recent searches</string>
+    <string name="home_search_no_match">No messages match</string>
+    <string name="home_search_section_conversations">Conversations</string>
+    <string name="home_search_section_messages">Messages</string>
+    <string name="home_search_section_spam">In Spam &amp; Blocked</string>
+    <string name="home_contacts_prompt_title">Show contact names</string>
+    <string name="home_contacts_prompt_body">Allow Contacts access so people show up by name and photo, not number.</string>
+    <string name="home_contacts_allow">Allow</string>
+    <string name="home_default_sms_title">Set Messages as your default SMS app</string>
+    <string name="home_default_sms_body">To see your conversations and turn on spam, scam &amp; fraud protection, Messages needs to be your SMS app.</string>
+    <string name="home_default_sms_action">Set as default SMS app</string>
+    <string name="home_select_conversation">Select conversation</string>
+    <string name="home_muted">Muted</string>
+    <string name="home_pinned">Pinned</string>
+    <!--
+      Search-sheet label chips. These name the kind of message, not the sender:
+      an "OTP" is a one-time passcode, "Bank" covers balance and transaction
+      alerts. Keep them to one short word if the language allows — they sit in a
+      single scrolling row of chips.
+    -->
+    <string name="home_label_otp">OTP</string>
+    <string name="home_label_bank">Bank</string>
+    <string name="home_label_delivery">Delivery</string>
+    <string name="home_label_travel">Travel</string>
+    <string name="home_label_bill">Bill</string>
+
+    <!-- The folder tab. See the note in the header on why this is not category_blocked. -->
+    <string name="home_folder_blocked">Blocked</string>
+
+    <!--
+      Swipe and bulk-action feedback. Each of these appears with an Undo button,
+      so it is written as a statement of what just happened, not a question.
+    -->
+    <string name="home_archived_snackbar">Archived</string>
+    <string name="home_trashed_snackbar">Conversation moved to Trash</string>
+    <plurals name="home_trashed_count_snackbar">
+        <item quantity="one">%1$d conversation moved to Trash</item>
+        <item quantity="other">%1$d conversations moved to Trash</item>
+    </plurals>
+    <plurals name="home_selected_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+
+    <!--
+      Unread badges. Read aloud by a screen reader — the number alone is on the
+      badge, this is what replaces it. The muted variant exists because a user
+      who muted a thread still wants to know it is unread, but wants to know it
+      is muted in the same breath.
+    -->
+    <plurals name="home_unread_count">
+        <item quantity="one">%1$d unread</item>
+        <item quantity="other">%1$d unread</item>
+    </plurals>
+    <plurals name="home_unread_count_muted">
+        <item quantity="one">%1$d unread, muted</item>
+        <item quantity="other">%1$d unread, muted</item>
+    </plurals>
+
+    <!-- Removes one keyword chip from the multi-keyword search. %1$s is the keyword. -->
+    <string name="home_remove_chip">Remove %1$s</string>
+    <!-- %1$d matched keywords out of %2$d searched. -->
+    <plurals name="home_match_count">
+        <item quantity="one">Matches %1$d of %2$d keyword</item>
+        <item quantity="other">Matches %1$d of %2$d keywords</item>
+    </plurals>
+    <!-- Prefixes the row preview when the last thing in the thread is an unsent draft. -->
+    <string name="home_draft_prefix">Draft: %1$s</string>
+
+    <!--
+      Empty folder states: a headline and a supporting line. The supporting line
+      is the reassurance — say where messages of this kind end up, and where the
+      original promises nothing is deleted, keep that promise exactly.
+    -->
+    <string name="home_empty_spam_headline">No spam today — enjoy the silence</string>
+    <string name="home_empty_spam_supporting">Caught messages stay here, reviewable any time. Nothing is ever deleted.</string>
+    <string name="home_empty_promotions_headline">No promotions right now</string>
+    <string name="home_empty_promotions_supporting">Offers and marketing wait here without making a sound.</string>
+    <string name="home_empty_review_headline">Nothing needs your review</string>
+    <string name="home_empty_review_supporting">When the engine isn\'t sure, it asks you here instead of guessing.</string>
+    <string name="home_empty_blocked_headline">No blocked messages</string>
+    <string name="home_empty_blocked_supporting">Messages from senders you block are kept here, silently.</string>
+    <string name="home_empty_transactions_headline">No transactions yet</string>
+    <string name="home_empty_transactions_supporting">Receipts, debits and statements are filed here automatically.</string>
+    <string name="home_empty_default_headline">No messages yet</string>
+    <string name="home_empty_default_supporting">Conversations you start or receive will appear here.</string>
+    <!-- ======================== Google Drive backup ===================== -->
+
+    <!--
+      The Drive backup screen. Two things carry real weight here:
+
+        * The intro explains that the backup is encrypted before it leaves the
+          phone and that the Google account — not a password — is the key. A
+          user decides whether to switch this on from that sentence alone, so
+          do not soften or shorten it.
+        * The restore copy promises that messages are added and never
+          overwritten. That promise is why people tap Restore without a backup
+          of their backup. Keep it exact.
+
+      "KB" is kilobytes. Sizes and counts are separate arguments so a language
+      that orders them differently can move them.
+    -->
+    <string name="drive_title">Google Drive backup</string>
+    <string name="drive_intro">Backups are encrypted on this phone before upload and live in this app\'s private Drive space. Your Google account is the key: to restore on any phone, just sign in with the same account — no password to remember.</string>
+
+    <string name="drive_section_account">Google account</string>
+    <string name="drive_choose_account">Choose Google account</string>
+    <string name="drive_sign_out">Sign out</string>
+    <!-- Shown when sign-in succeeded but the user declined the Drive permission itself. -->
+    <string name="drive_scope_not_granted">Drive backup access wasn\'t granted — please try again and allow access</string>
+
+    <string name="drive_section_frequency">Frequency</string>
+    <!-- 6:00 AM is the checkpoint cut-off, not the time the backup runs. -->
+    <string name="drive_frequency_note">Scheduled backups contain messages up to 6:00 AM of the checkpoint day, whenever they actually run.</string>
+    <string name="drive_frequency_daily">Daily</string>
+    <string name="drive_frequency_weekly">Weekly</string>
+    <string name="drive_frequency_monthly">Monthly</string>
+    <!-- "Manual" here means "only when I tap Back up now" — never automatically. -->
+    <string name="drive_frequency_manual">Manual</string>
+    <string name="drive_wifi_only">Back up over Wi-Fi only</string>
+    <string name="drive_include_media">Include photos &amp; videos (MMS)</string>
+    <string name="drive_include_media_subtitle">Larger backups; message text is always included</string>
+
+    <string name="drive_section_spam">Back up the Spam folder</string>
+    <string name="drive_spam_on">On</string>
+    <string name="drive_spam_off">Off</string>
+    <!-- "Custom" = the user hand-picks which spam messages go into the backup. -->
+    <string name="drive_spam_custom">Custom</string>
+    <!-- %1$d is how many spam messages the user has already picked. -->
+    <plurals name="drive_choose_spam_messages">
+        <item quantity="one">Choose spam messages… (%1$d selected)</item>
+        <item quantity="other">Choose spam messages… (%1$d selected)</item>
+    </plurals>
+
+    <string name="drive_section_backup">Backup</string>
+    <string name="drive_back_up_now">Back up now</string>
+    <string name="drive_restore">Restore</string>
+    <!-- %1$s date and time, %2$d messages, %3$d size in kilobytes. -->
+    <plurals name="drive_last_backup">
+        <item quantity="one">Last backup: %1$s · %2$d message · %3$d KB</item>
+        <item quantity="other">Last backup: %1$s · %2$d messages · %3$d KB</item>
+    </plurals>
+    <!-- %1$s is the failure reason reported by Drive; it may be blank. -->
+    <string name="drive_last_error">Last error: %1$s</string>
+
+    <!-- V2-52 backup health. Each line says what is wrong AND what to do about
+         it; none of them reveal message content or key material. -->
+    <string name="drive_health_title">Backup health</string>
+    <string name="drive_health_check_now">Check backup</string>
+    <string name="drive_health_checking">Checking your backup…</string>
+    <string name="drive_health_never">Not checked yet</string>
+    <!-- %1$s is a date and time. -->
+    <string name="drive_health_checked_at">Checked %1$s</string>
+    <string name="drive_health_ok">Your backup can be restored on this device.</string>
+    <string name="drive_health_stale">Your backup can be restored, but the newest one is older than your schedule. Check your connection, or back up now.</string>
+    <string name="drive_health_not_signed_in">No Google account connected, so nothing is being backed up.</string>
+    <string name="drive_health_needs_reauth">Google needs you to allow access again. Reconnect your account.</string>
+    <string name="drive_health_no_snapshots">Nothing has been backed up yet. Tap Back up now to make the first one.</string>
+    <string name="drive_health_unreadable">A backup file is there but it cannot be read. Back up now to replace it.</string>
+    <string name="drive_health_needs_user_secret">Your backup key is protected. Restoring on this device will ask for your recovery code.</string>
+    <string name="drive_health_needs_password">This is an older backup that needs the password you set when it was made.</string>
+    <string name="drive_health_no_key">The key for this backup is missing, so it cannot be opened. Back up now to start a new one.</string>
+    <string name="drive_health_key_mismatch">The keys on this device do not open the newest backup. Back up now to start a new one.</string>
+    <string name="drive_health_mixed_custody">Backup key protection was interrupted and backups are stopped. Turn protection off and on again to fix it.</string>
+    <string name="drive_health_multiple_keys">Two backup keys were found and backups are stopped. Restore what you need, then back up again.</string>
+    <string name="drive_health_unreachable">Drive could not be reached, so your backup could not be checked. This does not mean anything is wrong with it.</string>
+    <!-- %1$d keys accepted the backup, %2$d keys were tried. -->
+    <plurals name="drive_health_keys">
+        <item quantity="one">%1$d of %2$d key opened it</item>
+        <item quantity="other">%1$d of %2$d keys opened it</item>
+    </plurals>
+    <plurals name="drive_backup_complete">
+        <item quantity="one">Backup complete — %1$d message</item>
+        <item quantity="other">Backup complete — %1$d messages</item>
+    </plurals>
+    <string name="drive_backup_failed">Backup failed: %1$s</string>
+
+    <string name="drive_looking_for_backups">Looking for backups…</string>
+    <string name="drive_no_backups">No backups found in this Google account</string>
+    <string name="drive_unreachable">Couldn\'t reach Drive: %1$s</string>
+    <string name="drive_choose_backup">Choose a backup</string>
+    <string name="drive_snapshots_note">Two snapshots are kept. Newer is listed first.</string>
+    <!-- %1$s is the date of the newest snapshot in the list. -->
+    <string name="drive_snapshot_latest">%1$s  ·  Latest</string>
+    <!-- Stands in for the phone model when the backup did not record one. -->
+    <string name="drive_unknown_device">Unknown device</string>
+    <!-- %1$s device model, %2$d messages, %3$d size in kilobytes. -->
+    <plurals name="drive_snapshot_summary">
+        <item quantity="one">%1$s · %2$d message · %3$d KB</item>
+        <item quantity="other">%1$s · %2$d messages · %3$d KB</item>
+    </plurals>
+    <!-- Appends to the line above for a legacy snapshot that is password-locked. -->
+    <string name="drive_snapshot_needs_password">%1$s · needs password</string>
+
+    <string name="drive_restore_confirm_title">Restore backup?</string>
+    <!-- %1$s device the backup came from, %2$s when it was made. -->
+    <string name="drive_restore_from">From %1$s · %2$s</string>
+    <string name="drive_another_device">another device</string>
+    <plurals name="drive_message_count_size">
+        <item quantity="one">%1$d message · %2$d KB</item>
+        <item quantity="other">%1$d messages · %2$d KB</item>
+    </plurals>
+    <string name="drive_restore_note">Messages are added, never overwritten; duplicates are skipped.</string>
+    <string name="drive_password_required">This backup was made with a backup password.</string>
+    <string name="drive_password_label">Backup password</string>
+    <string name="drive_wrong_password">Wrong backup password</string>
+    <string name="drive_restore_failed">Restore failed: %1$s</string>
+
+    <!--
+      Progress popups. %1$s is an already-formatted percentage including its
+      leading space, or empty while the total is still unknown — put it where a
+      percentage reads naturally in the sentence.
+    -->
+    <string name="drive_backing_up">Backing up</string>
+    <string name="drive_preparing">Preparing messages…</string>
+    <!-- %2$d messages done of %3$d. -->
+    <string name="drive_preparing_progress">Preparing messages…%1$s (%2$d/%3$d)</string>
+    <string name="drive_encrypting">Encrypting…</string>
+    <!-- %2$d kilobytes uploaded of %3$d. -->
+    <string name="drive_uploading_progress">Uploading…%1$s (%2$d KB of %3$d KB)</string>
+    <string name="drive_restoring">Restoring</string>
+    <string name="drive_downloading">Downloading…</string>
+    <string name="drive_downloading_progress">Downloading…%1$s (%2$d KB of %3$d KB)</string>
+    <string name="drive_decrypting">Decrypting…</string>
+    <string name="drive_importing">Adding messages…</string>
+    <!--
+      Restore outcome. The app picks exactly one of these four, then optionally
+      appends a locked-chat note. "%1$s" in the two locked-chat strings is that
+      sentence, so the note has to read as a continuation of it.
+
+      The locked-chat wording is deliberately vague about how many were found:
+      the person holding the phone during a restore is not necessarily the
+      person the locked space belongs to.
+    -->
+    <string name="drive_restore_nothing_new">Nothing to restore — all messages are already on this device</string>
+    <string name="drive_restore_complete">Restore complete</string>
+    <string name="drive_restore_empty">Backup contained no messages</string>
+    <plurals name="drive_restored_count">
+        <item quantity="one">Restored %1$d new message</item>
+        <item quantity="other">Restored %1$d new messages</item>
+    </plurals>
+    <string name="drive_restore_locked_pending">%1$s. Locked chats present — enter your secret code to unlock (press and hold the Messages title).</string>
+    <string name="drive_restore_locked_done">%1$s. Locked chats restored to your locked space.</string>
+
+    <!--
+      %1$s is a Google sign-in status code such as DEVELOPER_ERROR, or the
+      exception text. Leave it untranslated — it is what a support search is
+      run against.
+    -->
+    <string name="drive_sign_in_failed">Sign-in failed: %1$s</string>
+
+    <!--
+      Key-file failures. The user sees these as the reason a backup did not
+      happen, so they say what to do next rather than what went wrong
+      internally. Nothing is ever deleted in these states — do not imply it is.
+    -->
+    <string name="drive_error_multiple_keys">Multiple backup key files found in Google Drive (%1$d). Restore an older snapshot before creating new backups.</string>
+    <string name="drive_error_corrupt_key">Corrupt backup key file in Google Drive</string>
+    <string name="drive_error_duplicate_key">Concurrent backup created a duplicate key file; no snapshot was written.</string>
+    <string name="drive_error_not_signed_in">Not signed in to Google</string>
+    <string name="drive_error_key_file_missing">The backup key is missing from Google Drive</string>
+    <string name="drive_error_password_required">This backup needs its backup password</string>
+    <string name="drive_error_mixed_custody">Backup key protection was interrupted part-way. Open backup settings and turn it on again to finish.</string>
+    <string name="drive_error_recovery_code_needed">Enter your recovery code to unlock the backup key on this phone.</string>
+    <string name="drive_error_already_protected">The backup key is already protected.</string>
+    <string name="drive_error_vault_verify">Could not confirm the protected key opens. Nothing was changed.</string>
+
+    <!--
+      V2-5 / V2-46 — user-held backup key.
+
+      Two rules for everything below. First, never imply the recovery code can
+      be recovered: nobody has a copy, and copy that hedges gets people to skip
+      writing it down. Second, never call the default mode insecure — backups
+      are AES-256-GCM in both modes; what changes is who holds the key.
+    -->
+    <string name="drive_section_key_protection">Backup key protection</string>
+    <string name="drive_key_protection_note">Backups are always encrypted. This chooses who holds the key that opens them.</string>
+    <string name="drive_key_custody_account">Your Google Account</string>
+    <string name="drive_key_custody_account_subtitle">The key is stored in Drive with your backups, so restoring only needs your account. Anyone who reaches the account reaches both.</string>
+    <string name="drive_key_custody_user_held">A code only you have</string>
+    <string name="drive_key_custody_user_held_subtitle">The key is stored locked, and the code that opens it never leaves this phone. Your account alone cannot open a backup.</string>
+    <string name="drive_key_protect_action">Protect with a code</string>
+    <string name="drive_key_change_action">Change the code</string>
+    <string name="drive_key_unprotect_action">Go back to account access</string>
+    <string name="drive_key_unlock_action">Enter recovery code</string>
+    <string name="drive_key_locked_here">This phone does not have the key yet. Enter your recovery code to restore or back up here.</string>
+
+    <string name="drive_key_method_title">How do you want to unlock backups?</string>
+    <string name="drive_key_method_code">Recovery code</string>
+    <string name="drive_key_method_code_note">A 32-character code generated for you. Nothing to remember, nothing to guess — write it down and keep it somewhere safe.</string>
+    <string name="drive_key_method_password">Password</string>
+    <string name="drive_key_method_password_note">Easier to remember, and weaker: a password can be guessed offline by anyone holding a backup file. Use a long, unusual one.</string>
+
+    <string name="drive_recovery_code_title">Your recovery code</string>
+    <string name="drive_recovery_code_body">Write this down before continuing. It is the only way to open your backups on a new phone, and no one — not this app, not Google — can look it up or reset it.</string>
+    <string name="drive_recovery_code_copy">Copy code</string>
+    <string name="drive_recovery_code_copied">Recovery code copied</string>
+    <string name="drive_recovery_code_saved">I have written it down</string>
+    <string name="drive_recovery_code_label">Recovery code</string>
+    <string name="drive_recovery_code_malformed">That is not a 32-character recovery code.</string>
+    <string name="drive_recovery_password_label">Backup password</string>
+    <string name="drive_recovery_password_confirm_label">Repeat password</string>
+    <string name="drive_recovery_password_mismatch">The two passwords are different.</string>
+
+    <string name="drive_key_protect_title">Protect the backup key</string>
+    <string name="drive_key_protect_body">The key will be locked with your code and the unprotected copy will be deleted from Drive. Your existing backups keep working.</string>
+    <string name="drive_key_unprotect_title">Go back to account access?</string>
+    <string name="drive_key_unprotect_body">The key goes back into Drive next to your backups, so anyone who can sign in to your Google Account can open them again.</string>
+    <string name="drive_key_change_title">Change the code</string>
+    <string name="drive_key_change_body">Your backups are not re-encrypted; only the code that opens the key changes. The old code stops working.</string>
+    <string name="drive_key_current_secret">Current code</string>
+
+    <string name="drive_key_working">Working…</string>
+    <string name="drive_key_protected_toast">Backups now need your code</string>
+    <string name="drive_key_unprotected_toast">Backups open with your Google Account again</string>
+    <string name="drive_key_changed_toast">Code changed</string>
+    <string name="drive_key_unlocked_toast">Backup key unlocked on this phone</string>
+    <string name="drive_wrong_recovery_code">That code does not open the backup key</string>
+    <string name="drive_key_failed">Could not change backup key protection: %1$s</string>
+    <string name="drive_restore_needs_recovery">This backup is protected with a code. Enter it to restore.</string>
+
+    <!-- ========================== Locked chats ========================== -->
+
+    <!--
+      The credential-protected space. Keep the vocabulary from
+      secret_entry_action above: it is a "locked space" holding "locked chats",
+      opened with a "secret code". Never call it a folder, an archive, or a
+      vault, and never imply the code can be recovered or reset by support.
+    -->
+    <string name="secret_setup_title">Set up locked chats</string>
+    <string name="secret_setup_subtitle">This code protects your locked chats. It works only here — it is separate from your fingerprint, the phone\'s lock, and the app lock.</string>
+    <string name="secret_setup_legacy_move">Your existing locked chats will move here.</string>
+    <string name="secret_scroll_to_continue">Scroll to continue ↓</string>
+    <string name="secret_setting_up">Setting up…</string>
+    <string name="secret_i_understand">I understand</string>
+
+    <!--
+      TRANSLATOR NOTE — the four disclaimer points below are legal-weight copy.
+      This is the one screen in the app where a softened translation costs
+      someone their messages: they are agreeing that nobody, including us, can
+      get these chats back. Translate them completely and literally. Keep the
+      "(1)"–"(4)" numbering, keep the emphasis on NO recovery and on THIS app,
+      and do not add reassurance that is not in the English.
+    -->
+    <string name="secret_disclaimer_title">About locked chats.</string>
+    <string name="secret_disclaimer_intro">Locked chats are hidden inside this app and protected by the secret code you set — not by your fingerprint or the phone\'s lock. Please understand:</string>
+    <string name="secret_disclaimer_point_recovery">(1) If you forget your secret code, there is NO way to recover these chats — no reset, no backdoor. That\'s what makes it secure.</string>
+    <string name="secret_disclaimer_point_sms_storage">(2) The words in a locked chat are encrypted on this device, and the copy in your phone\'s shared message storage is deleted — so another SMS app cannot read them. Two things stay readable: who you messaged and when. And once a chat is locked, its messages live only in this app — they will not show up in any other SMS app, and they reach a new phone only through this app\'s backup.</string>
+    <string name="secret_disclaimer_point_backups">(3) Backups include locked chats in encrypted form; restoring them on any device requires this same secret code.</string>
+    <string name="secret_disclaimer_point_notifications">(4) Notifications for locked chats will only say \'New message\' — or can be turned off entirely inside the locked folder\'s settings.</string>
+
+    <!-- Short bold lead above each point. A label, not a summary: the point
+         underneath carries the meaning. -->
+    <string name="secret_disclaimer_lead_recovery">No recovery</string>
+    <string name="secret_disclaimer_lead_sms_storage">Encrypted, and what that leaves</string>
+    <string name="secret_disclaimer_lead_backups">Backups</string>
+    <string name="secret_disclaimer_lead_notifications">Notifications</string>
+
+    <!-- Code entry. -->
+    <string name="secret_prompt_title">Locked chats</string>
+    <string name="secret_prompt_title_restoring">Locked chats present</string>
+    <string name="secret_prompt_restoring_body">Your backup contains locked chats. Enter the secret code you set on your previous device to unlock them here.</string>
+    <string name="secret_prompt_draw_pattern">Draw your pattern to enter</string>
+    <string name="secret_prompt_enter_password">Enter your password</string>
+    <string name="secret_prompt_enter_pin">Enter your PIN</string>
+    <string name="secret_unlocking_restored">Unlocking your restored chats…</string>
+    <string name="secret_password_label">Password</string>
+    <string name="secret_unlock">Unlock</string>
+    <string name="secret_wrong_code">Wrong code — try again</string>
+
+    <!--
+      %1$s is a duration such as "2m 30s" from secret_cooldown_*. The wait is
+      the point of the message: keep it in the sentence.
+    -->
+    <string name="secret_wrong_code_cooldown">Wrong code. Try again in %1$s.</string>
+    <string name="secret_too_many_attempts">Too many attempts. Try again in %1$s.</string>
+
+    <!--
+      Durations for the lockout above. %1$d/%2$d are hours+minutes, minutes+
+      seconds, or seconds. Translate the unit letters (h/m/s) to whatever is
+      conventional and unambiguous in your language.
+    -->
+    <string name="secret_cooldown_hm">%1$dh %2$dm</string>
+    <string name="secret_cooldown_ms">%1$dm %2$ds</string>
+    <string name="secret_cooldown_s">%1$ds</string>
+
+    <!-- Reset destroys the locked chats. Do not soften "permanently". -->
+    <string name="secret_reset">Reset</string>
+    <string name="secret_reset_confirm_title">Reset locked chats?</string>
+    <string name="secret_reset_confirm_body">ALL messages in your locked folder will be permanently deleted. This cannot be undone and cannot be recovered. You\'ll set a new secret code and start with an empty locked folder.</string>
+    <string name="secret_deleting">Deleting…</string>
+    <string name="secret_delete_everything">Delete everything</string>
+
+    <!-- Locked-chat settings. -->
+    <string name="secret_settings_title">Locked chats settings</string>
+    <string name="secret_section_security">Security</string>
+    <string name="secret_change_code">Change secret code</string>
+    <string name="secret_change_code_subtitle">Requires your current code. Backups re-key automatically.</string>
+    <string name="secret_notify_title">Notify for locked chats</string>
+    <string name="secret_notify_subtitle">On: a generic \"New message\" with no sender or content. Off: locked chats never notify at all.</string>
+    <string name="secret_section_about">About</string>
+    <string name="secret_about_body">Locked chats are protected by your secret code only — not your fingerprint or the phone\'s lock. If you forget the code there is no way to recover these chats. SMS content still lives in Android\'s shared message storage; locked chats hide it inside this app only.</string>
+    <string name="secret_enter_current_code">Enter your current code</string>
+    <string name="secret_current_pin">Current PIN</string>
+    <string name="secret_current_password">Current password</string>
+    <string name="secret_current_code_wrong">Current code was wrong</string>
+    <string name="secret_current_code_wrong_retry">Current code was wrong — try again</string>
+    <string name="secret_code_changed">Secret code changed</string>
+    <string name="secret_choose_new_code">Choose a new secret code</string>
+    <string name="secret_choose_new_code_subtitle">Pick any type — it doesn\'t have to match your current one.</string>
+
+    <!-- Choose / confirm a code. -->
+    <string name="secret_choose_code">Choose a secret code</string>
+    <string name="secret_confirm_code">Confirm your secret code</string>
+    <string name="secret_kind_pin">PIN</string>
+    <string name="secret_kind_pattern">Pattern</string>
+    <string name="secret_kind_password">Password</string>
+    <string name="secret_enter_pin_hint">Enter a PIN (4+ digits)</string>
+    <string name="secret_enter_password_hint">Enter a password (4+ characters)</string>
+    <string name="secret_reenter_to_confirm">Re-enter to confirm</string>
+    <string name="secret_confirm">Confirm</string>
+    <string name="secret_start_over">Start over</string>
+    <string name="secret_patterns_dont_match">Patterns don\'t match — try again</string>
+    <string name="secret_codes_dont_match">Codes don\'t match — try again</string>
+    <string name="secret_hide_password">Hide password</string>
+    <string name="secret_show_password">Show password</string>
+    <string name="secret_tap_to_type_pin">Tap to type your PIN</string>
+
+    <!--
+      Pattern grid, spoken by screen readers only. %1$d is the row and %2$d the
+      column, both 1-based; secret_pattern_dot_selected takes the dot's
+      position in the pattern drawn so far.
+    -->
+    <string name="secret_pattern_dot">Row %1$d, column %2$d</string>
+    <string name="secret_pattern_dot_selected">Selected, %1$d in pattern</string>
+    <string name="secret_pattern_dot_unselected">Not selected</string>
+    <string name="secret_pattern_dot_remove">Remove from pattern</string>
+    <string name="secret_pattern_dot_add">Add to pattern</string>
+
+    <!--
+      Progress under the grid. It must never name the dots chosen — it counts
+      them. %1$d is the count, %2$d the minimum.
+    -->
+    <string name="secret_pattern_status_empty">Draw your pattern, or tap dots one at a time</string>
+    <plurals name="secret_pattern_status_progress">
+        <item quantity="one">%1$d of %2$d dot minimum</item>
+        <item quantity="other">%1$d of %2$d dots minimum</item>
+    </plurals>
+    <plurals name="secret_pattern_status_ready">
+        <item quantity="one">%1$d dot — choose Done to continue</item>
+        <item quantity="other">%1$d dots — choose Done to continue</item>
+    </plurals>
+
+    <!-- The locked space's own conversation list. -->
+    <string name="secret_new_message">New message</string>
+    <string name="secret_notifications_off">Notifications off</string>
+    <string name="secret_empty_inbox">No locked chats yet</string>
+    <string name="secret_empty_inbox_body">Lock a chat from its ⋮ menu, or start one here.</string>
+    <string name="secret_empty_folder">Nothing here</string>
+    <string name="secret_no_messages_yet">No messages yet</string>
+    <string name="secret_unlock_thread">Move back to normal chats</string>
+    <string name="secret_unlock_thread_body">The whole chat returns to your normal list; new messages stop routing here.</string>
+
+    <!-- Folder chip carrying an unread count: %1$s is the folder name, %2$d
+         the count. Reorder them if that reads better in your language. -->
+    <plurals name="secret_folder_unread">
+        <item quantity="one">%1$s %2$d</item>
+        <item quantity="other">%1$s %2$d</item>
+    </plurals>
+
+    <!-- Mute toggles on a conversation. Verbs the user taps, not states. -->
+    <string name="action_mute">Mute</string>
+    <string name="action_unmute">Unmute</string>
+
+    <!-- ==================== Notification channels ====================== -->
+
+    <!--
+      These appear in the system Settings app, under this app's notification
+      settings — not inside the app. Names are short enough to fit a settings
+      row; the descriptions say which messages land there, since that is the
+      question someone is answering when they turn a channel off.
+    -->
+    <string name="channel_personal_name">Personal &amp; important</string>
+    <string name="channel_personal_desc">Messages from people and OTPs</string>
+    <string name="channel_transactions_name">Transactions</string>
+    <string name="channel_transactions_desc">Bank alerts, receipts, bills</string>
+    <string name="channel_review_name">Review folder</string>
+    <string name="channel_review_desc">Batched quiet notification for gray-zone messages</string>
+    <string name="channel_reminders_name">Reminders</string>
+    <string name="channel_reminders_desc">Snoozed message reminders</string>
+    <string name="channel_promotions_name">Promotions</string>
+    <string name="channel_promotions_desc">Optional alerts for promotional messages</string>
+    <string name="channel_fraud_name">Fraud warnings</string>
+    <string name="channel_fraud_desc">Warnings about dangerous, likely-fraudulent messages</string>
+
+    <!-- Choosing which spam to include in a Drive backup. -->
+    <string name="drive_spam_picker_title">Spam to back up</string>
+    <string name="drive_spam_picker_search">Search spam</string>
+    <string name="drive_spam_picker_select_all">Select all</string>
+
+    <!-- %1$d is how many are selected, %2$d how many exist. The plural is keyed
+         on the selection, since that is the number the sentence is about. -->
+    <plurals name="drive_spam_picker_count">
+        <item quantity="one">%1$d of %2$d spam messages will be backed up</item>
+        <item quantity="other">%1$d of %2$d spam messages will be backed up</item>
+    </plurals>
+    <plurals name="drive_spam_picker_select_all_results">
+        <item quantity="one">Select all %1$d result</item>
+        <item quantity="other">Select all %1$d results</item>
+    </plurals>
+
+    <!-- ====================== Notification content ===================== -->
+
+    <!--
+      What a notification actually says. These are read on a lock screen, in a
+      glance, often by someone who has not opened the app — keep them short and
+      keep the leading warning glyphs where they are.
+    -->
+    <string name="notif_new_message">New message</string>
+    <string name="notif_you">You</string>
+    <string name="notif_mark_as_read">Mark as read</string>
+    <string name="notif_reply">Reply</string>
+    <string name="notif_verified_sender">Verified sender ✓</string>
+    <string name="notif_business">Business</string>
+
+    <!-- %1$s is the message body, shown after the caution. -->
+    <string name="notif_suspicious_link">⚠️ Caution: contains a suspicious link — %1$s</string>
+
+    <!-- %1$s is the one-time code itself; leave it as-is in the label. -->
+    <string name="notif_copy_otp">Copy %1$s</string>
+
+    <!--
+      The batched Review notification itself. Distinct from notif_review_title
+      above, which is the settings row that switches it on: one names the
+      folder, this one is what the notification says.
+    -->
+    <string name="notif_review_batch_title">Messages to review</string>
+    <string name="notif_review_batch_body">New messages are waiting in your Review folder</string>
+
+    <!--
+      Fraud warning. Advice-first: what to do leads, attribution follows —
+      keep that order, and keep the instructions specific (links, callbacks,
+      OTPs, PINs, card details). %1$s is the sender, or notif_locked_sender
+      when the conversation is locked and must not be named.
+    -->
+    <string name="notif_fraud_title">⚠️ Dangerous message blocked</string>
+    <string name="notif_fraud_body_hidden">Don\'t tap links or share codes. A message was flagged as likely fraud and filed in Spam.</string>
+    <string name="notif_fraud_body">Don\'t tap links, call back, or share OTPs, PINs, or card details. Likely fraud from %1$s — filed in Spam.</string>
+    <string name="notif_locked_sender">a locked conversation</string>
+
+    <!--
+      Biometric prompt titles. The system renders these in its own sheet, above
+      the fingerprint icon, so they name what is being unlocked and nothing else.
+    -->
+    <string name="lock_unlock_prompt">Unlock Messages</string>
+    <string name="chat_unlock_prompt">Unlock conversation</string>
+
+    <!-- Per-conversation notification channel, shown in system settings. The
+         channel is named after the conversation; this is its description. -->
+    <string name="notif_channel_conversation_desc">Custom notifications for this conversation</string>
+
+    <!--
+      Quick-reply seeds. These are messages the user sends to other people, so
+      translate them as natural, everyday replies rather than literally — the
+      point is that they are usable without editing.
+    -->
+    <string name="quick_reply_on_my_way">On my way</string>
+    <string name="quick_reply_call_later">Can\'t talk now — call you later</string>
+    <string name="quick_reply_yes">Yes</string>
+    <string name="quick_reply_no">No</string>
+    <string name="quick_reply_thanks">Thank you!</string>
+
+    <!--
+      Snooze reminder notification. %1$s is the contact; the unnamed variant is
+      used when the conversation is locked or previews are hidden, and must not
+      hint at who or what it is about.
+    -->
+    <string name="reminder_title">Reminder</string>
+    <string name="reminder_title_named">Reminder · %1$s</string>
+    <string name="reminder_body_hidden">You asked to be reminded about a message</string>
+
+    <!-- Google asked for consent again; launching the recovery intent fixes it. -->
+    <string name="drive_error_needs_permission">Google needs additional permission to continue</string>
+
+    <!-- Contact picker states in the composer. -->
+    <string name="compose_loading_contacts">Loading contacts</string>
+    <string name="compose_no_contacts">No contacts to show</string>
+    <string name="compose_no_matches">No matches — type a number to message it directly</string>
+
+    <!--
+      Sender badges. badge_business is the visible chip and is tight on space;
+      badge_business_sender / badge_verified_sender are what a screen reader
+      says instead, and badge_explain is the tap action on them.
+    -->
+    <string name="badge_verified_sender">Verified sender</string>
+    <string name="badge_business_sender">Business sender</string>
+    <string name="badge_business">Business</string>
+    <string name="badge_explain">Explain this badge</string>
+
+    <!-- Fallback grouping names on the protection dashboard, used when the
+         detection engine has no family name of its own for a pattern. -->
+    <string name="dashboard_family_links_format">Links &amp; Format</string>
+    <string name="dashboard_family_other">Other</string>
+
+    <!--
+      Send failures surfaced from the chat ViewModel. Each says what did not
+      happen, in the past tense — the message is already gone from the composer
+      by the time one of these shows, so "couldn\'t" is the accurate mood.
+    -->
+    <string name="action_retry">Retry</string>
+    <string name="chat_send_failed">Couldn\'t send that message</string>
+    <string name="chat_resend_failed">Couldn\'t resend that message</string>
+    <string name="chat_schedule_failed">Couldn\'t schedule that message</string>
+    <string name="chat_cancel_failed">Couldn\'t cancel that message</string>
+    <string name="chat_wallpaper_failed">Couldn\'t use that image</string>
+    <string name="chat_nothing_to_resend">Nothing left to resend</string>
+    <string name="chat_attachment_missing">Attachment is no longer available</string>
+    <string name="chat_attachment_unreadable">Couldn\'t attach that file (too large or unreadable) — nothing was sent</string>
+    <string name="chat_send_text_only">Send text only</string>
+
+    <!-- Fallback SIM name when the carrier supplied none. %1$d is the slot,
+         numbered from 1 the way it is printed on the phone. -->
+    <string name="chat_sim_slot">SIM %1$d</string>
+
+    <!-- Stands in for a sender with neither a contact name nor an address. -->
+    <string name="chat_unknown_sender">Unknown</string>
+
+    <!-- Shown under any "couldn\'t load" heading. The reassurance matters more
+         than the error: people assume a read failure means data loss. -->
+    <string name="load_failed_reassurance">Nothing has been deleted — the app just couldn\'t read it.</string>
+
+    <!--
+      Why a chosen secret code was rejected. Each names the floor it failed, so
+      the user knows what to change; keep the numbers.
+    -->
+    <string name="secret_error_pin_too_short">PIN must be at least 6 digits</string>
+    <string name="secret_error_pin_not_digits">PIN can only contain digits</string>
+    <string name="secret_error_password_too_short">Password must be at least 8 characters</string>
+    <string name="secret_error_pattern_too_short">Pattern needs at least 5 dots</string>
+    <string name="secret_error_unknown_kind">Unknown credential type</string>
+    <!--
+      The blocklist rejections. These say WHY rather than just "not allowed",
+      because a user who is told no without a reason picks the next code on the
+      same list. Don\'t soften them into "try something else".
+    -->
+    <string name="secret_error_pin_too_weak">That PIN is one attackers try first — avoid repeats, runs like 123456, keypad lines, and dates</string>
+    <string name="secret_error_password_too_weak">That password appears in public breach lists — pick something not built from a common word or pattern</string>
+    <string name="secret_error_pattern_too_weak">That pattern is one of the most-drawn shapes — avoid straight lines and edge-to-edge sweeps</string>
+
+    <!--
+      Setup honesty (V2-7). A PIN is a convenience credential: the salted
+      verifier travels inside backups, so a stolen backup file can be attacked
+      offline where the lockout delay does not apply. Say so rather than let the
+      lock imply a strength it doesn\'t have.
+    -->
+    <string name="secret_setup_strength_note">A password is the strongest choice. A PIN or pattern is quicker, but if someone gets hold of a backup file they can guess it offline, where the lockout delay doesn\'t apply.</string>
+    <string name="secret_setup_accessible_methods_note">With a screen reader on, a PIN or password is usually easier to enter and check than a pattern. All three still work.</string>
+
+    <!-- Settings nudge when the existing code is below today\'s floor. Nothing
+         is forced: the code keeps working until its owner chooses to change it. -->
+    <string name="secret_weak_credential_title">Your secret code is below current strength guidance</string>
+    <string name="secret_weak_credential_body">It still works, and nothing will stop working if you leave it. Changing it to a longer code — or a password — makes a stolen backup much harder to open.</string>
+    <string name="secret_weak_credential_action">Change secret code</string>
+    <!-- V2-6b: locked-space seal health (Keystore outage). Shown ONLY inside the space. -->
+    <string name="secret_seal_warning_title">Some locked messages aren\'t fully protected yet</string>
+    <string name="secret_seal_warning_body">This device\'s secure key store isn\'t responding. New locked messages are still encrypted — under a temporary key — and will be re-protected automatically when it recovers. You can read everything meanwhile, but sending from or changing locked chats is paused.</string>
+    <string name="secret_seal_warning_action">Retry now</string>
+    <string name="secret_seal_blocked_write">Can\'t change locked chats right now — the secure key store is unavailable. Nothing was lost; try again shortly.</string>
+
+    <!-- Toast after the one-tap OTP copy action on a notification. -->
+    <string name="notif_otp_copied">OTP copied</string>
+
+    <!-- ============================= Outbox ============================= -->
+    <!--
+      V2-48. Wording rule for this screen: never claim more certainty than the
+      radio gave us. A message is "sending" until a result arrives, and a
+      failure says what the carrier said rather than guessing why.
+    -->
+    <string name="outbox_title">Outbox</string>
+    <!-- %1$d is how many messages are waiting. -->
+    <string name="outbox_title_count">Outbox (%1$d)</string>
+    <string name="outbox_empty_title">Nothing waiting</string>
+    <string name="outbox_empty_subtitle">Messages that are scheduled, still sending, or didn\'t go through will wait here.</string>
+    <!-- %1$s is a date and time. -->
+    <string name="outbox_status_scheduled">Scheduled for %1$s</string>
+    <string name="outbox_status_sending">Sending…</string>
+    <!-- %1$s is the carrier\'s reason, already in plain words. -->
+    <string name="outbox_status_failed">Didn\'t send · %1$s</string>
+    <!-- %1$s is a time. Deliberately vague: WorkManager may run a little late. -->
+    <string name="outbox_retry_pending">Trying again around %1$s</string>
+    <!-- The retry\'s time has passed and it hasn\'t run — say so instead of
+         pretending something is still scheduled. -->
+    <string name="outbox_retry_overdue">The automatic retry is overdue. You can send it yourself.</string>
+    <string name="outbox_retry_exhausted">Automatic retries are used up.</string>
+    <string name="outbox_action_send_now">Send now</string>
+    <string name="outbox_action_resend">Resend</string>
+    <string name="outbox_action_edit">Edit</string>
+    <string name="outbox_action_cancel">Cancel send</string>
+    <string name="outbox_action_discard">Discard</string>
+    <string name="outbox_action_change_sim">Change SIM</string>
+    <string name="outbox_action_details">Delivery detail</string>
+    <string name="outbox_open_chat">Open chat</string>
+    <string name="outbox_in_flight">This one is with the network already, so it can\'t be edited or cancelled.</string>
+
+    <!-- Per-recipient / per-part detail. -->
+    <string name="outbox_details_title">Delivery detail</string>
+    <!-- %1$s recipient, %2$d part number, %3$d of how many parts. -->
+    <string name="outbox_attempt_part">%1$s · part %2$d of %3$d</string>
+    <string name="outbox_attempt_pending">Waiting</string>
+    <string name="outbox_attempt_sent">Sent</string>
+    <string name="outbox_attempt_failed">Failed</string>
+    <string name="outbox_attempt_delivered">Delivered</string>
+    <string name="outbox_attempt_not_delivered">No delivery report</string>
+    <string name="outbox_attempts_empty">No per-recipient detail was recorded for this message.</string>
+
+    <!-- Edit / SIM dialogs. -->
+    <string name="outbox_edit_title">Edit message</string>
+    <string name="outbox_edit_save">Save</string>
+    <string name="outbox_sim_title">Send from</string>
+    <string name="outbox_sim_default">System default</string>
+
+    <!-- Results. "Too late" is a real outcome here: a scheduled send can fire
+         while the dialog is open, and the app must say so rather than silently
+         drop the edit. -->
+    <string name="outbox_too_late">Too late — that message is already on its way.</string>
+    <string name="outbox_cancelled">Send cancelled.</string>
+    <string name="outbox_resending">Sending again…</string>
+    <string name="outbox_edited">Message updated.</string>
+    <string name="outbox_sim_changed">SIM updated.</string>
+    <string name="outbox_discarded">Moved to Trash.</string>
+
+    <!-- ========================= Summary cards ========================== -->
+    <string name="summary_card_title">Summary</string>
+    <string name="summary_card_options">Summary options</string>
+    <string name="summary_card_footer">Read from this message on your phone. Nothing was sent anywhere, and nothing here is a link or a payment.</string>
+    <string name="summary_field_amount">Amount</string>
+    <string name="summary_field_balance">Balance</string>
+    <string name="summary_field_account">Account</string>
+    <string name="summary_field_due">Due</string>
+    <string name="summary_field_reference">Reference</string>
+    <string name="summary_field_tracking">Tracking</string>
+    <string name="summary_field_status">Status</string>
+    <string name="summary_in_message">In the message</string>
+    <string name="summary_confidence_medium">The message doesn\'t say what this amount was for, so check it against the text above.</string>
+    <string name="summary_action_wrong">This is wrong</string>
+    <string name="summary_action_hide">Hide this summary</string>
+    <string name="summary_action_turn_off">Turn off summary cards</string>
+    <string name="summary_action_restore">Show summary again</string>
+</resources>

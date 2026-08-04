@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  V2-17: the network policy is now declared, not inherited.
+
+  Nothing this app sends is optional to protect: message bodies, contact
+  names, and the encrypted Drive backup all leave the device from this
+  process. The policy that keeps them on TLS was, until now, entirely
+  implicit — targetSdk 28+ happens to default `cleartextTrafficPermitted` to
+  false, and API 24+ happens to stop trusting user-installed CAs. Both are
+  defaults. A future targetSdk change, a manifest merge from a library, or a
+  `usesCleartextTraffic="true"` added to fix one endpoint would move them
+  without anyone deciding to, and nothing in the tree would have recorded
+  what the intended posture was.
+
+  This file records it. `NetworkSecurityConfigTest` holds it in place.
+
+  WHAT THIS DOES AND DOES NOT COVER
+
+  In-process traffic is the whole of it:
+    - `SafeHttp` — link previews, which fetch URLs chosen by whoever sent the
+      message. Already HTTPS-only and port-443-only by validation; this is the
+      second lock on that door.
+    - `DriveClient` — hardcoded https://www.googleapis.com endpoints.
+
+  MMS is *not* affected and must not be assumed to be. Send and receive go
+  through `SmsManager.sendMultimediaMessage` / `downloadMultimediaMessage`,
+  so the carrier MMSC exchange — which is very often plain http:// — happens
+  in the system telephony process under its own policy. Denying cleartext
+  here does not break MMS, and would not secure it either.
+
+  Google sign-in likewise runs in the Play Services process, not this one.
+
+  TRUST ANCHORS: SYSTEM ONLY
+
+  Omitting `<certificates src="user" />` refuses CAs a person installed by
+  hand, which is how TLS interception is set up. That is the point: a
+  messaging app is exactly the target worth intercepting. Enterprise CAs
+  delivered by device policy land in the *system* store, so managed devices
+  are unaffected — what this refuses is manual interception.
+
+  The debug build overlays this file (`src/debug/res/xml/`) to add the user
+  store back, so a proxy still works when you are debugging. It changes
+  nothing else, deliberately: debug and release should behave identically on
+  the wire, because a difference there produces bugs that only appear in
+  release.
+
+  CERTIFICATE PINNING: DELIBERATELY ABSENT
+
+  Pinning googleapis.com would trade a small attack-surface reduction for a
+  real availability risk. Google rotates intermediates on their schedule, not
+  ours; a pin that expires while an app is in the field bricks backup and
+  restore for every install until a store update propagates, and there is no
+  remote kill switch here to undo it. The endpoints are Google-operated and
+  already covered by Certificate Transparency. If pinning is ever added it
+  needs a backup pin and a tested rotation plan first.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

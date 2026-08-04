@@ -1,0 +1,73 @@
+# V2-18: automated update proposals.
+#
+# `scripts/scan-dependencies.py` answers "is anything we depend on known to be
+# vulnerable today". This answers the other half — "has anything been fixed
+# upstream that we have not taken" — which no scan of the current tree can see.
+#
+# READ THIS BEFORE WONDERING WHY DEPENDABOT'S PRs ARE RED
+#
+# This repository pins a SHA-256 for every resolved artifact in
+# `gradle/verification-metadata.xml`. Dependabot changes a version but cannot
+# regenerate that file, so its PRs fail at resolution with "artifact ... not in
+# dependency verification metadata". That is the pin doing its job, not a broken
+# bot: a version bump here is a deliberate act that includes regenerating and
+# reviewing the checksums. Treat a Dependabot PR as a notification with a
+# ready-made diff, and finish it by hand — docs/ops/SUPPLY_CHAIN.md §2.
+#
+# Updates are grouped rather than atomised because the review that flagged this
+# asked for upgrades "in tested batches": AndroidX, Kotlin and the Android
+# Gradle Plugin each move as a unit, and forty single-artifact PRs are forty
+# chances to bump one half of a pair.
+
+version: 2
+
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      # Not on the hour: every repository that asks for "Monday morning" lands
+      # on 09:00, and the queue is shared.
+      time: "06:23"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      # The Android Gradle Plugin and its lint checks are versioned together;
+      # splitting them produces the tooling mismatch that silently skips lint
+      # checks, which is part of what V2-18 reported.
+      android-gradle-plugin:
+        patterns:
+          - "com.android.*"
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "com.google.devtools.ksp*"
+      androidx:
+        patterns:
+          - "androidx.*"
+      kotlinx:
+        patterns:
+          - "org.jetbrains.kotlinx:*"
+      test-libraries:
+        patterns:
+          - "junit:*"
+          - "org.robolectric:*"
+          - "androidx.test*"
+
+  # The workflow pins every action to a full commit SHA (R-27/R-28). Dependabot
+  # understands that form and bumps the SHA together with its version comment,
+  # which is the only safe way to move a pin — the alternative is a human
+  # pasting a hash they did not resolve.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:41"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"

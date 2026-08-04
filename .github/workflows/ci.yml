@@ -1,0 +1,271 @@
+name: CI
+
+# R-27: CI used to run only :protection-engine:test and :app:assembleDebug, so
+# regressions in storage, backup, migrations, app logic, the release shrinker
+# and dependencies could all merge while the badge stayed green. It now runs
+# every test suite, full lint, and a minified release build, and it verifies the
+# resulting artifact.
+#
+# R-27/R-28: every action is pinned to a full commit SHA. A mutable tag like
+# `@v4` is a standing write-access grant to whoever controls that tag — the
+# whole point of pinning is that an upstream compromise cannot silently change
+# what runs here. Each SHA below was resolved from the action's `v4` ref and is
+# annotated with the tag and the date it was resolved; re-resolve deliberately
+# when bumping, never by pasting an unreviewed hash.
+#
+# V2-18: pinning proves we got the bytes upstream published; it says nothing
+# about whether those bytes are known-vulnerable. The `dependency-scan` job
+# below asks that question — on every change, nightly, and as a gate on the
+# signed release.
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+  # V2-18: the dependency scan needs a trigger that is not a code change.
+  # A new advisory is published against code we already have — the repository
+  # does not move, so nothing on push or pull_request will ever fire, and a
+  # scan that only runs when someone commits cannot find it. Daily, off the
+  # hour because every scheduled workflow on the platform asks for :00.
+  schedule:
+    - cron: "37 5 * * *"
+  # Re-runnable by hand, for the morning the OSV API was down.
+  workflow_dispatch:
+
+# A superseded run on the same branch tells us nothing worth paying for.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Dependency verification (gradle/verification-metadata.xml) is active
+  # automatically because that file exists. It is listed here so a failure is
+  # recognisable: "artifact not in verification metadata" means a dependency
+  # changed and the metadata must be regenerated and REVIEWED, not deleted.
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+jobs:
+  verify:
+    name: "Tests, lint, and release build"
+    # The nightly trigger exists for the dependency scan alone. Rebuilding and
+    # re-linting unchanged code every night would burn most of the runtime for
+    # a result that cannot have changed.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4, resolved 2026-07-28
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4, resolved 2026-07-28
+
+      # The pure-JVM engine module: every pattern's positive/negative examples,
+      # combo rules, the normalizer obfuscation corpus, the corpus regression
+      # gates (zero protected filtered, >=95% scam caught, genuine never
+      # spammed, median <50ms, corpus-size floor), and the R-21 regex/pack
+      # policy including the assertion that our own bundled library obeys it.
+      - name: Protection engine tests
+        run: ./gradlew :protection-engine:test
+
+      # R-25: the migration matrix runs inside this suite (MigrationFromV1Test
+      # drives v1, v2, v3 and v4 to current). Called out as its own step so a
+      # migration break is legible in the job log rather than buried.
+      - name: Storage tests, including the Room migration matrix
+        run: ./gradlew :core-messaging:testDebugUnitTest
+
+      - name: App unit tests
+        run: ./gradlew :app:testDebugUnitTest
+
+      - name: Lint (all modules)
+        run: ./gradlew lint
+
+      # Exercises R8/shrinking, which debug builds never do — a missing keep
+      # rule (see core-messaging/consumer-rules.pro, R-28) only shows up here.
+      # Unsigned on PR/branch builds: no signing key is available, and that is
+      # expected rather than hidden. The `release` job below is the one that
+      # demands a signature.
+      - name: Assemble release (unsigned)
+        run: ./gradlew :app:assembleRelease
+
+      # Even unsigned, the artifact's manifest and contents must hold: not
+      # debuggable, backup disabled, no debug-only components, pattern library
+      # present, no signing material packaged.
+      - name: Verify release artifact (manifest and contents)
+        env:
+          ALLOW_UNSIGNED: "1"
+        run: ./scripts/verify-release-artifact.sh app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload test and lint reports
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, resolved 2026-07-28
+        with:
+          name: reports
+          path: |
+            protection-engine/build/reports/
+            core-messaging/build/reports/
+            app/build/reports/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  dependency-scan:
+    name: "Dependency vulnerability scan"
+    # V2-18. Checksum pinning (gradle/verification-metadata.xml) proves we got
+    # the bytes upstream published; it says nothing about whether those bytes
+    # have a CVE. Nothing in this build asked until this job existed.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4, resolved 2026-07-28
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4, resolved 2026-07-28
+
+      # Separates the code that ships from the code that only builds it. An
+      # advisory in the Android Gradle Plugin's netty and one inside the APK
+      # are not the same finding, and a scan that merges them reports a number
+      # nobody acts on.
+      - name: Resolve the shipped dependency set
+        run: ./gradlew :app:shippedDependencies
+
+      # Fails on any advisory against shipped code, and on anything new in the
+      # build-time tree that is not in the reviewed baseline. Fails closed if
+      # the OSV API cannot be reached: a green check that means "we could not
+      # ask" is worse than no check.
+      - name: Scan against OSV
+        run: |
+          python3 scripts/scan-dependencies.py \
+            --json app/build/reports/dependency-scan.json
+
+      - name: Software bill of materials
+        run: |
+          python3 scripts/generate-sbom.py \
+            --out app/build/reports/sbom-release.cdx.json
+
+      - name: Upload scan results and SBOM
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, resolved 2026-07-28
+        with:
+          name: dependency-scan
+          path: |
+            app/build/reports/dependency-scan.json
+            app/build/reports/sbom-release.cdx.json
+            app/build/reports/shipped-dependencies.txt
+          retention-days: 90
+          if-no-files-found: warn
+
+  release:
+    name: "Signed release artifact"
+    # Tags only. This job is the one that must not be able to emit an unsigned
+    # or wrongly-signed APK, so it fails loudly when the signing configuration
+    # is absent instead of quietly producing something that looks shippable.
+    if: startsWith(github.ref, 'refs/tags/v')
+    # V2-18: the scan gates the release too. Shipping a tagged build past a
+    # known advisory in code that lands on users' phones is the one outcome
+    # this whole job exists to prevent, and "the scan was red but the tests
+    # passed" must not be a way to reach it.
+    needs: [verify, dependency-scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: release
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4, resolved 2026-07-28
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4, resolved 2026-07-28
+
+      # Fail before building rather than after, so the log says WHY.
+      - name: Require signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -z "$KEYSTORE_BASE64" ] && missing="$missing RELEASE_KEYSTORE_BASE64"
+          [ -z "$STORE_PASSWORD" ]  && missing="$missing RELEASE_STORE_PASSWORD"
+          [ -z "$KEY_ALIAS" ]       && missing="$missing RELEASE_KEY_ALIAS"
+          [ -z "$KEY_PASSWORD" ]    && missing="$missing RELEASE_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "Refusing to build a release: missing secret(s):$missing" >&2
+            echo "See docs/ops/RELEASE_SIGNING.md." >&2
+            exit 1
+          fi
+
+      - name: Materialise the keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      # -PrequireSigning=true makes app/build.gradle.kts fail if the keystore
+      # did not load, so a silently-unsigned release is impossible here.
+      - name: Assemble signed release
+        run: ./gradlew :app:assembleRelease -PrequireSigning=true
+
+      # Full verification: signature scheme, certificate identity, manifest
+      # exposure, version, and contents.
+      - name: Verify signed release artifact
+        env:
+          EXPECTED_CERT_SHA256: ${{ vars.EXPECTED_CERT_SHA256 }}
+        run: ./scripts/verify-release-artifact.sh app/build/outputs/apk/release/app-release.apk
+
+      # V2-18: the bill of materials is generated here, from the same
+      # resolution that produced the APK above, and shipped with it. Kept
+      # beside the artifact because the question it answers arrives later —
+      # "an advisory landed against library X; was it in the build we
+      # released?" — and by then the build machine is long gone.
+      - name: Software bill of materials for the released artifact
+        run: |
+          ./gradlew :app:shippedDependencies
+          python3 scripts/generate-sbom.py \
+            --out app/build/outputs/apk/release/sbom-release.cdx.json \
+            --timestamp
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f keystore.properties "$RUNNER_TEMP/release.jks"
+
+      - name: Upload signed APK and SBOM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, resolved 2026-07-28
+        with:
+          name: app-release
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/sbom-release.cdx.json
+          retention-days: 90

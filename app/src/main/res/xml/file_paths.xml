@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Download target for incoming MMS PDUs + send PDUs (Mms*Receiver/MmsSender) -->
+    <cache-path name="mms" path="mms/" />
+    <!-- Camera capture target for the composer attach flow -->
+    <cache-path name="camera" path="camera/" />
+</paths>

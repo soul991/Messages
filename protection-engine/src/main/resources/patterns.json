@@ -1,0 +1,1991 @@
+{
+  "version": 1,
+  "patterns": [
+    {
+      "id": "promo-offer-words",
+      "family": "promotional",
+      "regex": "\\b(mega offer|special offer|exclusive offer|festive offer|festival offer|bumper offer|combo offer|shandar offer|best offer|amazing offer|great offer)\\b",
+      "weight": 3,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Promotional offer wording",
+      "examples": [
+        "Mega Offer! Get 50% off on all items"
+      ],
+      "negativeExamples": [
+        "I can offer you a ride tomorrow"
+      ]
+    },
+    {
+      "id": "promo-generic-offer",
+      "family": "promotional",
+      "regex": "\\boffers?\\b.{0,30}\\b(valid|end|expire|today|inside|await|unlock|just for you)\\b",
+      "weight": 2,
+      "languages": [
+        "en"
+      ],
+      "description": "Offer with validity/urgency phrasing",
+      "examples": [
+        "Offers valid till Sunday only"
+      ],
+      "negativeExamples": [
+        "He offers good advice"
+      ]
+    },
+    {
+      "id": "promo-sale",
+      "family": "promotional",
+      "regex": "\\b(mega sale|flash sale|clearance sale|end of season|season sale|big sale|biggest sale|sale is live|sale ends|super sale|maha sale)\\b",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "Sale-event wording",
+      "examples": [
+        "FLASH SALE ends tonight!"
+      ],
+      "negativeExamples": [
+        "Our house is up for sale"
+      ]
+    },
+    {
+      "id": "promo-discount",
+      "family": "promotional",
+      "regex": "(\\b(flat|upto|up to|extra|additional)\\s?\\d{1,2}\\s?%\\s?(off|discount|cashback)|\\d{1,2}\\s?%\\s?(off|discount)\\b)",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "Percentage discount",
+      "examples": [
+        "Get FLAT 60% OFF on all footwear"
+      ],
+      "negativeExamples": [
+        "The bill was 10% higher this month"
+      ]
+    },
+    {
+      "id": "promo-price-drop",
+      "family": "promotional",
+      "regex": "\\b(price drop|lowest price|best price|starting at just|save (₹|rs\\.?|inr)\\s*[\\d,]+|super saver|price crash|slashed price)\\b",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "Price-drop promotional wording",
+      "examples": [
+        "PRICE DROP! iPhone starting at just Rs 39,999"
+      ],
+      "negativeExamples": [
+        "I saved money by cooking at home"
+      ]
+    },
+    {
+      "id": "promo-bogo",
+      "family": "promotional",
+      "regex": "\\b(buy \\d+ get \\d+|bogo|b\\d+g\\d+|buy one get one)\\b",
+      "weight": 4,
+      "languages": [
+        "en"
+      ],
+      "description": "Buy-one-get-one promotion",
+      "examples": [
+        "Buy 1 Get 1 FREE on all pizzas"
+      ],
+      "negativeExamples": [
+        "I need to buy one for my brother too"
+      ]
+    },
+    {
+      "id": "promo-cta",
+      "family": "promotional",
+      "regex": "\\b(buy now|shop now|order now|grab (now|yours)|book now|avail now|claim offer|shop today|order today|explore now|check ?out now)\\b",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "Buy/shop call-to-action",
+      "examples": [
+        "Shop now and get free delivery"
+      ],
+      "negativeExamples": [
+        "Can you order the cake for Sunday?"
+      ]
+    },
+    {
+      "id": "promo-urgency",
+      "family": "promotional",
+      "regex": "\\b(hurry( up)?|limited (time|period|stock|offer)|last (chance|day|few hours)|ends (today|tonight|soon|midnight)|offer valid till|don'?t miss|selling fast|few left|only today|sirf aaj)\\b",
+      "weight": 3,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Marketing urgency phrasing",
+      "examples": [
+        "HURRY! Limited stock available"
+      ],
+      "negativeExamples": [
+        "Come fast, we are getting late for the train"
+      ]
+    },
+    {
+      "id": "promo-code",
+      "family": "promotional",
+      "regex": "\\b(use code|apply code|promo ?code|coupon( code)?|voucher|redeem (code|now|points)|discount code)\\b",
+      "weight": 4,
+      "languages": [
+        "en"
+      ],
+      "description": "Coupon/promo-code wording",
+      "examples": [
+        "Use code SAVE20 for extra discount"
+      ],
+      "negativeExamples": [
+        "What is the dress code for the party?"
+      ]
+    },
+    {
+      "id": "promo-app-install",
+      "family": "promotional",
+      "regex": "\\b(download (the |our )?app|install (now|the app|our app)|app (download|install) (now|karo|kare))\\b",
+      "weight": 3,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "App-install promotion",
+      "examples": [
+        "Download our app for exclusive deals"
+      ],
+      "negativeExamples": [
+        "I will install the shelf tomorrow"
+      ]
+    },
+    {
+      "id": "promo-refer-earn",
+      "family": "promotional",
+      "regex": "\\b(refer (&|and|a friend)|invite (&|and) earn|refer .{0,20} earn|referral (bonus|code))\\b",
+      "weight": 4,
+      "languages": [
+        "en"
+      ],
+      "description": "Refer-and-earn promotion",
+      "examples": [
+        "Refer & earn Rs 100 per friend"
+      ],
+      "negativeExamples": [
+        "I can refer you to my doctor"
+      ]
+    },
+    {
+      "id": "promo-recharge",
+      "family": "promotional",
+      "regex": "\\b(recharge (now|offer|karo|with|plan)|special recharge|recharge .{0,20}(get|offer|cashback|bonus))\\b",
+      "weight": 3,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Recharge promotion",
+      "examples": [
+        "Recharge now with Rs 299 plan and get extra data"
+      ],
+      "negativeExamples": [
+        "Did you recharge my phone yesterday?"
+      ]
+    },
+    {
+      "id": "promo-telecom-plan",
+      "family": "promotional",
+      "regex": "\\b(plan (is )?expir(ing|ed|es)|validity (end|expir|over)|unlimited (calls?|data)|data pack|bonus data|\\d+\\s?gb.{0,10}(day|daily)|talk ?time|top.?up (now|offer)|best plan|upgrade (your )?plan|renew (your )?plan)\\b",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "Telecom plan marketing",
+      "examples": [
+        "Your plan is expiring! Recharge with unlimited calls + 2GB/day"
+      ],
+      "negativeExamples": [
+        "What's the plan for the weekend?"
+      ]
+    },
+    {
+      "id": "promo-tnc",
+      "family": "promotional",
+      "regex": "(t\\s?&\\s?c(s)? apply|\\*t\\s?&\\s?c|\\btnc\\b|\\bt&c\\b)",
+      "weight": 4,
+      "languages": [
+        "en"
+      ],
+      "description": "T&C-apply marketing fingerprint",
+      "examples": [
+        "Get 20% off today. T&C apply"
+      ],
+      "negativeExamples": [
+        "The teacher explained the terms and conditions of the exam"
+      ]
+    },
+    {
+      "id": "promo-optout",
+      "family": "promotional",
+      "regex": "\\b(to opt.?out|to unsubscribe|reply stop|sms stop to|send stop|stop to \\d+|opt out reply)\\b",
+      "weight": 4,
+      "languages": [
+        "en"
+      ],
+      "description": "Opt-out footer — bulk marketing fingerprint",
+      "examples": [
+        "Flat 30% off today. To opt out reply STOP"
+      ],
+      "negativeExamples": [
+        "The bus will stop to pick us up"
+      ]
+    },
+    {
+      "id": "promo-dial-ussd",
+      "family": "promotional",
+      "regex": "dial\\s?\\*\\d+[\\d\\*#]*#",
+      "weight": 4,
+      "languages": [
+        "en"
+      ],
+      "description": "Dial-USSD marketing fingerprint",
+      "examples": [
+        "Dial *121*1# to activate the offer"
+      ],
+      "negativeExamples": [
+        "Dial my number when you reach"
+      ]
+    },
+    {
+      "id": "promo-preapproved",
+      "family": "promotional",
+      "regex": "\\bpre.?approved\\b.{0,40}\\b(loan|card|limit|offer|amount)\\b",
+      "weight": 4,
+      "languages": [
+        "en"
+      ],
+      "description": "Pre-approved financial product marketing",
+      "examples": [
+        "You have a pre-approved personal loan of Rs 5,00,000"
+      ],
+      "negativeExamples": [
+        "The leave was approved by my manager"
+      ]
+    },
+    {
+      "id": "promo-financial-marketing",
+      "family": "promotional",
+      "regex": "\\b(credit card offer|personal loan at|zero annual fee|lifetime free (card|credit card)|insurance plan|premium waiver|demat (offer|account free)|brokerage free|zero brokerage)\\b",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "Financial product marketing",
+      "examples": [
+        "Lifetime FREE credit card with zero annual fee"
+      ],
+      "negativeExamples": [
+        "I paid my insurance premium yesterday"
+      ]
+    },
+    {
+      "id": "promo-hinglish",
+      "family": "promotional",
+      "regex": "\\b(dhamaka|loot lo|loot deal|sabse sasta|muft|free me(in)?|jaldi karo|mauka|paise bachao|dhamakedar|zabardast (offer|deal)|dher saari|badi bachat)\\b",
+      "weight": 3,
+      "languages": [
+        "hi"
+      ],
+      "description": "Hinglish promotional wording",
+      "examples": [
+        "Dhamaka offer! Sabse sasta deal sirf aaj"
+      ],
+      "negativeExamples": [
+        "Khaana bahut sasta tha us dhabe pe"
+      ]
+    },
+    {
+      "id": "promo-free-delivery",
+      "family": "promotional",
+      "regex": "\\b(free (delivery|shipping)|delivery free|no delivery charge)\\b",
+      "weight": 2,
+      "languages": [
+        "en"
+      ],
+      "description": "Free-delivery marketing",
+      "examples": [
+        "Free delivery on orders above Rs 199"
+      ],
+      "negativeExamples": [
+        "Is the baby delivery going fine?"
+      ]
+    },
+    {
+      "id": "promo-new-arrival",
+      "family": "promotional",
+      "regex": "\\b(new arrivals|new collection|just (launched|arrived|dropped)|freshly stocked)\\b",
+      "weight": 2,
+      "languages": [
+        "en"
+      ],
+      "description": "New-arrival marketing",
+      "examples": [
+        "New arrivals! Check out the summer collection"
+      ],
+      "negativeExamples": [
+        "The new arrival at the office is very friendly"
+      ]
+    },
+    {
+      "id": "promo-membership",
+      "family": "promotional",
+      "regex": "\\b(membership (offer|expir|renew|free)|premium membership|vip (member|access)|gold membership|join (prime|plus))\\b",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "Membership/subscription marketing",
+      "examples": [
+        "Your VIP membership offer expires today"
+      ],
+      "negativeExamples": [
+        "The gym membership form needs your signature"
+      ]
+    },
+    {
+      "id": "promo-wallet-cashback",
+      "family": "promotional",
+      "regex": "\\b(cashback (upto|up to|of|offer)|(₹|rs\\.?|inr)\\s*[\\d,]+ cashback|assured cashback|instant cashback)\\b",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "Cashback marketing",
+      "examples": [
+        "Get assured cashback upto Rs 100 on your next recharge"
+      ],
+      "negativeExamples": [
+        "The bank reversed the wrong charge back to me"
+      ]
+    },
+    {
+      "id": "promo-emi-offer",
+      "family": "promotional",
+      "regex": "\\b(no.?cost emi|zero.?cost emi|easy emi|emi (starts?|starting) (at|from))\\b",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "EMI-offer marketing",
+      "examples": [
+        "Buy now with No-Cost EMI starting at Rs 999/month"
+      ],
+      "negativeExamples": [
+        "My EMI was debited yesterday"
+      ]
+    },
+    {
+      "id": "promo-winback",
+      "family": "promotional",
+      "regex": "\\b(your cart is waiting|items? (left|waiting) in (your )?cart|complete your (order|purchase)|we miss you\\b.{0,40}\\b(offer|sale|discount|shop|order|deal))",
+      "weight": 3,
+      "languages": [
+        "en"
+      ],
+      "description": "Win-back / abandoned-cart marketing",
+      "examples": [
+        "We miss you! Here is a 20% off offer just for you",
+        "Your cart is waiting with 3 items"
+      ],
+      "negativeExamples": [
+        "We miss you at home, come visit soon"
+      ]
+    },
+    {
+      "id": "lottery-won-amount",
+      "family": "lottery-prize",
+      "regex": "\\b(won|win|winner|winning|congratulations?|congrats)\\b.{0,60}(₹|rs\\.?|inr|\\$|usd)\\s*[\\d,]+(\\.\\d+)?(\\s?(lakh|lakhs|crore|cr|k))?",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Prize-win claim with a money amount",
+      "examples": [
+        "Congratulations! You have WON Rs 25,00,000 in lucky draw"
+      ],
+      "negativeExamples": [
+        "We won the match! Party at my place"
+      ]
+    },
+    {
+      "id": "lottery-win-upto",
+      "family": "lottery-prize",
+      "regex": "\\bwin (upto|up to)\\b.{0,20}(₹|rs\\.?|inr|\\$|usd)?\\s*[\\d,]+",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Win-upto-amount bait",
+      "examples": [
+        "Play and win upto Rs 10,000 daily"
+      ],
+      "negativeExamples": [
+        "We can win up to the semifinals this year"
+      ]
+    },
+    {
+      "id": "lottery-draw-words",
+      "family": "lottery-prize",
+      "regex": "\\b(lucky draw|lottery|jackpot|mega prize|grand prize|inaam|lucky winner|lucky customer)\\b",
+      "weight": 8,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Lottery/lucky-draw wording",
+      "examples": [
+        "You are our lucky winner of today's mega prize"
+      ],
+      "negativeExamples": [
+        "I will draw the curtains before leaving"
+      ]
+    },
+    {
+      "id": "lottery-kbc",
+      "family": "lottery-prize",
+      "regex": "\\b(kbc|kaun banega crorepati)\\b.{0,80}((₹|rs\\.?|inr|\\$)\\s*[\\d,]+|lakh|crore|lottery|lucky|winner|won|http|www\\.|call)|((₹|rs\\.?|inr|\\$)\\s*[\\d,]+|lakh|crore|lottery|lucky|winner|won).{0,80}\\b(kbc|kaun banega crorepati)\\b",
+      "weight": 12,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "KBC lottery scam — infamous fraud family",
+      "examples": [
+        "KBC lottery: your number won Rs 25 lakh, call to claim"
+      ],
+      "negativeExamples": [
+        "Did you watch KBC on TV last night with Amitabh?"
+      ]
+    },
+    {
+      "id": "lottery-selected",
+      "family": "lottery-prize",
+      "regex": "\\b(selected|chosen|shortlisted)\\b (as|for).{0,40}\\b(winner|prize|reward|lucky|gift)\\b",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "You-have-been-selected prize bait",
+      "examples": [
+        "You have been selected as winner of our anniversary reward"
+      ],
+      "negativeExamples": [
+        "You have been shortlisted for the interview round"
+      ]
+    },
+    {
+      "id": "lottery-claim",
+      "family": "lottery-prize",
+      "regex": "\\bclaim (your )?(prize|reward|gift|winnings?|lottery|cash prize)\\b",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Claim-your-prize wording",
+      "examples": [
+        "Claim your prize before midnight today"
+      ],
+      "negativeExamples": [
+        "You can claim your insurance after submitting documents"
+      ]
+    },
+    {
+      "id": "lottery-spin-win",
+      "family": "lottery-prize",
+      "regex": "\\b(spin|scratch)\\b.{0,15}\\b(win|earn|reward)\\b",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Spin/scratch-and-win bait",
+      "examples": [
+        "Spin & win exciting prizes now"
+      ],
+      "negativeExamples": [
+        "The washing machine spin cycle is broken"
+      ]
+    },
+    {
+      "id": "lottery-free-gift",
+      "family": "lottery-prize",
+      "regex": "\\bfree gift\\b.{0,20}\\b(card|voucher|hamper|worth)\\b",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Free-gift bait",
+      "examples": [
+        "You get a free gift voucher worth Rs 2000, click to claim"
+      ],
+      "negativeExamples": [
+        "I got a free gift with the cereal box"
+      ]
+    },
+    {
+      "id": "lottery-hinglish-win",
+      "family": "lottery-prize",
+      "regex": "\\b(jeeta|jeete|jeeto|jeet gaye|jeetne ka mauka)\\b.{0,40}((₹|rs\\.?|inr)\\s*[\\d,]+|lakh|crore|inaam|prize)",
+      "weight": 9,
+      "languages": [
+        "hi"
+      ],
+      "description": "Hinglish win-amount claim",
+      "examples": [
+        "Aap jeet gaye Rs 5 lakh ka inaam"
+      ],
+      "negativeExamples": [
+        "Hum match jeet gaye yaar, mazaa aa gaya"
+      ]
+    },
+    {
+      "id": "lottery-badhai",
+      "family": "lottery-prize",
+      "regex": "\\bbadhai ho\\b.{0,50}((₹|rs\\.?|inr)\\s*[\\d,]+|lakh|crore|lottery|inaam|winner|http)",
+      "weight": 9,
+      "languages": [
+        "hi"
+      ],
+      "description": "Hinglish congratulation + amount/link",
+      "examples": [
+        "Badhai ho! Aapne 10 lakh ka inaam jeeta hai"
+      ],
+      "negativeExamples": [
+        "Badhai ho! Beta hua hai"
+      ]
+    },
+    {
+      "id": "lottery-lakhpati",
+      "family": "lottery-prize",
+      "regex": "\\b(lakhpati|crorepati) ban(e|o|ne|iye)\\b",
+      "weight": 9,
+      "languages": [
+        "hi"
+      ],
+      "description": "Become-a-millionaire bait",
+      "examples": [
+        "Aaj hi lakhpati bane, bas ek SMS bhejo"
+      ],
+      "negativeExamples": [
+        "Mehnat se hi log ameer bante hain"
+      ]
+    },
+    {
+      "id": "lottery-whatsapp-lucky",
+      "family": "lottery-prize",
+      "regex": "\\b(whatsapp|sim|mobile number|phone number)\\b.{0,30}\\b(lucky|won|winner|selected|lottery)\\b",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Your-number-won lottery scam",
+      "examples": [
+        "Your WhatsApp number is selected as lucky winner"
+      ],
+      "negativeExamples": [
+        "My phone number was written wrong on the form"
+      ]
+    },
+    {
+      "id": "lottery-anniversary",
+      "family": "lottery-prize",
+      "regex": "\\b(anniversary|celebration|festival) (gift|reward|prize|giveaway)\\b.{0,40}(claim|click|link|free|http)",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Anniversary-giveaway bait",
+      "examples": [
+        "Amazon 30th anniversary gift! Click to claim your free prize"
+      ],
+      "negativeExamples": [
+        "Happy anniversary! Your gift is with the receptionist"
+      ]
+    },
+    {
+      "id": "payment-deposited-click",
+      "family": "fake-payment",
+      "regex": "\\b(deposited|credited|transferred|received)\\b.{0,40}\\b(account|a/c|wallet|upi)\\b.{0,80}\\b(click|link|verify|claim|confirm|withdraw|activate|apply|eligibility)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Fake deposit alert with a click/verify tail",
+      "examples": [
+        "Rs 8,000 deposited in your account. Click link to confirm"
+      ],
+      "negativeExamples": [
+        "Rs 8,000 deposited in your account via NEFT. Avl bal Rs 42,180",
+        "Rs 40,000 credited to your account XX882 via NEFT ref N19822. Details: https://www.hdfcbank.com/statements"
+      ]
+    },
+    {
+      "id": "payment-refund-claim",
+      "family": "fake-payment",
+      "regex": "\\b(refund|cash ?back|reimbursement)\\b.{0,50}\\b(pending|approved|initiated|waiting|stuck|due)\\b.{0,60}\\b(claim|click|verify|link|http|update)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Fake refund-pending bait",
+      "examples": [
+        "Your refund of Rs 4,500 is pending. Click to claim now"
+      ],
+      "negativeExamples": [
+        "Your refund of Rs 450 has been processed to your original payment method"
+      ]
+    },
+    {
+      "id": "payment-onhold",
+      "family": "fake-payment",
+      "regex": "\\b(payment|amount|transaction)\\b.{0,30}\\b(on hold|failed|reversed|declined|stuck)\\b.{0,60}\\b(update|verify|click|link|http)",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Payment-on-hold verify bait",
+      "examples": [
+        "Your payment is on hold. Update your details at the link"
+      ],
+      "negativeExamples": [
+        "Your payment failed. Please retry from the app if amount was not debited"
+      ]
+    },
+    {
+      "id": "payment-upi-pin",
+      "family": "fake-payment",
+      "regex": "\\b(upi|wallet|paytm|phonepe|gpay|google pay)\\b.{0,40}\\b(receive|credited|pending|request)\\b.{0,60}\\b(accept|approve|pin|click)",
+      "weight": 12,
+      "languages": [
+        "en"
+      ],
+      "description": "UPI receive-money PIN fraud — you never need a PIN to receive money",
+      "examples": [
+        "Paytm: Rs 5,000 pending. Enter UPI PIN to receive"
+      ],
+      "negativeExamples": [
+        "Rs 500 received in your UPI linked account from Ramesh"
+      ]
+    },
+    {
+      "id": "payment-tax-refund",
+      "family": "fake-payment",
+      "regex": "\\b(income tax|it dept|it department|tds|itr)\\b.{0,40}\\brefund\\b.{0,60}\\b(click|verify|link|http|approve)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Fake income-tax refund bait",
+      "examples": [
+        "Income Tax refund of Rs 15,490 approved. Verify your bank at link"
+      ],
+      "negativeExamples": [
+        "ITR filed successfully. Refund if any will be credited by the department"
+      ]
+    },
+    {
+      "id": "payment-wrong-transfer",
+      "family": "fake-payment",
+      "regex": "\\b(sent|transferred) (money|(₹|rs\\.?|inr)\\s*[\\d,]+).{0,30}\\b(by mistake|wrongly|accidentally|galti se)\\b|\\bgalti se (paise|payment)\\b",
+      "weight": 9,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Accidental-transfer refund scam",
+      "examples": [
+        "I sent Rs 10,000 by mistake to your number, please return",
+        "I sent Rs 10,000 to your number by mistake. Please return it"
+      ],
+      "negativeExamples": [
+        "I accidentally sent you the wrong photo, ignore it"
+      ]
+    },
+    {
+      "id": "payment-lucky-cashback",
+      "family": "fake-payment",
+      "regex": "\\b(scratch ?card|cashback)\\b.{0,40}\\b(won|expire|claim|click|link)\\b",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Fake scratch-card cashback bait",
+      "examples": [
+        "You won a scratch card of Rs 200. Claim before it expires"
+      ],
+      "negativeExamples": [
+        "The Diwali scratch card in the app gave me Rs 5"
+      ]
+    },
+    {
+      "id": "payment-emandate",
+      "family": "fake-payment",
+      "regex": "\\b(auto.?debit\\w*|e.?mandate|standing instruction)\\b.{0,60}\\b(cancel|stop|verify|click|call)\\b.{0,40}(http|link|\\d{10})",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Fake auto-debit cancellation bait",
+      "examples": [
+        "Auto-debit of Rs 4,999 will start tomorrow. To cancel click link http://x.co",
+        "Rs 4,999 will be auto debited for Prime renewal. To stop payment call 8012345678 now"
+      ],
+      "negativeExamples": [
+        "Your e-mandate for SIP of Rs 2,000 is registered successfully"
+      ]
+    },
+    {
+      "id": "payment-unusual-activity",
+      "family": "fake-payment",
+      "regex": "\\b(unusual|suspicious|unauthori[sz]ed) (activity|login|transaction|access)\\b.{0,60}\\b(confirm|verify|click|link|call|update|http)",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Unusual-activity verification bait",
+      "examples": [
+        "ALERT: unusual activity in your account. Confirm identity at the link"
+      ],
+      "negativeExamples": [
+        "The bank flagged unusual activity and auto-blocked the card, visit branch"
+      ]
+    },
+    {
+      "id": "inherit-advance-fee",
+      "family": "romance-gift-scam",
+      "regex": "\\b(million|billion|crore)s?\\b.{0,30}\\b(usd|dollars?|pounds?|inr)\\b.{0,80}\\b(donate|transfer|inherit\\w*|charity|trustworthy|next of kin|beneficiary|reply)|\\b(late husband|dying of|deposed|widow of)\\b.{0,80}\\b(million|fund|money|transfer|donate)",
+      "weight": 11,
+      "languages": [
+        "en"
+      ],
+      "description": "Inheritance / advance-fee (419) scam",
+      "examples": [
+        "I am dying of cancer and want to donate $2.5 million USD to you",
+        "My late husband left $4.8M, I need a trustworthy person to transfer"
+      ],
+      "negativeExamples": [
+        "The company raised 2 million dollars in funding last year"
+      ]
+    },
+    {
+      "id": "family-emergency-money",
+      "family": "impersonation-threat",
+      "regex": "\\b(hospital|accident|emergency|police)\\b.{0,60}\\b(paise|money|(₹|rs\\.?|inr)\\s*[\\d,]+)\\b.{0,60}\\b(transfer|send|bhejo|karo|urgent|upi|paytm|gpay)|\\b(paise chahiye|paise bhejo)\\b.{0,40}\\b(urgent|jaldi|abhi|hospital)",
+      "weight": 9,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Family-emergency money request from unknown number",
+      "examples": [
+        "Mummy hospital me hai, paise chahiye urgent. Is number pe transfer karo",
+        "Met with accident, need money urgently, send to this UPI"
+      ],
+      "negativeExamples": [
+        "Dadi hospital me hai, hum sab yahin hain, tension mat lo"
+      ]
+    },
+    {
+      "id": "kyc-pending",
+      "family": "kyc-account-threat",
+      "regex": "\\b(kyc|e-?kyc|re-?kyc)\\b.{0,50}\\b(pending|expir\\w*|suspend\\w*|update|incomplete|reject\\w*|verify|complete)\\b",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "KYC-pending/expiry threat",
+      "examples": [
+        "Your KYC is pending. Account will be suspended today"
+      ],
+      "negativeExamples": [
+        "I completed my KYC at the bank branch this morning"
+      ]
+    },
+    {
+      "id": "kyc-pan-aadhaar",
+      "family": "kyc-account-threat",
+      "regex": "(\\b(pan( card)?|aadha?ar)\\b.{0,40}\\b(link|update|verify)\\b|\\b(link|update|verify)\\b.{0,20}\\b(pan( card)?|aadha?ar)\\b).{0,50}\\b(immediately|today|suspend\\w*|block\\w*|deactivat\\w*|last date)\\b",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "PAN/Aadhaar link-or-else threat",
+      "examples": [
+        "Link your PAN card today or your account will be blocked"
+      ],
+      "negativeExamples": [
+        "I need to update my PAN details in the HR portal sometime"
+      ]
+    },
+    {
+      "id": "kyc-account-block",
+      "family": "kyc-account-threat",
+      "regex": "\\b(account|a/c|net ?banking|debit card|credit card|upi|wallet)\\b.{0,50}\\b(block\\w*|suspend\\w*|freez\\w*|deactivat\\w*|disabl\\w*|on hold|expir\\w*)\\b.{0,80}\\b(click|call|update|verify|link|http)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Account-block threat with an action demand",
+      "examples": [
+        "Your account will be blocked today. Click to verify your details"
+      ],
+      "negativeExamples": [
+        "Your card is blocked as requested. Call us to issue a new one -BANKXX"
+      ]
+    },
+    {
+      "id": "kyc-sim-block",
+      "family": "kyc-account-threat",
+      "regex": "\\b(sim( card)?|mobile number|connection|number)\\b.{0,40}\\b(deactivat\\w*|disconnect\\w*|block\\w*|suspend\\w*|band)\\b.{0,40}\\b(24 hours|today|tonight|immediately|jald)",
+      "weight": 10,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "SIM-deactivation threat",
+      "examples": [
+        "Your SIM will be blocked in 24 hours. Call customer officer"
+      ],
+      "negativeExamples": [
+        "My old SIM stopped working after the port, using the new one now"
+      ]
+    },
+    {
+      "id": "kyc-electricity",
+      "family": "kyc-account-threat",
+      "regex": "\\b(electricity|power|bijli|gas|water)\\b.{0,50}\\b(disconnect\\w*|band kar|terminat\\w*)\\b.{0,50}\\b(tonight|today|9\\.?30|immediately|contact|call)",
+      "weight": 10,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Electricity-disconnection scam",
+      "examples": [
+        "Dear consumer your electricity power will be disconnected tonight at 9.30pm. Contact officer"
+      ],
+      "negativeExamples": [
+        "Power cut in our area today from 10am to 2pm for maintenance"
+      ]
+    },
+    {
+      "id": "kyc-bank-update-generic",
+      "family": "kyc-account-threat",
+      "regex": "\\b(update|verify|confirm)\\b.{0,25}\\b(bank (details?|account)|card details?|account details?|personal details?)\\b.{0,50}\\b(immediately|today|link|click|http|suspend|block)",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Update-bank-details demand",
+      "examples": [
+        "Verify your bank details immediately to avoid suspension"
+      ],
+      "negativeExamples": [
+        "Please update your address details at the branch when convenient"
+      ]
+    },
+    {
+      "id": "kyc-points-expire",
+      "family": "kyc-account-threat",
+      "regex": "\\b(reward points?|points)\\b.{0,30}\\b(expir\\w*|lapse)\\b.{0,50}\\b(redeem|click|link|http|today|hurry)",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Reward-points-expiring redemption bait",
+      "examples": [
+        "Your 5,230 reward points expire today! Redeem at link now"
+      ],
+      "negativeExamples": [
+        "Your credit card statement shows 1,200 reward points earned this cycle"
+      ]
+    },
+    {
+      "id": "loan-instant",
+      "family": "loan-fraud",
+      "regex": "\\b(instant|urgent|quick|easy|turant|fatafat) loan\\b",
+      "weight": 8,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Instant-loan bait",
+      "examples": [
+        "Get INSTANT LOAN upto 5 lakh in 5 minutes"
+      ],
+      "negativeExamples": [
+        "The bank approved my home loan after two months of processing"
+      ]
+    },
+    {
+      "id": "loan-approved-amount",
+      "family": "loan-fraud",
+      "regex": "\\bloan\\b.{0,20}\\b(approved|sanctioned|disbursed)\\b.{0,40}(₹|rs\\.?|inr|\\$)\\s*[\\d,]+",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Loan-already-approved bait",
+      "examples": [
+        "Your loan is approved for Rs 3,00,000. Claim now"
+      ],
+      "negativeExamples": [
+        "Congratulations, your home loan application ref 48123 has been approved. Visit branch with documents -BANKXX"
+      ]
+    },
+    {
+      "id": "loan-no-documents",
+      "family": "loan-fraud",
+      "regex": "\\bloan\\b.{0,60}\\b(without|no|zero) (documents?|paperwork|cibil( check| score)?|income proof|guarantor|collateral)\\b|\\b(without|no|zero) (documents?|paperwork|cibil( check| score)?|income proof|guarantor|collateral)\\b.{0,60}\\bloan\\b",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "No-documents/no-CIBIL loan bait",
+      "examples": [
+        "Loan without documents or CIBIL check, 100% approval"
+      ],
+      "negativeExamples": [
+        "Visa was approved with no documents pending"
+      ]
+    },
+    {
+      "id": "loan-minutes",
+      "family": "loan-fraud",
+      "regex": "\\bloan\\b.{0,20}\\bin \\d+ (minutes?|hours?|mins?)\\b",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Loan-in-minutes bait",
+      "examples": [
+        "Personal loan in 10 minutes, direct in bank account"
+      ],
+      "negativeExamples": [
+        "My loan officer said processing takes 7 working days"
+      ]
+    },
+    {
+      "id": "loan-aadhaar",
+      "family": "loan-fraud",
+      "regex": "\\baadha?ar (card )?loan\\b|\\bloan on aadha?ar\\b",
+      "weight": 8,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Aadhaar-card loan bait",
+      "examples": [
+        "Get Aadhaar loan upto 2 lakh instantly"
+      ],
+      "negativeExamples": [
+        "Carry your Aadhaar card for the bank loan documentation"
+      ]
+    },
+    {
+      "id": "loan-100-approval",
+      "family": "loan-fraud",
+      "regex": "\\b(100% (approval|guaranteed?)|guaranteed (loan|approval)|sabko loan|har kisi ko loan)\\b",
+      "weight": 8,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Guaranteed-approval loan bait",
+      "examples": [
+        "100% approval! Everyone gets a loan regardless of CIBIL"
+      ],
+      "negativeExamples": [
+        "The manager guaranteed the fixed deposit rate for 5 years"
+      ]
+    },
+    {
+      "id": "job-wfh-earn",
+      "family": "job-fraud",
+      "regex": "\\bwork from home\\b.{0,60}\\b(earn|salary|income|(₹|rs\\.?|inr)\\s*[\\d,]+)",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Work-from-home earning bait",
+      "examples": [
+        "Work from home and earn Rs 3,000 daily"
+      ],
+      "negativeExamples": [
+        "I will work from home tomorrow, the plumber is coming"
+      ]
+    },
+    {
+      "id": "job-earn-daily",
+      "family": "job-fraud",
+      "regex": "\\bearn\\b.{0,15}(₹|rs\\.?|inr|\\$)\\s*[\\d,]+(\\.\\d+)?(\\s?(lakh|lakhs|crore|cr|k))?.{0,30}\\b(per day|daily|per week|weekly|per month|monthly|roz|har din)\\b",
+      "weight": 9,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Earn-per-day income bait",
+      "examples": [
+        "Earn Rs 5,000 daily from your mobile phone"
+      ],
+      "negativeExamples": [
+        "I earn a decent salary at my current company"
+      ]
+    },
+    {
+      "id": "job-parttime-link",
+      "family": "job-fraud",
+      "regex": "\\bpart.?time (job|work|income)\\b.{0,60}\\b(whatsapp|telegram|link|http|apply|earn)",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Part-time-job messenger bait",
+      "examples": [
+        "Part time job offer! Message on WhatsApp to start earning"
+      ],
+      "negativeExamples": [
+        "She took a part time job at the library near college"
+      ]
+    },
+    {
+      "id": "job-no-experience",
+      "family": "job-fraud",
+      "regex": "\\b(no experience( needed| required)?|only \\d+(-\\d+)? hours?|bina experience)\\b.{0,50}\\b(earn|job|income|salary|work)\\b",
+      "weight": 7,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "No-experience easy-job bait",
+      "examples": [
+        "No experience required! Work only 2-3 hours and earn daily"
+      ],
+      "negativeExamples": [
+        "The internship needs no experience, freshers can apply on the portal"
+      ]
+    },
+    {
+      "id": "job-simple-tasks",
+      "family": "job-fraud",
+      "regex": "\\b(typing|data entry|review\\w*|lik(e|ing) videos?|watch\\w* videos?|rat(e|ing) (products?|hotels?)|simple tasks?)\\b.{0,40}\\b(job|work|earn|income|(₹|rs\\.?|inr)\\s*[\\d,]+)",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Simple-task earning scam (like videos, rate products)",
+      "examples": [
+        "Earn by liking videos! Rs 50 per like, join now"
+      ],
+      "negativeExamples": [
+        "My job involves data entry for the hospital records department"
+      ]
+    },
+    {
+      "id": "job-ghar-baithe",
+      "family": "job-fraud",
+      "regex": "\\bghar baithe\\b.{0,30}\\b(paise|kamao|kamaye|earn|income|job|kaam)\\b",
+      "weight": 9,
+      "languages": [
+        "hi"
+      ],
+      "description": "Hinglish earn-from-home bait",
+      "examples": [
+        "Ghar baithe paise kamao, roz Rs 2000 tak"
+      ],
+      "negativeExamples": [
+        "Ghar baithe baithe bore ho gaya yaar"
+      ]
+    },
+    {
+      "id": "job-hr-unknown",
+      "family": "job-fraud",
+      "regex": "\\b(hr|recruiter|hiring manager)\\b.{0,40}\\b(selected|shortlisted|offer)\\b.{0,60}\\b(registration fee|security deposit|pay|telegram|whatsapp)\\b",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Fake-HR job offer demanding a fee",
+      "examples": [
+        "HR here. You are selected! Pay Rs 999 registration fee to confirm"
+      ],
+      "negativeExamples": [
+        "HR confirmed your interview is scheduled for Monday 11am"
+      ]
+    },
+    {
+      "id": "invest-guaranteed",
+      "family": "investment-fraud",
+      "regex": "\\b(guaranteed|assured|fixed|pakka) (returns?|profits?|income|munafa)\\b",
+      "weight": 9,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Guaranteed-returns investment bait",
+      "examples": [
+        "Get guaranteed returns of 30% monthly on your investment"
+      ],
+      "negativeExamples": [
+        "FD me fixed interest milta hai, market risk nahi"
+      ]
+    },
+    {
+      "id": "invest-double",
+      "family": "investment-fraud",
+      "regex": "\\bdouble (your )?(money|investment|paisa|amount|capital)\\b|\\bpaisa double\\b",
+      "weight": 10,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Double-your-money bait",
+      "examples": [
+        "Double your money in 30 days, 100% safe"
+      ],
+      "negativeExamples": [
+        "The recipe says to double the quantity of flour"
+      ]
+    },
+    {
+      "id": "invest-tips",
+      "family": "investment-fraud",
+      "regex": "\\b(stock|share|trading|intraday|option|f&o) (tips?|calls?|signals?)\\b",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Stock-tips solicitation",
+      "examples": [
+        "Free stock tips! 95% accuracy, join today"
+      ],
+      "negativeExamples": [
+        "Any tips for my first day at the new office?"
+      ]
+    },
+    {
+      "id": "invest-telegram-group",
+      "family": "investment-fraud",
+      "regex": "\\b(join|add)\\b.{0,30}\\b(telegram|whatsapp)\\b.{0,20}\\b(group|channel)\\b.{0,40}\\b(profit|trading|earn|tips|invest|stock)",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Trading-group recruitment",
+      "examples": [
+        "Join our Telegram channel for daily trading profit calls"
+      ],
+      "negativeExamples": [
+        "Join our WhatsApp group for the school parents meeting updates"
+      ]
+    },
+    {
+      "id": "invest-crypto",
+      "family": "investment-fraud",
+      "regex": "\\b(crypto|bitcoin|btc|usdt|forex)\\b.{0,40}\\b(profit|returns?|double|earn|invest(ment)? plan|mining)\\b",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Crypto-profit bait",
+      "examples": [
+        "Bitcoin investment plan: 20% weekly profit assured"
+      ],
+      "negativeExamples": [
+        "Crypto prices crashed again today, glad I stayed out"
+      ]
+    },
+    {
+      "id": "delivery-parcel-hold",
+      "family": "delivery-customs-scam",
+      "regex": "\\b(parcel|package|shipment|courier|consignment)\\b.{0,50}\\b(on hold|held|stuck|customs|address (issue|incomplete|problem)|clearance)\\b.{0,60}\\b(pay|fee|click|update|link|http)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Parcel-held-pay-fee scam",
+      "examples": [
+        "Your parcel is on hold at customs. Pay Rs 25 clearance fee at link"
+      ],
+      "negativeExamples": [
+        "Your shipment is out for delivery and will arrive by 6pm today"
+      ]
+    },
+    {
+      "id": "delivery-redelivery-fee",
+      "family": "delivery-customs-scam",
+      "regex": "\\b(re-?delivery|redelivery) (fee|charge)\\b|\\bpay (₹|rs\\.?|inr)\\s*[\\d,]+ to (release|receive|redeliver)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Redelivery-fee scam",
+      "examples": [
+        "Delivery failed. Pay Rs 5 redelivery fee to reschedule"
+      ],
+      "negativeExamples": [
+        "Your delivery is rescheduled to tomorrow as requested, no charge"
+      ]
+    },
+    {
+      "id": "delivery-failed-click",
+      "family": "delivery-customs-scam",
+      "regex": "\\b(delivery|dispatch) (failed|unsuccessful|attempted?)\\b.{0,50}\\b(click|update|confirm|link|http)\\b",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Failed-delivery click bait",
+      "examples": [
+        "Delivery attempted but failed. Click to reschedule your package"
+      ],
+      "negativeExamples": [
+        "Delivery attempted at 2pm. We will retry tomorrow. -Bluedart"
+      ]
+    },
+    {
+      "id": "delivery-drugs-parcel",
+      "family": "impersonation-threat",
+      "regex": "\\b(drugs?|illegal (items?|substances?)|contraband|narcotics?)\\b.{0,30}\\b(parcel|package|courier|consignment|found)\\b",
+      "weight": 12,
+      "languages": [
+        "en"
+      ],
+      "description": "Drugs-in-your-parcel police scam",
+      "examples": [
+        "Customs found drugs in a parcel addressed to you. Call immediately"
+      ],
+      "negativeExamples": [
+        "The pharmacy parcel with my medicines arrived today"
+      ]
+    },
+    {
+      "id": "imperson-bank-officer",
+      "family": "impersonation-threat",
+      "regex": "\\b(i am|this is|i'?m|calling from|speaking from)\\b.{0,20}\\b(your bank|bank (officer|manager|executive)|rbi|trai|police|cbi|customs|court|cyber ?cell|crime branch)\\b",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Authority impersonation",
+      "examples": [
+        "I am calling from your bank security team, your card is misused"
+      ],
+      "negativeExamples": [
+        "This is Rahul from the college alumni committee"
+      ]
+    },
+    {
+      "id": "imperson-digital-arrest",
+      "family": "impersonation-threat",
+      "regex": "\\bdigital(ly)? arrest(?!\\w* scam)\\w*\\b",
+      "weight": 12,
+      "languages": [
+        "en"
+      ],
+      "description": "Digital-arrest scam — no such legal process exists",
+      "examples": [
+        "You are under digital arrest. Do not disconnect the call"
+      ],
+      "negativeExamples": [
+        "The article explains how digital arrest scams trap victims"
+      ]
+    },
+    {
+      "id": "imperson-legal-threat",
+      "family": "impersonation-threat",
+      "regex": "\\b(fir|warrant|legal action|court (notice|case|summons)|arrest)\\b.{0,50}\\b(click|call|respond|pay|settle|within \\d+ hours?|immediately)\\b",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Legal-threat with pay/call demand",
+      "examples": [
+        "FIR registered against you. Call immediately to settle"
+      ],
+      "negativeExamples": [
+        "The court notice for the property case arrived by post, meet the lawyer"
+      ]
+    },
+    {
+      "id": "imperson-family-emergency",
+      "family": "impersonation-threat",
+      "regex": "\\b(your (son|daughter|child|relative))\\b.{0,40}\\b(arrested|accident|hospital|police (station|custody))\\b.{0,60}\\b(send|pay|transfer|money|(₹|rs\\.?|inr)\\s*[\\d,]+|call)",
+      "weight": 11,
+      "languages": [
+        "en"
+      ],
+      "description": "Family-emergency money scam",
+      "examples": [
+        "Your son is in police custody. Send Rs 50,000 immediately to release"
+      ],
+      "negativeExamples": [
+        "Your son forgot his tiffin, I gave him mine"
+      ]
+    },
+    {
+      "id": "imperson-army-canteen",
+      "family": "impersonation-threat",
+      "regex": "\\b(army|military|soldier|jawan|paramilitary|crpf|bsf)\\b.{0,40}\\b(buying|purchase|selling|advance payment|quarter|canteen|posted)\\b",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Fake army-buyer marketplace scam opener",
+      "examples": [
+        "I am army jawan posted in Kashmir, buying your sofa, will pay advance"
+      ],
+      "negativeExamples": [
+        "My brother joined the army training academy last month"
+      ]
+    },
+    {
+      "id": "subscr-expiry-trap",
+      "family": "subscription-trap",
+      "regex": "\\b(netflix|prime( video)?|hotstar|spotify|youtube premium|subscription|membership)\\b.{0,40}\\b(expir\\w*|renew\\w*|payment (failed|declined)|suspended|on hold)\\b.{0,50}\\b(click|update|link|http|verify)",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Streaming-subscription renewal trap",
+      "examples": [
+        "Your Netflix payment failed. Update your card at the link to continue"
+      ],
+      "negativeExamples": [
+        "My Netflix plan renews on the 5th, split the cost?"
+      ]
+    },
+    {
+      "id": "charity-donation",
+      "family": "charity-scam",
+      "regex": "\\b(donat(e|ion)|contribute|help)\\b.{0,50}\\b(poor|orphan|cancer|kidney|operation|surgery|treatment|temple|mandir|masjid|flood|disaster)\\b.{0,60}\\b(upi|paytm|gpay|account|a/c|(₹|rs\\.?|inr)\\s*[\\d,]+|link|http)",
+      "weight": 8,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Donation solicitation with a payment handle",
+      "examples": [
+        "Donate for little Aarav's cancer surgery. GPay 9812XXXX"
+      ],
+      "negativeExamples": [
+        "Our office is organising a book donation drive on Friday"
+      ]
+    },
+    {
+      "id": "charity-urgent-help",
+      "family": "charity-scam",
+      "regex": "\\b(urgent(ly)?\\W{0,3}need|emergency)\\b.{0,30}\\b(money|funds?|(₹|rs\\.?|inr)\\s*[\\d,]+|help)\\b.{0,50}\\b(transfer|send|upi|paytm|gpay|account)\\b",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Urgent-money-help solicitation",
+      "examples": [
+        "Urgent! Need Rs 20,000 for hospital, transfer to this UPI"
+      ],
+      "negativeExamples": [
+        "I urgently need help moving the cupboard this weekend"
+      ]
+    },
+    {
+      "id": "romance-gift-customs",
+      "family": "romance-gift-scam",
+      "regex": "((\\b(gift|parcel|package)\\b.{0,40}\\b(sent|sending|shipped)\\b)|(\\b(sent|sending|shipped)\\b.{0,25}\\b(gift|parcel|package)\\b)).{0,60}\\b(customs|clearance|fee|airport|pay)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "Foreign-friend gift-at-customs scam",
+      "examples": [
+        "I have sent you a gift parcel. Pay customs clearance at airport"
+      ],
+      "negativeExamples": [
+        "I sent you a gift for your birthday, should reach by Friday!"
+      ]
+    },
+    {
+      "id": "romance-wrong-number",
+      "family": "wrong-number-opener",
+      "regex": "^(hi|hello|hey|hii+) (dear|sweetie|friend|handsome|beautiful)\\b|\\b(am i talking to|is this) (mr|mrs|miss|dr)\\b.{0,20}\\?|\\bwrong number\\b.{0,30}\\b(but|anyway|nice|friends?)\\b",
+      "weight": 7,
+      "languages": [
+        "en"
+      ],
+      "description": "Wrong-number/pig-butchering opener",
+      "examples": [
+        "Hi dear, I think I got wrong number but nice to meet you"
+      ],
+      "negativeExamples": [
+        "Hi! Sorry wrong number."
+      ]
+    },
+    {
+      "id": "romance-lonely-opener",
+      "family": "wrong-number-opener",
+      "regex": "\\b(i saw your (profile|number)|got your number from)\\b.{0,50}\\b(friend(ship)?|talk|chat|whatsapp|lonely)\\b",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "description": "Unsolicited friendship opener",
+      "examples": [
+        "I saw your profile, want friendship? Message me on WhatsApp"
+      ],
+      "negativeExamples": [
+        "I got your number from Sharma ji regarding the flat listing"
+      ]
+    },
+    {
+      "id": "challan-fastag",
+      "family": "fastag-challan-scam",
+      "regex": "\\b(fastag|fast tag)\\b.{0,50}\\b(kyc|expir\\w*|block\\w*|suspend\\w*|recharge|update|low balance)\\b.{0,50}\\b(click|link|http|call|immediately|today)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "FASTag KYC/blocked scam",
+      "examples": [
+        "Your FASTag will be blocked today. Update KYC at link"
+      ],
+      "negativeExamples": [
+        "Toll deducted Rs 85 from FASTag wallet. Bal Rs 415 -NHAI"
+      ]
+    },
+    {
+      "id": "challan-traffic",
+      "family": "fastag-challan-scam",
+      "regex": "\\b(e-?challan|traffic (challan|fine|violation))\\b.{0,60}\\b(pay|click|link|http|download|app)\\b",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "description": "Fake e-challan payment bait",
+      "examples": [
+        "E-challan of Rs 500 issued on your vehicle. Pay at link to avoid court"
+      ],
+      "negativeExamples": [
+        "I paid the parking challan at the municipal office counter"
+      ]
+    },
+    {
+      "id": "challan-vahan",
+      "family": "fastag-challan-scam",
+      "regex": "\\b(vehicle|gaadi|car|bike|rc)\\b.{0,35}\\b(seiz\\w*|impound\\w*|cancel\\w*|blacklist\\w*)\\b.{0,50}\\b(pay|call|click|link)",
+      "weight": 9,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Vehicle-seizure threat",
+      "examples": [
+        "Your vehicle RC will be cancelled. Pay pending challan at link"
+      ],
+      "negativeExamples": [
+        "My car is at the service center till Thursday"
+      ]
+    },
+    {
+      "id": "appdl-apk-prompt",
+      "family": "fake-app-download",
+      "regex": "\\b(download|install)\\b.{0,30}\\b(apk|application|app)\\b.{0,50}\\b(bank|kyc|support|update|reward|bonus|betting|earn)",
+      "weight": 11,
+      "languages": [
+        "en"
+      ],
+      "description": "Sideload-app prompt in a money/bank context",
+      "examples": [
+        "Download the bank support APK to complete your KYC"
+      ],
+      "negativeExamples": [
+        "Download our app from Play Store for easy tracking"
+      ]
+    },
+    {
+      "id": "appdl-screenshare",
+      "family": "screen-share-fraud",
+      "regex": "\\b(anydesk|any desk|teamviewer|team viewer|quick ?support|rustdesk|alpemix|airdroid|screen shar\\w*)\\b",
+      "weight": 12,
+      "languages": [
+        "en"
+      ],
+      "description": "Screen-share app mention — banking fraud tool",
+      "examples": [
+        "Install AnyDesk and share the code to get your refund"
+      ],
+      "negativeExamples": []
+    },
+    {
+      "id": "appdl-betting",
+      "family": "fake-app-download",
+      "regex": "\\b(betting|satta|matka|teen patti|rummy|casino|ipl bet)\\b.{0,40}\\b(app|link|download|win|earn|bonus|deposit)\\b",
+      "weight": 9,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Betting-app promotion",
+      "examples": [
+        "Play Teen Patti and win real cash! Download now, get Rs 100 bonus"
+      ],
+      "negativeExamples": [
+        "We played rummy at the family gathering last night"
+      ]
+    },
+    {
+      "id": "protect-otp-code",
+      "family": "protected-otp",
+      "regex": "\\b\\d{4,8}\\b.{0,40}\\b(otp|one.?time (password|pin|code)|verification code|auth code|security code|login code|2fa|activation code)\\b|\\b(otp|one.?time (password|pin|code)|verification code|auth code|security code|login code|2fa|activation code)\\b.{0,40}\\b\\d{4,8}\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "OTP / verification code",
+      "examples": [
+        "483920 is your OTP for HDFC Bank login. Valid for 10 minutes"
+      ],
+      "negativeExamples": [
+        "Call me at 5 today, we need to discuss the code review"
+      ]
+    },
+    {
+      "id": "protect-otp-noshare",
+      "family": "protected-otp",
+      "regex": "\\bdo not share (this )?(otp|code|pin)\\b|\\bnever share (your )?(otp|code|pin)\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "OTP do-not-share advisory",
+      "examples": [
+        "Your code is 5521. Do not share this OTP with anyone"
+      ],
+      "negativeExamples": [
+        "Do not share the meeting recording outside the team"
+      ]
+    },
+    {
+      "id": "protect-otp-validity",
+      "family": "protected-otp",
+      "regex": "\\b(valid for \\d+ (min(ute)?s?|hours?)|expires? in \\d+ (min(ute)?s?|hours?))\\b.{0,40}\\b(otp|code|pin)\\b|\\b(otp|code|pin)\\b.{0,40}\\bvalid for \\d+ (min(ute)?s?|hours?)\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "OTP validity window",
+      "examples": [
+        "Use OTP 902118. Valid for 5 minutes only"
+      ],
+      "negativeExamples": [
+        "The parking ticket is valid for 2 hours"
+      ]
+    },
+    {
+      "id": "protect-bank-txn",
+      "family": "protected-bank",
+      "regex": "\\b(debited|credited|withdrawn|spent|deducted)\\b.{0,40}\\b(a/c|acct|account|card)\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "Bank transaction alert",
+      "examples": [
+        "Rs 2,500 debited from A/c XX4421 on 12-Jul via UPI"
+      ],
+      "negativeExamples": [
+        "He was credited as the writer of that film"
+      ]
+    },
+    {
+      "id": "protect-bank-balance",
+      "family": "protected-bank",
+      "regex": "\\b(avl|available) (bal|balance)\\b|\\bbalance (is|:)?\\s?(₹|rs\\.?|inr)\\s*[\\d,]+",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "Balance information",
+      "examples": [
+        "Avl Bal: Rs 18,240.50 in A/c XX882"
+      ],
+      "negativeExamples": [
+        "Work-life balance is important"
+      ]
+    },
+    {
+      "id": "protect-bank-ref",
+      "family": "protected-bank",
+      "regex": "\\b(imps|neft|rtgs|upi)\\b.{0,20}\\b(ref|reference|txn)\\b|\\btxn (id|no|number|ref)\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "Transaction reference",
+      "examples": [
+        "NEFT ref N19822 credited Rs 12,000 to your account"
+      ],
+      "negativeExamples": [
+        "Can you send me the reference books list?"
+      ]
+    },
+    {
+      "id": "protect-bank-emi",
+      "family": "protected-bank",
+      "regex": "\\bemi\\b.{0,25}\\b(due|debited|paid|received|of (₹|rs\\.?|inr)\\s*[\\d,]+)\\b|\\bcheque\\b.{0,30}\\b(clear|deposit|bounc|return|credited)\\b|\\b(mini )?statement\\b.{0,30}\\b(generated|ready|attached|sent)\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "EMI/cheque/statement alert",
+      "examples": [
+        "Your EMI of Rs 4,320 is due on 05-Aug"
+      ],
+      "negativeExamples": [
+        "His statement to the press was surprising"
+      ]
+    },
+    {
+      "id": "protect-delivery-status",
+      "family": "protected-delivery",
+      "regex": "\\b(out for delivery|arriving (today|tomorrow|by)|shipped|dispatched|picked up|pickup (scheduled|done)|tracking (id|no|number)|awb)\\b|\\b(order|parcel|package|shipment|item|consignment)\\b.{0,40}\\b(delivered|deliver(y|ed) (successfully|today|tomorrow))\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "Delivery status update",
+      "examples": [
+        "Your order is out for delivery. Tracking ID AWB123456",
+        "Your parcel was delivered today at 2pm"
+      ],
+      "negativeExamples": [
+        "The speech was delivered successfully to a full house"
+      ]
+    },
+    {
+      "id": "protect-travel",
+      "family": "protected-travel",
+      "regex": "\\bpnr\\b|\\b(flight|train|bus) (no|number|is)\\b|\\b(boarding (pass|gate|time)|departure (time|gate)|seat (no|number)|coach \\w?\\d)\\b|\\be-?ticket\\b|\\bweb check.?in\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "Travel booking/status",
+      "examples": [
+        "PNR 8842216690, Train 12951, Coach B4 Seat 32, departs 16:55"
+      ],
+      "negativeExamples": [
+        "The flight of stairs was exhausting"
+      ]
+    },
+    {
+      "id": "protect-appointment",
+      "family": "protected-travel",
+      "regex": "\\bappointment\\b.{0,30}\\b(confirmed|scheduled|booked|reminder|today|tomorrow)\\b|\\btoken (no|number)\\b|\\b(consultation|opd)\\b.{0,30}\\b(confirmed|scheduled|token)\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "Appointment confirmation",
+      "examples": [
+        "Your appointment with Dr Mehta is confirmed for 4:30pm today"
+      ],
+      "negativeExamples": [
+        "We should make an appointment to see the new flat sometime"
+      ]
+    },
+    {
+      "id": "protect-gov",
+      "family": "protected-government",
+      "regex": "\\b(epfo|uidai|cowin|digilocker|nrega|pm-?kisan|pmkisan|ayushman|e-?shram|passport seva|incometax dept)\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "Government service message",
+      "examples": [
+        "EPFO: Your passbook is updated with contribution of Rs 3,600"
+      ],
+      "negativeExamples": []
+    },
+    {
+      "id": "protect-bill-due",
+      "family": "protected-bill",
+      "regex": "\\bbill\\b.{0,25}\\b(due|generated|of (₹|rs\\.?|inr)\\s*[\\d,]+)|\\bdue date\\b.{0,30}(₹|rs\\.?|inr|\\d)|\\bmin(imum)? (amount )?due\\b",
+      "weight": 0,
+      "languages": [
+        "en"
+      ],
+      "description": "Bill due notice",
+      "examples": [
+        "Your electricity bill of Rs 1,240 is due on 22-Jul"
+      ],
+      "negativeExamples": [
+        "The restaurant bill of last night was on Rohan"
+      ]
+    },
+    {
+      "id": "imp-cyber-cell",
+      "family": "impersonation-threat",
+      "weight": 10,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "regex": "\\b(cyber (cell|crime|police)|crime branch|police station|narcotics dept)\\b.{0,80}\\b(parcel|package|aadhaar|fir|arrest|warrant|call|drugs|penalty)\\b",
+      "description": "Police/cyber-cell impersonation with parcel or arrest threat",
+      "examples": [
+        "This is Inspector Sharma from Mumbai Cyber Cell. A parcel with illegal drugs was booked on your Aadhaar. Call immediately or FIR will be registered"
+      ],
+      "negativeExamples": [
+        "My cousin joined the cyber cell department last month, interesting job"
+      ]
+    },
+    {
+      "id": "imp-parcel-contraband",
+      "family": "impersonation-threat",
+      "weight": 10,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "regex": "\\b(parcel|package|courier|shipment)\\b.{0,50}\\b(illegal|drugs|contraband|narcotics)\\b|\\b(illegal|drugs|contraband|narcotics)\\b.{0,20}\\b(parcel|package|courier|shipment)\\b",
+      "description": "Contraband-in-your-parcel threat (either word order)",
+      "examples": [
+        "A parcel with illegal drugs was booked on your Aadhaar",
+        "aapke naam pe illegal parcel pakda gaya hai Mumbai airport pe"
+      ],
+      "negativeExamples": [
+        "The courier finally delivered my package, nothing broken this time"
+      ]
+    },
+    {
+      "id": "imp-inheritance-419",
+      "family": "impersonation-threat",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "regex": "\\b(next of kin|unclaimed (estate|funds?|inheritance)|dormant account|barrister|dying widow)\\b",
+      "description": "Advance-fee/419 inheritance vocabulary",
+      "examples": [
+        "I am barrister Williams. Your late relative left $4.5 million unclaimed",
+        "A dormant account with $6.8M matches your surname"
+      ],
+      "negativeExamples": [
+        "We visited the estate my grandfather left us last summer, needs repairs"
+      ]
+    },
+    {
+      "id": "imp-compensation-fund",
+      "family": "impersonation-threat",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "regex": "\\bcompensation fund\\b|\\bfund\\b.{0,20}\\ballocated (to )?you\\b",
+      "description": "Fake compensation-fund allocation",
+      "examples": [
+        "UN compensation fund allocated you $750,000 for previous scam victims"
+      ],
+      "negativeExamples": [
+        "The PM relief fund got huge donations after the floods, good to see"
+      ]
+    },
+    {
+      "id": "kyc-number-block-hours",
+      "family": "kyc-account-threat",
+      "weight": 9,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "regex": "\\b(number|sim|connection|account)\\b.{0,40}\\b(block|blocked|suspend\\w*|deactivat\\w*|disconnect\\w*)\\b.{0,30}\\b(in )?\\d+ (hours?|hrs|minutes?)\\b",
+      "description": "Service-block threat with an N-hour deadline",
+      "examples": [
+        "Your mobile number will be blocked in 2 hours due to illegal marketing complaint"
+      ],
+      "negativeExamples": [
+        "My number was blocked by that spam app for 2 days lol"
+      ]
+    },
+    {
+      "id": "kyc-press-digit-ivr",
+      "family": "kyc-account-threat",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "regex": "\\bpress \\d\\b.{0,30}\\b(talk|speak|connect|officer|executive|customer care)\\b",
+      "description": "IVR press-a-digit-to-reach-officer bait",
+      "examples": [
+        "Number will be blocked in 2 hours. Press 9 to talk to officer"
+      ],
+      "negativeExamples": [
+        "Press 1 for English is the worst part of calling any helpline haha"
+      ]
+    },
+    {
+      "id": "kyc-electricity-meter-threat",
+      "family": "kyc-account-threat",
+      "weight": 9,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "regex": "\\b(electricity|power|bijli|meter|connection)\\b.{0,50}\\b(disconnect\\w*|band kar|band hone|cut kar|tamper\\w*|will be cut)\\b.{0,60}\\b(tonight|today|penalty|officer|contact|call|immediately|bill not updated)\\b",
+      "description": "Electricity disconnection / meter-tampering threat with urgency",
+      "examples": [
+        "Dear consumer your electricity connection will be cut tonight 9.30pm. Previous bill not updated. Contact officer immediately",
+        "Your electricity meter is reported for tampering. Penalty Rs 50,000 or disconnection. Contact vigilance officer today"
+      ],
+      "negativeExamples": [
+        "Long power cut in our area tonight, generator running since 8pm"
+      ]
+    },
+    {
+      "id": "job-registration-fee",
+      "family": "job-fraud",
+      "weight": 10,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "regex": "\\b(job|salary|hiring|vacancy|interview|joining)\\b.{0,80}\\b(registration|joining|processing|document|security) fee\\b",
+      "description": "Job offer demanding an upfront fee (legit employers never charge)",
+      "examples": [
+        "Flipkart parcel packing job — salary Rs 28,000 + bonus. Registration fee Rs 550 only"
+      ],
+      "negativeExamples": [
+        "Paid my bar council registration fee today, finally official"
+      ]
+    },
+    {
+      "id": "invest-guaranteed-allotment",
+      "family": "investment-fraud",
+      "weight": 9,
+      "languages": [
+        "en"
+      ],
+      "regex": "\\b(ipo|allotment|listing gain)\\b.{0,50}\\b(guaranteed|assured|fixed|premium quota)\\b|\\b(guaranteed|assured)\\b.{0,30}\\b(allotment|listing gain)\\b",
+      "description": "Guaranteed IPO allotment / listing gain",
+      "examples": [
+        "IPO allotment guaranteed via premium quota. Invest Rs 50,000 get assured 40% listing gain"
+      ],
+      "negativeExamples": [
+        "Did you get the IPO allotment? I didn't, as usual my luck"
+      ]
+    },
+    {
+      "id": "charity-payment-handle",
+      "family": "charity-scam",
+      "weight": 8,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "regex": "\\b(donat\\w*|relief fund|zakat|sadqa|chanda)\\b.{0,80}\\b(upi|paytm|phonepe|gpay|google pay|this (number|account))\\b",
+      "description": "Charity appeal routed to a personal payment handle",
+      "examples": [
+        "Flood relief fund urgent! Send donation to this Paytm number and God will bless you"
+      ],
+      "negativeExamples": [
+        "I donated blood today at the office camp, felt good"
+      ]
+    },
+    {
+      "id": "wrong-number-met-you",
+      "family": "wrong-number-opener",
+      "weight": 8,
+      "languages": [
+        "en"
+      ],
+      "regex": "\\bis this [a-z]+\\?.{0,60}\\b(we met|met at|remember me)\\b|\\bwrong number\\b.{0,40}\\b(but|you seem|nice|chat|friend)\\b",
+      "description": "Wrong-number opener that pivots to friendly chat (pig-butchering entry)",
+      "examples": [
+        "Hi, is this Priya? We met at the Goa conference last month... anyway how are you doing?"
+      ],
+      "negativeExamples": [
+        "Is this saturday still on for the trek? we met at 6 last time btw"
+      ]
+    },
+    {
+      "id": "payment-mistake-clawback",
+      "family": "fake-payment",
+      "weight": 10,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "regex": "\\b(galti se|by mistake|wrongly|accidentally)\\b.{0,50}\\b(transfer\\w*|credit\\w*|deposit\\w*|bhej\\w*|sent)\\b.{0,100}\\b(wapas|return|send back|refund|police|complaint)\\b|\\b(deposited|credited|transferred|sent)\\b.{0,40}\\b(by mistake|galti se|wrongly)\\b.{0,80}\\b(return|wapas|refund|verify|click)\\b",
+      "description": "Mistaken-transfer clawback demand (money never actually arrived)",
+      "examples": [
+        "Aapke account me Rs 11,000 galti se transfer hue hai. Wapas bhejo warna police complaint hogi"
+      ],
+      "negativeExamples": [
+        "I sent the report to the wrong email by mistake, resending now"
+      ]
+    },
+    {
+      "id": "family-lost-phone-money",
+      "family": "impersonation-threat",
+      "weight": 11,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "regex": "\\b(lost my phone|phone (stolen|toot)|temporary number|dost ka number)\\b.{0,120}\\b(need|send|transfer|bhejo)\\b.{0,60}\\b(money|(₹|rs\\.?|inr|\\$|usd)\\s*[\\d,]+|upi|gpay|paytm|phonepe|account)\\b",
+      "description": "Fake family member on a new number asking for money",
+      "examples": [
+        "Mummy I lost my phone, this is my temporary number. I need Rs 20,000 urgently, please send to this GPay"
+      ],
+      "negativeExamples": [
+        "Lost my phone yesterday, got a new sim with the same number thankfully"
+      ]
+    },
+    {
+      "id": "family-stranded-abroad",
+      "family": "impersonation-threat",
+      "weight": 11,
+      "languages": [
+        "en"
+      ],
+      "regex": "\\b(stuck|stranded)\\b.{0,40}\\b(airport|abroad|dubai|london|foreign)\\b.{0,100}\\b(transfer|send|wire|bhejo)\\b.{0,50}\\b((₹|rs\\.?|inr|\\$|usd)\\s*[\\d,]+|money|account|upi)\\b",
+      "description": "Stranded-abroad emergency wire request",
+      "examples": [
+        "Dad it's me, I'm stuck in Dubai airport, wallet stolen. Please transfer $800 to this account now"
+      ],
+      "negativeExamples": [
+        "Stuck at the airport, flight delayed 3 hours. Send me a good podcast recommendation"
+      ]
+    },
+    {
+      "id": "payment-wallet-waiting",
+      "family": "fake-payment",
+      "regex": "(wallet is waiting|waiting in (your )?wallet|available in (your )?wallet.{0,50}\\b(waiting|click|claim|allow)|click to allow|transfer received.{0,60}\\bwallet\\b)",
+      "weight": 10,
+      "languages": [
+        "en"
+      ],
+      "description": "\"Money waiting in your wallet\" bait with a click-to-claim tail",
+      "examples": [
+        "Hi Account Transfer Received: Rs 1850 Amount 810****789 available in wallet is waiting. Click to allow bit.ly/4ehw5i0"
+      ],
+      "negativeExamples": [
+        "Rs 500 added to your Paytm wallet on 12-Jul. Updated balance: Rs 1,250"
+      ]
+    }
+  ]
+}
