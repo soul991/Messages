@@ -1,0 +1,12 @@
+# Shell scripts and the Gradle wrapper must keep LF endings. A Windows clone
+# with core.autocrlf=true would otherwise write CRLF and ./gradlew fails with
+# $'\r': command not found.
+gradlew     text eol=lf
+*.sh        text eol=lf
+gradlew.bat text eol=crlf
+
+# Deliberate control bytes (0x00, 0x01) are load-bearing in these two files —
+# 0x01 is the same marker family as the locked-content prefix. Pin them binary
+# so git never normalizes them.
+app/src/main/kotlin/com/messages/app/mms/MmsTransactions.kt -text
+app/src/main/kotlin/com/messages/app/ui/search/SavedSearches.kt -text
