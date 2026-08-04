@@ -59,7 +59,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Check out
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4, resolved 2026-07-28
 
       - name: Set up JDK 17
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4, resolved 2026-07-28
@@ -127,7 +127,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4, resolved 2026-07-28
 
       - name: Set up JDK 17
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4, resolved 2026-07-28
@@ -187,7 +187,7 @@ jobs:
     environment: release
     steps:
       - name: Check out
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4, resolved 2026-07-28
 
       - name: Set up JDK 17
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4, resolved 2026-07-28
