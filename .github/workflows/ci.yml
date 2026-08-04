@@ -68,7 +68,7 @@ jobs:
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4, resolved 2026-07-28
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v4, resolved 2026-07-28
 
       # The pure-JVM engine module: every pattern's positive/negative examples,
       # combo rules, the normalizer obfuscation corpus, the corpus regression
@@ -136,7 +136,7 @@ jobs:
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4, resolved 2026-07-28
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v4, resolved 2026-07-28
 
       # Separates the code that ships from the code that only builds it. An
       # advisory in the Android Gradle Plugin's netty and one inside the APK
@@ -196,7 +196,7 @@ jobs:
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4, resolved 2026-07-28
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v4, resolved 2026-07-28
 
       # Fail before building rather than after, so the log says WHY.
       - name: Require signing secrets
