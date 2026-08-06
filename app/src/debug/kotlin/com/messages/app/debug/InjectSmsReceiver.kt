@@ -21,14 +21,41 @@ import kotlinx.coroutines.launch
  *
  * Authorization (R-24): the manifest gates this on the signature-level
  * permission `com.messages.app.permission.DEBUG_HARNESS`, and [DebugAuth]
- * additionally requires this install's token. Run once without `--es token` and
- * read the expected value from logcat (`DebugAuth`).
+ * additionally requires this install's token.
  *
- * Usage:
- *   adb shell am broadcast -a com.messages.app.DEBUG_INJECT_SMS \
- *     -n com.messages.app/.debug.InjectSmsReceiver \
- *     --es token "<per-install token>" \
- *     --es address "AX-BANKXX" --es body "Your OTP is 483920 ..."
+ * IMPORTANT — a bare `adb shell am broadcast` can NEVER reach this receiver:
+ *
+ *     W BroadcastQueue: Permission Denial: broadcasting Intent { … } from null
+ *     (pid=…, uid=2000) to …/.InjectSmsReceiver requires
+ *     com.messages.app.permission.DEBUG_HARNESS
+ *
+ * `android:permission` on a receiver constrains the SENDER. adb arrives as the
+ * shell uid (2000), and the permission is `signature`-level with this app as
+ * its sourcePackage — shell is signed with the platform key, so it can never
+ * hold it. (Shell auto-holds only permissions declared in its OWN manifest; it
+ * cannot declare an app-defined one.) The gate is therefore not bypassable from
+ * adb by design, and must NOT be weakened to make it so.
+ *
+ * The way in is to become this app's own uid — which does hold the permission —
+ * via `run-as`, available because a debug build is `debuggable`. `--user 0` is
+ * needed as well: under run-as the default USER_CURRENT (-2) is rejected for
+ * lack of INTERACT_ACROSS_USERS.
+ *
+ * The token is NOT printed to logcat (see [DebugAuth]); read it from the app's
+ * prefs under the same uid. The file only exists after a first attempt, because
+ * the token is generated lazily — so broadcast once (it will be refused), then:
+ *   adb shell run-as com.messages.app.debug \
+ *     cat /data/data/com.messages.app.debug/shared_prefs/debug_harness.xml
+ *
+ * Usage — substitute the real applicationId (the debug build carries an
+ * `applicationIdSuffix`, so it is `com.messages.app.debug`) and spell the
+ * receiver class out in full: the `/.debug.Foo` shorthand resolves against the
+ * applicationId and would yield `…debug.debug.Foo`.
+ *   adb shell "run-as com.messages.app.debug am broadcast --user 0 \
+ *     -a com.messages.app.DEBUG_INJECT_SMS \
+ *     -n com.messages.app.debug/com.messages.app.debug.InjectSmsReceiver \
+ *     --es token '<per-install token>' \
+ *     --es address 'AX-BANKXX' --es body 'Your OTP is 483920 ...'"
  */
 class InjectSmsReceiver : BroadcastReceiver() {
 

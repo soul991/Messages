@@ -775,7 +775,7 @@ interface ThreadAliasDao {
         MessageFtsEntity::class,
         ProviderRowEntity::class, SmsAttemptEntity::class, ThreadAliasEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class MessagesDatabase : RoomDatabase() {

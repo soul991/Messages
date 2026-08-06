@@ -30,9 +30,15 @@ import kotlinx.coroutines.launch
  * `com.messages.app.permission.DEBUG_HARNESS` plus this install's [DebugAuth]
  * token. Only the explicit ids passed in `smsIds` are ever touched.
  *
- * Usage:
- *   adb shell "am broadcast -a com.messages.app.DEBUG_CLEANUP_RESIDUE \
- *     -n com.messages.app/.debug.CleanupTestResidueReceiver \
+ * Usage — note this must go through `run-as`, not a bare `am broadcast`; see
+ * [InjectSmsReceiver] for why plain adb can never reach these receivers, and
+ * for how to obtain the token. Substitute the real applicationId (the debug
+ * build carries an `applicationIdSuffix`, so it is `com.messages.app.debug`)
+ * and spell the receiver class out in full — the `/.debug.Foo` shorthand
+ * resolves against the applicationId and would yield `…debug.debug.Foo`:
+ *   adb shell "run-as com.messages.app.debug am broadcast --user 0 \
+ *     -a com.messages.app.DEBUG_CLEANUP_RESIDUE \
+ *     -n com.messages.app.debug/com.messages.app.debug.CleanupTestResidueReceiver \
  *     --es token '<per-install token>' --es smsIds '1,2,3'"
  */
 class CleanupTestResidueReceiver : BroadcastReceiver() {

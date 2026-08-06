@@ -14,14 +14,23 @@ import android.util.Log
  *
  * Two independent gates, both required:
  *  1. a `signature`-level permission declared in the debug manifest — only a
- *     component signed with the same key can hold it, and adb/shell is granted
- *     it because shell can hold any permission it asks for at install time;
+ *     component signed with the same key can hold it. NOTE: adb/shell does NOT
+ *     get it. Shell (uid 2000) auto-holds only permissions declared in its OWN
+ *     manifest and cannot declare an app-defined one, so a bare
+ *     `adb shell am broadcast` is refused outright by BroadcastQueue before the
+ *     receiver ever runs. Reaching these receivers means acting as this app's
+ *     uid via `run-as` — see [InjectSmsReceiver] for the full invocation;
  *  2. an unpredictable per-install token that the caller must echo back, so a
  *     stale script or a same-signature build on another device cannot drive
  *     this one by accident.
  *
- * The token is generated on first use and printed to logcat (readable only by
- * this app's own uid and by adb) so a device walkthrough can pick it up.
+ * The token is generated lazily on first use and stored in SharedPreferences.
+ * It is NOT logged: [isAuthorized] records only THAT a call was refused, never
+ * the expected value, so the secret never lands in a buffer any `adb logcat`
+ * reader can scrape. Retrieve it under the app's own uid instead:
+ *   adb shell run-as com.messages.app.debug \
+ *     cat /data/data/com.messages.app.debug/shared_prefs/debug_harness.xml
+ * (The file exists only after a first — refused — attempt has created it.)
  */
 object DebugAuth {
 
@@ -42,8 +51,13 @@ object DebugAuth {
     }
 
     /**
-     * True only when the broadcast carries the right token. Logs the expected
-     * value on rejection so the harness is still usable from adb.
+     * True only when the broadcast carries the right token.
+     *
+     * Rejection logs the FACT of refusal and nothing else — deliberately not
+     * the expected value, which would put the secret into logcat. Read the
+     * token from the prefs file via `run-as` instead (see the class KDoc).
+     * Calling [token] here is what lazily creates that file on the first
+     * refused attempt.
      */
     fun isAuthorized(context: Context, intent: Intent): Boolean {
         val expected = token(context)

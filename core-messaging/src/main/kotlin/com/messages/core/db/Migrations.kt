@@ -244,9 +244,60 @@ object Migrations {
         }
     }
 
+    /**
+     * v11 (DB-1): install the FTS content-sync triggers that [MIGRATION_5_6]
+     * never created, and reindex.
+     *
+     * `messages_fts` is an external-content FTS4 table (`content=messages`).
+     * Such a table does not index anything by itself — Room keeps it in step
+     * with the content table through four `room_fts_content_sync_*` triggers.
+     * Room only emits those triggers from `createAllTables`, i.e. on a FRESH
+     * install; a migration has to create them by hand, and v6 did not. It ran
+     * a one-time `'rebuild'` and stopped there.
+     *
+     * So every database that reached v6 by UPGRADE has an index frozen at the
+     * moment of that migration: every message received since is present in
+     * `messages` and absent from the index. The failure is silent in the worst
+     * way — `SELECT count(*) FROM messages_fts` reads THROUGH to the content
+     * table, so the counts always agree and only a real `MATCH` reveals the
+     * gap. Fresh installs were unaffected, which is why this survived testing.
+     *
+     * The DDL below is copied verbatim from what Room generates, so a fresh
+     * v11 install and an upgraded v11 install converge on the same schema.
+     * `CREATE TRIGGER IF NOT EXISTS` keeps it a no-op where they already exist.
+     * The closing `'rebuild'` repairs the accumulated drift.
+     */
+    val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_messages_fts_BEFORE_UPDATE " +
+                    "BEFORE UPDATE ON `messages` BEGIN " +
+                    "DELETE FROM `messages_fts` WHERE `docid`=OLD.`rowid`; END"
+            )
+            db.execSQL(
+                "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_messages_fts_BEFORE_DELETE " +
+                    "BEFORE DELETE ON `messages` BEGIN " +
+                    "DELETE FROM `messages_fts` WHERE `docid`=OLD.`rowid`; END"
+            )
+            db.execSQL(
+                "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_messages_fts_AFTER_UPDATE " +
+                    "AFTER UPDATE ON `messages` BEGIN " +
+                    "INSERT INTO `messages_fts`(`docid`, `body`, `normalizedBody`, `address`) " +
+                    "VALUES (NEW.`rowid`, NEW.`body`, NEW.`normalizedBody`, NEW.`address`); END"
+            )
+            db.execSQL(
+                "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_messages_fts_AFTER_INSERT " +
+                    "AFTER INSERT ON `messages` BEGIN " +
+                    "INSERT INTO `messages_fts`(`docid`, `body`, `normalizedBody`, `address`) " +
+                    "VALUES (NEW.`rowid`, NEW.`body`, NEW.`normalizedBody`, NEW.`address`); END"
+            )
+            db.execSQL("INSERT INTO messages_fts(messages_fts) VALUES('rebuild')")
+        }
+    }
+
     val ALL: Array<Migration> = arrayOf(
         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-        MIGRATION_9_10,
+        MIGRATION_9_10, MIGRATION_10_11,
     )
 }

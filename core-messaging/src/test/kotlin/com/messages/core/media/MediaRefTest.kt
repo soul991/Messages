@@ -2,9 +2,11 @@ package com.messages.core.media
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * V2-25: `mediaUri` carries two different kinds of reference. Getting this
@@ -16,8 +18,18 @@ class MediaRefTest {
 
     @Test
     fun `local paths resolve to a file`() {
-        val file = MediaRef.asFile("/data/user/0/com.messages.app/files/mms/42.jpg")
-        assertEquals("/data/user/0/com.messages.app/files/mms/42.jpg", file?.path)
+        val path = "/data/user/0/com.messages.app/files/mms/42.jpg"
+        val file = MediaRef.asFile(path)
+        // Compared against File(path).path rather than the literal, because
+        // `File.path` renders with the HOST's separator: on a Windows JVM the
+        // same input comes back as `\data\user\0\...`, so a literal comparison
+        // fails for a reason that has nothing to do with the behaviour under
+        // test. On the device — and on CI, which is Linux — the two sides are
+        // byte-identical, so this is not a weakened assertion. It still runs
+        // everywhere (no assume/skip) and still fails if asFile mangles the
+        // path, stops round-tripping it, or returns null for a local reference.
+        assertNotNull(file)
+        assertEquals(File(path).path, file?.path)
     }
 
     @Test

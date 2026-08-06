@@ -18,6 +18,9 @@ local.properties
 # Claude Code local session settings
 .claude/settings.local.json
 
+# On-device logcat captures from debug walkthroughs — session artefacts
+/logcat_run_*.txt
+
 # Android
 captures/
 *.apk

@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Build
 import android.provider.Telephony
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -788,6 +789,32 @@ class MainActivity : FragmentActivity() {
      * the user backs out.
      */
     private fun requestDefaultRole() {
+        // DO NOT REMOVE. On 2026-08-06 a `monkey` run against the debug build
+        // tapped through the system role dialog and took the SMS role away from
+        // the LIVE RELEASE BUILD on the owner's daily-driver phone. Real
+        // incoming SMS was routed to a debug install for ~8 minutes.
+        //
+        // The guard lives here, at the single chokepoint, rather than at the
+        // call sites, because there are three ways in and one of them needs no
+        // deliberate intent at all: the launch-path prompt (onCreate), the
+        // onboarding button, and DefaultSmsGate's button — which a debug build
+        // renders PERMANENTLY, since isDefaultSmsApp is always false for it.
+        // Any stray tap reaches that button. Gating only the launch path leaves
+        // the hole that actually caused the incident.
+        //
+        // A debug build must be structurally incapable of taking this role, not
+        // merely unlikely to. The gate stays inert rather than hidden: the
+        // button still renders (shared UI is deliberately untouched) and this
+        // log explains the no-op to whoever taps it.
+        if (BuildConfig.DEBUG) {
+            Log.w(
+                "MainActivity",
+                "Default-SMS role request refused: debug builds may never hold the SMS " +
+                    "role, because taking it would silently steal SMS delivery from a " +
+                    "release install of this app on the same device. Use the release build.",
+            )
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
             if (roleManager.isRoleAvailable(RoleManager.ROLE_SMS) &&

@@ -110,6 +110,15 @@ android {
     }
 
     buildTypes {
+        // Lets a debug build sit alongside a signed release install of this app
+        // on the same device. Without it the two share com.messages.app and the
+        // debug install fails on the signing-cert mismatch, so the only way to
+        // test on a daily driver would be to uninstall the real app and its data.
+        // Only applicationId shifts; `namespace` stays com.messages.app, so class
+        // names, the DEBUG_HARNESS permission and share_targets are unaffected.
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
