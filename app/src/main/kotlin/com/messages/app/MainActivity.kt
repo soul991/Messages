@@ -499,12 +499,18 @@ class MainActivity : FragmentActivity() {
                             onBack = { nav.popBackStack() },
                         )
                     }
+                    composable("about") {
+                        com.messages.app.ui.settings.AboutScreen(
+                            onBack = { nav.popBackStack() },
+                        )
+                    }
                     composable("settings") {
                         SettingsScreen(
                             onBack = { nav.popBackStack() },
                             onOpenTrash = { nav.navigate("trash") },
                             onOpenDriveBackup = { nav.navigate("drive_backup") },
                             onOpenNotificationSettings = { nav.navigate("notification_settings") },
+                            onOpenAbout = { nav.navigate("about") },
                             // V2-39: the same destination as the Home-title
                             // press, reached without the gesture. Setup or
                             // prompt — never past either.

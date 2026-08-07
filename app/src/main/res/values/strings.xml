@@ -1522,4 +1522,63 @@
     <string name="summary_action_hide">Hide this summary</string>
     <string name="summary_action_turn_off">Turn off summary cards</string>
     <string name="summary_action_restore">Show summary again</string>
+
+    <!-- ============================= About ============================== -->
+    <!--
+      The About screen and the two legal documents it shows inline.
+
+      The policy and terms bodies are the app's public promises, so they are
+      kept verbatim rather than paraphrased, and they are shown INSIDE the app
+      — a privacy policy that has to be fetched over the network to be read
+      would contradict its own first sentence.
+
+      Translators: the two long bodies below are legal text. Translate them
+      faithfully or leave them in English; do not soften "as-is", the warranty
+      disclaimer, or the statement that the filter makes mistakes.
+    -->
+    <string name="about_title">About</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_subtitle">Version, legal, updates, and source code.</string>
+    <string name="about_tagline">Private, on-device SMS — no servers, no ML, no data ever leaves your device.</string>
+    <!-- %1$s is the version name, e.g. "1.0". -->
+    <string name="about_version">Version %1$s</string>
+    <string name="about_icon_description">Messages app icon</string>
+
+    <string name="about_section_legal">Legal</string>
+    <string name="about_privacy_policy">Privacy Policy</string>
+    <string name="about_terms">Terms &amp; Conditions</string>
+
+    <string name="about_section_updates">Updates</string>
+    <string name="about_check_updates">Check for updates</string>
+    <string name="about_check_updates_subtitle">Opens the GitHub Releases page in your browser.</string>
+
+    <string name="about_section_source">Source</string>
+    <string name="about_view_source">View source on GitHub</string>
+    <string name="about_view_source_subtitle">Read, audit, or build the app yourself.</string>
+    <string name="about_licenses">Open-source licences</string>
+    <string name="about_licenses_subtitle">Licences of the libraries this app is built on.</string>
+
+    <string name="about_privacy_policy_body">Privacy Policy
+Last updated: 2026-08-07
+
+Messages is a personal, on-device SMS application. It does not collect, transmit, store remotely, or share any personal data whatsoever.
+
+All messages, contacts, and filter decisions remain exclusively on your device. No analytics, no crash reporting, no telemetry, and no network requests are made by this app.
+
+The app requires SMS permissions solely to function as your default SMS handler. It requires Contacts permission solely to display sender names. No data derived from these permissions ever leaves your device.
+
+This app has no backend, no accounts, and no third-party SDKs that transmit data.
+
+If you have questions, open an issue at https://github.com/soul991/Messages</string>
+
+    <string name="about_terms_body">Terms &amp; Conditions
+Last updated: 2026-08-07
+
+This application is provided as-is for personal use. By using it you accept that:
+
+1. The app is provided without warranty of any kind.
+2. The author is not liable for any loss of messages or data.
+3. You are responsible for maintaining your own backups.
+4. The spam/scam filter is heuristic and deterministic — it will make mistakes. Never rely on it as a sole security measure.
+5. The source code is available at https://github.com/soul991/Messages under the licence stated there.</string>
 </resources>

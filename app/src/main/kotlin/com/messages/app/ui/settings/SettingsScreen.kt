@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.FormatSize
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Summarize
 import androidx.compose.material.icons.outlined.Lock
@@ -438,6 +439,7 @@ fun SettingsScreen(
     onOpenTrash: () -> Unit = {},
     onOpenDriveBackup: () -> Unit = {},
     onOpenNotificationSettings: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
     /**
      * V2-39: routes to the locked space's credential prompt — the same
      * destination as the Home-title press, not a way around it.
@@ -980,6 +982,18 @@ fun SettingsScreen(
                     },
                     subtitle = stringResource(R.string.settings_trash_subtitle),
                     onClick = onOpenTrash,
+                )
+                Spacer(Modifier.height(24.dp))
+            }
+
+            // ---- About: version, legal, updates, source ----
+            item {
+                SettingsSectionDivider()
+                SettingsNavRow(
+                    icon = Icons.Outlined.Info,
+                    title = stringResource(R.string.settings_about),
+                    subtitle = stringResource(R.string.settings_about_subtitle),
+                    onClick = onOpenAbout,
                 )
                 Spacer(Modifier.height(24.dp))
             }

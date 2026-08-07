@@ -7,6 +7,15 @@ Messages keeps the Inbox calm without treating filtering as permission to lose
 data: every message is stored, every filtering decision is explainable, and the
 user can reverse a decision at any time.
 
+## Download
+
+Pre-built release APKs are available on the [Releases page](https://github.com/soul991/Messages/releases).
+
+**[⬇ Download latest APK](https://github.com/soul991/Messages/releases/latest/download/messages-release.apk)**
+
+> Install requires enabling "Install from unknown sources" for your browser or file manager in Android Settings → Apps.
+> Minimum Android version: 8.0 (API 26).
+
 ## Trust promises
 
 - **No AI or cloud classification.** Classification is offline and deterministic:
