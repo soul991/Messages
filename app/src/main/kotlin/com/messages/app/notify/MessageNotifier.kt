@@ -26,6 +26,28 @@ import com.messages.protection.Category
 import com.messages.protection.Verdict
 
 /**
+ * The outcome of the notification routing decision for a non-locked message.
+ * Returned by [MessageNotifier.routingAction]; used by [MessageNotifier.notifyFor]
+ * and tested independently of Android platform machinery.
+ */
+internal sealed class NotifyAction {
+    /** No alert, no sound, no heads-up — badge/shade update only (driven by Room). */
+    object Silent : NotifyAction()
+    /** Post a full message notification on [channel]. */
+    data class Post(val channel: String) : NotifyAction()
+    /** Aggregate-batch the Review folder count (IMPORTANCE_LOW, no sound/heads-up). */
+    object ReviewBatch : NotifyAction()
+    /**
+     * Fraud warning on [MessagesApp.CH_FRAUD] (IMPORTANCE_HIGH, persistent).
+     * Applies only to SPAM verdicts that carry [Verdict.dangerous] == true
+     * and when the user has the fraud-warning toggle on (default on).
+     * Phase 4 item 19 / Truecaller rec A4 — the ONE exception to
+     * "filtered folders stay silent."
+     */
+    object FraudWarning : NotifyAction()
+}
+
+/**
  * §3/§4 notification policy: Inbox/Transactions notify; Promotions, Spam and
  * Blocked are silent (badge only); Review gets one quiet batched notification.
  */
@@ -63,34 +85,20 @@ class MessageNotifier(private val context: Context) {
         val notifyPromotions = prefs.getBoolean("notify_promotions", false)
         val notifyReview = prefs.getBoolean("notify_review", true)
 
-        when (verdict.category) {
-            Category.INBOX -> postMessageNotification(
-                message, verdict, contactName, MessagesApp.CH_PERSONAL, hidden, conversationLocked,
+        when (val action = routingAction(
+            verdict.category,
+            dangerous = verdict.dangerous,
+            notifyTransactions = notifyTransactions,
+            notifyPromotions = notifyPromotions,
+            notifyReview = notifyReview,
+            warnDangerous = prefs.getBoolean("warn_dangerous", true),
+        )) {
+            NotifyAction.Silent -> Unit
+            is NotifyAction.Post -> postMessageNotification(
+                message, verdict, contactName, action.channel, hidden, conversationLocked,
             )
-            Category.TRANSACTIONS -> if (notifyTransactions) {
-                postMessageNotification(
-                    message, verdict, contactName, MessagesApp.CH_TRANSACTIONS, hidden, conversationLocked,
-                )
-            }
-            Category.REVIEW -> if (notifyReview) {
-                postReviewNotification()
-            }
-            Category.PROMOTIONS -> if (notifyPromotions) {
-                postMessageNotification(
-                    message, verdict, contactName, MessagesApp.CH_PROMOTIONS, hidden, conversationLocked,
-                )
-            }
-            Category.SPAM -> {
-                // Phase 4 item 19 (Truecaller rec A4): a persistent red warning
-                // for DANGEROUS verdicts only — fraud combos / dangerous
-                // threshold. Ordinary spam and promos stay silent forever.
-                if (verdict.dangerous &&
-                    prefs.getBoolean("warn_dangerous", true)
-                ) {
-                    postFraudWarning(message, contactName, hidden, conversationLocked)
-                }
-            }
-            Category.BLOCKED -> Unit // silent (§4)
+            NotifyAction.ReviewBatch -> postReviewNotification()
+            NotifyAction.FraudWarning -> postFraudWarning(message, contactName, hidden, conversationLocked)
         }
     }
 
@@ -438,6 +446,43 @@ class MessageNotifier(private val context: Context) {
 
     companion object {
         private const val REVIEW_ID = -100
+
+        /**
+         * Pure routing function — no Android context, no I/O, no side effects.
+         *
+         * Maps a classification verdict to the [NotifyAction] that
+         * [notifyFor] should take. Extracted for testability: all routing
+         * logic lives here; the suspending public method only handles the
+         * locked-space early return, OTP auto-copy, and Android side effects.
+         *
+         * [warnDangerous] reflects the "warn about dangerous messages" toggle
+         * (default on). It is consulted only inside the SPAM branch — other
+         * categories have their own independent toggles ([notifyTransactions],
+         * [notifyPromotions], [notifyReview]).
+         */
+        internal fun routingAction(
+            category: Category,
+            dangerous: Boolean,
+            notifyTransactions: Boolean,
+            notifyPromotions: Boolean,
+            notifyReview: Boolean,
+            warnDangerous: Boolean,
+        ): NotifyAction = when (category) {
+            Category.INBOX -> NotifyAction.Post(MessagesApp.CH_PERSONAL)
+            Category.TRANSACTIONS ->
+                if (notifyTransactions) NotifyAction.Post(MessagesApp.CH_TRANSACTIONS)
+                else NotifyAction.Silent
+            Category.REVIEW ->
+                if (notifyReview) NotifyAction.ReviewBatch
+                else NotifyAction.Silent
+            Category.PROMOTIONS ->
+                if (notifyPromotions) NotifyAction.Post(MessagesApp.CH_PROMOTIONS)
+                else NotifyAction.Silent
+            Category.SPAM ->
+                if (dangerous && warnDangerous) NotifyAction.FraudWarning
+                else NotifyAction.Silent
+            Category.BLOCKED -> NotifyAction.Silent
+        }
 
         /** Single shared id for ALL locked-space pings — never per-thread.
          *  Public: the Reset flow cancels it during the wipe. */
