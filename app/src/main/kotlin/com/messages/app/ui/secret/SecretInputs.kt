@@ -33,6 +33,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -303,11 +304,14 @@ fun PatternGrid(
         onPattern(selected.toList())
     }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Box(
             Modifier
-                .fillMaxWidth(0.7f)
-                .aspectRatio(1f)
+                .size(280.dp)
+                .align(Alignment.CenterHorizontally)
                 .padding(8.dp),
         ) {
             Canvas(
@@ -571,7 +575,11 @@ fun CredentialCreationSteps(
         patternClear++
     }
 
-    Column(verticalArrangement = SecretScreenSpacing) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = SecretScreenSpacing,
+    ) {
         Text(
             if (!confirming) {
                 heading ?: stringResource(R.string.secret_choose_code)
@@ -579,12 +587,14 @@ fun CredentialCreationSteps(
                 stringResource(R.string.secret_confirm_code)
             },
             style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
         )
         if (!confirming && subtitle != null) {
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
         }
         if (!confirming) {
@@ -612,16 +622,14 @@ fun CredentialCreationSteps(
                     stringResource(R.string.secret_setup_accessible_methods_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             }
-            // V2-7: say what the lock does and does not protect against, at the
-            // moment the choice is being made. The verifier travels inside
-            // backups, so a PIN is attackable offline where the cooldown cannot
-            // reach — the user deserves to know that before picking one.
             Text(
                 stringResource(R.string.secret_setup_strength_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
             if (kind == SecretCrypto.KIND_PATTERN) {
                 PatternGrid(enabled = !working, clearSignal = patternClear) { cells ->

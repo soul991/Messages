@@ -309,12 +309,24 @@ fun LiquidGlassBottomDock(
                     label = "dock-pill-bg",
                 )
 
+                val pillBorder = if (selected) {
+                    androidx.compose.ui.graphics.Brush.linearGradient(
+                        listOf(
+                            (item.accentColor ?: primaryColor).copy(alpha = 0.5f),
+                            (item.accentColor ?: primaryColor).copy(alpha = 0.15f),
+                        )
+                    )
+                } else {
+                    androidx.compose.ui.graphics.SolidColor(Color.Transparent)
+                }
+
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .scale(animatedScale)
                         .clip(RoundedCornerShape(20.dp))
                         .background(pillBackground)
+                        .border(1.dp, pillBorder, RoundedCornerShape(20.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = ripple(bounded = true, color = (item.accentColor ?: primaryColor).copy(alpha = 0.25f)),
@@ -340,7 +352,8 @@ fun LiquidGlassBottomDock(
                                         .offset(x = 6.dp, y = (-4).dp)
                                         .size(if (item.unreadCount > 99) 16.dp else 12.dp)
                                         .clip(CircleShape)
-                                        .background(item.accentColor ?: MaterialTheme.colorScheme.error),
+                                        .background(item.accentColor ?: MaterialTheme.colorScheme.error)
+                                        .border(1.dp, Color.White.copy(alpha = 0.8f), CircleShape),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     if (item.unreadCount > 9) {

@@ -535,7 +535,9 @@ fun HomeScreen(
 
             // Search bar — incremental, chip-based (§8.5)
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AnimatedVisibility(
@@ -547,44 +549,48 @@ fun HomeScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.chat_close_search))
                     }
                 }
-                TextField(
-                    value = typing,
-                    onValueChange = { vm.setTyping(it); searchActive = true },
-                    placeholder = {
-                        Text(
-                            if (chips.isEmpty()) stringResource(R.string.home_search_placeholder) else stringResource(R.string.home_search_add_keyword),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                        )
-                    },
-                    leadingIcon = {
-                        if (!searchActive) Icon(Icons.Filled.Search, contentDescription = null)
-                    },
-                    trailingIcon = {
-                        if (searchActive && (typing.isNotEmpty() || chips.isNotEmpty())) {
-                            IconButton(onClick = {
-                                if (typing.isNotEmpty()) vm.setTyping("") else vm.clearSearch()
-                            }) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear)) }
-                        }
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { vm.commitTyping() }),
-                    shape = CircleShape,
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        // Refs' pill height (~52dp vs the M3 56dp default); the
-                        // single-line field centers fine at this height.
-                        .height(52.dp)
-                        .onFocusChanged { if (it.isFocused) searchActive = true },
-                )
+                LiquidGlassSurface(
+                    shape = RoundedCornerShape(26.dp),
+                    depth = GlassDepth.LOW,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    TextField(
+                        value = typing,
+                        onValueChange = { vm.setTyping(it); searchActive = true },
+                        placeholder = {
+                            Text(
+                                if (chips.isEmpty()) stringResource(R.string.home_search_placeholder) else stringResource(R.string.home_search_add_keyword),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        },
+                        leadingIcon = {
+                            if (!searchActive) Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        },
+                        trailingIcon = {
+                            if (searchActive && (typing.isNotEmpty() || chips.isNotEmpty())) {
+                                IconButton(onClick = {
+                                    if (typing.isNotEmpty()) vm.setTyping("") else vm.clearSearch()
+                                }) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear)) }
+                            }
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { vm.commitTyping() }),
+                        shape = RoundedCornerShape(26.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .onFocusChanged { if (it.isFocused) searchActive = true },
+                    )
+                }
             }
 
             // Contacts access banner: without READ_CONTACTS every thread shows
@@ -1462,20 +1468,29 @@ private fun ConversationRow(
     onLongClick: (() -> Unit)? = null,
 ) {
     val unread = conv.unreadCount > 0
+    val rowShape = RoundedCornerShape(16.dp)
+    val rowBg = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+    } else {
+        Color.Transparent
+    }
+
     Row(
         modifier
             .fillMaxWidth()
-            .background(
-                if (selected) MaterialTheme.colorScheme.secondaryContainer
-                else Color.Transparent
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(rowShape)
+            .background(rowBg)
+            .then(
+                if (selected) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, rowShape)
+                else Modifier
             )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
                 onLongClickLabel = if (onLongClick != null) stringResource(R.string.home_select_conversation) else null,
             )
-            // 54dp avatar + 11dp vertical padding ≈ the refs' 74–76pt row.
-            .padding(horizontal = 16.dp, vertical = 11.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ContactAvatar(
