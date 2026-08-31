@@ -121,6 +121,9 @@ class MessagesApp : Application() {
                 NotificationChannel(CH_FRAUD, getString(R.string.channel_fraud_name), NotificationManager.IMPORTANCE_HIGH).apply {
                     description = getString(R.string.channel_fraud_desc)
                 },
+                NotificationChannel(CH_UPDATES, "App Updates", NotificationManager.IMPORTANCE_LOW).apply {
+                    description = "Notifications when a new version of Messages is available"
+                },
                 // Spam/Blocked have NO channel — they are silent, badge only (§4)
             )
         )
@@ -133,5 +136,6 @@ class MessagesApp : Application() {
         const val CH_REVIEW = "review"
         const val CH_REMINDERS = "reminders"
         const val CH_FRAUD = "fraud_warnings"
+        const val CH_UPDATES = "app_updates"
     }
 }

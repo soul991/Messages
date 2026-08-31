@@ -1581,4 +1581,19 @@ This application is provided as-is for personal use. By using it you accept that
 3. You are responsible for maintaining your own backups.
 4. The spam/scam filter is heuristic and deterministic — it will make mistakes. Never rely on it as a sole security measure.
 5. The source code is available at https://github.com/soul991/Messages under the licence stated there.</string>
+
+    <!-- In-App Update Engine Strings -->
+    <string name="update_checking">Checking for updates…</string>
+    <string name="update_up_to_date">You are on the latest version (%1$s)</string>
+    <string name="update_available">Update available: Version %1$s</string>
+    <string name="update_action_download">Download Update</string>
+    <string name="update_offline">Could not check for updates (offline)</string>
+    <string name="update_rate_limited">GitHub rate limit reached. Please check back later.</string>
+    <string name="update_malformed">Could not read release information.</string>
+    <string name="update_notify_toggle">Notify when new updates are available</string>
+    <string name="update_notify_subtitle">Receive a notification when a new version is released on GitHub.</string>
+    <string name="update_notif_title">Messages update available: v%1$s</string>
+    <string name="update_notif_body">A new version of Messages is ready to download.</string>
+    <string name="about_action_check">Check</string>
+    <string name="home_pinned_section">PINNED</string>
 </resources>

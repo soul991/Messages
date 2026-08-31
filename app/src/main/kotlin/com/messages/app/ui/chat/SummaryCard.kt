@@ -62,6 +62,9 @@ import com.messages.protection.CardExtractor
  * says is wrong disappears for that message, and the whole card can be hidden.
  * Neither is a nag — both are remembered ([MessageCards]).
  */
+import com.messages.designsystem.GlassDepth
+import com.messages.designsystem.LiquidGlassSurface
+
 @Composable
 fun SummaryCard(
     card: CardExtractor.Card,
@@ -79,22 +82,15 @@ fun SummaryCard(
     var expanded by remember { mutableStateOf<CardExtractor.FieldKind?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
 
-    Surface(
+    LiquidGlassSurface(
         modifier = modifier
             .widthIn(max = maxWidth)
             .padding(top = 4.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 0.dp,
+        shape = RoundedCornerShape(18.dp),
+        depth = GlassDepth.LOW,
     ) {
         Column(
-            Modifier
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant,
-                    RoundedCornerShape(16.dp),
-                )
-                .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 8.dp),
+            Modifier.padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(

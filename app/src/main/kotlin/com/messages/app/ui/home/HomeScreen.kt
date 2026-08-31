@@ -1,6 +1,10 @@
 package com.messages.app.ui.home
 
 import androidx.activity.compose.BackHandler
+import com.messages.designsystem.GlassDepth
+import com.messages.designsystem.GlassDockItem
+import com.messages.designsystem.LiquidGlassBottomDock
+import com.messages.designsystem.LiquidGlassSurface
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -14,6 +18,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -459,6 +465,63 @@ fun HomeScreen(
                 )
             }
         },
+        bottomBar = {
+            if (!searchActive && !selectionActive && isDefaultSmsApp) {
+                val inboxUnread by vm.folderUnread("INBOX").collectAsStateWithLifecycle(0)
+                val txnUnread by vm.folderUnread("TRANSACTIONS").collectAsStateWithLifecycle(0)
+                val promoUnread by vm.folderUnread("PROMOTIONS").collectAsStateWithLifecycle(0)
+                val reviewUnread by vm.folderUnread("REVIEW").collectAsStateWithLifecycle(0)
+                val spamUnread by vm.folderUnread("SPAM").collectAsStateWithLifecycle(0)
+
+                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread) {
+                    listOf(
+                        GlassDockItem(
+                            key = "INBOX",
+                            title = "Personal",
+                            icon = Icons.Outlined.Forum,
+                            unreadCount = inboxUnread,
+                        ),
+                        GlassDockItem(
+                            key = "TRANSACTIONS",
+                            title = "Bank",
+                            icon = Icons.Outlined.ReceiptLong,
+                            unreadCount = txnUnread,
+                            accentColor = Color(0xFF16A34A),
+                        ),
+                        GlassDockItem(
+                            key = "PROMOTIONS",
+                            title = "Offers",
+                            icon = Icons.Outlined.LocalOffer,
+                            unreadCount = promoUnread,
+                            accentColor = Color(0xFFD97706),
+                        ),
+                        GlassDockItem(
+                            key = "REVIEW",
+                            title = "Review",
+                            icon = Icons.Outlined.RateReview,
+                            unreadCount = reviewUnread,
+                            accentColor = Color(0xFF2563EB),
+                        ),
+                        GlassDockItem(
+                            key = "SPAM",
+                            title = "Spam",
+                            icon = Icons.Outlined.Shield,
+                            unreadCount = spamUnread,
+                            accentColor = Color(0xFFDC2626),
+                        ),
+                    )
+                }
+
+                LiquidGlassBottomDock(
+                    items = dockItems,
+                    selectedKey = folder,
+                    onItemSelected = { key ->
+                        if (key != folder) Haptics.tick(view)
+                        vm.setFolder(key)
+                    },
+                )
+            }
+        },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
 
@@ -584,59 +647,32 @@ private fun FolderPane(
     val selectedThreads by vm.selectedThreads.collectAsStateWithLifecycle()
     val selectionActive = selectedThreads.isNotEmpty()
     val rowView = LocalView.current
-    // Badge-tap explanation sheet (Phase 2).
     var badgeSheet by remember {
         mutableStateOf<com.messages.protection.SenderBadges.Badge?>(null)
     }
     Column(Modifier.fillMaxSize()) {
-        // Folder chips directly under the search bar (§9)
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        // Top filter sub-bar: Unread only filter chip
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Unread-only filter (Phase 4 item 12) — orthogonal to folders.
-            item {
-                FilterChip(
-                    selected = unreadOnly,
-                    onClick = { vm.setUnreadOnly(!unreadOnly) },
-                    label = { Text(stringResource(R.string.home_filter_unread)) },
-                    leadingIcon = if (unreadOnly) {
-                        {
-                            Icon(
-                                Icons.Filled.Close, contentDescription = stringResource(R.string.home_clear_unread_filter),
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
-                    } else null,
-                )
-            }
-            items(FOLDERS) { (key, labelRes) ->
-                val unread by vm.folderUnread(key).collectAsStateWithLifecycle(initialValue = 0)
-                FilterChip(
-                    selected = folder == key,
-                    onClick = { onSelectFolder(key) },
-                    label = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(labelRes))
-                            if (unread > 0) {
-                                Spacer(Modifier.width(6.dp))
-                                // `semantics { }` is not a composable scope.
-                                val unreadLabel = pluralStringResource(
-                                    R.plurals.home_unread_count, unread, unread,
-                                )
-                                Badge {
-                                    Text(
-                                        unread.toString(),
-                                        modifier = Modifier.semantics {
-                                            contentDescription = unreadLabel
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    },
-                )
-            }
+            FilterChip(
+                selected = unreadOnly,
+                onClick = { vm.setUnreadOnly(!unreadOnly) },
+                label = { Text(stringResource(R.string.home_filter_unread), style = MaterialTheme.typography.labelMedium) },
+                leadingIcon = if (unreadOnly) {
+                    {
+                        Icon(
+                            Icons.Filled.Close, contentDescription = stringResource(R.string.home_clear_unread_filter),
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                } else null,
+                shape = RoundedCornerShape(12.dp),
+            )
         }
 
         // Animated folder switch: content slides toward the tapped direction
@@ -654,23 +690,21 @@ private fun FolderPane(
             },
             label = "folder-switch",
         ) { targetFolder ->
-            // Unread-only filter (Phase 4 item 12): a dedicated DAO flow with
-            // the shared unreadCount>0 predicate — folder-scoped, drops a
-            // conversation live when it's read, includes mark-as-unread.
             val loadState by remember(targetFolder, unreadOnly) {
                 if (unreadOnly) vm.unreadConversationsFor(targetFolder)
                 else vm.conversationsFor(targetFolder)
             }.collectAsStateWithLifecycle()
-            // V2-43: a blank screen during a slow first load reads as a crash
-            // or as lost messages. The grace keeps it blank while the load is
-            // quick — a skeleton that appears for two frames is worse than
-            // nothing — and shows the skeleton once it is not.
+
             val pastGrace = rememberLoadingGrace(loadState is LoadState.Loading)
             val conversations = loadState.valueOrNull.orEmpty()
-            // Verified-sender badges (Phase 2): latest incoming message's
-            // fraud/protected state per thread; eligibility is decided by the
-            // engine's SenderBadges, never re-detected in the UI.
             val badgeMeta by vm.latestIncomingMeta.collectAsStateWithLifecycle()
+
+            val pinnedList = remember(conversations) { conversations.filter { it.pinned } }
+            val regularList = remember(conversations, pinnedList) {
+                if (pinnedList.isNotEmpty()) conversations.filter { !it.pinned }
+                else conversations
+            }
+
             when (listRender(loadState, pastGrace)) {
                 ListRender.NOTHING -> Box(Modifier.fillMaxSize()) // fast load, no flash
                 ListRender.LOADING -> ListSkeleton(stringResource(R.string.home_loading_conversations))
@@ -679,9 +713,6 @@ private fun FolderPane(
                     reason = (loadState as? LoadState.Failed)?.reason,
                     onRetry = vm::retry,
                 )
-                // Reserved for a *completed* query that returned nothing: "no
-                // conversations" is a claim about the data, and making it
-                // before the data arrives is the bug this replaced.
                 ListRender.EMPTY ->
                     if (unreadOnly) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -696,9 +727,22 @@ private fun FolderPane(
                     val listState = rememberLazyListState()
                     val listScope = rememberCoroutineScope()
                     Box(Modifier.fillMaxSize()) {
-                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 88.dp),
+                    ) {
+                        if (pinnedList.isNotEmpty() && !unreadOnly) {
+                            item(key = "pinned_carousel") {
+                                PinnedConversationsRow(
+                                    pinnedList = pinnedList,
+                                    onOpenThread = onOpenThread,
+                                )
+                            }
+                        }
+
                         itemsIndexed(
-                            conversations,
+                            if (pinnedList.isNotEmpty() && !unreadOnly) regularList else conversations,
                             key = { _, it -> it.threadId },
                         ) { index, conv ->
                             val meta = badgeMeta[conv.threadId]
@@ -778,6 +822,101 @@ private fun FolderPane(
     }
     badgeSheet?.let { b ->
         com.messages.app.ui.common.SenderBadgeSheet(b, onDismiss = { badgeSheet = null })
+    }
+}
+
+/** Pinned Conversations Carousel (iMessage-inspired horizontal glass avatar bar) */
+@Composable
+private fun PinnedConversationsRow(
+    pinnedList: List<ConversationEntity>,
+    onOpenThread: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (pinnedList.isEmpty()) return
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 12.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.PushPin,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(15.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                stringResource(R.string.home_pinned_section),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 1.2.sp,
+            )
+        }
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 4.dp),
+        ) {
+            items(pinnedList, key = { it.threadId }) { conv ->
+                val unread = conv.unreadCount > 0
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .width(66.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { onOpenThread(conv.threadId) }
+                        .padding(vertical = 4.dp),
+                ) {
+                    Box(contentAlignment = Alignment.TopEnd) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .border(
+                                    width = if (unread) 2.dp else 1.dp,
+                                    color = if (unread) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    shape = CircleShape,
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ContactAvatar(
+                                name = conv.contactName ?: conv.address,
+                                category = conv.category,
+                                size = 52.dp,
+                                photoUri = if (conv.locked) null
+                                else com.messages.app.ui.common.rememberContactPhoto(conv.address),
+                            )
+                        }
+                        if (unread) {
+                            Box(
+                                modifier = Modifier
+                                    .size(13.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = conv.contactName?.split(" ")?.firstOrNull() ?: conv.address,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
     }
 }
 

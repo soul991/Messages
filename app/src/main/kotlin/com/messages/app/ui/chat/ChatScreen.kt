@@ -1752,18 +1752,47 @@ private fun MessageBubble(
             Spacer(Modifier.height(2.dp))
         }
 
+        val bubbleBorder = if (selected) {
+            androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
+        } else if (!isOut) {
+            androidx.compose.ui.graphics.Brush.linearGradient(
+                0.0f to Color.White.copy(alpha = 0.25f),
+                0.5f to Color.White.copy(alpha = 0.08f),
+                1.0f to Color.Transparent,
+            )
+        } else {
+            androidx.compose.ui.graphics.Brush.linearGradient(
+                0.0f to Color.White.copy(alpha = 0.35f),
+                0.4f to Color.White.copy(alpha = 0.10f),
+                1.0f to Color.Transparent,
+            )
+        }
+
         Box(
             Modifier
                 .widthIn(max = maxBubbleWidth)
                 .clip(bubbleShape)
                 .background(
-                    if (isOut) outBubbleColors.first
-                    else MaterialTheme.colorScheme.surfaceContainerHigh
+                    if (isOut) {
+                        androidx.compose.ui.graphics.Brush.linearGradient(
+                            listOf(
+                                outBubbleColors.first,
+                                outBubbleColors.first.copy(alpha = 0.92f),
+                            )
+                        )
+                    } else {
+                        androidx.compose.ui.graphics.Brush.linearGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.surfaceContainerHigh,
+                                MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
+                            )
+                        )
+                    }
                 )
-                .then(
-                    if (selected) Modifier.border(
-                        2.dp, MaterialTheme.colorScheme.primary, bubbleShape,
-                    ) else Modifier
+                .border(
+                    width = if (selected) 2.dp else 1.dp,
+                    brush = bubbleBorder,
+                    shape = bubbleShape,
                 )
                 .combinedClickable(
                     onClick = { if (selectionMode) onToggleSelect() },
