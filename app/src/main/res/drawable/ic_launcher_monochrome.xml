@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed-icon monochrome layer (Android 13+): clean alpha silhouette of the Liquid Glass bubble -->
+<!-- Themed-icon monochrome layer: organic liquid glass droplet silhouette -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -12,7 +12,6 @@
         android:scaleY="0.88">
         <path
             android:fillColor="#FFFFFFFF"
-            android:fillType="evenOdd"
-            android:pathData="M34,30 h38 c9.94,0 18,8.06 18,18 v6 c0,9.94 -8.06,18 -18,18 h-22 l-16,14 v-14 c-9.94,0 -18,-8.06 -18,-18 v-6 c0,-9.94 8.06,-18 18,-18 z M38,53 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 M49.5,53 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 M61,53 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0" />
+            android:pathData="M54,23 C71.12,23 85,36.88 85,54 C85,71.12 71.12,85 54,85 C48.8,85 43.9,83.72 39.6,81.48 L27.2,85.6 C25.8,86.07 24.4,84.67 24.87,83.27 L27.6,71.7 C24.72,66.68 23,60.58 23,54 C23,36.88 36.88,23 54,23 Z" />
     </group>
 </vector>

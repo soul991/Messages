@@ -1,56 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Adaptive icon background: Deep Space Sapphire & Electric Cyan radial mesh gradient -->
+<!-- Premium Aurora Obsidian Mesh Background -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    
-    <!-- Base deep canvas -->
+
+    <!-- Base Obsidian Deep Canvas -->
     <path
         android:pathData="M0,0 h108 v108 h-108 z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="12"
-                android:startY="8"
-                android:endX="96"
-                android:endY="102"
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#FF1E3A8A" />
-                <item android:offset="0.45" android:color="#FF2563EB" />
-                <item android:offset="0.85" android:color="#FF0284C7" />
-                <item android:offset="1.0" android:color="#FF0D9488" />
+                <item android:offset="0.0" android:color="#FF070B14" />
+                <item android:offset="0.5" android:color="#FF0F172A" />
+                <item android:offset="1.0" android:color="#FF0A0E1A" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Top-left ambient cyan glow -->
+    <!-- Top-Right Neon Aurora Cyan/Emerald Wave -->
     <path
         android:pathData="M0,0 h108 v108 h-108 z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:centerX="36"
-                android:centerY="28"
-                android:gradientRadius="56"
+                android:centerX="80"
+                android:centerY="25"
+                android:gradientRadius="65"
                 android:type="radial">
-                <item android:offset="0.0" android:color="#6660A5FA" />
-                <item android:offset="0.6" android:color="#2038BDF8" />
+                <item android:offset="0.0" android:color="#8006B6D4" />
+                <item android:offset="0.45" android:color="#4010B981" />
+                <item android:offset="0.8" android:color="#100284C7" />
                 <item android:offset="1.0" android:color="#00000000" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Bottom-right violet shadow depth -->
+    <!-- Bottom-Left Electric Ultraviolet/Indigo Nebula Glow -->
     <path
         android:pathData="M0,0 h108 v108 h-108 z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:centerX="84"
-                android:centerY="88"
-                android:gradientRadius="48"
+                android:centerX="28"
+                android:centerY="85"
+                android:gradientRadius="60"
                 android:type="radial">
-                <item android:offset="0.0" android:color="#4D4338CA" />
+                <item android:offset="0.0" android:color="#808B5CF6" />
+                <item android:offset="0.5" android:color="#354F46E5" />
+                <item android:offset="1.0" android:color="#00000000" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Center Soft Luminescence -->
+    <path
+        android:pathData="M0,0 h108 v108 h-108 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="54"
+                android:centerY="54"
+                android:gradientRadius="42"
+                android:type="radial">
+                <item android:offset="0.0" android:color="#2538BDF8" />
                 <item android:offset="1.0" android:color="#00000000" />
             </gradient>
         </aapt:attr>
