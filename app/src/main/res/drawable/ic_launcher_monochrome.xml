@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed-icon monochrome layer: organic liquid glass droplet silhouette -->
+<!-- Themed-icon monochrome layer: clean minimal squircle speech bubble -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -8,10 +8,10 @@
     <group
         android:pivotX="54"
         android:pivotY="54"
-        android:scaleX="0.88"
-        android:scaleY="0.88">
+        android:scaleX="0.86"
+        android:scaleY="0.86">
         <path
             android:fillColor="#FFFFFFFF"
-            android:pathData="M54,23 C71.12,23 85,36.88 85,54 C85,71.12 71.12,85 54,85 C48.8,85 43.9,83.72 39.6,81.48 L27.2,85.6 C25.8,86.07 24.4,84.67 24.87,83.27 L27.6,71.7 C24.72,66.68 23,60.58 23,54 C23,36.88 36.88,23 54,23 Z" />
+            android:pathData="M33,30 h42 c10.5,0 19,8.5 19,19 v6 c0,10.5 -8.5,19 -19,19 h-26 l-17,14 v-14 c-10.5,0 -19,-8.5 -19,-19 v-6 c0,-10.5 8.5,-19 19,-19 z" />
     </group>
 </vector>

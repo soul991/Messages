@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Luxury Iridescent Liquid Glass Bubble:
-  Organic fluid droplet silhouette with multi-layer refraction rims,
-  translucent prism body, and specular glass highlights.
+  Apple / Google Flagship Aesthetic:
+  Soothing, minimal, classy pure white squircle speech bubble with
+  continuous curvature tail and subtle soft depth.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
@@ -14,98 +13,18 @@
     <group
         android:pivotX="54"
         android:pivotY="54"
-        android:scaleX="0.88"
-        android:scaleY="0.88">
+        android:scaleX="0.86"
+        android:scaleY="0.86">
 
-        <!-- 1. Ambient Drop Shadow / Deep Caustic Glow -->
+        <!-- 1. Soft Ambient Elevation Shadow -->
         <path
-            android:pathData="M54,23 C71.12,23 85,36.88 85,54 C85,71.12 71.12,85 54,85 C48.8,85 43.9,83.72 39.6,81.48 L27.2,85.6 C25.8,86.07 24.4,84.67 24.87,83.27 L27.6,71.7 C24.72,66.68 23,60.58 23,54 C23,36.88 36.88,23 54,23 Z"
-            android:fillColor="#4D000000" />
+            android:pathData="M33,31 h42 c10.5,0 19,8.5 19,19 v6 c0,10.5 -8.5,19 -19,19 h-26 l-17,14 v-14 c-10.5,0 -19,-8.5 -19,-19 v-6 c0,-10.5 8.5,-19 19,-19 z"
+            android:fillColor="#1F000000" />
 
-        <!-- 2. Outer Iridescent Glow Rim (Prism Gradient) -->
+        <!-- 2. Pure Soothing Optic White Bubble Glyph -->
         <path
-            android:pathData="M54,22 C71.67,22 86,36.33 86,54 C86,71.67 71.67,86 54,86 C48.65,86 43.6,84.68 39.18,82.37 L26.43,86.62 C24.62,87.22 22.82,85.42 23.42,83.61 L26.75,71.7 C23.77,66.53 22,60.47 22,54 C22,36.33 36.33,22 54,22 Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="22"
-                    android:startY="22"
-                    android:endX="86"
-                    android:endY="86"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#E638BDF8" />
-                    <item android:offset="0.3" android:color="#CC2DD4BF" />
-                    <item android:offset="0.7" android:color="#E6818CF8" />
-                    <item android:offset="1.0" android:color="#FFC084FC" />
-                </gradient>
-            </aapt:attr>
-        </path>
-
-        <!-- 3. Inner Glass Translucent Core -->
-        <path
-            android:pathData="M54,24.5 C70.29,24.5 83.5,37.71 83.5,54 C83.5,70.29 70.29,83.5 54,83.5 C48.95,83.5 44.18,82.25 40,80.05 L28.2,83.98 C27.11,84.34 26.03,83.26 26.39,82.17 L29.45,71.4 C26.7,66.45 25,60.45 25,54 C25,37.71 38.21,24.5 54,24.5 Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="30"
-                    android:startY="26"
-                    android:endX="78"
-                    android:endY="82"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#80F0F9FF" />
-                    <item android:offset="0.4" android:color="#33BAE6FD" />
-                    <item android:offset="0.75" android:color="#20818CF8" />
-                    <item android:offset="1.0" android:color="#4DE0E7FF" />
-                </gradient>
-            </aapt:attr>
-        </path>
-
-        <!-- 4. Luminous Internal Aurora Fluid Pool -->
-        <path
-            android:pathData="M54,28 C68.36,28 80,39.64 80,54 C80,68.36 68.36,80 54,80 C49.4,80 45.1,78.85 41.35,76.85 L30.95,80.3 C30.4,80.48 29.88,79.96 30.06,79.41 L32.75,70.25 C30.35,65.65 28.8,60.05 28.8,54 C28.8,39.64 40.44,28 54,28 Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:centerX="48"
-                    android:centerY="46"
-                    android:gradientRadius="34"
-                    android:type="radial">
-                    <item android:offset="0.0" android:color="#6600F5D4" />
-                    <item android:offset="0.5" android:color="#2538BDF8" />
-                    <item android:offset="1.0" android:color="#00000000" />
-                </gradient>
-            </aapt:attr>
-        </path>
-
-        <!-- 5. Top Specular Glass Reflection Bevel (Glint) -->
-        <path
-            android:pathData="M54,24.5 C70.29,24.5 83.5,37.71 83.5,54 C83.5,54 80,40 54,40 C32,40 28,54 28,54 C28,39 39,24.5 54,24.5 Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="54"
-                    android:startY="24.5"
-                    android:endX="54"
-                    android:endY="44"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#E6FFFFFF" />
-                    <item android:offset="0.6" android:color="#50FFFFFF" />
-                    <item android:offset="1.0" android:color="#00FFFFFF" />
-                </gradient>
-            </aapt:attr>
-        </path>
-
-        <!-- 6. Bottom Tail Ambient Refraction Highlight -->
-        <path
-            android:pathData="M27.6,72 L26.4,84 C26.2,84.7 26.9,85.2 27.5,85 L38.5,81.3 C35,78 30.5,75 27.6,72 Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="26"
-                    android:startY="72"
-                    android:endX="38"
-                    android:endY="85"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#60C084FC" />
-                    <item android:offset="1.0" android:color="#D938BDF8" />
-                </gradient>
-            </aapt:attr>
-        </path>
+            android:pathData="M33,30 h42 c10.5,0 19,8.5 19,19 v6 c0,10.5 -8.5,19 -19,19 h-26 l-17,14 v-14 c-10.5,0 -19,-8.5 -19,-19 v-6 c0,-10.5 8.5,-19 19,-19 z"
+            android:fillColor="#FFFFFFFF" />
 
     </group>
 </vector>
