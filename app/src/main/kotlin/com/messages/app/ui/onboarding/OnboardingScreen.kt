@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,16 +50,15 @@ import androidx.compose.ui.unit.dp
 import androidx.work.WorkInfo
 import com.messages.core.backfill.Backfill
 import com.messages.core.backfill.BackfillWorker
-import com.messages.designsystem.CategoryColors
+import com.messages.designsystem.GlassDepth
+import com.messages.designsystem.LiquidGlassSurface
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import com.messages.app.R
 
 /**
- * Onboarding (§9): 3 screens max — what it does → set as default → done,
- * with the backfill classifying existing history as a live counter on the
- * final screen.
+ * Onboarding: High-contrast, clean Liquid Glass setup flow.
  */
 @Composable
 fun OnboardingScreen(
@@ -113,8 +113,7 @@ fun OnboardingScreen(
                 Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.onboarding_start_messaging))
                 }
-                // §8.3: offer restore during onboarding, right after the
-                // default-app step — lands on the Drive backup screen.
+                // Offer restore during onboarding, right after default-app step.
                 TextButton(onClick = onRestoreFromDrive, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.onboarding_restore_from_drive))
                 }
@@ -130,27 +129,42 @@ private fun IntroPage() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        HeroIcon(Icons.Filled.Shield, CategoryColors.Protected, CategoryColors.ProtectedContainer)
+        HeroIcon(
+            Icons.Filled.Shield,
+            tint = MaterialTheme.colorScheme.primary,
+            container = MaterialTheme.colorScheme.primaryContainer,
+        )
         Spacer(Modifier.height(24.dp))
         Text(
             stringResource(R.string.onboarding_hero_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
-        FeatureRow(
-            Icons.Filled.NotificationsOff,
-            stringResource(R.string.onboarding_feature_silent),
-        )
-        FeatureRow(
-            Icons.Filled.Shield,
-            stringResource(R.string.onboarding_feature_on_device),
-        )
-        FeatureRow(
-            Icons.Filled.Inbox,
-            stringResource(R.string.onboarding_feature_nothing_deleted),
-        )
+        LiquidGlassSurface(
+            shape = RoundedCornerShape(20.dp),
+            depth = GlassDepth.LOW,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                FeatureRow(
+                    Icons.Filled.NotificationsOff,
+                    stringResource(R.string.onboarding_feature_silent),
+                )
+                Spacer(Modifier.height(8.dp))
+                FeatureRow(
+                    Icons.Filled.Shield,
+                    stringResource(R.string.onboarding_feature_on_device),
+                )
+                Spacer(Modifier.height(8.dp))
+                FeatureRow(
+                    Icons.Filled.Inbox,
+                    stringResource(R.string.onboarding_feature_nothing_deleted),
+                )
+            }
+        }
     }
 }
 
@@ -162,10 +176,18 @@ private fun DefaultAppPage(isDefault: Boolean) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AnimatedVisibility(visible = isDefault, enter = scaleIn() + fadeIn()) {
-            HeroIcon(Icons.Filled.CheckCircle, CategoryColors.Protected, CategoryColors.ProtectedContainer)
+            HeroIcon(
+                Icons.Filled.CheckCircle,
+                tint = MaterialTheme.colorScheme.primary,
+                container = MaterialTheme.colorScheme.primaryContainer,
+            )
         }
         if (!isDefault) {
-            HeroIcon(Icons.Filled.Sms, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer)
+            HeroIcon(
+                Icons.Filled.Sms,
+                tint = MaterialTheme.colorScheme.primary,
+                container = MaterialTheme.colorScheme.primaryContainer,
+            )
         }
         Spacer(Modifier.height(24.dp))
         Text(
@@ -173,15 +195,17 @@ private fun DefaultAppPage(isDefault: Boolean) {
             else stringResource(R.string.onboarding_default_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
         Text(
             if (isDefault) stringResource(R.string.onboarding_default_done_body)
             else stringResource(R.string.onboarding_default_body),
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified,
         )
     }
 }
@@ -193,8 +217,6 @@ private fun DonePage() {
     val info = workInfos.firstOrNull()
     val finished = info?.state == WorkInfo.State.SUCCEEDED
 
-    // Progress data is cleared once the worker succeeds — fall back to the
-    // checkpoint prefs the worker maintains for the final number.
     val prefs = context.getSharedPreferences(BackfillWorker.PREFS, android.content.Context.MODE_PRIVATE)
     val processed = if (finished) prefs.getInt(BackfillWorker.KEY_PROCESSED, 0)
     else info?.progress?.getInt(BackfillWorker.KEY_PROCESSED, 0) ?: 0
@@ -208,7 +230,11 @@ private fun DonePage() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (finished || info == null) {
-            HeroIcon(Icons.Filled.CheckCircle, CategoryColors.Protected, CategoryColors.ProtectedContainer)
+            HeroIcon(
+                Icons.Filled.CheckCircle,
+                tint = MaterialTheme.colorScheme.primary,
+                container = MaterialTheme.colorScheme.primaryContainer,
+            )
         } else {
             Box(contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(Modifier.size(96.dp))
@@ -227,9 +253,10 @@ private fun DonePage() {
             },
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
         Text(
             when {
                 info == null -> stringResource(R.string.onboarding_backfill_ready_body)
@@ -242,7 +269,7 @@ private fun DonePage() {
                 else -> stringResource(R.string.onboarding_backfill_scanning)
             },
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
     }
@@ -255,7 +282,11 @@ private fun HeroIcon(
     container: androidx.compose.ui.graphics.Color,
 ) {
     Box(
-        Modifier.size(96.dp).clip(CircleShape).background(container),
+        Modifier
+            .size(96.dp)
+            .clip(CircleShape)
+            .background(container)
+            .border(1.5.dp, tint.copy(alpha = 0.25f), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(48.dp))
@@ -265,24 +296,30 @@ private fun HeroIcon(
 @Composable
 private fun FeatureRow(icon: ImageVector, text: String) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
-                .size(40.dp)
+                .size(38.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.secondaryContainer),
+                .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 icon, contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
             )
         }
-        Spacer(Modifier.width(16.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(14.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -293,14 +330,15 @@ private fun PageDots(current: Int) {
         horizontalArrangement = Arrangement.Center,
     ) {
         repeat(3) { i ->
+            val active = i == current
             Box(
                 Modifier
                     .padding(4.dp)
-                    .size(if (i == current) 10.dp else 8.dp)
+                    .size(if (active) 12.dp else 8.dp)
                     .clip(CircleShape)
                     .background(
-                        if (i == current) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceVariant
+                        if (active) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                     )
             )
         }
