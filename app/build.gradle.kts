@@ -139,6 +139,20 @@ android {
         compose = true
         buildConfig = true
     }
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            if (output != null) {
+                if (variant.buildType.name == "release") {
+                    output.outputFileName = "Messages.apk"
+                } else {
+                    output.outputFileName = "Messages-debug.apk"
+                }
+            }
+        }
+    }
 }
 
 dependencies {
