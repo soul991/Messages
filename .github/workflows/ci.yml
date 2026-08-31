@@ -104,7 +104,10 @@ jobs:
       - name: Verify release artifact (manifest and contents)
         env:
           ALLOW_UNSIGNED: "1"
-        run: ./scripts/verify-release-artifact.sh app/build/outputs/apk/release/app-release.apk
+        run: |
+          APK="app/build/outputs/apk/release/app-release.apk"
+          [ ! -f "$APK" ] && APK="app/build/outputs/apk/release/app-release-unsigned.apk"
+          ./scripts/verify-release-artifact.sh "$APK"
 
       - name: Upload test and lint reports
         if: failure()
