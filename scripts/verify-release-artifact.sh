@@ -29,8 +29,14 @@ fi
 if [[ ! -f "$APK" ]]; then
     if [[ -f "${APK%.apk}-unsigned.apk" ]]; then
         APK="${APK%.apk}-unsigned.apk"
-    elif [[ "$APK" == *"app-release.apk" && -f "${APK%app-release.apk}app-release-unsigned.apk" ]]; then
-        APK="${APK%app-release.apk}app-release-unsigned.apk"
+    elif [[ -f "app/build/outputs/apk/release/Messages.apk" ]]; then
+        APK="app/build/outputs/apk/release/Messages.apk"
+    elif [[ -f "app/build/outputs/apk/release/Messages-unsigned.apk" ]]; then
+        APK="app/build/outputs/apk/release/Messages-unsigned.apk"
+    elif [[ -f "app/build/outputs/apk/release/app-release.apk" ]]; then
+        APK="app/build/outputs/apk/release/app-release.apk"
+    elif [[ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]]; then
+        APK="app/build/outputs/apk/release/app-release-unsigned.apk"
     else
         echo "FAIL: no such APK: $APK" >&2
         exit 1

@@ -105,7 +105,9 @@ jobs:
         env:
           ALLOW_UNSIGNED: "1"
         run: |
-          APK="app/build/outputs/apk/release/app-release.apk"
+          APK="app/build/outputs/apk/release/Messages.apk"
+          [ ! -f "$APK" ] && APK="app/build/outputs/apk/release/Messages-unsigned.apk"
+          [ ! -f "$APK" ] && APK="app/build/outputs/apk/release/app-release.apk"
           [ ! -f "$APK" ] && APK="app/build/outputs/apk/release/app-release-unsigned.apk"
           ./scripts/verify-release-artifact.sh "$APK"
 
@@ -241,16 +243,17 @@ jobs:
       - name: Assemble signed release
         run: ./gradlew :app:assembleRelease -PrequireSigning=true
 
-      # Full verification: signature scheme, certificate identity, manifest
-      # exposure, version, and contents.
       - name: Verify signed release artifact
         env:
           EXPECTED_CERT_SHA256: ${{ vars.EXPECTED_CERT_SHA256 }}
-        run: ./scripts/verify-release-artifact.sh app/build/outputs/apk/release/app-release.apk
+        run: |
+          APK="app/build/outputs/apk/release/Messages.apk"
+          [ ! -f "$APK" ] && APK="app/build/outputs/apk/release/app-release.apk"
+          ./scripts/verify-release-artifact.sh "$APK"
 
       # V2-18: the bill of materials is generated here, from the same
       # resolution that produced the APK above, and shipped with it. Kept
-      # beside the artifact because the question it answers arrives later —
+      # beside the artifact because the question it arrives later —
       # "an advisory landed against library X; was it in the build we
       # released?" — and by then the build machine is long gone.
       - name: Software bill of materials for the released artifact
@@ -269,6 +272,7 @@ jobs:
         with:
           name: app-release
           path: |
+            app/build/outputs/apk/release/Messages.apk
             app/build/outputs/apk/release/app-release.apk
             app/build/outputs/apk/release/sbom-release.cdx.json
           retention-days: 90
