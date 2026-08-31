@@ -27,8 +27,14 @@ if [[ -z "$APK" ]]; then
     exit 2
 fi
 if [[ ! -f "$APK" ]]; then
-    echo "FAIL: no such APK: $APK" >&2
-    exit 1
+    if [[ -f "${APK%.apk}-unsigned.apk" ]]; then
+        APK="${APK%.apk}-unsigned.apk"
+    elif [[ "$APK" == *"app-release.apk" && -f "${APK%app-release.apk}app-release-unsigned.apk" ]]; then
+        APK="${APK%app-release.apk}app-release-unsigned.apk"
+    else
+        echo "FAIL: no such APK: $APK" >&2
+        exit 1
+    fi
 fi
 
 # The identity from docs/ops/RELEASE_SIGNING.md. Rotating the signing key means
