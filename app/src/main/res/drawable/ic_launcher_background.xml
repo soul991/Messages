@@ -1,18 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Adaptive icon background: vivid brand-blue vertical gradient (Phase 5:
-     brightened from the muted #1272BC→#00456F for launcher noticeability). -->
+<!-- Adaptive icon background: Deep Space Sapphire & Electric Cyan radial mesh gradient -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <path android:pathData="M0,0 h108 v108 h-108 z">
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Base deep canvas -->
+    <path
+        android:pathData="M0,0 h108 v108 h-108 z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="54" android:startY="0"
-                android:endX="54" android:endY="108"
+                android:startX="12"
+                android:startY="8"
+                android:endX="96"
+                android:endY="102"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#FF2196F3"/>
-                <item android:offset="1.0" android:color="#FF0B5394"/>
+                <item android:offset="0.0" android:color="#FF1E3A8A" />
+                <item android:offset="0.45" android:color="#FF2563EB" />
+                <item android:offset="0.85" android:color="#FF0284C7" />
+                <item android:offset="1.0" android:color="#FF0D9488" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Top-left ambient cyan glow -->
+    <path
+        android:pathData="M0,0 h108 v108 h-108 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="36"
+                android:centerY="28"
+                android:gradientRadius="56"
+                android:type="radial">
+                <item android:offset="0.0" android:color="#6660A5FA" />
+                <item android:offset="0.6" android:color="#2038BDF8" />
+                <item android:offset="1.0" android:color="#00000000" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Bottom-right violet shadow depth -->
+    <path
+        android:pathData="M0,0 h108 v108 h-108 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="84"
+                android:centerY="88"
+                android:gradientRadius="48"
+                android:type="radial">
+                <item android:offset="0.0" android:color="#4D4338CA" />
+                <item android:offset="1.0" android:color="#00000000" />
             </gradient>
         </aapt:attr>
     </path>

@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed-icon layer (Android 13+): identical alpha silhouette — bubble with
-     check-tail-corner and text-line cutouts; same 0.84 mask-safety scale. -->
+<!-- Themed-icon monochrome layer (Android 13+): clean alpha silhouette of the Liquid Glass bubble -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <group android:pivotX="54" android:pivotY="54"
-        android:scaleX="0.84" android:scaleY="0.84">
-        <path android:fillColor="#FFFFFFFF"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.88"
+        android:scaleY="0.88">
+        <path
+            android:fillColor="#FFFFFFFF"
             android:fillType="evenOdd"
-            android:pathData="M39,28
-                h30 a11,11 0 0 1 11,11
-                v16 a11,11 0 0 1 -11,11
-                h-25 l-16,15
-                v-42 a11,11 0 0 1 11,-11 z
-                M38,37 h32 v4.5 h-32 z
-                M38,45.5 h32 v4.5 h-32 z
-                M38,54 h32 v4.5 h-32 z"/>
+            android:pathData="M34,30 h38 c9.94,0 18,8.06 18,18 v6 c0,9.94 -8.06,18 -18,18 h-22 l-16,14 v-14 c-9.94,0 -18,-8.06 -18,-18 v-6 c0,-9.94 8.06,-18 18,-18 z M38,53 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 M49.5,53 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 M61,53 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0" />
     </group>
 </vector>
