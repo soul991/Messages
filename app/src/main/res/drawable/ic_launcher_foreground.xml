@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  App identity: Telegram Sky Blue to Aquamarine-Teal squircle speech bubble with
+  App identity: Lush Emerald Green squircle speech bubble with
   message text lines on crisp pearl white background.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -16,24 +16,24 @@
         android:scaleX="0.86"
         android:scaleY="0.86">
 
-        <!-- 1. Soft Aquamarine Drop Shadow -->
+        <!-- 1. Soft Emerald Drop Shadow -->
         <path
             android:pathData="M33,31 h42 c10.5,0 19,8.5 19,19 v6 c0,10.5 -8.5,19 -19,19 h-26 l-17,14 v-14 c-10.5,0 -19,-8.5 -19,-19 v-6 c0,-10.5 8.5,-19 19,-19 z"
-            android:fillColor="#4700C4B4" />
+            android:fillColor="#4710B981" />
 
-        <!-- 2. Telegram Sky Blue to Aquamarine-Teal Gradient Bubble Body -->
+        <!-- 2. Vibrant Emerald Green Bubble Body -->
         <path
             android:pathData="M33,30 h42 c10.5,0 19,8.5 19,19 v6 c0,10.5 -8.5,19 -19,19 h-26 l-17,14 v-14 c-10.5,0 -19,-8.5 -19,-19 v-6 c0,-10.5 8.5,-19 19,-19 z">
             <aapt:attr name="android:fillColor">
                 <gradient
-                    android:startX="26"
-                    android:startY="24"
-                    android:endX="82"
-                    android:endY="80"
+                    android:startX="33"
+                    android:startY="30"
+                    android:endX="75"
+                    android:endY="94"
                     android:type="linear">
-                    <item android:offset="0.0" android:color="#FF2AABEE" />
-                    <item android:offset="0.45" android:color="#FF229ED9" />
-                    <item android:offset="1.0" android:color="#FF00C4B4" />
+                    <item android:offset="0.0" android:color="#FF34D399" />
+                    <item android:offset="0.5" android:color="#FF10B981" />
+                    <item android:offset="1.0" android:color="#FF059669" />
                 </gradient>
             </aapt:attr>
         </path>
