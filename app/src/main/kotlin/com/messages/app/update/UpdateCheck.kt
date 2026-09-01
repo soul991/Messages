@@ -112,14 +112,45 @@ object UpdateCheck {
             ?: return if (lastCallWasRateLimited()) UpdateResult.RateLimited
             else UpdateResult.Offline
 
-        val tag = parseTag(String(fetched.bytes, Charsets.UTF_8))
+        val body = String(fetched.bytes, Charsets.UTF_8)
+        val tag = parseTag(body)
             ?: return UpdateResult.Malformed
 
+        val downloadUrl = parseDownloadUrl(body)
+
         return if (isNewer(tag, current)) {
-            UpdateResult.Available(tag, RELEASES_PAGE_URL)
+            UpdateResult.Available(tag, downloadUrl)
         } else {
             UpdateResult.UpToDate(current)
         }
+    }
+
+    /**
+     * Pull direct browser download URL for an attached .apk asset from the release JSON.
+     * Falls back to [RELEASES_PAGE_URL] if no .apk asset is present or parsing fails.
+     */
+    internal fun parseDownloadUrl(body: String): String {
+        try {
+            val json = JSONObject(body)
+            val assets = json.optJSONArray("assets")
+            if (assets != null) {
+                for (i in 0 until assets.length()) {
+                    val asset = assets.optJSONObject(i) ?: continue
+                    val name = asset.optString("name", "")
+                    if (name.endsWith(".apk", ignoreCase = true)) {
+                        val downloadUrl = asset.optString("browser_download_url", "")
+                        if (downloadUrl.isNotBlank()) {
+                            return downloadUrl
+                        }
+                    }
+                }
+            }
+            val htmlUrl = json.optString("html_url", "")
+            if (htmlUrl.isNotBlank()) return htmlUrl
+        } catch (_: Throwable) {
+            // fall through
+        }
+        return RELEASES_PAGE_URL
     }
 
     /**

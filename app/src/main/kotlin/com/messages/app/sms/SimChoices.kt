@@ -28,10 +28,15 @@ object SimChoices {
      * name the SIMs and picking blind is worse than the system default.
      */
     fun active(context: Context): List<Choice> {
-        if (ContextCompat.checkSelfPermission(
-                context, android.Manifest.permission.READ_PHONE_STATE,
-            ) != PackageManager.PERMISSION_GRANTED
-        ) return emptyList()
+        val hasPhoneState = ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.READ_PHONE_STATE,
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasBasicPhoneState = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context, "android.permission.READ_BASIC_PHONE_STATE",
+            ) == PackageManager.PERMISSION_GRANTED
+        } else false
+        if (!hasPhoneState && !hasBasicPhoneState) return emptyList()
         val subs = try {
             context.getSystemService(SubscriptionManager::class.java)
                 ?.activeSubscriptionInfoList.orEmpty()

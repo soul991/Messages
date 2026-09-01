@@ -1,11 +1,13 @@
 package com.messages.app
 
+import android.app.AppOpsManager
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Build
+import android.provider.Settings
 import android.provider.Telephony
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -95,6 +97,7 @@ private fun vaultExit() =
 class MainActivity : FragmentActivity() {
 
     private var isDefaultSmsApp by mutableStateOf(false)
+    private var roleRequestFailed by mutableStateOf(false)
 
     /** App lock: false until authenticated this foreground session. Held in a
      *  ViewModel so rotation doesn't force re-authentication (see AppLockStateViewModel). */
@@ -137,7 +140,10 @@ class MainActivity : FragmentActivity() {
 
     private val roleRequest = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { refreshDefaultState() }
+    ) {
+        refreshDefaultState()
+        roleRequestFailed = !isDefaultSmsApp
+    }
 
     private val permissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -154,9 +160,9 @@ class MainActivity : FragmentActivity() {
         themeMode = ThemePreferences.current(this)
         accentSeed = ThemePreferences.currentAccent(this)
         refreshDefaultState()
-        requestCorePermissions()
-        // Safety net: the permission callback above only fires when a dialog was
-        // actually shown. If READ_SMS is already granted (role granted in an
+        // Note: blind requestCorePermissions() removed on cold start.
+        // Default SMS role automatically grants SMS permissions upon assignment.
+        // Safety net: if READ_SMS is already granted (role granted in an
         // earlier session) and the backfill hasn't completed — e.g. its one
         // previous run failed — re-enqueue it here on every launch.
         if (checkSelfPermission(android.Manifest.permission.READ_SMS) ==
@@ -173,11 +179,12 @@ class MainActivity : FragmentActivity() {
         folderRequest = intent.getStringExtra("folder")
         val onboardingPrefs = getSharedPreferences("onboarding", MODE_PRIVATE)
 
-        // §8.4 first-open gate (Google Messages behavior): fire the system
-        // default-SMS prompt immediately on the very first open. If denied,
-        // HomeScreen renders the viewer-shell empty state whose single card
-        // re-triggers this request; we never nag with popups again.
-        if (!isDefaultSmsApp && !onboardingPrefs.getBoolean("role_prompted", false)) {
+        // Only fire the first-open default role prompt if onboarding is ALREADY COMPLETED.
+        // During onboarding, the dedicated Onboarding screen asks for the role when the user taps
+        // "Set as default". Firing here on cold start would cause a premature denial popup over
+        // the intro onboarding page!
+        val onboardingDone = onboardingPrefs.getBoolean("done", false)
+        if (onboardingDone && !isDefaultSmsApp && !onboardingPrefs.getBoolean("role_prompted", false)) {
             onboardingPrefs.edit().putBoolean("role_prompted", true).apply()
             requestDefaultRole()
         }
@@ -280,6 +287,9 @@ class MainActivity : FragmentActivity() {
                         OnboardingScreen(
                             isDefaultSmsApp = isDefaultSmsApp,
                             onRequestDefault = ::requestDefaultRole,
+                            roleRequestFailed = roleRequestFailed,
+                            onOpenAppSettings = { openAppSettings(this@MainActivity) },
+                            onOpenDefaultApps = { openDefaultAppsSettings(this@MainActivity) },
                             onDone = {
                                 onboardingPrefs.edit().putBoolean("done", true).apply()
                                 nav.navigate("home") { popUpTo("onboarding") { inclusive = true } }
@@ -304,6 +314,9 @@ class MainActivity : FragmentActivity() {
                             isDefaultSmsApp = isDefaultSmsApp,
                             initialFolder = folderRequest,
                             onRequestDefault = ::requestDefaultRole,
+                            roleRequestFailed = roleRequestFailed,
+                            onOpenAppSettings = { openAppSettings(this@MainActivity) },
+                            onOpenDefaultApps = { openDefaultAppsSettings(this@MainActivity) },
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
                             onOpenSearchResult = { threadId, messageId, terms ->
                                 val q = Uri.encode(terms.joinToString(" "))
@@ -781,10 +794,18 @@ class MainActivity : FragmentActivity() {
      * ask the Telephony provider which package currently holds the default.
      */
     private fun refreshDefaultState() {
+        val wasDefault = isDefaultSmsApp
         isDefaultSmsApp = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            (getSystemService(Context.ROLE_SERVICE) as RoleManager).isRoleHeld(RoleManager.ROLE_SMS)
+            (getSystemService(Context.ROLE_SERVICE) as? RoleManager)?.isRoleHeld(RoleManager.ROLE_SMS) == true
         } else {
             Telephony.Sms.getDefaultSmsPackage(this) == packageName
+        }
+        if (isDefaultSmsApp) {
+            roleRequestFailed = false
+            if (!wasDefault) {
+                requestCorePermissions()
+                Backfill.ensureScheduled(this)
+            }
         }
     }
 
@@ -795,6 +816,7 @@ class MainActivity : FragmentActivity() {
      * the user backs out.
      */
     private fun requestDefaultRole() {
+        roleRequestFailed = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = getSystemService(Context.ROLE_SERVICE) as? RoleManager
             if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_SMS)) {
@@ -804,6 +826,7 @@ class MainActivity : FragmentActivity() {
                         return
                     } catch (e: Exception) {
                         Log.e("MainActivity", "Failed to launch createRequestRoleIntent", e)
+                        roleRequestFailed = true
                     }
                 }
             }
@@ -817,23 +840,73 @@ class MainActivity : FragmentActivity() {
                 return
             } catch (e: Exception) {
                 Log.e("MainActivity", "Failed to launch ACTION_CHANGE_DEFAULT", e)
+                roleRequestFailed = true
             }
         }
         // Fallback for OEMs with custom role management
         try {
-            startActivity(Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
-        } catch (_: Exception) {}
+            startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+        } catch (_: Exception) {
+            roleRequestFailed = true
+        }
     }
 
     private fun requestCorePermissions() {
-        permissionRequest.launch(
-            arrayOf(
-                android.Manifest.permission.READ_SMS,
-                android.Manifest.permission.RECEIVE_SMS,
-                android.Manifest.permission.SEND_SMS,
-                android.Manifest.permission.READ_CONTACTS,
-                android.Manifest.permission.POST_NOTIFICATIONS,
-            )
+        val permissions = mutableListOf(
+            android.Manifest.permission.READ_CONTACTS,
         )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (isDefaultSmsApp) {
+            permissions.add(android.Manifest.permission.READ_SMS)
+            permissions.add(android.Manifest.permission.RECEIVE_SMS)
+            permissions.add(android.Manifest.permission.SEND_SMS)
+        }
+        permissionRequest.launch(permissions.toTypedArray())
+    }
+
+    companion object {
+        fun isRestrictedSettingsActive(context: Context): Boolean {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
+            return try {
+                val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
+                val mode = appOps.unsafeCheckOpNoThrow(
+                    "android:access_restricted_settings",
+                    context.applicationInfo.uid,
+                    context.packageName,
+                )
+                mode != AppOpsManager.MODE_ALLOWED
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        fun openAppSettings(context: Context) {
+            try {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", context.packageName, null)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to open app details settings", e)
+            }
+        }
+
+        fun openDefaultAppsSettings(context: Context) {
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                try {
+                    context.startActivity(Intent(Settings.ACTION_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                } catch (_: Exception) {}
+            }
+        }
     }
 }

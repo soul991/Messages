@@ -1,10 +1,12 @@
 package com.messages.app.ui.home
 
 import androidx.activity.compose.BackHandler
+import com.messages.app.MainActivity
 import com.messages.designsystem.GlassDepth
 import com.messages.designsystem.GlassDockItem
 import com.messages.designsystem.LiquidGlassBottomDock
 import com.messages.designsystem.LiquidGlassSurface
+import com.messages.designsystem.LocalDarkTheme
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -81,6 +83,7 @@ import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.SmallFloatingActionButton
@@ -200,6 +203,9 @@ fun HomeScreen(
     onOpenOutbox: () -> Unit = {},
     /** Secret space: fired by the 3s press-and-hold on the "Messages" title. */
     onSecretEntry: () -> Unit = {},
+    roleRequestFailed: Boolean = false,
+    onOpenAppSettings: () -> Unit = {},
+    onOpenDefaultApps: () -> Unit = {},
     vm: HomeViewModel = viewModel(),
 ) {
     LaunchedEffect(initialFolder) { if (initialFolder != null) vm.setFolder(initialFolder) }
@@ -529,7 +535,12 @@ fun HomeScreen(
             // conversation area is an empty state with a single card that
             // re-triggers the role request. No list, no search, no composer.
             if (!isDefaultSmsApp) {
-                DefaultSmsGate(onRequestDefault)
+                DefaultSmsGate(
+                    onRequestDefault = onRequestDefault,
+                    roleRequestFailed = roleRequestFailed,
+                    onOpenAppSettings = onOpenAppSettings,
+                    onOpenDefaultApps = onOpenDefaultApps,
+                )
                 return@Column
             }
 
@@ -1265,7 +1276,16 @@ private fun ContactsPermissionBanner() {
  * re-triggers the RoleManager request; no popup nagging.
  */
 @Composable
-private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
+private fun DefaultSmsGate(
+    onRequestDefault: () -> Unit,
+    roleRequestFailed: Boolean = false,
+    onOpenAppSettings: () -> Unit = {},
+    onOpenDefaultApps: () -> Unit = {},
+) {
+    val context = LocalContext.current
+    val isRestricted = remember(roleRequestFailed) {
+        roleRequestFailed || MainActivity.isRestrictedSettingsActive(context)
+    }
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
@@ -1285,6 +1305,7 @@ private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
             Text(
                 stringResource(R.string.home_default_sms_title),
                 style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
@@ -1295,8 +1316,65 @@ private fun DefaultSmsGate(onRequestDefault: () -> Unit) {
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(20.dp))
-            Button(onClick = onRequestDefault) {
-                Text(stringResource(R.string.home_default_sms_action))
+
+            if (isRestricted) {
+                LiquidGlassSurface(
+                    shape = RoundedCornerShape(16.dp),
+                    depth = GlassDepth.LOW,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.Shield,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                stringResource(R.string.restricted_settings_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            stringResource(R.string.restricted_settings_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Button(
+                                onClick = onOpenAppSettings,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text(stringResource(R.string.action_open_app_settings), maxLines = 1)
+                            }
+                            OutlinedButton(
+                                onClick = onOpenDefaultApps,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text(stringResource(R.string.action_open_default_apps), maxLines = 1)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Button(
+                onClick = onRequestDefault,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    if (isRestricted) stringResource(R.string.restricted_settings_retry)
+                    else stringResource(R.string.home_default_sms_action)
+                )
             }
         }
     }
@@ -1410,48 +1488,89 @@ private fun SwipeableConversationRow(
     }
 }
 
+private data class SwipeVisuals(
+    val icon: ImageVector,
+    val container: Color,
+    val tint: Color,
+    val label: String,
+)
+
 @Composable
 private fun BoxScope.SwipeActionBackground(
     action: String,
     fromStart: Boolean,
 ) {
-    val (icon, container, tint) = when (action) {
-        SwipeActions.ARCHIVE -> Triple(
-            Icons.Outlined.Archive,
-            MaterialTheme.colorScheme.secondaryContainer,
-            MaterialTheme.colorScheme.onSecondaryContainer,
+    val isDark = LocalDarkTheme.current
+    val visuals = when (action) {
+        SwipeActions.ARCHIVE -> SwipeVisuals(
+            icon = Icons.Outlined.Archive,
+            container = if (isDark) Color(0xFF0F5223) else Color(0xFF1E8E3E), // Google Messages Emerald Green
+            tint = Color.White,
+            label = stringResource(R.string.home_archive),
         )
-        SwipeActions.DELETE -> Triple(
-            Icons.Outlined.Delete,
-            MaterialTheme.colorScheme.errorContainer,
-            MaterialTheme.colorScheme.onErrorContainer,
+        SwipeActions.DELETE -> SwipeVisuals(
+            icon = Icons.Outlined.Delete,
+            container = if (isDark) Color(0xFF7F1D1D) else Color(0xFFD93025), // Google Messages Crimson Red
+            tint = Color.White,
+            label = stringResource(R.string.action_delete),
         )
-        SwipeActions.PIN -> Triple(
-            Icons.Outlined.PushPin,
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.onPrimaryContainer,
+        SwipeActions.PIN -> SwipeVisuals(
+            icon = Icons.Outlined.PushPin,
+            container = MaterialTheme.colorScheme.primaryContainer,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            label = stringResource(R.string.home_pinned),
         )
-        SwipeActions.READ -> Triple(
-            Icons.Outlined.MarkChatRead,
-            MaterialTheme.colorScheme.tertiaryContainer,
-            MaterialTheme.colorScheme.onTertiaryContainer,
+        SwipeActions.READ -> SwipeVisuals(
+            icon = Icons.Outlined.MarkChatRead,
+            container = MaterialTheme.colorScheme.tertiaryContainer,
+            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            label = "Read",
         )
-        SwipeActions.MUTE -> Triple(
-            Icons.Outlined.NotificationsOff,
-            MaterialTheme.colorScheme.surfaceContainerHighest,
-            MaterialTheme.colorScheme.onSurface,
+        SwipeActions.MUTE -> SwipeVisuals(
+            icon = Icons.Outlined.NotificationsOff,
+            container = MaterialTheme.colorScheme.surfaceContainerHighest,
+            tint = MaterialTheme.colorScheme.onSurface,
+            label = "Mute",
         )
         else -> return
     }
     Row(
         Modifier
             .matchParentSize()
-            .background(container)
-            .padding(horizontal = 28.dp),
+            .background(visuals.container)
+            .padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (fromStart) Arrangement.Start else Arrangement.End,
     ) {
-        Icon(icon, contentDescription = SwipeActions.label(action), tint = tint)
+        if (fromStart) {
+            Icon(
+                imageVector = visuals.icon,
+                contentDescription = null,
+                tint = visuals.tint,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = visuals.label,
+                color = visuals.tint,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+        } else {
+            Text(
+                text = visuals.label,
+                color = visuals.tint,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.width(10.dp))
+            Icon(
+                imageVector = visuals.icon,
+                contentDescription = null,
+                tint = visuals.tint,
+                modifier = Modifier.size(24.dp),
+            )
+        }
     }
 }
 

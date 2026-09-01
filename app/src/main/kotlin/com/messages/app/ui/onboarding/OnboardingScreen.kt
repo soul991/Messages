@@ -32,12 +32,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +68,9 @@ fun OnboardingScreen(
     onRequestDefault: () -> Unit,
     onDone: () -> Unit,
     onRestoreFromDrive: () -> Unit = {},
+    roleRequestFailed: Boolean = false,
+    onOpenAppSettings: () -> Unit = {},
+    onOpenDefaultApps: () -> Unit = {},
 ) {
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
@@ -81,7 +86,12 @@ fun OnboardingScreen(
         HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
             when (page) {
                 0 -> IntroPage()
-                1 -> DefaultAppPage(isDefaultSmsApp)
+                1 -> DefaultAppPage(
+                    isDefault = isDefaultSmsApp,
+                    roleRequestFailed = roleRequestFailed,
+                    onOpenAppSettings = onOpenAppSettings,
+                    onOpenDefaultApps = onOpenDefaultApps,
+                )
                 2 -> DonePage()
             }
         }
@@ -96,11 +106,14 @@ fun OnboardingScreen(
             ) { Text(stringResource(R.string.action_continue)) }
 
             1 -> Column {
+                val context = LocalContext.current
+                val isRestricted = !isDefaultSmsApp && (roleRequestFailed || com.messages.app.MainActivity.isRestrictedSettingsActive(context))
                 Button(
                     onClick = { if (isDefaultSmsApp) scope.launch { pagerState.animateScrollToPage(2) } else onRequestDefault() },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(
                         if (isDefaultSmsApp) stringResource(R.string.action_continue)
+                        else if (isRestricted) stringResource(R.string.restricted_settings_retry)
                         else stringResource(R.string.onboarding_set_default),
                     ) }
                 TextButton(
@@ -169,7 +182,16 @@ private fun IntroPage() {
 }
 
 @Composable
-private fun DefaultAppPage(isDefault: Boolean) {
+private fun DefaultAppPage(
+    isDefault: Boolean,
+    roleRequestFailed: Boolean = false,
+    onOpenAppSettings: () -> Unit = {},
+    onOpenDefaultApps: () -> Unit = {},
+) {
+    val context = LocalContext.current
+    val isRestricted = remember(roleRequestFailed, isDefault) {
+        !isDefault && (roleRequestFailed || com.messages.app.MainActivity.isRestrictedSettingsActive(context))
+    }
     Column(
         Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -207,6 +229,57 @@ private fun DefaultAppPage(isDefault: Boolean) {
             textAlign = TextAlign.Center,
             lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified,
         )
+
+        if (isRestricted) {
+            Spacer(Modifier.height(16.dp))
+            LiquidGlassSurface(
+                shape = RoundedCornerShape(16.dp),
+                depth = GlassDepth.LOW,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.Shield,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            stringResource(R.string.restricted_settings_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.restricted_settings_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Button(
+                            onClick = onOpenAppSettings,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(stringResource(R.string.action_open_app_settings), maxLines = 1)
+                        }
+                        OutlinedButton(
+                            onClick = onOpenDefaultApps,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(stringResource(R.string.action_open_default_apps), maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
