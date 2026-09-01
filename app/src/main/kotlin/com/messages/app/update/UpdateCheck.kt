@@ -3,7 +3,11 @@ package com.messages.app.update
 import android.content.Context
 import com.messages.app.BuildConfig
 import com.messages.app.net.SafeHttp
-import org.json.JSONObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 /**
  * Check-and-notify update support. **Check only** — this package never
@@ -42,13 +46,31 @@ object UpdateCheck {
     private const val K_NOTIFY = "notify_updates"
     private const val K_LAST_SEEN = "last_notified_tag"
 
+    /**
+     * Metadata parsed from a GitHub release JSON response.
+     * Carried by [UpdateResult.Available] for the UI and download engine.
+     */
+    data class ReleaseInfo(
+        val version: String,
+        val tagName: String,
+        val publishedAt: String,
+        val changelog: String,
+        val apkUrl: String,
+        val apkSizeBytes: Long,
+        val htmlUrl: String,
+    )
+
     /** The outcome of one check. Every failure mode is a value, never a throw. */
     sealed class UpdateResult {
         /** Installed version is current (or ahead of) the latest release. */
         data class UpToDate(val current: String) : UpdateResult()
 
         /** A newer release exists. [version] is the cleaned tag, e.g. "1.1". */
-        data class Available(val version: String, val pageUrl: String) : UpdateResult()
+        data class Available(
+            val version: String,
+            val pageUrl: String,
+            val releaseInfo: ReleaseInfo? = null,
+        ) : UpdateResult()
 
         /** No network, DNS failure, timeout, or the host was unreachable. */
         object Offline : UpdateResult()
@@ -117,11 +139,58 @@ object UpdateCheck {
             ?: return UpdateResult.Malformed
 
         val downloadUrl = parseDownloadUrl(body)
+        val releaseInfo = parseReleaseInfo(body, tag, downloadUrl)
 
         return if (isNewer(tag, current)) {
-            UpdateResult.Available(tag, downloadUrl)
+            UpdateResult.Available(tag, downloadUrl, releaseInfo)
         } else {
             UpdateResult.UpToDate(current)
+        }
+    }
+
+    private val jsonParser = Json {
+        isLenient = true
+        ignoreUnknownKeys = true
+    }
+
+    /**
+     * Parse full release metadata from the GitHub API JSON response.
+     * Returns null only if the JSON is unparseable — all individual fields
+     * have safe defaults so a partial response still produces a usable object.
+     */
+    internal fun parseReleaseInfo(body: String, version: String, apkUrl: String): ReleaseInfo? {
+        return try {
+            val root = jsonParser.parseToJsonElement(body).jsonObject
+            val tagName = root["tag_name"]?.jsonPrimitive?.content ?: "v$version"
+            val publishedAt = root["published_at"]?.jsonPrimitive?.content ?: ""
+            val changelog = root["body"]?.jsonPrimitive?.content?.trim() ?: ""
+            val htmlUrl = root["html_url"]?.jsonPrimitive?.content ?: RELEASES_PAGE_URL
+
+            // Find the APK asset size
+            var apkSizeBytes = 0L
+            val assets = root["assets"]?.jsonArray
+            if (assets != null) {
+                for (item in assets) {
+                    val asset = item.jsonObject
+                    val name = asset["name"]?.jsonPrimitive?.content ?: ""
+                    if (name.endsWith(".apk", ignoreCase = true)) {
+                        apkSizeBytes = asset["size"]?.jsonPrimitive?.longOrNull ?: 0L
+                        break
+                    }
+                }
+            }
+
+            ReleaseInfo(
+                version = version,
+                tagName = tagName,
+                publishedAt = publishedAt,
+                changelog = changelog,
+                apkUrl = apkUrl,
+                apkSizeBytes = apkSizeBytes,
+                htmlUrl = htmlUrl,
+            )
+        } catch (_: Throwable) {
+            null
         }
     }
 
@@ -131,21 +200,21 @@ object UpdateCheck {
      */
     internal fun parseDownloadUrl(body: String): String {
         try {
-            val json = JSONObject(body)
-            val assets = json.optJSONArray("assets")
+            val root = jsonParser.parseToJsonElement(body).jsonObject
+            val assets = root["assets"]?.jsonArray
             if (assets != null) {
-                for (i in 0 until assets.length()) {
-                    val asset = assets.optJSONObject(i) ?: continue
-                    val name = asset.optString("name", "")
+                for (item in assets) {
+                    val asset = item.jsonObject
+                    val name = asset["name"]?.jsonPrimitive?.content ?: ""
                     if (name.endsWith(".apk", ignoreCase = true)) {
-                        val downloadUrl = asset.optString("browser_download_url", "")
+                        val downloadUrl = asset["browser_download_url"]?.jsonPrimitive?.content ?: ""
                         if (downloadUrl.isNotBlank()) {
                             return downloadUrl
                         }
                     }
                 }
             }
-            val htmlUrl = json.optString("html_url", "")
+            val htmlUrl = root["html_url"]?.jsonPrimitive?.content ?: ""
             if (htmlUrl.isNotBlank()) return htmlUrl
         } catch (_: Throwable) {
             // fall through
@@ -174,7 +243,7 @@ object UpdateCheck {
      */
     internal fun parseTag(body: String): String? {
         val raw = try {
-            JSONObject(body).optString("tag_name", "")
+            jsonParser.parseToJsonElement(body).jsonObject["tag_name"]?.jsonPrimitive?.content ?: ""
         } catch (_: Throwable) {
             return null
         }

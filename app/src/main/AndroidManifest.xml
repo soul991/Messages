@@ -25,6 +25,8 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!-- Google Drive backup (§8.3) only — classification never touches the network -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- In-app update: trigger APK installation after download -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Package visibility (API 30+): without this, ContentResolver.query on the
          contacts provider returns a null cursor SILENTLY even with READ_CONTACTS

@@ -515,6 +515,19 @@ class MainActivity : FragmentActivity() {
                     composable("about") {
                         com.messages.app.ui.settings.AboutScreen(
                             onBack = { nav.popBackStack() },
+                            onOpenUpdateSettings = { nav.navigate("update_settings") },
+                            onOpenUpdateCheck = { nav.navigate("update_check") },
+                        )
+                    }
+                    composable("update_settings") {
+                        com.messages.app.ui.update.UpdateSettingsScreen(
+                            onBack = { nav.popBackStack() },
+                            onNavigateToCheck = { nav.navigate("update_check") },
+                        )
+                    }
+                    composable("update_check") {
+                        com.messages.app.ui.update.UpdateScreen(
+                            onBack = { nav.popBackStack() },
                         )
                     }
                     composable("settings") {
@@ -523,6 +536,7 @@ class MainActivity : FragmentActivity() {
                             onOpenTrash = { nav.navigate("trash") },
                             onOpenDriveBackup = { nav.navigate("drive_backup") },
                             onOpenNotificationSettings = { nav.navigate("notification_settings") },
+                            onOpenUpdateSettings = { nav.navigate("update_settings") },
                             onOpenAbout = { nav.navigate("about") },
                             // V2-39: the same destination as the Home-title
                             // press, reached without the gesture. Setup or

@@ -86,7 +86,11 @@ private enum class LegalDoc(val titleRes: Int, val bodyRes: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen(onBack: () -> Unit) {
+fun AboutScreen(
+    onBack: () -> Unit,
+    onOpenUpdateSettings: () -> Unit = {},
+    onOpenUpdateCheck: () -> Unit = {},
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var openDoc by remember { mutableStateOf<LegalDoc?>(null) }
@@ -175,14 +179,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             )
                         } else {
                             OutlinedButton(
-                                onClick = {
-                                    checkInProgress = true
-                                    scope.launch {
-                                        val res = withContext(Dispatchers.IO) { UpdateCheck.check() }
-                                        updateResult = res
-                                        checkInProgress = false
-                                    }
-                                },
+                                onClick = onOpenUpdateCheck,
                                 shape = RoundedCornerShape(12.dp),
                             ) {
                                 Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -243,11 +240,11 @@ fun AboutScreen(onBack: () -> Unit) {
                                     }
                                     Spacer(Modifier.height(10.dp))
                                     Button(
-                                        onClick = { open(result.pageUrl) },
+                                        onClick = onOpenUpdateCheck,
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(12.dp),
                                     ) {
-                                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Outlined.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(8.dp))
                                         Text(stringResource(R.string.update_action_download))
                                     }

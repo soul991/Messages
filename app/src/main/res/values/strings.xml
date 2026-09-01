@@ -1603,4 +1603,44 @@ This application is provided as-is for personal use. By using it you accept that
     <string name="action_open_app_settings">Open App Settings</string>
     <string name="action_open_default_apps">Default Apps</string>
     <string name="restricted_settings_retry">Retry Set as Default</string>
+
+    <!-- In-App Update Engine -->
+    <string name="update_settings_title">Update Settings</string>
+    <string name="update_system_update">System update</string>
+    <string name="update_system_update_subtitle">Check for app updates</string>
+    <string name="update_version_subtitle">Version %1$s</string>
+    <string name="update_auto_check">Auto-check for updates</string>
+    <string name="update_auto_check_subtitle">Automatically checks weekly on Wi-Fi</string>
+    <string name="update_notifications">Update notifications</string>
+    <string name="update_notifications_subtitle">Notify when a new version is available</string>
+    <string name="update_clear_downloads">Clear downloaded updates</string>
+    <string name="update_clear_downloads_subtitle">%1$d APK found (%2$s)</string>
+    <string name="update_clear_downloads_empty">No downloaded APKs</string>
+    <string name="update_commits">View commits</string>
+    <string name="update_commits_subtitle">See the latest changes on GitHub</string>
+    <string name="update_check_title">Check for updates</string>
+    <string name="update_check_button">Check for update</string>
+    <string name="update_checking_anim">Checking for updates…</string>
+    <string name="update_new_update">New update v%1$s</string>
+    <string name="update_released_on">Released %1$s</string>
+    <string name="update_size">Size: %1$s</string>
+    <string name="update_later">Later</string>
+    <string name="update_install">Update</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_download_complete">Download complete</string>
+    <string name="update_download_failed">Download failed. Tap to retry.</string>
+    <string name="update_changelog_title">What\'s new</string>
+    <string name="update_up_to_date_title">You\'re up to date!</string>
+    <string name="update_up_to_date_body">Version %1$s is the latest version.</string>
+
+    <!-- Download Notification (Chrome-style) -->
+    <string name="download_notif_title">Downloading Messages v%1$s</string>
+    <string name="download_notif_complete">Messages v%1$s ready to install</string>
+    <string name="download_notif_tap_install">Tap to install</string>
+    <string name="download_notif_failed">Download failed</string>
+    <string name="download_notif_cancel">Cancel</string>
+
+    <string name="update_cleared_toast">Cleared %1$d downloaded update(s)</string>
+    <string name="update_no_cached_toast">No downloaded APKs to clear</string>
+
 </resources>

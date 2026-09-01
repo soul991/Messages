@@ -47,6 +47,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SwipeLeft
 import androidx.compose.material.icons.outlined.SwipeRight
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -439,6 +440,7 @@ fun SettingsScreen(
     onOpenTrash: () -> Unit = {},
     onOpenDriveBackup: () -> Unit = {},
     onOpenNotificationSettings: () -> Unit = {},
+    onOpenUpdateSettings: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
     /**
      * V2-39: routes to the locked space's credential prompt — the same
@@ -986,9 +988,15 @@ fun SettingsScreen(
                 Spacer(Modifier.height(24.dp))
             }
 
-            // ---- About: version, legal, updates, source ----
+            // ---- System update & About: version, legal, updates, source ----
             item {
                 SettingsSectionDivider()
+                SettingsNavRow(
+                    icon = Icons.Outlined.SystemUpdate,
+                    title = stringResource(R.string.update_system_update),
+                    subtitle = stringResource(R.string.update_system_update_subtitle),
+                    onClick = onOpenUpdateSettings,
+                )
                 SettingsNavRow(
                     icon = Icons.Outlined.Info,
                     title = stringResource(R.string.settings_about),

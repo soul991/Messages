@@ -4,4 +4,6 @@
     <cache-path name="mms" path="mms/" />
     <!-- Camera capture target for the composer attach flow -->
     <cache-path name="camera" path="camera/" />
+    <!-- Downloaded APK updates for in-app install -->
+    <cache-path name="updates" path="updates/" />
 </paths>
