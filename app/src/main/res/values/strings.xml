@@ -1510,6 +1510,10 @@
     <string name="summary_card_options">Summary options</string>
     <string name="summary_card_footer">Read from this message on your phone. Nothing was sent anywhere, and nothing here is a link or a payment.</string>
     <string name="summary_field_amount">Amount</string>
+    <string name="summary_field_credited">Credited</string>
+    <string name="summary_field_debited">Debited</string>
+    <string name="summary_badge_credited">CREDITED</string>
+    <string name="summary_badge_debited">DEBITED</string>
     <string name="summary_field_balance">Balance</string>
     <string name="summary_field_account">Account</string>
     <string name="summary_field_due">Due</string>

@@ -9,7 +9,10 @@ import com.messages.designsystem.LiquidGlassSurface
 import com.messages.designsystem.LocalDarkTheme
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -1459,6 +1462,8 @@ private fun SwipeableConversationRow(
                 SwipeActionBackground(
                     action = action,
                     fromStart = direction == SwipeToDismissBoxValue.StartToEnd,
+                    progress = dismissState.progress,
+                    willDismiss = dismissState.targetValue != SwipeToDismissBoxValue.Settled,
                 )
             }
         },
@@ -1493,8 +1498,19 @@ private data class SwipeVisuals(
 private fun SwipeActionBackground(
     action: String,
     fromStart: Boolean,
+    progress: Float,
+    willDismiss: Boolean,
 ) {
     val isDark = LocalDarkTheme.current
+    val view = LocalView.current
+
+    // Trigger subtle tactile tick when passing the dismiss confirmation threshold
+    LaunchedEffect(willDismiss) {
+        if (willDismiss) {
+            com.messages.designsystem.Haptics.tick(view)
+        }
+    }
+
     val visuals = when (action) {
         SwipeActions.ARCHIVE -> SwipeVisuals(
             icon = Icons.Outlined.Archive,
@@ -1528,6 +1544,30 @@ private fun SwipeActionBackground(
         )
         else -> return
     }
+
+    // Gmail-style physics-based animations
+    val iconScale by animateFloatAsState(
+        targetValue = if (willDismiss) 1.22f else (0.72f + progress * 0.35f).coerceIn(0.72f, 1.05f),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "gmail-swipe-scale",
+    )
+
+    val iconAlpha by animateFloatAsState(
+        targetValue = (progress * 3.5f).coerceIn(0.45f, 1.0f),
+        label = "gmail-swipe-icon-alpha",
+    )
+
+    val textAlpha by animateFloatAsState(
+        targetValue = if (progress > 0.15f) ((progress - 0.15f) * 3.5f).coerceIn(0f, 1f) else 0f,
+        label = "gmail-swipe-text-alpha",
+    )
+
+    val textSlide by animateDpAsState(
+        targetValue = if (willDismiss) 0.dp else ((1f - progress.coerceIn(0f, 1f)) * 14).dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
+        label = "gmail-swipe-text-slide",
+    )
+
     Row(
         Modifier
             .fillMaxSize()
@@ -1541,7 +1581,13 @@ private fun SwipeActionBackground(
                 imageVector = visuals.icon,
                 contentDescription = null,
                 tint = visuals.tint,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier
+                    .size(24.dp)
+                    .graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                        alpha = iconAlpha
+                    },
             )
             Spacer(Modifier.width(10.dp))
             Text(
@@ -1549,6 +1595,10 @@ private fun SwipeActionBackground(
                 color = visuals.tint,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.graphicsLayer {
+                    alpha = textAlpha
+                    translationX = textSlide.toPx()
+                },
             )
         } else {
             Text(
@@ -1556,13 +1606,23 @@ private fun SwipeActionBackground(
                 color = visuals.tint,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.graphicsLayer {
+                    alpha = textAlpha
+                    translationX = -textSlide.toPx()
+                },
             )
             Spacer(Modifier.width(10.dp))
             Icon(
                 imageVector = visuals.icon,
                 contentDescription = null,
                 tint = visuals.tint,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier
+                    .size(24.dp)
+                    .graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                        alpha = iconAlpha
+                    },
             )
         }
     }

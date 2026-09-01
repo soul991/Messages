@@ -2,12 +2,22 @@ package com.messages.app.ui.settings
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,15 +35,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.MessagesApp
-import androidx.compose.ui.res.stringResource
 import com.messages.app.R
+import com.messages.designsystem.LocalDarkTheme
 
 /**
  * Per-folder notification behavior (Phase 4 item 3, PRD §4 "per-folder
@@ -82,6 +100,10 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
+            SettingsSectionHeader("NOTIFICATION PREVIEW & THEME")
+            NotificationPreviewCard()
+            Spacer(Modifier.height(12.dp))
+
             SettingsSectionHeader(stringResource(R.string.notif_section_folders))
 
             SettingsNavRow(
@@ -192,6 +214,170 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
             )
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/**
+ * Interactive Live Notification Preview Card demonstrating the Emerald/Category
+ * theming, branded monogram avatar, and quick action buttons.
+ */
+@Composable
+private fun NotificationPreviewCard() {
+    val isDark = LocalDarkTheme.current
+    val cardBg = if (isDark) Color(0xF0181A22) else Color(0xFFFFFFFF)
+    val emerald = Color(0xFF10B981)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(20.dp),
+                ambientColor = emerald.copy(alpha = 0.2f),
+                spotColor = emerald.copy(alpha = 0.25f),
+            )
+            .clip(RoundedCornerShape(20.dp))
+            .background(cardBg)
+            .border(
+                1.dp,
+                Brush.linearGradient(
+                    listOf(
+                        emerald.copy(alpha = 0.6f),
+                        emerald.copy(alpha = 0.2f),
+                        Color.Transparent,
+                    )
+                ),
+                RoundedCornerShape(20.dp)
+            )
+            .padding(14.dp),
+    ) {
+        Column {
+            // Notification Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(emerald),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.Receipt,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(10.dp),
+                    )
+                }
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "Messages • TRANSACTIONS",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = emerald,
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = "Now",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            // Notification Body with Avatar & Hero Text
+            Row(
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                // Branded Circular Avatar
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    Color(0xFF10B981),
+                                    Color(0xFF047857),
+                                )
+                            )
+                        )
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "AB",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+
+                Spacer(Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "₹ 20.00 — AX-AIRBNK-S",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "₹ 20.00 debited from Airtel Payments Bank a/c Txn ID 624565526106 Bal: 1412.48",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 16.sp,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Action Buttons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(emerald.copy(alpha = 0.12f))
+                        .border(0.75.dp, emerald.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "Mark as read",
+                        color = emerald,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "Reply",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
         }
     }
 }

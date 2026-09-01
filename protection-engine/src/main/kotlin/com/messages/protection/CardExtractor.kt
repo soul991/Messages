@@ -53,6 +53,9 @@ object CardExtractor {
      */
     enum class Confidence { MEDIUM, HIGH }
 
+    /** Direction of a transaction amount (credit, debit, or neutral/balance). */
+    enum class Direction { CREDIT, DEBIT, NEUTRAL }
+
     /**
      * What a field means. Deliberately a small closed set: an extractor that
      * can emit "anything interesting" is one that emits noise, and every kind
@@ -105,6 +108,7 @@ object CardExtractor {
         val explanation: String,
         val start: Int,
         val end: Int,
+        val direction: Direction = Direction.NEUTRAL,
     )
 
     /**
@@ -114,7 +118,10 @@ object CardExtractor {
     data class Card(
         val fields: List<Field>,
         val version: Int = VERSION,
-    )
+    ) {
+        val direction: Direction
+            get() = fields.firstOrNull { it.kind == FieldKind.AMOUNT }?.direction ?: Direction.NEUTRAL
+    }
 
     /**
      * Whether a message may be summarised at all.
@@ -257,21 +264,27 @@ object CardExtractor {
                     confidence = Confidence.HIGH,
                     explanation = "The message calls this a balance",
                     start = start, end = end,
+                    direction = Direction.NEUTRAL,
                 )
-                debit || credit -> Field(
-                    kind = FieldKind.AMOUNT,
-                    raw = raw, normalized = normalized, currency = currencyGroup.value,
-                    confidence = Confidence.HIGH,
-                    explanation = if (credit && !debit) "Money in, by the message's own wording"
-                    else "Money out, by the message's own wording",
-                    start = start, end = end,
-                )
+                debit || credit -> {
+                    val isCredit = credit && !debit
+                    Field(
+                        kind = FieldKind.AMOUNT,
+                        raw = raw, normalized = normalized, currency = currencyGroup.value,
+                        confidence = Confidence.HIGH,
+                        explanation = if (isCredit) "Money in, by the message's own wording"
+                        else "Money out, by the message's own wording",
+                        start = start, end = end,
+                        direction = if (isCredit) Direction.CREDIT else Direction.DEBIT,
+                    )
+                }
                 else -> Field(
                     kind = FieldKind.AMOUNT,
                     raw = raw, normalized = normalized, currency = currencyGroup.value,
                     confidence = Confidence.MEDIUM,
                     explanation = "An amount, but the message doesn't say what it was for",
                     start = start, end = end,
+                    direction = Direction.NEUTRAL,
                 )
             }
         }.toList()

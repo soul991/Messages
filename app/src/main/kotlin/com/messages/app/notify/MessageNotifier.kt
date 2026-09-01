@@ -228,14 +228,45 @@ class MessageNotifier(private val context: Context) {
             else -> null
         }
 
+        val notifColor = when (verdict.category) {
+            Category.TRANSACTIONS -> 0xFF10B981.toInt() // Lush Emerald Green
+            Category.PROMOTIONS -> 0xFFD97706.toInt()   // Amber
+            Category.SPAM -> 0xFFD32F2F.toInt()         // Red
+            Category.REVIEW -> 0xFF4B5563.toInt()       // Slate
+            Category.INBOX, Category.BLOCKED -> {
+                if (verdict.protectedLabel == com.messages.protection.ProtectedLabel.OTP) {
+                    0xFF10B981.toInt()
+                } else {
+                    0xFF10B981.toInt() // Brand signature Emerald
+                }
+            }
+        }
+
         val builder = NotificationCompat.Builder(context, effectiveChannel)
             .setSmallIcon(R.drawable.ic_notif_message)
+            .setColor(notifColor)
             .setContentTitle(heroTitle ?: title)
             .setContentText(text)
             .setContentIntent(openIntent)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .addAction(0, context.getString(R.string.notif_mark_as_read), markRead)
+            .addAction(R.drawable.ic_notif_mark_read, context.getString(R.string.notif_mark_as_read), markRead)
+
+        // Set high-resolution circular avatar (photo or branded monogram)
+        if (!conversationLocked) {
+            val photoBitmap = try {
+                MessageRepository.get(context).lookupContact(message.address)?.photoUri?.let { uriStr ->
+                    context.contentResolver.openInputStream(android.net.Uri.parse(uriStr))?.use {
+                        android.graphics.BitmapFactory.decodeStream(it)
+                    }
+                }
+            } catch (_: Exception) { null }
+
+            val largeBitmap = photoBitmap ?: NotificationAvatarGenerator.generateBitmap(
+                context, message.address, contactName, verdict.category,
+            )
+            builder.setLargeIcon(largeBitmap)
+        }
 
         // MessagingStyle renders its own sender line, which would override the
         // hero title — hero notifications use BigTextStyle instead (the body
@@ -260,7 +291,7 @@ class MessageNotifier(private val context: Context) {
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            builder.addAction(0, context.getString(R.string.notif_copy_otp, otpCode), copyOtp)
+            builder.addAction(R.drawable.ic_notif_copy, context.getString(R.string.notif_copy_otp, otpCode), copyOtp)
         }
 
         // Inline reply (Phase 4 item 2): only for senders that can actually
@@ -284,7 +315,7 @@ class MessageNotifier(private val context: Context) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )
             builder.addAction(
-                NotificationCompat.Action.Builder(0, context.getString(R.string.notif_reply), replyIntent)
+                NotificationCompat.Action.Builder(R.drawable.ic_notif_reply, context.getString(R.string.notif_reply), replyIntent)
                     .addRemoteInput(remoteInput)
                     .setAllowGeneratedReplies(false)
                     .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
@@ -415,6 +446,7 @@ class MessageNotifier(private val context: Context) {
         )
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_PERSONAL)
             .setSmallIcon(R.drawable.ic_notif_message)
+            .setColor(0xFF10B981.toInt())
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(context.getString(R.string.notif_new_message))
             .setContentIntent(openIntent)
@@ -431,6 +463,7 @@ class MessageNotifier(private val context: Context) {
         )
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_REVIEW)
             .setSmallIcon(R.drawable.ic_notif_review)
+            .setColor(0xFF4B5563.toInt())
             .setContentTitle(context.getString(R.string.notif_review_batch_title))
             .setContentText(context.getString(R.string.notif_review_batch_body))
             .setContentIntent(openIntent)

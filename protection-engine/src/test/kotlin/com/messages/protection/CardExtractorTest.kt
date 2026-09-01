@@ -107,18 +107,25 @@ class CardExtractorTest {
         val amount = card!!.fields.first { it.kind == CardExtractor.FieldKind.AMOUNT }
         assertEquals("1250.00", amount.normalized)
         assertEquals(CardExtractor.Confidence.HIGH, amount.confidence)
+        assertEquals(CardExtractor.Direction.DEBIT, amount.direction)
+        assertEquals(CardExtractor.Direction.DEBIT, card.direction)
         assertTrue(amount.explanation.contains("out"))
         // The balance is a different fact and must not be reported as a
         // transaction — "you spent ₹9,870" is a distinct and alarming claim.
         val balance = card.fields.first { it.kind == CardExtractor.FieldKind.BALANCE }
         assertEquals("9870.55", balance.normalized)
+        assertEquals(CardExtractor.Direction.NEUTRAL, balance.direction)
     }
 
     @Test
     fun `a credit is not reported as money out`() {
-        val amount = field("INR 500 credited to your account", CardExtractor.FieldKind.AMOUNT)
+        val card = CardExtractor.extract("INR 500 credited to your account")
+        assertNotNull(card)
+        val amount = card!!.fields.first { it.kind == CardExtractor.FieldKind.AMOUNT }
         assertNotNull(amount)
-        assertTrue(amount!!.explanation.contains("in"))
+        assertEquals(CardExtractor.Direction.CREDIT, amount.direction)
+        assertEquals(CardExtractor.Direction.CREDIT, card.direction)
+        assertTrue(amount.explanation.contains("in"))
     }
 
     @Test
