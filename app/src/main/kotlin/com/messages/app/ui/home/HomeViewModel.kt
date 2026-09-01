@@ -131,43 +131,89 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     // V2-24: Home only ever lists the normal space (every query it feeds from
     // is NORMAL-scoped), so it names that space rather than leaning on a
     // default that would follow the caller anywhere.
+    private val pendingThreadJobs = java.util.concurrent.ConcurrentHashMap<Long, kotlinx.coroutines.Job>()
+
     fun togglePin(threadId: Long, pinned: Boolean) = viewModelScope.launch {
-        repo.db.conversations().setPinned(threadId, pinned, Spaces.NORMAL)
+        try {
+            repo.db.conversations().setPinned(threadId, pinned, Spaces.NORMAL)
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "togglePin failed", t)
+        }
     }
 
-    fun archive(threadId: Long) = viewModelScope.launch {
-        repo.db.conversations().setArchived(threadId, true, Spaces.NORMAL)
+    fun archive(threadId: Long) {
+        val job = viewModelScope.launch {
+            try {
+                repo.db.conversations().setArchived(threadId, true, Spaces.NORMAL)
+            } catch (t: Throwable) {
+                android.util.Log.e("HomeViewModel", "archive failed", t)
+            } finally {
+                pendingThreadJobs.remove(threadId)
+            }
+        }
+        pendingThreadJobs[threadId] = job
     }
 
     // ---- Swipe actions (§8.2) + undo ----
 
     fun unarchive(threadId: Long) = viewModelScope.launch {
-        repo.db.conversations().setArchived(threadId, false, Spaces.NORMAL)
+        try {
+            pendingThreadJobs[threadId]?.join()
+            repo.db.conversations().setArchived(threadId, false, Spaces.NORMAL)
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "unarchive failed", t)
+        }
     }
 
-    fun trashThread(threadId: Long) = viewModelScope.launch {
-        repo.moveThreadToTrash(threadId, Spaces.NORMAL)
+    fun trashThread(threadId: Long) {
+        val job = viewModelScope.launch {
+            try {
+                repo.moveThreadToTrash(threadId, Spaces.NORMAL)
+            } catch (t: Throwable) {
+                android.util.Log.e("HomeViewModel", "trashThread failed", t)
+            } finally {
+                pendingThreadJobs.remove(threadId)
+            }
+        }
+        pendingThreadJobs[threadId] = job
     }
 
-    /** Undo for swipe-delete: restore messages trashed at/after [trashedAfter]. */
-    fun undoTrashThread(threadId: Long, trashedAfter: Long) = viewModelScope.launch {
-        repo.restoreThreadFromTrash(threadId, trashedAfter)
+    /** Undo for swipe-delete: restore all messages in thread. */
+    fun undoTrashThread(threadId: Long, trashedAfter: Long = 0L) = viewModelScope.launch {
+        try {
+            pendingThreadJobs[threadId]?.join()
+            repo.restoreThreadFromTrash(threadId, trashedAfter)
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "undoTrashThread failed", t)
+        }
     }
 
     fun markThreadRead(threadId: Long) = viewModelScope.launch {
-        repo.db.messages().markThreadRead(threadId, Spaces.NORMAL)
-        repo.db.conversations().clearUnread(threadId, Spaces.NORMAL)
+        try {
+            repo.db.messages().markThreadRead(threadId, Spaces.NORMAL)
+            repo.db.conversations().clearUnread(threadId, Spaces.NORMAL)
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "markThreadRead failed", t)
+        }
     }
 
     /** Phase 4 item 13: UI-level unread marker (rows stay read, badge returns). */
     fun markThreadUnread(threadId: Long) = viewModelScope.launch {
-        repo.db.conversations().markUnread(threadId, Spaces.NORMAL)
+        try {
+            repo.db.conversations().markUnread(threadId, Spaces.NORMAL)
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "markThreadUnread failed", t)
+        }
     }
 
     /** Phase 4 item 12: mark the whole current folder read. */
     fun markFolderRead(category: String) = viewModelScope.launch {
-        repo.db.messages().markCategoryRead(category)
-        repo.db.conversations().clearUnreadForCategory(category)
+        try {
+            repo.db.messages().markCategoryRead(category)
+            repo.db.conversations().clearUnreadForCategory(category)
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "markFolderRead failed", t)
+        }
     }
 
     // ---- Phase 4 item 12: unread-only filter ----
@@ -191,31 +237,79 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     /** Bulk trash for multi-select; returns the cut timestamp for undo. */
     fun trashThreads(ids: Set<Long>): Long {
         val at = System.currentTimeMillis()
-        viewModelScope.launch { ids.forEach { repo.moveThreadToTrash(it, Spaces.NORMAL) } }
+        val job = viewModelScope.launch {
+            try {
+                ids.forEach { repo.moveThreadToTrash(it, Spaces.NORMAL) }
+            } catch (t: Throwable) {
+                android.util.Log.e("HomeViewModel", "trashThreads failed", t)
+            } finally {
+                ids.forEach { pendingThreadJobs.remove(it) }
+            }
+        }
+        ids.forEach { pendingThreadJobs[it] = job }
         return at
     }
 
-    fun undoTrashThreads(ids: Set<Long>, trashedAfter: Long) = viewModelScope.launch {
-        ids.forEach { repo.restoreThreadFromTrash(it, trashedAfter) }
+    fun undoTrashThreads(ids: Set<Long>, trashedAfter: Long = 0L) = viewModelScope.launch {
+        try {
+            ids.forEach { id ->
+                pendingThreadJobs[id]?.join()
+                repo.restoreThreadFromTrash(id, trashedAfter)
+            }
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "undoTrashThreads failed", t)
+        }
     }
 
     fun markThreadsRead(ids: Set<Long>) = viewModelScope.launch {
-        ids.forEach {
-            repo.db.messages().markThreadRead(it, Spaces.NORMAL)
-            repo.db.conversations().clearUnread(it, Spaces.NORMAL)
+        try {
+            ids.forEach {
+                repo.db.messages().markThreadRead(it, Spaces.NORMAL)
+                repo.db.conversations().clearUnread(it, Spaces.NORMAL)
+            }
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "markThreadsRead failed", t)
         }
     }
 
     fun markThreadsUnread(ids: Set<Long>) = viewModelScope.launch {
-        ids.forEach { repo.db.conversations().markUnread(it, Spaces.NORMAL) }
+        try {
+            ids.forEach { repo.db.conversations().markUnread(it, Spaces.NORMAL) }
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "markThreadsUnread failed", t)
+        }
     }
 
-    fun archiveThreads(ids: Set<Long>) = viewModelScope.launch {
-        ids.forEach { repo.db.conversations().setArchived(it, true, Spaces.NORMAL) }
+    fun archiveThreads(ids: Set<Long>) {
+        val job = viewModelScope.launch {
+            try {
+                ids.forEach { repo.db.conversations().setArchived(it, true, Spaces.NORMAL) }
+            } catch (t: Throwable) {
+                android.util.Log.e("HomeViewModel", "archiveThreads failed", t)
+            } finally {
+                ids.forEach { pendingThreadJobs.remove(it) }
+            }
+        }
+        ids.forEach { pendingThreadJobs[it] = job }
+    }
+
+    fun unarchiveThreads(ids: Set<Long>) = viewModelScope.launch {
+        try {
+            ids.forEach { id ->
+                pendingThreadJobs[id]?.join()
+                repo.db.conversations().setArchived(id, false, Spaces.NORMAL)
+            }
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "unarchiveThreads failed", t)
+        }
     }
 
     fun toggleMute(threadId: Long, muted: Boolean) = viewModelScope.launch {
-        repo.db.conversations().setMuted(threadId, muted, Spaces.NORMAL)
+        try {
+            repo.db.conversations().setMuted(threadId, muted, Spaces.NORMAL)
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "toggleMute failed", t)
+        }
     }
 
     // ---- §8.5 incremental multi-keyword search ----

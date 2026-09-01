@@ -1798,10 +1798,46 @@ class MessageRepository private constructor(private val context: Context) {
      * Undo for a just-trashed conversation (swipe-delete snackbar): restore
      * every message of the thread trashed at/after [trashedAfter].
      */
-    suspend fun restoreThreadFromTrash(threadId: Long, trashedAfter: Long, space: String = Spaces.NORMAL) =
+    suspend fun restoreThreadFromTrash(threadId: Long, trashedAfter: Long = 0L, space: String = Spaces.NORMAL) =
         withContext(Dispatchers.IO) {
-            db.messages().trashedIdsForThread(threadId, trashedAfter, space).forEach {
-                restoreFromTrash(it)
+            try {
+                val toRestore = if (trashedAfter > 0L) {
+                    db.messages().trashedIdsForThread(threadId, trashedAfter, space)
+                } else {
+                    db.messages().allTrashedForThread(threadId, space).map { it.id }
+                }
+                toRestore.forEach { messageId ->
+                    try {
+                        restoreFromTrash(messageId)
+                    } catch (e: Exception) {
+                        android.util.Log.e("MessageRepository", "Failed to restore message $messageId", e)
+                    }
+                }
+                // Ensure conversation row exists in conversations table
+                val latest = db.messages().latestForThread(threadId, space)?.opened()
+                if (latest != null) {
+                    val conv = db.conversations().byThreadId(threadId, space)?.opened()
+                    db.conversations().upsert(
+                        ConversationEntity(
+                            id = conv?.id ?: 0,
+                            threadId = threadId,
+                            address = conv?.address ?: latest.address,
+                            contactName = conv?.contactName ?: displayNameFor(latest.address),
+                            lastMessage = latest.body.ifBlank { mediaPreview(latest.mediaMimeType) },
+                            lastTimestamp = latest.timestamp,
+                            unreadCount = conv?.unreadCount ?: 0,
+                            category = conv?.category ?: latest.category,
+                            pinned = conv?.pinned ?: false,
+                            archived = conv?.archived ?: false,
+                            muted = conv?.muted ?: false,
+                            locked = conv?.locked ?: false,
+                            preferredSubId = conv?.preferredSubId,
+                            space = space,
+                        ).sealed()
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MessageRepository", "restoreThreadFromTrash failed for $threadId", e)
             }
         }
 

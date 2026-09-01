@@ -275,7 +275,7 @@ fun HomeScreen(
                         withDismissAction = true,
                     )
                     if (r == SnackbarResult.ActionPerformed) {
-                        vm.undoTrashThread(conv.threadId, at - 1_000)
+                        vm.undoTrashThread(conv.threadId)
                     }
                 }
             }
@@ -336,7 +336,7 @@ fun HomeScreen(
                                     actionLabel = undoLabel, withDismissAction = true,
                                 )
                                 if (r == SnackbarResult.ActionPerformed) {
-                                    vm.undoTrashThreads(ids, at - 1_000)
+                                    vm.undoTrashThreads(ids)
                                 }
                             }
                         }) {

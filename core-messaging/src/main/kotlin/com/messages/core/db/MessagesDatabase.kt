@@ -335,6 +335,12 @@ interface MessageDao {
     )
     suspend fun trashedIdsForThread(threadId: Long, after: Long, space: String = Spaces.NORMAL): List<Long>
 
+    @Query(
+        "SELECT * FROM messages WHERE threadId = :threadId AND space = :space " +
+            "AND trashed = 1"
+    )
+    suspend fun allTrashedForThread(threadId: Long, space: String = Spaces.NORMAL): List<MessageEntity>
+
     @Query("UPDATE messages SET trashed = 0, trashedAt = NULL WHERE id = :id")
     suspend fun restoreFromTrash(id: Long)
 
