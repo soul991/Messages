@@ -103,6 +103,9 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -1394,6 +1397,7 @@ private fun DefaultSmsGate(
  * — zero recomposition while dragging) and the colored action background is
  * composed only while a drag is engaged (no permanent extra layer/overdraw).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeableConversationRow(
     conv: ConversationEntity,
@@ -1409,10 +1413,9 @@ private fun SwipeableConversationRow(
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
 ) {
-    val rightEnabled = rightAction != SwipeActions.NONE
-    val leftEnabled = leftAction != SwipeActions.NONE
-    // In selection mode swipes are disabled — taps toggle, long-press extends.
-    // Same for the no-actions-configured case: plain row, no gesture handler.
+    val rightEnabled = rightAction != SwipeActions.NONE && !selectionActive
+    val leftEnabled = leftAction != SwipeActions.NONE && !selectionActive
+
     if (selectionActive || (!rightEnabled && !leftEnabled)) {
         Box(modifier.background(MaterialTheme.colorScheme.surface)) {
             ConversationRow(
@@ -1423,65 +1426,56 @@ private fun SwipeableConversationRow(
         }
         return
     }
-    val offsetX = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
-    // -1 = swiping toward start (left action), 1 = toward end (right action),
-    // 0 = at rest. Only crossing zero recomposes — not every drag frame.
-    val engaged by remember {
-        derivedStateOf {
-            when {
-                offsetX.value > 0f -> 1
-                offsetX.value < 0f -> -1
-                else -> 0
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    if (rightEnabled) onAction(rightAction, conv)
+                    false
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    if (leftEnabled) onAction(leftAction, conv)
+                    false
+                }
+                SwipeToDismissBoxValue.Settled -> false
             }
-        }
-    }
-    Box(modifier) {
-        if (engaged != 0) {
-            SwipeActionBackground(
-                action = if (engaged > 0) rightAction else leftAction,
-                fromStart = engaged > 0,
-            )
-        }
+        },
+        positionalThreshold = { totalDistance -> totalDistance * 0.35f },
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = rightEnabled,
+        enableDismissFromEndToStart = leftEnabled,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val action = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> rightAction
+                SwipeToDismissBoxValue.EndToStart -> leftAction
+                SwipeToDismissBoxValue.Settled -> null
+            }
+            if (action != null) {
+                SwipeActionBackground(
+                    action = action,
+                    fromStart = direction == SwipeToDismissBoxValue.StartToEnd,
+                )
+            }
+        },
+        modifier = modifier,
+    ) {
         Box(
             Modifier
-                // Opaque only while sliding (it must cover the action backdrop);
-                // at rest the row draws straight on the window surface — one
-                // less full-row overdraw layer while scrolling.
-                .then(
-                    if (engaged != 0) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else Modifier
-                )
-                .graphicsLayer { translationX = offsetX.value }
-                .pointerInput(rightEnabled, leftEnabled) {
-                    val threshold = 0.4f // fraction of row width, as before
-                    detectHorizontalDragGestures(
-                        onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            val target = (offsetX.value + dragAmount).coerceIn(
-                                if (leftEnabled) -size.width.toFloat() else 0f,
-                                if (rightEnabled) size.width.toFloat() else 0f,
-                            )
-                            scope.launch { offsetX.snapTo(target) }
-                        },
-                        onDragEnd = {
-                            val past = size.width * threshold
-                            when {
-                                offsetX.value > past -> onAction(rightAction, conv)
-                                offsetX.value < -past -> onAction(leftAction, conv)
-                            }
-                            scope.launch { offsetX.animateTo(0f, Motion.spatialFast()) }
-                        },
-                        onDragCancel = {
-                            scope.launch { offsetX.animateTo(0f, Motion.spatialFast()) }
-                        },
-                    )
-                },
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             ConversationRow(
-                conv = conv, draft = draft, onClick = onClick,
-                badge = badge, onBadgeTap = onBadgeTap,
+                conv = conv,
+                draft = draft,
+                onClick = onClick,
+                badge = badge,
+                onBadgeTap = onBadgeTap,
+                selected = selected,
                 onLongClick = onLongClick,
             )
         }
@@ -1496,7 +1490,7 @@ private data class SwipeVisuals(
 )
 
 @Composable
-private fun BoxScope.SwipeActionBackground(
+private fun SwipeActionBackground(
     action: String,
     fromStart: Boolean,
 ) {
@@ -1524,19 +1518,19 @@ private fun BoxScope.SwipeActionBackground(
             icon = Icons.Outlined.MarkChatRead,
             container = MaterialTheme.colorScheme.tertiaryContainer,
             tint = MaterialTheme.colorScheme.onTertiaryContainer,
-            label = "Read",
+            label = stringResource(R.string.home_mark_read),
         )
         SwipeActions.MUTE -> SwipeVisuals(
             icon = Icons.Outlined.NotificationsOff,
             container = MaterialTheme.colorScheme.surfaceContainerHighest,
             tint = MaterialTheme.colorScheme.onSurface,
-            label = "Mute",
+            label = stringResource(R.string.action_mute),
         )
         else -> return
     }
     Row(
         Modifier
-            .matchParentSize()
+            .fillMaxSize()
             .background(visuals.container)
             .padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
