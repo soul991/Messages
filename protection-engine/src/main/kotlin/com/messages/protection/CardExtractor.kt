@@ -39,7 +39,7 @@ package com.messages.protection
 object CardExtractor {
 
     /** Bumped when the extractors change, so cached cards are recomputed. */
-    const val VERSION = 1
+    const val VERSION = 2
 
     /**
      * How much a field is trusted, and therefore how it is presented.
@@ -235,12 +235,55 @@ object CardExtractor {
 
     /** Words that make an amount a transaction rather than a balance. */
     private val DEBIT_WORDS = Regex(
-        """(?i)\b(debited|debit|spent|paid|payment|purchase|withdrawn|charged|deducted|sent|transferred|txn|due|bill|emi|premium|recharge)\b"""
+        """(?i)\b(debited|debit|spent|paid|payment|purchase|withdrawn|charged|deducted|sent|transferred|due|bill|emi|premium|recharge)\b"""
     )
-    private val CREDIT_WORDS = Regex("""(?i)\b(credited|credit|received|refund|deposited|cashback)\b""")
+    private val CREDIT_WORDS = Regex(
+        """(?i)\b(credited|credit(?!\s*(?:card|limit|score|line))|received|refund|deposited|cashback)\b"""
+    )
+    private val PRIMARY_CREDIT_WORDS = Regex(
+        """(?i)\b(credited|deposited|refund|cashback|received)\b"""
+    )
+    private val PRIMARY_DEBIT_WORDS = Regex(
+        """(?i)\b(debited|debit|spent|withdrawn|charged|deducted)\b"""
+    )
     private val BALANCE_WORDS = Regex(
         """(?i)\b(avl\.?\s?bal|available\s+balance|avail\.?\s?bal|balance|bal)\b"""
     )
+
+    private fun distanceToAmount(match: MatchResult, amountStart: Int, amountEnd: Int): Int {
+        val mStart = match.range.first
+        val mEnd = match.range.last + 1
+        return when {
+            mEnd <= amountStart -> amountStart - mEnd
+            mStart >= amountEnd -> mStart - amountEnd
+            else -> 0
+        }
+    }
+
+    private fun resolveDirection(
+        amountStart: Int,
+        amountEnd: Int,
+        debitMatches: List<MatchResult>,
+        creditMatches: List<MatchResult>,
+    ): Direction {
+        if (creditMatches.isNotEmpty() && debitMatches.isEmpty()) return Direction.CREDIT
+        if (debitMatches.isNotEmpty() && creditMatches.isEmpty()) return Direction.DEBIT
+
+        val hasPrimaryCredit = creditMatches.any { PRIMARY_CREDIT_WORDS.containsMatchIn(it.value) }
+        val hasPrimaryDebit = debitMatches.any { PRIMARY_DEBIT_WORDS.containsMatchIn(it.value) }
+
+        if (hasPrimaryCredit && !hasPrimaryDebit) return Direction.CREDIT
+        if (hasPrimaryDebit && !hasPrimaryCredit) return Direction.DEBIT
+
+        val minCreditDist = creditMatches.minOf { distanceToAmount(it, amountStart, amountEnd) }
+        val minDebitDist = debitMatches.minOf { distanceToAmount(it, amountStart, amountEnd) }
+
+        return when {
+            minCreditDist < minDebitDist -> Direction.CREDIT
+            minDebitDist < minCreditDist -> Direction.DEBIT
+            else -> Direction.NEUTRAL
+        }
+    }
 
     private fun amounts(body: CharSequence): List<Field> =
         AMOUNT.findAll(body).mapNotNull { m ->
@@ -253,12 +296,16 @@ object CardExtractor {
             // A window either side decides what the number is *about*. Small
             // and fixed: a claim sourced from forty characters away is a guess
             // wearing a confidence label.
-            val context = window(body, start, end - 1)
+            val windowStart = (start - CONTEXT_CHARS).coerceAtLeast(0)
+            val windowEnd = (end + CONTEXT_CHARS).coerceAtMost(body.length)
+            val context = body.subSequence(windowStart, windowEnd).toString()
             val balance = BALANCE_WORDS.containsMatchIn(context)
-            val debit = DEBIT_WORDS.containsMatchIn(context)
-            val credit = CREDIT_WORDS.containsMatchIn(context)
+            val debitMatches = DEBIT_WORDS.findAll(context).toList()
+            val creditMatches = CREDIT_WORDS.findAll(context).toList()
+            val hasDebit = debitMatches.isNotEmpty()
+            val hasCredit = creditMatches.isNotEmpty()
             when {
-                balance && !debit && !credit -> Field(
+                balance && !hasDebit && !hasCredit -> Field(
                     kind = FieldKind.BALANCE,
                     raw = raw, normalized = normalized, currency = currencyGroup.value,
                     confidence = Confidence.HIGH,
@@ -266,17 +313,39 @@ object CardExtractor {
                     start = start, end = end,
                     direction = Direction.NEUTRAL,
                 )
-                debit || credit -> {
-                    val isCredit = credit && !debit
-                    Field(
-                        kind = FieldKind.AMOUNT,
-                        raw = raw, normalized = normalized, currency = currencyGroup.value,
-                        confidence = Confidence.HIGH,
-                        explanation = if (isCredit) "Money in, by the message's own wording"
-                        else "Money out, by the message's own wording",
-                        start = start, end = end,
-                        direction = if (isCredit) Direction.CREDIT else Direction.DEBIT,
+                hasDebit || hasCredit -> {
+                    val direction = resolveDirection(
+                        amountStart = start - windowStart,
+                        amountEnd = end - windowStart,
+                        debitMatches = debitMatches,
+                        creditMatches = creditMatches,
                     )
+                    when (direction) {
+                        Direction.CREDIT -> Field(
+                            kind = FieldKind.AMOUNT,
+                            raw = raw, normalized = normalized, currency = currencyGroup.value,
+                            confidence = Confidence.HIGH,
+                            explanation = "Money in, by the message's own wording",
+                            start = start, end = end,
+                            direction = Direction.CREDIT,
+                        )
+                        Direction.DEBIT -> Field(
+                            kind = FieldKind.AMOUNT,
+                            raw = raw, normalized = normalized, currency = currencyGroup.value,
+                            confidence = Confidence.HIGH,
+                            explanation = "Money out, by the message's own wording",
+                            start = start, end = end,
+                            direction = Direction.DEBIT,
+                        )
+                        Direction.NEUTRAL -> Field(
+                            kind = FieldKind.AMOUNT,
+                            raw = raw, normalized = normalized, currency = currencyGroup.value,
+                            confidence = Confidence.MEDIUM,
+                            explanation = "An amount, but the message doesn't say what it was for",
+                            start = start, end = end,
+                            direction = Direction.NEUTRAL,
+                        )
+                    }
                 }
                 else -> Field(
                     kind = FieldKind.AMOUNT,

@@ -129,6 +129,74 @@ class CardExtractorTest {
     }
 
     @Test
+    fun `a credit message with txn id is correctly identified as credit`() {
+        val body = "Airtel Payments Bank a/c is credited with Rs.100.00. Txn ID: 688846141173. Call 180023400 for help"
+        val card = CardExtractor.extract(body)
+        assertNotNull(card)
+        val amount = card!!.fields.first { it.kind == CardExtractor.FieldKind.AMOUNT }
+        assertEquals("100.00", amount.normalized)
+        assertEquals(CardExtractor.Confidence.HIGH, amount.confidence)
+        assertEquals(CardExtractor.Direction.CREDIT, amount.direction)
+        assertEquals(CardExtractor.Direction.CREDIT, card.direction)
+        assertTrue("Expected credit explanation to contain 'in', got: ${amount.explanation}", amount.explanation.contains("in"))
+
+        val ref = card.fields.first { it.kind == CardExtractor.FieldKind.REFERENCE }
+        assertEquals("688846141173", ref.normalized)
+    }
+
+    @Test
+    fun `a debit message with txn id and balance is correctly identified as debit`() {
+        val body = "Rs. 500.00 debited from Airtel Payments Bank a/c Txn ID 661101059117 Bal:912.48 Call 180023400 for help"
+        val card = CardExtractor.extract(body)
+        assertNotNull(card)
+        val amount = card!!.fields.first { it.kind == CardExtractor.FieldKind.AMOUNT }
+        assertEquals("500.00", amount.normalized)
+        assertEquals(CardExtractor.Confidence.HIGH, amount.confidence)
+        assertEquals(CardExtractor.Direction.DEBIT, amount.direction)
+        assertEquals(CardExtractor.Direction.DEBIT, card.direction)
+        assertTrue(amount.explanation.contains("out"))
+
+        val ref = card.fields.first { it.kind == CardExtractor.FieldKind.REFERENCE }
+        assertEquals("661101059117", ref.normalized)
+    }
+
+    @Test
+    fun `credit card debit does not trigger credit direction`() {
+        val card = CardExtractor.extract("Rs.1,500.00 debited towards SBI credit card bill")
+        assertNotNull(card)
+        val amount = card!!.fields.first { it.kind == CardExtractor.FieldKind.AMOUNT }
+        assertEquals(CardExtractor.Direction.DEBIT, amount.direction)
+        assertTrue(amount.explanation.contains("out"))
+    }
+
+    @Test
+    fun `refund for purchase is reported as credit`() {
+        val card = CardExtractor.extract("Refund of Rs.500.00 for your purchase")
+        assertNotNull(card)
+        val amount = card!!.fields.first { it.kind == CardExtractor.FieldKind.AMOUNT }
+        assertEquals(CardExtractor.Direction.CREDIT, amount.direction)
+        assertTrue(amount.explanation.contains("in"))
+    }
+
+    @Test
+    fun `cashback on bill payment is reported as credit`() {
+        val card = CardExtractor.extract("Cashback of Rs.50.00 on electricity bill payment")
+        assertNotNull(card)
+        val amount = card!!.fields.first { it.kind == CardExtractor.FieldKind.AMOUNT }
+        assertEquals(CardExtractor.Direction.CREDIT, amount.direction)
+        assertTrue(amount.explanation.contains("in"))
+    }
+
+    @Test
+    fun `payment received is reported as credit`() {
+        val card = CardExtractor.extract("Payment of Rs.250.00 received from Alex")
+        assertNotNull(card)
+        val amount = card!!.fields.first { it.kind == CardExtractor.FieldKind.AMOUNT }
+        assertEquals(CardExtractor.Direction.CREDIT, amount.direction)
+        assertTrue(amount.explanation.contains("in"))
+    }
+
+    @Test
     fun `an amount with no context is admitted as uncertain rather than guessed`() {
         val amount = field("Your plan includes $45.99 of value", CardExtractor.FieldKind.AMOUNT)
         assertNotNull(amount)
