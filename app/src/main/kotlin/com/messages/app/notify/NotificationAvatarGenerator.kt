@@ -20,6 +20,31 @@ object NotificationAvatarGenerator {
 
     private const val SIZE = 128 // dp-scaled density target (standard large icon)
 
+    /**
+     * Renders the app's branded emerald squircle launcher icon into a high-res [Bitmap]
+     * for system notifications (e.g. in-app updates, service notifications).
+     */
+    fun getAppIconBitmap(context: Context): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val px = (SIZE * (density / 2.0f)).toInt().coerceIn(128, 256)
+        val bitmap = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val drawable = androidx.core.content.ContextCompat.getDrawable(
+            context,
+            com.messages.app.R.mipmap.ic_launcher,
+        ) ?: androidx.core.content.ContextCompat.getDrawable(
+            context,
+            com.messages.app.R.drawable.ic_launcher_foreground,
+        )
+
+        drawable?.let {
+            it.setBounds(0, 0, px, px)
+            it.draw(canvas)
+        }
+        return bitmap
+    }
+
     /** Generates an [IconCompat] suitable for NotificationCompat.Builder.setLargeIcon(). */
     fun generateIcon(
         context: Context,

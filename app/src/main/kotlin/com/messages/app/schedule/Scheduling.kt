@@ -19,6 +19,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.messages.app.MainActivity
 import com.messages.app.MessagesApp
+import com.messages.app.notify.NotificationAvatarGenerator
 import com.messages.app.receiver.SmsSentReceiver
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
@@ -225,6 +226,8 @@ class SnoozeWorker(
         )
         val notification = NotificationCompat.Builder(ctx, MessagesApp.CH_REMINDERS)
             .setSmallIcon(com.messages.app.R.drawable.ic_notif_reminder)
+            .setLargeIcon(NotificationAvatarGenerator.getAppIconBitmap(ctx))
+            .setColor(0xFF10B981.toInt())
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

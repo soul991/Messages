@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#00629E</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
 
     <!--
       V2-37: the window behind the first composition. Before Compose has drawn

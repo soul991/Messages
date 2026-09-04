@@ -18,6 +18,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.messages.app.MessagesApp
 import com.messages.app.R
+import com.messages.app.notify.NotificationAvatarGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
@@ -74,8 +75,11 @@ class UpdateCheckWorker(
             Intent(Intent.ACTION_VIEW, Uri.parse(pageUrl)),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val appIcon = NotificationAvatarGenerator.getAppIconBitmap(applicationContext)
         val builder = NotificationCompat.Builder(applicationContext, MessagesApp.CH_UPDATES)
             .setSmallIcon(R.drawable.ic_notif_message)
+            .setLargeIcon(appIcon)
+            .setColor(0xFF10B981.toInt())
             .setContentTitle(
                 applicationContext.getString(R.string.update_notif_title, version)
             )

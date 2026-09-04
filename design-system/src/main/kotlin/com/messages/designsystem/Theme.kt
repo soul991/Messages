@@ -224,7 +224,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 @Composable
 fun MessagesTheme(
     mode: ThemeMode = ThemeMode.SYSTEM,
-    accent: AccentSeed = AccentSeed.DYNAMIC,
+    accent: AccentSeed = AccentSeed.GREEN,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = when (mode) {

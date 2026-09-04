@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.messages.app.MessagesApp
 import com.messages.app.R
+import com.messages.app.notify.NotificationAvatarGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -87,8 +88,11 @@ object AppUpdateManager {
         // Clean up any partial download
         targetFile.delete()
 
+        val appIcon = NotificationAvatarGenerator.getAppIconBitmap(context)
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_DOWNLOAD)
-            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setSmallIcon(R.drawable.ic_notif_message)
+            .setLargeIcon(appIcon)
+            .setColor(0xFF10B981.toInt())
             .setContentTitle(context.getString(R.string.download_notif_title, version))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -110,7 +114,9 @@ object AppUpdateManager {
                 // Show failure notification
                 if (hasNotifPermission) {
                     builder
-                        .setSmallIcon(android.R.drawable.stat_notify_error)
+                        .setSmallIcon(R.drawable.ic_notif_message)
+                        .setLargeIcon(appIcon)
+                        .setColor(0xFFEF4444.toInt())
                         .setContentTitle(context.getString(R.string.download_notif_failed))
                         .setContentText(errorMsg)
                         .setOngoing(false)
@@ -184,7 +190,9 @@ object AppUpdateManager {
                 nm.cancel(NOTIFICATION_ID)
                 val installIntent = createInstallPendingIntent(context, targetFile)
                 val completeBuilder = NotificationCompat.Builder(context, MessagesApp.CH_DOWNLOAD)
-                    .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                    .setSmallIcon(R.drawable.ic_notif_message)
+                    .setLargeIcon(appIcon)
+                    .setColor(0xFF10B981.toInt())
                     .setContentTitle(context.getString(R.string.download_notif_complete, version))
                     .setContentText(context.getString(R.string.download_notif_tap_install))
                     .setContentIntent(installIntent)
@@ -202,7 +210,9 @@ object AppUpdateManager {
             // Show failure notification
             if (hasNotifPermission) {
                 builder
-                    .setSmallIcon(android.R.drawable.stat_notify_error)
+                    .setSmallIcon(R.drawable.ic_notif_message)
+                    .setLargeIcon(appIcon)
+                    .setColor(0xFFEF4444.toInt())
                     .setContentTitle(context.getString(R.string.download_notif_failed))
                     .setContentText(errorMsg)
                     .setOngoing(false)

@@ -465,7 +465,7 @@ fun SettingsScreen(
     onSecretEntry: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {},
-    accent: AccentSeed = AccentSeed.DYNAMIC,
+    accent: AccentSeed = AccentSeed.GREEN,
     onAccentChange: (AccentSeed) -> Unit = {},
     customBrightness: Boolean = false,
     onCustomBrightnessChange: (Boolean) -> Unit = {},
