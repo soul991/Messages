@@ -171,6 +171,9 @@ object AppUpdateManager {
                             }
                             nm.notify(NOTIFICATION_ID, builder.build())
                         }
+
+                        // Break immediately when all content-length bytes have been received
+                        if (totalBytes > 0 && downloadedBytes >= totalBytes) break
                     }
                 }
             }
@@ -178,16 +181,17 @@ object AppUpdateManager {
 
             // Show "complete" notification with tap-to-install
             if (hasNotifPermission) {
+                nm.cancel(NOTIFICATION_ID)
                 val installIntent = createInstallPendingIntent(context, targetFile)
-                builder
+                val completeBuilder = NotificationCompat.Builder(context, MessagesApp.CH_DOWNLOAD)
                     .setSmallIcon(android.R.drawable.stat_sys_download_done)
                     .setContentTitle(context.getString(R.string.download_notif_complete, version))
                     .setContentText(context.getString(R.string.download_notif_tap_install))
                     .setContentIntent(installIntent)
                     .setOngoing(false)
                     .setAutoCancel(true)
-                    .setProgress(0, 0, false)
-                nm.notify(NOTIFICATION_ID, builder.build())
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                nm.notify(NOTIFICATION_ID, completeBuilder.build())
             }
 
             emit(DownloadState.Complete(targetFile))

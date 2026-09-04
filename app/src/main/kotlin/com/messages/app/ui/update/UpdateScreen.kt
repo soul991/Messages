@@ -209,6 +209,8 @@ fun UpdateScreen(onBack: () -> Unit) {
                                         downloadState = ds
                                         if (ds is AppUpdateManager.DownloadState.Complete) {
                                             downloadedApk = ds.apkFile
+                                            // Automatically trigger package installer upon download completion
+                                            AppUpdateManager.installApk(context, ds.apkFile)
                                         }
                                     }
                                 }
