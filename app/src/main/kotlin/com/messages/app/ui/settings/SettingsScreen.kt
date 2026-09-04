@@ -62,6 +62,8 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import com.messages.designsystem.AmbientGlassGlow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -539,199 +541,207 @@ fun SettingsScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        LazyColumn(Modifier.padding(padding).fillMaxSize()) {
+    Box(Modifier.fillMaxSize()) {
+        AmbientGlassGlow(Modifier.fillMaxSize())
 
-            // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
-            item {
-                SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
-                SettingsDropdownRow(
-                    icon = Icons.Outlined.DarkMode,
-                    title = stringResource(R.string.settings_theme),
-                    subtitle = stringResource(R.string.settings_theme_subtitle),
-                    value = stringResource(themeMode.labelRes()),
-                    options = ThemeMode.values().map { it to stringResource(it.labelRes()) },
-                    onSelect = onThemeModeChange,
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.SemiBold) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 )
-                AccentPickerRow(selected = accent, onSelect = onAccentChange)
-                MessageTextSizeRow()
-            }
+            },
+        ) { padding ->
+            LazyColumn(Modifier.padding(padding).fillMaxSize()) {
 
-            // ---- Protection sensitivity (§3 Stage 5) ----
-            item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
-                val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    Slider(
-                        value = index.toFloat(),
-                        onValueChange = { vm.setSensitivity(SENSITIVITY_STEPS[it.toInt().coerceIn(0, 2)]) },
-                        valueRange = 0f..2f,
-                        steps = 1,
-                    )
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        SENSITIVITY_STEPS.forEachIndexed { i, step ->
+                // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
+                item {
+                    SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
+                    SettingsGlassGroup {
+                        SettingsDropdownRow(
+                            icon = Icons.Outlined.DarkMode,
+                            title = stringResource(R.string.settings_theme),
+                            subtitle = stringResource(R.string.settings_theme_subtitle),
+                            value = stringResource(themeMode.labelRes()),
+                            options = ThemeMode.values().map { it to stringResource(it.labelRes()) },
+                            onSelect = onThemeModeChange,
+                        )
+                        SettingsRowDivider()
+                        AccentPickerRow(selected = accent, onSelect = onAccentChange)
+                        SettingsRowDivider()
+                        MessageTextSizeRow()
+                    }
+                }
+
+                // ---- Protection sensitivity (§3 Stage 5) ----
+                item {
+                    SettingsSectionDivider()
+                    SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
+                    SettingsGlassGroup {
+                        val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
+                        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                            Slider(
+                                value = index.toFloat(),
+                                onValueChange = { vm.setSensitivity(SENSITIVITY_STEPS[it.toInt().coerceIn(0, 2)]) },
+                                valueRange = 0f..2f,
+                                steps = 1,
+                            )
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                SENSITIVITY_STEPS.forEachIndexed { i, step ->
+                                    Text(
+                                        stringResource(sensitivityLabelRes(step)),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (i == index) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (i == index) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
                             Text(
-                                stringResource(sensitivityLabelRes(step)),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = if (i == index) FontWeight.Bold else FontWeight.Normal,
-                                color = if (i == index) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outline,
+                                when (sensitivity) {
+                                    "RELAXED" -> stringResource(R.string.settings_sensitivity_relaxed_body)
+                                    "STRICT" -> stringResource(R.string.settings_sensitivity_strict_body)
+                                    else -> stringResource(R.string.settings_sensitivity_default_body)
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
-                    Spacer(Modifier.height(6.dp))
+                }
+
+                // ---- Rules (§3 Stage 1) ----
+                item {
+                    SettingsSectionDivider()
+                    SettingsSectionHeader(stringResource(R.string.settings_section_rules))
                     Text(
-                        when (sensitivity) {
-                            "RELAXED" -> stringResource(R.string.settings_sensitivity_relaxed_body)
-                            "STRICT" -> stringResource(R.string.settings_sensitivity_strict_body)
-                            else -> stringResource(R.string.settings_sensitivity_default_body)
-                        },
+                        stringResource(R.string.settings_rules_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
                     )
                 }
-            }
+                item { RuleGroupHeader(stringResource(R.string.settings_rules_always_allow), "ALLOW", onAdd = { addRuleKind = "ALLOW" }) }
+                items(rules.filter { it.kind == "ALLOW" }, key = { it.id }) { rule ->
+                    RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+                }
+                item { RuleGroupHeader(stringResource(R.string.settings_rules_always_block), "BLOCK", onAdd = { addRuleKind = "BLOCK" }) }
+                items(rules.filter { it.kind == "BLOCK" }, key = { it.id }) { rule ->
+                    RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+                }
+                item { RuleGroupHeader(stringResource(R.string.settings_rules_custom), "CUSTOM", onAdd = { addRuleKind = "CUSTOM" }) }
+                items(rules.filter { it.kind == "CUSTOM" }, key = { it.id }) { rule ->
+                    RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+                }
 
-            // ---- Rules (§3 Stage 1) ----
-            item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_rules))
-                Text(
-                    stringResource(R.string.settings_rules_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                )
-            }
-            item { RuleGroupHeader(stringResource(R.string.settings_rules_always_allow), "ALLOW", onAdd = { addRuleKind = "ALLOW" }) }
-            items(rules.filter { it.kind == "ALLOW" }, key = { it.id }) { rule ->
-                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
-            }
-            item { RuleGroupHeader(stringResource(R.string.settings_rules_always_block), "BLOCK", onAdd = { addRuleKind = "BLOCK" }) }
-            items(rules.filter { it.kind == "BLOCK" }, key = { it.id }) { rule ->
-                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
-            }
-            item { RuleGroupHeader(stringResource(R.string.settings_rules_custom), "CUSTOM", onAdd = { addRuleKind = "CUSTOM" }) }
-            items(rules.filter { it.kind == "CUSTOM" }, key = { it.id }) { rule ->
-                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
-            }
+                // ---- Notifications (Phase 4 item 3: full per-folder screen) ----
+                item {
+                    SettingsSectionDivider()
+                    SettingsSectionHeader(stringResource(R.string.settings_section_notifications))
+                    SettingsGlassGroup {
+                        SettingsNavRow(
+                            icon = Icons.Outlined.Notifications,
+                            title = stringResource(R.string.settings_notification_behavior),
+                            subtitle = stringResource(R.string.settings_notification_behavior_subtitle),
+                            onClick = onOpenNotificationSettings,
+                        )
+                    }
+                }
 
-            // ---- Notifications (Phase 4 item 3: full per-folder screen) ----
-            item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_notifications))
-                SettingsNavRow(
-                    icon = Icons.Outlined.Notifications,
-                    title = stringResource(R.string.settings_notification_behavior),
-                    subtitle = stringResource(R.string.settings_notification_behavior_subtitle),
-                    onClick = onOpenNotificationSettings,
-                )
-            }
-
-            // ---- Privacy & security (§8.2) ----
-            item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_privacy))
-                // The biometric prompt is raised from onChange, which is not a
-                // composable scope; both titles are resolved here instead.
-                val enablePrompt = stringResource(R.string.settings_app_lock_prompt_enable)
-                val disablePrompt = stringResource(R.string.settings_app_lock_prompt_disable)
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Lock,
-                    title = stringResource(R.string.settings_app_lock),
-                    subtitle = if (vm.canAuthenticate) {
-                        stringResource(R.string.settings_app_lock_subtitle)
-                    } else {
-                        stringResource(R.string.settings_app_lock_unavailable)
-                    },
-                    checked = appLock,
-                    enabled = vm.canAuthenticate,
-                    onChange = { enable ->
-                        // Both directions demand a successful auth: enabling
-                        // proves the unlock works; disabling must not be a
-                        // free action for whoever is holding an unlocked
-                        // phone. Cancel/failure leaves the switch as-is.
-                        if (activity != null) {
-                            AppLock.authenticate(
-                                activity,
-                                if (enable) enablePrompt else disablePrompt,
-                                onSuccess = { vm.setAppLock(enable) },
+                // ---- Privacy & security (§8.2) ----
+                item {
+                    SettingsSectionDivider()
+                    SettingsSectionHeader(stringResource(R.string.settings_section_privacy))
+                    SettingsGlassGroup {
+                        // The biometric prompt is raised from onChange, which is not a
+                        // composable scope; both titles are resolved here instead.
+                        val enablePrompt = stringResource(R.string.settings_app_lock_prompt_enable)
+                        val disablePrompt = stringResource(R.string.settings_app_lock_prompt_disable)
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Lock,
+                            title = stringResource(R.string.settings_app_lock),
+                            subtitle = if (vm.canAuthenticate) {
+                                stringResource(R.string.settings_app_lock_subtitle)
+                            } else {
+                                stringResource(R.string.settings_app_lock_unavailable)
+                            },
+                            checked = appLock,
+                            enabled = vm.canAuthenticate,
+                            onChange = { enable ->
+                                // Both directions demand a successful auth: enabling
+                                // proves the unlock works; disabling must not be a
+                                // free action for whoever is holding an unlocked
+                                // phone. Cancel/failure leaves the switch as-is.
+                                if (activity != null) {
+                                    AppLock.authenticate(
+                                        activity,
+                                        if (enable) enablePrompt else disablePrompt,
+                                        onSuccess = { vm.setAppLock(enable) },
+                                    )
+                                }
+                            },
+                        )
+                        if (appLock) {
+                            SettingsRowDivider()
+                            SettingsDropdownRow(
+                                icon = Icons.Outlined.Timer,
+                                title = stringResource(R.string.settings_lock_after),
+                                subtitle = stringResource(R.string.settings_lock_after_subtitle),
+                                value = com.messages.app.security.LockGrace.label(lockAfterMs),
+                                options = com.messages.app.security.LockGrace.options.map { it.first to it.second },
+                                onSelect = { vm.setLockAfter(it) },
                             )
                         }
-                    },
-                )
-                if (appLock) {
-                    SettingsDropdownRow(
-                        icon = Icons.Outlined.Timer,
-                        title = stringResource(R.string.settings_lock_after),
-                        subtitle = stringResource(R.string.settings_lock_after_subtitle),
-                        value = com.messages.app.security.LockGrace.label(lockAfterMs),
-                        options = com.messages.app.security.LockGrace.options.map { it.first to it.second },
-                        onSelect = { vm.setLockAfter(it) },
+                        SettingsRowDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.VisibilityOff,
+                            title = stringResource(R.string.settings_hide_previews),
+                            subtitle = stringResource(R.string.settings_hide_previews_subtitle),
+                            checked = hidePreviews,
+                            onChange = { vm.setHidePreviews(it) },
+                        )
+                        val entryCtx = androidx.compose.ui.platform.LocalContext.current
+                        var accessibleEntry by remember {
+                            mutableStateOf(SecretEntryAccess.enabled(entryCtx))
+                        }
+                        SettingsRowDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Accessibility,
+                            title = stringResource(R.string.settings_accessible_entry_title),
+                            subtitle = stringResource(R.string.settings_accessible_entry_subtitle),
+                            checked = accessibleEntry,
+                            onChange = {
+                                accessibleEntry = it
+                                SecretEntryAccess.setEnabled(entryCtx, it)
+                            },
+                        )
+                        if (accessibleEntry) {
+                            SettingsRowDivider()
+                            SettingsRow(
+                                icon = Icons.Outlined.Lock,
+                                title = stringResource(SecretEntryAccess.ACTION_LABEL),
+                                subtitle = stringResource(
+                                    R.string.settings_accessible_entry_row_subtitle,
+                                ),
+                                onClick = onSecretEntry,
+                                indented = true,
+                            )
+                        }
+                    }
+                    Text(
+                        stringResource(R.string.settings_lock_chat_tip),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
                     )
                 }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.VisibilityOff,
-                    title = stringResource(R.string.settings_hide_previews),
-                    subtitle = stringResource(R.string.settings_hide_previews_subtitle),
-                    checked = hidePreviews,
-                    onChange = { vm.setHidePreviews(it) },
-                )
-                // V2-39. The locked space's only entrance was a 1.5-second
-                // press on the Home title — raw pointer input, so it does not
-                // exist for a screen reader, Switch Access, a keyboard or a
-                // D-pad, and is out of reach for many motor impairments.
-                //
-                // This switch is the user's own call on the trade: a labelled
-                // action is discoverable by definition, which is the opposite
-                // of what concealment wants. It ships on every install and
-                // defaults off, so its presence says something about the app,
-                // never about this user. Both rows lead to the credential
-                // prompt; nothing here weakens it.
-                val entryCtx = androidx.compose.ui.platform.LocalContext.current
-                var accessibleEntry by remember {
-                    mutableStateOf(SecretEntryAccess.enabled(entryCtx))
-                }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Accessibility,
-                    title = stringResource(R.string.settings_accessible_entry_title),
-                    subtitle = stringResource(R.string.settings_accessible_entry_subtitle),
-                    checked = accessibleEntry,
-                    onChange = {
-                        accessibleEntry = it
-                        SecretEntryAccess.setEnabled(entryCtx, it)
-                    },
-                )
-                if (accessibleEntry) {
-                    SettingsRow(
-                        icon = Icons.Outlined.Lock,
-                        title = stringResource(SecretEntryAccess.ACTION_LABEL),
-                        subtitle = stringResource(
-                            R.string.settings_accessible_entry_row_subtitle,
-                        ),
-                        onClick = onSecretEntry,
-                        indented = true,
-                    )
-                }
-                Text(
-                    stringResource(R.string.settings_lock_chat_tip),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                )
-            }
 
             // ---- Conversations (§8.1/§8.2): swipe actions + delivery reports ----
             item {
@@ -740,73 +750,72 @@ fun SettingsScreen(
                 val ctx = androidx.compose.ui.platform.LocalContext.current
                 val rightAction by com.messages.app.ui.home.SwipeActions.right.collectAsStateWithLifecycle()
                 val leftAction by com.messages.app.ui.home.SwipeActions.left.collectAsStateWithLifecycle()
-                SettingsDropdownRow(
-                    icon = Icons.Outlined.SwipeRight,
-                    title = stringResource(R.string.settings_swipe_right),
-                    subtitle = stringResource(R.string.settings_swipe_right_subtitle),
-                    value = com.messages.app.ui.home.SwipeActions.label(rightAction),
-                    options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
-                    onSelect = { com.messages.app.ui.home.SwipeActions.setRight(ctx, it) },
-                )
-                SettingsDropdownRow(
-                    icon = Icons.Outlined.SwipeLeft,
-                    title = stringResource(R.string.settings_swipe_left),
-                    subtitle = stringResource(R.string.settings_swipe_left_subtitle),
-                    value = com.messages.app.ui.home.SwipeActions.label(leftAction),
-                    options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
-                    onSelect = { com.messages.app.ui.home.SwipeActions.setLeft(ctx, it) },
-                )
-                var deliveryReports by remember {
-                    mutableStateOf(
-                        ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-                            .getBoolean("delivery_reports", true)
+                SettingsGlassGroup {
+                    SettingsDropdownRow(
+                        icon = Icons.Outlined.SwipeRight,
+                        title = stringResource(R.string.settings_swipe_right),
+                        subtitle = stringResource(R.string.settings_swipe_right_subtitle),
+                        value = com.messages.app.ui.home.SwipeActions.label(rightAction),
+                        options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
+                        onSelect = { com.messages.app.ui.home.SwipeActions.setRight(ctx, it) },
+                    )
+                    SettingsRowDivider()
+                    SettingsDropdownRow(
+                        icon = Icons.Outlined.SwipeLeft,
+                        title = stringResource(R.string.settings_swipe_left),
+                        subtitle = stringResource(R.string.settings_swipe_left_subtitle),
+                        value = com.messages.app.ui.home.SwipeActions.label(leftAction),
+                        options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
+                        onSelect = { com.messages.app.ui.home.SwipeActions.setLeft(ctx, it) },
+                    )
+                    SettingsRowDivider()
+                    var deliveryReports by remember {
+                        mutableStateOf(
+                            ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                                .getBoolean("delivery_reports", true)
+                        )
+                    }
+                    SettingsSwitchRow(
+                        icon = Icons.Outlined.DoneAll,
+                        title = stringResource(R.string.settings_delivery_reports),
+                        subtitle = stringResource(R.string.settings_delivery_reports_subtitle),
+                        checked = deliveryReports,
+                        onChange = {
+                            deliveryReports = it
+                            ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                                .edit().putBoolean("delivery_reports", it).apply()
+                        },
+                    )
+                    SettingsRowDivider()
+                    var linkPreviews by remember {
+                        mutableStateOf(com.messages.app.ui.chat.LinkPreview.enabled(ctx))
+                    }
+                    SettingsSwitchRow(
+                        icon = Icons.Outlined.Link,
+                        title = stringResource(R.string.settings_link_previews),
+                        subtitle = stringResource(R.string.settings_link_previews_subtitle),
+                        checked = linkPreviews,
+                        onChange = {
+                            linkPreviews = it
+                            com.messages.app.ui.chat.LinkPreview.setEnabled(ctx, it)
+                        },
+                    )
+                    SettingsRowDivider()
+                    var summaryCards by remember {
+                        mutableStateOf(com.messages.app.ui.chat.MessageCards.enabled(ctx))
+                    }
+                    SettingsSwitchRow(
+                        icon = Icons.Outlined.Summarize,
+                        title = stringResource(R.string.settings_summary_cards),
+                        subtitle = stringResource(R.string.settings_summary_cards_subtitle),
+                        checked = summaryCards,
+                        onChange = {
+                            summaryCards = it
+                            com.messages.app.ui.chat.MessageCards.setEnabled(ctx, it)
+                        },
                     )
                 }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.DoneAll,
-                    title = stringResource(R.string.settings_delivery_reports),
-                    subtitle = stringResource(R.string.settings_delivery_reports_subtitle),
-                    checked = deliveryReports,
-                    onChange = {
-                        deliveryReports = it
-                        ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-                            .edit().putBoolean("delivery_reports", it).apply()
-                    },
-                )
-                // Link previews (Phase 4 item 9) — the one opt-in network
-                // feature for message content; scope stated in the subtitle.
-                var linkPreviews by remember {
-                    mutableStateOf(com.messages.app.ui.chat.LinkPreview.enabled(ctx))
-                }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Link,
-                    title = stringResource(R.string.settings_link_previews),
-                    subtitle = stringResource(R.string.settings_link_previews_subtitle),
-                    checked = linkPreviews,
-                    onChange = {
-                        linkPreviews = it
-                        com.messages.app.ui.chat.LinkPreview.setEnabled(ctx, it)
-                    },
-                )
-                // V2-51: summary cards. On by default and entirely offline —
-                // the subtitle says where the numbers come from, because a card
-                // that looks like it phoned the bank is exactly what this
-                // feature must not be mistaken for.
-                var summaryCards by remember {
-                    mutableStateOf(com.messages.app.ui.chat.MessageCards.enabled(ctx))
-                }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Summarize,
-                    title = stringResource(R.string.settings_summary_cards),
-                    subtitle = stringResource(R.string.settings_summary_cards_subtitle),
-                    checked = summaryCards,
-                    onChange = {
-                        summaryCards = it
-                        com.messages.app.ui.chat.MessageCards.setEnabled(ctx, it)
-                    },
-                )
                 Spacer(Modifier.height(8.dp))
-                // Quick-reply templates (Phase 4 item 8).
                 QuickRepliesEditor(ctx)
             }
 
@@ -814,44 +823,46 @@ fun SettingsScreen(
             item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_auto_clean))
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.AutoDelete,
-                    title = stringResource(R.string.settings_otp_auto_delete),
-                    subtitle = stringResource(R.string.settings_otp_auto_delete_subtitle),
-                    checked = otpAutoDelete,
-                    onChange = { vm.setOtpAutoDelete(it) },
-                )
-                // §6.5: opt-in, confirmation required, Spam only, via Trash.
-                var confirmSpamClean by remember { mutableStateOf(false) }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.CleaningServices,
-                    title = stringResource(R.string.settings_spam_auto_clean),
-                    subtitle = stringResource(R.string.settings_spam_auto_clean_subtitle),
-                    checked = spamAutoClean,
-                    onChange = { enable ->
-                        if (enable) confirmSpamClean = true
-                        else vm.setSpamAutoClean(false)
-                    },
-                )
-                if (confirmSpamClean) {
-                    AlertDialog(
-                        onDismissRequest = { confirmSpamClean = false },
-                        title = { Text(stringResource(R.string.settings_spam_auto_clean_confirm_title)) },
-                        text = {
-                            Text(
-                                stringResource(R.string.settings_spam_auto_clean_confirm_body)
-                            )
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                confirmSpamClean = false
-                                vm.setSpamAutoClean(true)
-                            }) { Text(stringResource(R.string.settings_turn_on)) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { confirmSpamClean = false }) { Text(stringResource(R.string.action_cancel)) }
+                SettingsGlassGroup {
+                    SettingsSwitchRow(
+                        icon = Icons.Outlined.AutoDelete,
+                        title = stringResource(R.string.settings_otp_auto_delete),
+                        subtitle = stringResource(R.string.settings_otp_auto_delete_subtitle),
+                        checked = otpAutoDelete,
+                        onChange = { vm.setOtpAutoDelete(it) },
+                    )
+                    SettingsRowDivider()
+                    var confirmSpamClean by remember { mutableStateOf(false) }
+                    SettingsSwitchRow(
+                        icon = Icons.Outlined.CleaningServices,
+                        title = stringResource(R.string.settings_spam_auto_clean),
+                        subtitle = stringResource(R.string.settings_spam_auto_clean_subtitle),
+                        checked = spamAutoClean,
+                        onChange = { enable ->
+                            if (enable) confirmSpamClean = true
+                            else vm.setSpamAutoClean(false)
                         },
                     )
+                    if (confirmSpamClean) {
+                        AlertDialog(
+                            onDismissRequest = { confirmSpamClean = false },
+                            title = { Text(stringResource(R.string.settings_spam_auto_clean_confirm_title)) },
+                            text = {
+                                Text(
+                                    stringResource(R.string.settings_spam_auto_clean_confirm_body)
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    confirmSpamClean = false
+                                    vm.setSpamAutoClean(true)
+                                }) { Text(stringResource(R.string.settings_turn_on)) }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { confirmSpamClean = false }) { Text(stringResource(R.string.action_cancel)) }
+                            },
+                        )
+                    }
                 }
             }
 
@@ -859,32 +870,34 @@ fun SettingsScreen(
             item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_pattern_library))
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    Text(
-                        pluralStringResource(
-                            if (hasImportedPack) R.plurals.settings_library_version_imported
-                            else R.plurals.settings_library_version_bundled,
-                            libraryInfo.second,
-                            libraryInfo.first, libraryInfo.second,
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    if (importStatus != null) {
-                        Spacer(Modifier.height(4.dp))
+                SettingsGlassGroup {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text(
-                            importStatus!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
+                            pluralStringResource(
+                                if (hasImportedPack) R.plurals.settings_library_version_imported
+                                else R.plurals.settings_library_version_bundled,
+                                libraryInfo.second,
+                                libraryInfo.first, libraryInfo.second,
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
                         )
-                    }
-                    Row {
-                        TextButton(onClick = {
-                            packPicker.launch(
-                                arrayOf("application/json", "text/plain", "application/octet-stream")
+                        if (importStatus != null) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                importStatus!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
                             )
-                        }) { Text(stringResource(R.string.settings_import_pattern_pack)) }
-                        if (hasImportedPack) {
-                            TextButton(onClick = { vm.revertPack() }) { Text(stringResource(R.string.settings_revert_to_bundled)) }
+                        }
+                        Row {
+                            TextButton(onClick = {
+                                packPicker.launch(
+                                    arrayOf("application/json", "text/plain", "application/octet-stream")
+                                )
+                            }) { Text(stringResource(R.string.settings_import_pattern_pack)) }
+                            if (hasImportedPack) {
+                                TextButton(onClick = { vm.revertPack() }) { Text(stringResource(R.string.settings_revert_to_bundled)) }
+                            }
                         }
                     }
                 }
@@ -894,119 +907,122 @@ fun SettingsScreen(
             item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_backup))
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    Text(
-                        stringResource(R.string.settings_backup_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    if (backupStatus != null) {
-                        Spacer(Modifier.height(4.dp))
+                SettingsGlassGroup {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text(
-                            backupStatus!!,
+                            stringResource(R.string.settings_backup_subtitle),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.outline,
                         )
+                        if (backupStatus != null) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                backupStatus!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        Row {
+                            TextButton(onClick = {
+                                val stamp = java.text.SimpleDateFormat(
+                                    "yyyy-MM-dd", java.util.Locale.US
+                                ).format(java.util.Date())
+                                backupCreator.launch(LocalArchive.suggestedName(stamp))
+                            }) { Text(stringResource(R.string.settings_back_up_now)) }
+                            TextButton(onClick = { confirmRestore = true }) { Text(stringResource(R.string.settings_restore)) }
+                        }
+                        TextButton(onClick = onOpenDriveBackup) { Text(stringResource(R.string.settings_google_drive_backup)) }
                     }
-                    Row {
-                        TextButton(onClick = {
-                            // V2-45: deliberately NOT AppDateFormat. This goes
-                            // into a file name, so it must stay invariant — a
-                            // localized month name or a non-Gregorian calendar
-                            // would make backups sort wrongly and, in some
-                            // scripts, produce characters the picker rejects.
-                            // Built per click, so no stale-locale risk either.
-                            val stamp = java.text.SimpleDateFormat(
-                                "yyyy-MM-dd", java.util.Locale.US
-                            ).format(java.util.Date())
-                            backupCreator.launch(LocalArchive.suggestedName(stamp))
-                        }) { Text(stringResource(R.string.settings_back_up_now)) }
-                        TextButton(onClick = { confirmRestore = true }) { Text(stringResource(R.string.settings_restore)) }
-                    }
-                    // §8.3: encrypted, scheduled cloud backup.
-                    TextButton(onClick = onOpenDriveBackup) { Text(stringResource(R.string.settings_google_drive_backup)) }
                 }
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(12.dp))
             }
 
             // ---- Message import (BUG-1 safety net: §10 backfill re-run) ----
             item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_import))
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    val backfillInfos by com.messages.core.backfill.Backfill
-                        .progressFlow(context).collectAsStateWithLifecycle(initialValue = emptyList())
-                    val running = backfillInfos.firstOrNull()
-                        ?.takeIf { it.state == androidx.work.WorkInfo.State.RUNNING }
-                    Text(
-                        stringResource(R.string.settings_reimport_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    if (running != null) {
-                        val processed = running.progress.getInt(
-                            com.messages.core.backfill.BackfillWorker.KEY_PROCESSED, 0)
-                        val total = running.progress.getInt(
-                            com.messages.core.backfill.BackfillWorker.KEY_TOTAL, 0)
-                        Spacer(Modifier.height(4.dp))
+                SettingsGlassGroup {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val backfillInfos by com.messages.core.backfill.Backfill
+                            .progressFlow(context).collectAsStateWithLifecycle(initialValue = emptyList())
+                        val running = backfillInfos.firstOrNull()
+                            ?.takeIf { it.state == androidx.work.WorkInfo.State.RUNNING }
                         Text(
-                            if (total > 0) {
-                                pluralStringResource(
-                                    R.plurals.settings_importing_progress,
-                                    total, processed, total,
-                                )
-                            } else {
-                                stringResource(R.string.settings_importing)
-                            },
+                            stringResource(R.string.settings_reimport_subtitle),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.outline,
                         )
+                        if (running != null) {
+                            val processed = running.progress.getInt(
+                                com.messages.core.backfill.BackfillWorker.KEY_PROCESSED, 0)
+                            val total = running.progress.getInt(
+                                com.messages.core.backfill.BackfillWorker.KEY_TOTAL, 0)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                if (total > 0) {
+                                    pluralStringResource(
+                                        R.plurals.settings_importing_progress,
+                                        total, processed, total,
+                                    )
+                                } else {
+                                    stringResource(R.string.settings_importing)
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        TextButton(
+                            onClick = { com.messages.core.backfill.Backfill.reimport(context) },
+                            enabled = running == null,
+                        ) { Text(stringResource(R.string.settings_reimport)) }
                     }
-                    TextButton(
-                        onClick = { com.messages.core.backfill.Backfill.reimport(context) },
-                        enabled = running == null,
-                    ) { Text(stringResource(R.string.settings_reimport)) }
                 }
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(12.dp))
             }
 
             // ---- Trash (§6.4) ----
             item {
                 SettingsSectionDivider()
                 val trashCount by vm.trashCount.collectAsStateWithLifecycle(initialValue = 0)
-                SettingsNavRow(
-                    icon = Icons.Outlined.Delete,
-                    title = if (trashCount > 0) {
-                        stringResource(R.string.settings_trash_with_count, trashCount)
-                    } else {
-                        stringResource(R.string.settings_trash)
-                    },
-                    subtitle = stringResource(R.string.settings_trash_subtitle),
-                    onClick = onOpenTrash,
-                )
-                Spacer(Modifier.height(24.dp))
+                SettingsGlassGroup {
+                    SettingsNavRow(
+                        icon = Icons.Outlined.Delete,
+                        title = if (trashCount > 0) {
+                            stringResource(R.string.settings_trash_with_count, trashCount)
+                        } else {
+                            stringResource(R.string.settings_trash)
+                        },
+                        subtitle = stringResource(R.string.settings_trash_subtitle),
+                        onClick = onOpenTrash,
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
             }
 
             // ---- System update & About: version, legal, updates, source ----
             item {
                 SettingsSectionDivider()
-                SettingsNavRow(
-                    icon = Icons.Outlined.SystemUpdate,
-                    title = stringResource(R.string.update_system_update),
-                    subtitle = stringResource(R.string.update_system_update_subtitle),
-                    onClick = onOpenUpdateSettings,
-                )
-                SettingsNavRow(
-                    icon = Icons.Outlined.Info,
-                    title = stringResource(R.string.settings_about),
-                    subtitle = stringResource(R.string.settings_about_subtitle),
-                    onClick = onOpenAbout,
-                )
-                Spacer(Modifier.height(24.dp))
+                SettingsGlassGroup {
+                    SettingsNavRow(
+                        icon = Icons.Outlined.SystemUpdate,
+                        title = stringResource(R.string.update_system_update),
+                        subtitle = stringResource(R.string.update_system_update_subtitle),
+                        onClick = onOpenUpdateSettings,
+                    )
+                    SettingsRowDivider()
+                    SettingsNavRow(
+                        icon = Icons.Outlined.Info,
+                        title = stringResource(R.string.settings_about),
+                        subtitle = stringResource(R.string.settings_about_subtitle),
+                        onClick = onOpenAbout,
+                    )
+                }
+                Spacer(Modifier.height(28.dp))
             }
         }
     }
+}
 }
 
 @StringRes

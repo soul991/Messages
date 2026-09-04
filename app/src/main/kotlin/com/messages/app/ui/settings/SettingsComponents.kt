@@ -31,31 +31,69 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import com.messages.designsystem.GlassDepth
+import com.messages.designsystem.LiquidGlassCard
+import com.messages.designsystem.LocalDarkTheme
+import java.util.Locale
+
 /**
  * Phase 5 §4 shared settings list language: one row anatomy (20dp grid, a
  * reserved leading icon slot, bodyLarge title over onSurfaceVariant subtitle)
- * and one section-header voice, used by every settings surface so
- * Appearance/Conversations/Notifications/Privacy read as one system.
+ * plus one divider, so the 12 settings groups read as chapters in the same
+ * book instead of 12 one-off lists.
  */
 
-/** Section header: primary-colored titleSmall on the 20dp grid. */
+/** Section header: primary-colored titleSmall uppercase on the 24dp grid. */
 @Composable
 internal fun SettingsSectionHeader(title: String) {
     Text(
-        title,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.SemiBold,
+        title.uppercase(Locale.getDefault()),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.sp,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 6.dp),
+        modifier = Modifier.padding(start = 24.dp, end = 20.dp, top = 20.dp, bottom = 6.dp),
     )
 }
 
-/** Section divider: inset to the 20dp grid, calm spacing. */
+/** Section divider: inset calm spacing between grouped glass cards. */
 @Composable
 internal fun SettingsSectionDivider() {
+    Spacer(Modifier.height(8.dp))
+}
+
+/** Grouped Liquid Glass container for settings sections. */
+@Composable
+internal fun SettingsGlassGroup(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    LiquidGlassCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(20.dp),
+        depth = GlassDepth.LOW,
+    ) {
+        Column(Modifier.fillMaxWidth()) {
+            content()
+        }
+    }
+}
+
+/** Hair-line separator between rows inside a SettingsGlassGroup. */
+@Composable
+internal fun SettingsRowDivider(hasIcon: Boolean = true) {
+    val isDark = LocalDarkTheme.current
     HorizontalDivider(
-        Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-        color = MaterialTheme.colorScheme.outlineVariant,
+        modifier = Modifier.padding(start = if (hasIcon) 56.dp else 16.dp, end = 16.dp),
+        thickness = 0.5.dp,
+        color = if (isDark) Color.White.copy(alpha = 0.07f) else Color.Black.copy(alpha = 0.06f),
     )
 }
 

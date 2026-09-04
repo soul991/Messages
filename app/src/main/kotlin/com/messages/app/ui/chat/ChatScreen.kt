@@ -85,6 +85,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -100,6 +101,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.text.BasicTextField
@@ -122,7 +124,9 @@ import com.messages.app.ui.common.sharedThreadAvatar
 import com.messages.app.ui.common.AppDateFormat
 import com.messages.app.ui.common.minTouchTarget
 import com.messages.core.db.MessageEntity
+import com.messages.designsystem.AmbientGlassGlow
 import com.messages.designsystem.Haptics
+import com.messages.designsystem.LocalDarkTheme
 import com.messages.designsystem.Motion
 import com.messages.designsystem.categoryPalette
 import java.util.Calendar
@@ -514,9 +518,12 @@ fun ChatScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
+    Box(Modifier.fillMaxSize()) {
+        AmbientGlassGlow(Modifier.fillMaxSize())
+        Scaffold(
+            containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
             if (msgSelectionActive) {
                 // Message multi-select bar (Phase 4 item 14).
                 TopAppBar(
@@ -662,6 +669,7 @@ fun ChatScreen(
                 mutableStateOf(hintPrefs.getBoolean("contact_info_hint_done", false))
             }
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1360,6 +1368,7 @@ fun ChatScreen(
             }
         }
     }
+    }
 }
 
 /**
@@ -1374,7 +1383,16 @@ private fun ComposerField(
     onQuickReplies: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(22.dp)
+    val dark = LocalDarkTheme.current
+    val borderBrush = androidx.compose.ui.graphics.Brush.linearGradient(
+        listOf(
+            if (dark) Color(0x35FFFFFF) else Color(0x80FFFFFF),
+            if (dark) Color(0x10FFFFFF) else Color(0x1A000000),
+        )
+    )
+    val background = if (dark) Color(0xDE181922) else Color(0xF2FFFFFF)
+
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -1387,10 +1405,18 @@ private fun ComposerField(
         decorationBox = { inner ->
             Row(
                 Modifier
+                    .shadow(
+                        elevation = if (dark) 4.dp else 2.dp,
+                        shape = shape,
+                        clip = false,
+                        ambientColor = Color.Black.copy(if (dark) 0.25f else 0.08f),
+                        spotColor = Color.Black.copy(if (dark) 0.25f else 0.08f),
+                    )
                     .clip(shape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .heightIn(min = 40.dp)
-                    .padding(start = 14.dp, end = 2.dp),
+                    .background(background)
+                    .border(1.dp, borderBrush, shape)
+                    .heightIn(min = 44.dp)
+                    .padding(start = 16.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.weight(1f).padding(vertical = 8.dp)) {
@@ -1398,22 +1424,17 @@ private fun ComposerField(
                         Text(
                             stringResource(R.string.chat_composer_placeholder),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             maxLines = 1,
                         )
                     }
                     inner()
                 }
-                // V2-40: `.size(36.dp)` overrode the 48 dp IconButton default
-                // to keep the composer pill at 40 dp. The pill now settles at
-                // 48 — which is where Material's composer sits anyway — rather
-                // than shipping a 36 dp target inside the most-tapped row in
-                // the app. The glyph stays 20 dp, so nothing looks heavier.
                 IconButton(onClick = onQuickReplies) {
                     Icon(
                         Icons.Filled.Bolt,
                         contentDescription = stringResource(R.string.chat_quick_replies),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -1612,6 +1633,7 @@ private fun timePresets(): List<Pair<String, Long>> {
 
 @Composable
 private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
+    val isDark = LocalDarkTheme.current
     val label = remember(ts) {
         val now = System.currentTimeMillis()
         val cal = Calendar.getInstance()
@@ -1627,13 +1649,17 @@ private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
         Surface(
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            color = if (isDark) Color(0x332A2D3A) else Color(0x33D5DCEB),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.6f),
+            ),
         ) {
             Text(
                 label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
             )
         }
     }
@@ -1650,51 +1676,43 @@ private fun MessageBubble(
     highlightTerms: List<String> = emptyList(),
     onWhy: () -> Unit,
     onNotSpam: () -> Unit,
-    /** Recategorize-anywhere: file a mis-slotted incoming message as spam. */
-    onMarkSpam: () -> Unit = {},
+    onStar: () -> Unit,
+    onDelete: () -> Unit,
     onResend: () -> Unit,
     onSendNow: () -> Unit,
     onCancelScheduled: () -> Unit,
-    onSnooze: (Long) -> Unit,
-    onStar: () -> Unit,
-    onDelete: () -> Unit,
     pinned: Boolean = false,
     onPinToggle: () -> Unit = {},
-    linkPreviewsEnabled: Boolean = false,
-    /** SIM display name for the info sheet; null subId = default SIM. */
+    onSnooze: (Long) -> Unit,
+    onMarkSpam: () -> Unit = {},
     simNameFor: (Int?) -> String = { "Default" },
-    /** In-app message text size (Phase 4 item 15); 1.0 = default. */
     textScale: Float = 1f,
-    /** Multi-select (Phase 4 item 14): taps toggle instead of opening menus. */
+    linkPreviewsEnabled: Boolean = false,
     selectionMode: Boolean = false,
     selected: Boolean = false,
     onToggleSelect: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val clipboard = LocalClipboardManager.current
-    val view = LocalView.current
     val context = LocalContext.current
+    val view = LocalView.current
+    val clipboard = LocalClipboardManager.current
     val isOut = msg.isOutgoing
     val isScheduled = msg.sendStatus == "SCHEDULED"
+    val isDark = LocalDarkTheme.current
     var showMenu by remember { mutableStateOf(false) }
     var showSnoozeMenu by remember { mutableStateOf(false) }
-    var showInfoSheet by remember { mutableStateOf(false) }
-    var showSelectDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
-    // V2-51: bumped when the user corrects or hides the summary card, so the
-    // memoised extraction is recomputed against the new dismissals. The
-    // dismissals themselves live in prefs, not in composition — a card that
-    // came back on the next scroll would read as the app overruling the user.
-    var cardTick by remember(msg.id) { mutableIntStateOf(0) }
+    var showSelectDialog by remember { mutableStateOf(false) }
+    var showInfoSheet by remember { mutableStateOf(false) }
+    // V2-51: tick bumped when the user dismisses/restores a summary card or
+    // turns cards off from the inline overflow, so the card block below
+    // recomposes without ChatScreen having to reload the whole message list.
+    var cardTick by remember { mutableIntStateOf(0) }
     val fraudPalette = categoryPalette("SPAM")
-    // Refs' bubble grid (plan §2): bubbles cap at ~76% of screen width.
-    val maxBubbleWidth = (LocalConfiguration.current.screenWidthDp * 0.76f).dp
 
     // Smart text actions (Phase 4 item 5): platform TextClassifier entities,
     // NEVER on Spam/Blocked or Dangerous/fraud-flagged messages.
     val smartEligible = SmartText.eligible(msg.category, msg.dangerous, msg.fraudWarning)
-    // Cache hits (re-scrolled bubbles) resolve synchronously — no coroutine
-    // round trip, no empty→spans recomposition (Phase 6).
     val smartCached = if (smartEligible && msg.body.isNotBlank()) {
         remember(msg.id) { SmartText.cached(msg.id) }
     } else emptyList()
@@ -1705,39 +1723,45 @@ private fun MessageBubble(
             value = SmartText.spansFor(context, msg.id, msg.body)
         }.value
 
-    // Grouped-bubble corners (§9): big outer corners, tight corners between
-    // group neighbours, and a tail corner on the group's last bubble.
-    val big = 20.dp
-    val cont = 8.dp
-    val tail = 4.dp
-    val bubbleShape = if (isOut) RoundedCornerShape(
-        topStart = big, bottomStart = big,
-        topEnd = if (firstInGroup) big else cont,
-        bottomEnd = if (lastInGroup) tail else cont,
-    ) else RoundedCornerShape(
-        topEnd = big, bottomEnd = big,
-        topStart = if (firstInGroup) big else cont,
-        bottomStart = if (lastInGroup) tail else cont,
-    )
+    val bubbleShape = if (isOut) {
+        RoundedCornerShape(
+            topStart = 18.dp,
+            topEnd = if (firstInGroup) 18.dp else 4.dp,
+            bottomStart = 18.dp,
+            bottomEnd = if (lastInGroup) 18.dp else 4.dp,
+        )
+    } else {
+        RoundedCornerShape(
+            topStart = if (firstInGroup) 18.dp else 4.dp,
+            topEnd = 18.dp,
+            bottomStart = if (lastInGroup) 18.dp else 4.dp,
+            bottomEnd = 18.dp,
+        )
+    }
+
+    val maxBubbleWidth = 300.dp
 
     Column(
-        modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(top = if (firstInGroup) 6.dp else 0.dp),
+            .padding(horizontal = 12.dp, vertical = if (lastInGroup) 4.dp else 1.dp),
         horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
     ) {
         // Red fraud-warning banner (Stage 2 exception / dangerous label)
         if (msg.fraudWarning || msg.dangerous) {
             Row(
-                Modifier
+                modifier = Modifier
                     .widthIn(max = maxBubbleWidth)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(fraudPalette?.container ?: MaterialTheme.colorScheme.errorContainer)
+                    .background(
+                        fraudPalette?.container ?: MaterialTheme.colorScheme.errorContainer,
+                        RoundedCornerShape(12.dp),
+                    )
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    Icons.Filled.Warning, contentDescription = null,
+                    Icons.Filled.Warning,
+                    contentDescription = null,
                     tint = fraudPalette?.tint ?: MaterialTheme.colorScheme.error,
                     modifier = Modifier.width(18.dp),
                 )
@@ -1749,22 +1773,26 @@ private fun MessageBubble(
                     color = fraudPalette?.onContainer ?: MaterialTheme.colorScheme.onErrorContainer,
                 )
             }
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(4.dp))
         }
 
         val bubbleBorder = if (selected) {
             androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
         } else if (!isOut) {
             androidx.compose.ui.graphics.Brush.linearGradient(
-                0.0f to Color.White.copy(alpha = 0.25f),
-                0.5f to Color.White.copy(alpha = 0.08f),
-                1.0f to Color.Transparent,
+                listOf(
+                    if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.65f),
+                    if (isDark) Color.White.copy(alpha = 0.03f) else Color.White.copy(alpha = 0.15f),
+                    Color.Transparent,
+                )
             )
         } else {
             androidx.compose.ui.graphics.Brush.linearGradient(
-                0.0f to Color.White.copy(alpha = 0.35f),
-                0.4f to Color.White.copy(alpha = 0.10f),
-                1.0f to Color.Transparent,
+                listOf(
+                    Color.White.copy(alpha = 0.35f),
+                    Color.White.copy(alpha = 0.08f),
+                    Color.Transparent,
+                )
             )
         }
 
@@ -1777,14 +1805,14 @@ private fun MessageBubble(
                         androidx.compose.ui.graphics.Brush.linearGradient(
                             listOf(
                                 outBubbleColors.first,
-                                outBubbleColors.first.copy(alpha = 0.92f),
+                                outBubbleColors.first.copy(alpha = 0.94f),
                             )
                         )
                     } else {
                         androidx.compose.ui.graphics.Brush.linearGradient(
                             listOf(
-                                MaterialTheme.colorScheme.surfaceContainerHigh,
-                                MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
+                                if (isDark) Color(0xF01E202B) else Color(0xF5F0F2F7),
+                                if (isDark) Color(0xEB181922) else Color(0xEAEFF6),
                             )
                         )
                     }

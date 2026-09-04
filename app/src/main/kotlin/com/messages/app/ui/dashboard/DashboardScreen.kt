@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,25 +29,32 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import java.util.Locale
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.R
 import com.messages.core.MessageRepository
+import com.messages.designsystem.AmbientGlassGlow
 import com.messages.designsystem.CategoryColors
+import com.messages.designsystem.GlassDepth
+import com.messages.designsystem.LiquidGlassCard
+import com.messages.designsystem.LocalDarkTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.pluralStringResource
-import com.messages.app.R
 
 /** Protection dashboard (§8.2): satisfying counters, families, top senders. */
 class DashboardViewModel(app: Application) : AndroidViewModel(app) {
@@ -119,200 +128,250 @@ fun DashboardScreen(
 ) {
     val period by vm.period.collectAsStateWithLifecycle()
     val stats by vm.stats.collectAsStateWithLifecycle()
+    val isDark = LocalDarkTheme.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.dashboard_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        LazyColumn(Modifier.padding(padding).fillMaxSize()) {
+    Box(Modifier.fillMaxSize()) {
+        AmbientGlassGlow(Modifier.fillMaxSize())
 
-            // Hero counter — "N spam messages silenced"
-            item {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Icon(
-                        Icons.Filled.Shield, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "%,d".format(stats.totalSilenced),
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    Text(
-                        stringResource(R.string.dashboard_silenced_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
-            }
-
-            // Period selector
-            item {
-                Row(
-                    Modifier.padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    FilterChip(
-                        selected = period == "WEEK",
-                        onClick = { vm.setPeriod("WEEK") },
-                        label = { Text(stringResource(R.string.dashboard_period_week)) },
-                    )
-                    FilterChip(
-                        selected = period == "MONTH",
-                        onClick = { vm.setPeriod("MONTH") },
-                        label = { Text(stringResource(R.string.dashboard_period_month)) },
-                    )
-                }
-            }
-
-            // Category counters
-            item {
-                Row(
-                    Modifier.fillMaxWidth().padding(20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    StatCard(stringResource(R.string.category_spam), stats.byCategory["SPAM"] ?: 0, CategoryColors.Fraud, Modifier.weight(1f))
-                    StatCard(stringResource(R.string.dashboard_stat_promos), stats.byCategory["PROMOTIONS"] ?: 0, CategoryColors.Promo, Modifier.weight(1f))
-                    StatCard(stringResource(R.string.dashboard_stat_blocked), stats.byCategory["BLOCKED"] ?: 0, MaterialTheme.colorScheme.outline, Modifier.weight(1f))
-                }
-                if (stats.dangerous > 0) {
-                    Text(
-                        pluralStringResource(
-                            R.plurals.dashboard_dangerous_stopped,
-                            stats.dangerous,
-                            stats.dangerous,
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = CategoryColors.Fraud,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                }
-            }
-
-            // By family
-            if (stats.byFamily.isNotEmpty()) {
-                item {
-                    HorizontalDivider(Modifier.padding(vertical = 16.dp))
-                    Text(
-                        stringResource(R.string.dashboard_what_was_caught),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    val max = stats.byFamily.maxOf { it.second }.coerceAtLeast(1)
-                    Column(Modifier.padding(horizontal = 20.dp)) {
-                        stats.byFamily.forEach { (family, count) ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    family,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.width(150.dp),
-                                )
-                                LinearProgressIndicator(
-                                    progress = { count.toFloat() / max },
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "$count",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
-                            }
-                            Spacer(Modifier.height(10.dp))
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.dashboard_title), fontWeight = FontWeight.SemiBold) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                         }
-                    }
-                }
-            }
-
-            // Top filtered senders
-            if (stats.topSenders.isNotEmpty()) {
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                )
+            },
+        ) { padding ->
+            LazyColumn(
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+            ) {
+                // Hero counter — "N spam messages silenced"
                 item {
-                    HorizontalDivider(Modifier.padding(vertical = 16.dp))
-                    Text(
-                        stringResource(R.string.dashboard_top_senders),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Column(Modifier.padding(horizontal = 20.dp)) {
-                        stats.topSenders.forEach { (address, count) ->
-                            Row(
-                                Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(
-                                    Modifier
-                                        .width(36.dp)
-                                        .height(36.dp)
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .background(CategoryColors.FraudContainer),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        address.take(1).uppercase(),
-                                        color = CategoryColors.Fraud,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                                Spacer(Modifier.width(12.dp))
-                                Text(
-                                    address,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(
-                                    pluralStringResource(
-                                        R.plurals.dashboard_sender_filtered, count, count,
-                                    ),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(24.dp))
-                }
-            }
-
-            // Empty state (§9 delight)
-            if (stats.byFamily.isEmpty() && stats.topSenders.isEmpty()) {
-                item {
-                    Column(
-                        Modifier.fillMaxWidth().padding(40.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    LiquidGlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        depth = GlassDepth.HIGH,
                     ) {
-                        Text(
-                            stringResource(R.string.dashboard_empty_glyph),
-                            style = MaterialTheme.typography.displaySmall,
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.18f else 0.12f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Filled.Shield,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(26.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                "%,d".format(stats.totalSilenced),
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                stringResource(R.string.dashboard_silenced_subtitle),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                // Period selector
+                item {
+                    Row(
+                        Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        FilterChip(
+                            selected = period == "WEEK",
+                            onClick = { vm.setPeriod("WEEK") },
+                            label = { Text(stringResource(R.string.dashboard_period_week)) },
+                            shape = RoundedCornerShape(12.dp),
                         )
-                        Spacer(Modifier.height(8.dp))
+                        FilterChip(
+                            selected = period == "MONTH",
+                            onClick = { vm.setPeriod("MONTH") },
+                            label = { Text(stringResource(R.string.dashboard_period_month)) },
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                    }
+                }
+
+                // Category counters
+                item {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        StatCard(stringResource(R.string.category_spam), stats.byCategory["SPAM"] ?: 0, CategoryColors.Fraud, Modifier.weight(1f))
+                        StatCard(stringResource(R.string.dashboard_stat_promos), stats.byCategory["PROMOTIONS"] ?: 0, CategoryColors.Promo, Modifier.weight(1f))
+                        StatCard(stringResource(R.string.dashboard_stat_blocked), stats.byCategory["BLOCKED"] ?: 0, MaterialTheme.colorScheme.outline, Modifier.weight(1f))
+                    }
+                    if (stats.dangerous > 0) {
                         Text(
-                            stringResource(R.string.dashboard_empty_body),
+                            pluralStringResource(
+                                R.plurals.dashboard_dangerous_stopped,
+                                stats.dangerous,
+                                stats.dangerous,
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = CategoryColors.Fraud,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
                         )
+                    }
+                }
+
+                // By family
+                if (stats.byFamily.isNotEmpty()) {
+                    item {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            stringResource(R.string.dashboard_what_was_caught).uppercase(Locale.getDefault()),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
+                        )
+                        LiquidGlassCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            depth = GlassDepth.LOW,
+                        ) {
+                            val max = stats.byFamily.maxOf { it.second }.coerceAtLeast(1)
+                            Column(Modifier.padding(16.dp)) {
+                                stats.byFamily.forEachIndexed { i, (family, count) ->
+                                    if (i > 0) Spacer(Modifier.height(12.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            family,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.width(140.dp),
+                                        )
+                                        LinearProgressIndicator(
+                                            progress = { count.toFloat() / max },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(4.dp)),
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Text(
+                                            "$count",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Top filtered senders
+                if (stats.topSenders.isNotEmpty()) {
+                    item {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            stringResource(R.string.dashboard_top_senders).uppercase(Locale.getDefault()),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
+                        )
+                        LiquidGlassCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            depth = GlassDepth.LOW,
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                stats.topSenders.forEachIndexed { i, (address, count) ->
+                                    if (i > 0) Spacer(Modifier.height(10.dp))
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Box(
+                                            Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(CategoryColors.FraudContainer),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                address.take(1).uppercase(),
+                                                color = CategoryColors.Fraud,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(
+                                            address,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        Text(
+                                            pluralStringResource(
+                                                R.plurals.dashboard_sender_filtered, count, count,
+                                            ),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(24.dp))
+                    }
+                }
+
+                // Empty state (§9 delight)
+                if (stats.byFamily.isEmpty() && stats.topSenders.isEmpty()) {
+                    item {
+                        Column(
+                            Modifier.fillMaxWidth().padding(40.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                stringResource(R.string.dashboard_empty_glyph),
+                                style = MaterialTheme.typography.displaySmall,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                stringResource(R.string.dashboard_empty_body),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
                     }
                 }
             }
@@ -327,19 +386,29 @@ private fun StatCard(
     tint: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    LiquidGlassCard(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        depth = GlassDepth.LOW,
     ) {
-        Text(
-            "%,d".format(count),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = tint,
-        )
-        Text(label, style = MaterialTheme.typography.labelMedium)
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                "%,d".format(count),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = tint,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }

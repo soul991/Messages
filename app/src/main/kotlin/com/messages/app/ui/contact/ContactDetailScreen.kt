@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,6 +43,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -50,8 +52,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.messages.designsystem.AmbientGlassGlow
+import com.messages.designsystem.GlassDepth
+import com.messages.designsystem.LiquidGlassCard
+import com.messages.designsystem.LocalDarkTheme
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -214,197 +221,219 @@ fun ContactDetailScreen(
     val isGroup = address.contains(';')
     val saved = lookupKey != null
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // ---- Photo hero (REFS §6b) ----
-            Spacer(Modifier.height(8.dp))
-            ContactAvatar(
-                contactName ?: address,
-                category,
-                size = 120.dp,
-                textStyle = MaterialTheme.typography.displayMedium,
-                photoUri = if (isGroup) null else rememberContactPhoto(address.ifBlank { null }),
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                contactName ?: address.ifBlank { stringResource(R.string.contact_unnamed) },
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 24.dp),
-            )
-            if (contactName != null || isGroup) {
-                Spacer(Modifier.height(4.dp))
+    Box(Modifier.fillMaxSize()) {
+        AmbientGlassGlow(Modifier.fillMaxSize())
+
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {},
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                )
+            },
+        ) { padding ->
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // ---- Photo hero (REFS §6b) ----
+                Spacer(Modifier.height(8.dp))
+                ContactAvatar(
+                    contactName ?: address,
+                    category,
+                    size = 120.dp,
+                    textStyle = MaterialTheme.typography.displayMedium,
+                    photoUri = if (isGroup) null else rememberContactPhoto(address.ifBlank { null }),
+                )
+                Spacer(Modifier.height(16.dp))
                 Text(
-                    if (isGroup) address.replace(";", ", ") else address,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    contactName ?: address.ifBlank { stringResource(R.string.contact_unnamed) },
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 24.dp),
                 )
-            }
-            Spacer(Modifier.height(20.dp))
-
-            // ---- Circular tonal action trio (REFS §6b) ----
-            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                HeroAction(
-                    icon = Icons.AutoMirrored.Outlined.Chat,
-                    label = stringResource(R.string.contact_action_message),
-                    onClick = onMessage,
-                )
-                // Numeric senders can be called; alphanumeric headers can't.
-                if (!isGroup && address.any { it.isDigit() } && address.none { it.isLetter() }) {
-                    HeroAction(
-                        icon = Icons.Outlined.Call,
-                        label = stringResource(R.string.contact_action_call),
-                        onClick = {
-                            runCatching {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_DIAL, Uri.parse("tel:$address"))
-                                )
-                            }
-                        },
+                if (contactName != null || isGroup) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        if (isGroup) address.replace(";", ", ") else address,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp),
                     )
                 }
-                if (!isGroup && address.isNotBlank()) {
-                    if (saved) {
+                Spacer(Modifier.height(20.dp))
+
+                // ---- Circular tonal action trio (REFS §6b) ----
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    HeroAction(
+                        icon = Icons.AutoMirrored.Outlined.Chat,
+                        label = stringResource(R.string.contact_action_message),
+                        onClick = onMessage,
+                    )
+                    // Numeric senders can be called; alphanumeric headers can't.
+                    if (!isGroup && address.any { it.isDigit() } && address.none { it.isLetter() }) {
                         HeroAction(
-                            icon = Icons.Outlined.Person,
-                            label = stringResource(R.string.contact_action_open_contact),
-                            onClick = {
-                                runCatching {
-                                    val uri = Uri.withAppendedPath(
-                                        ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookupKey,
-                                    )
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                                }
-                            },
-                        )
-                    } else {
-                        HeroAction(
-                            icon = Icons.Outlined.PersonAddAlt,
-                            label = stringResource(R.string.contact_action_save),
+                            icon = Icons.Outlined.Call,
+                            label = stringResource(R.string.contact_action_call),
                             onClick = {
                                 runCatching {
                                     context.startActivity(
-                                        Intent(Intent.ACTION_INSERT_OR_EDIT).apply {
-                                            type = ContactsContract.Contacts.CONTENT_ITEM_TYPE
-                                            putExtra(ContactsContract.Intents.Insert.PHONE, address)
+                                        Intent(Intent.ACTION_DIAL, Uri.parse("tel:$address"))
+                                    )
+                                }
+                            },
+                        )
+                    }
+                    if (!isGroup && address.isNotBlank()) {
+                        if (saved) {
+                            HeroAction(
+                                icon = Icons.Outlined.Person,
+                                label = stringResource(R.string.contact_action_open_contact),
+                                onClick = {
+                                    runCatching {
+                                        val uri = Uri.withAppendedPath(
+                                            ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookupKey,
+                                        )
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                                    }
+                                },
+                            )
+                        } else {
+                            HeroAction(
+                                icon = Icons.Outlined.PersonAddAlt,
+                                label = stringResource(R.string.contact_action_save),
+                                onClick = {
+                                    runCatching {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_INSERT_OR_EDIT).apply {
+                                                type = ContactsContract.Contacts.CONTENT_ITEM_TYPE
+                                                putExtra(ContactsContract.Intents.Insert.PHONE, address)
+                                            }
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+
+                // ---- Feature rows (REFS §6b: glass card groups) ----
+                LiquidGlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    depth = GlassDepth.LOW,
+                ) {
+                    DetailRow(
+                        icon = Icons.Outlined.StarOutline,
+                        title = stringResource(R.string.starred_title),
+                        subtitle = stringResource(R.string.contact_starred_subtitle),
+                        onClick = onOpenStarred,
+                    )
+                    DetailRow(
+                        icon = Icons.Outlined.Search,
+                        title = stringResource(R.string.contact_search_title),
+                        subtitle = stringResource(R.string.contact_search_subtitle),
+                        onClick = onSearchInChat,
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                LiquidGlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    depth = GlassDepth.LOW,
+                ) {
+                    DetailRow(
+                        icon = Icons.Outlined.NotificationsOff,
+                        title = stringResource(R.string.contact_mute_title),
+                        subtitle = stringResource(R.string.contact_mute_subtitle),
+                        onClick = { vm.setMuted(!muted) },
+                        trailing = { Switch(checked = muted, onCheckedChange = { vm.setMuted(it) }) },
+                    )
+                    DetailRow(
+                        icon = Icons.Outlined.Lock,
+                        title = stringResource(R.string.contact_lock_title),
+                        subtitle = stringResource(R.string.contact_lock_subtitle),
+                        onClick = {},
+                    )
+                    if (!locked) {
+                        DetailRow(
+                            icon = Icons.Outlined.MusicNote,
+                            title = stringResource(R.string.contact_tone_title),
+                            subtitle = if (hasCustomChannel) {
+                                stringResource(R.string.contact_tone_subtitle_custom)
+                            } else {
+                                stringResource(R.string.contact_tone_subtitle_default)
+                            },
+                            onClick = {
+                                val channelId = vm.ensureCustomChannel()
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                                            putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                            putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
                                         }
                                     )
                                 }
                             },
                         )
-                    }
-                }
-            }
-            Spacer(Modifier.height(24.dp))
-
-            // ---- Feature rows (REFS §6b: colored-icon rows) ----
-            DetailRow(
-                icon = Icons.Outlined.StarOutline,
-                title = stringResource(R.string.starred_title),
-                subtitle = stringResource(R.string.contact_starred_subtitle),
-                onClick = onOpenStarred,
-            )
-            DetailRow(
-                icon = Icons.Outlined.Search,
-                title = stringResource(R.string.contact_search_title),
-                subtitle = stringResource(R.string.contact_search_subtitle),
-                onClick = onSearchInChat,
-            )
-
-            SectionGap()
-
-            DetailRow(
-                icon = Icons.Outlined.NotificationsOff,
-                title = stringResource(R.string.contact_mute_title),
-                subtitle = stringResource(R.string.contact_mute_subtitle),
-                onClick = { vm.setMuted(!muted) },
-                trailing = { Switch(checked = muted, onCheckedChange = { vm.setMuted(it) }) },
-            )
-            // The old per-chat biometric lock toggle is gone — locking now
-            // means the secret locked space ("Lock chat" in the chat's ⋮
-            // menu). This row only points there; legacy locked=1 rows keep
-            // their auth gate until the first secret-space setup migrates them.
-            DetailRow(
-                icon = Icons.Outlined.Lock,
-                title = stringResource(R.string.contact_lock_title),
-                subtitle = stringResource(R.string.contact_lock_subtitle),
-                onClick = {},
-            )
-
-            // Per-conversation tone (Phase 4 item 4): a dedicated notification
-            // channel, customized through the system sheet. Locked chats can't
-            // have one — the channel name would surface in system settings.
-            if (!locked) {
-                DetailRow(
-                    icon = Icons.Outlined.MusicNote,
-                    title = stringResource(R.string.contact_tone_title),
-                    subtitle = if (hasCustomChannel) {
-                        stringResource(R.string.contact_tone_subtitle_custom)
-                    } else {
-                        stringResource(R.string.contact_tone_subtitle_default)
-                    },
-                    onClick = {
-                        val channelId = vm.ensureCustomChannel()
-                        runCatching {
-                            context.startActivity(
-                                Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
-                                    putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                    putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
-                                }
-                            )
+                        if (hasCustomChannel) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { vm.removeCustomChannel() }
+                                    .padding(start = 76.dp, end = 20.dp, top = 2.dp, bottom = 10.dp),
+                            ) {
+                                Text(
+                                    stringResource(R.string.contact_tone_reset),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
                         }
-                    },
-                )
-                if (hasCustomChannel) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { vm.removeCustomChannel() }
-                            // Aligns with row titles: 20 + 40dp slot + 16 gap.
-                            .padding(start = 76.dp, end = 20.dp, top = 2.dp, bottom = 10.dp),
-                    ) {
-                        Text(
-                            stringResource(R.string.contact_tone_reset),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
                     }
                 }
+
+                Spacer(Modifier.height(10.dp))
+
+                LiquidGlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    depth = GlassDepth.LOW,
+                ) {
+                    DetailRow(
+                        icon = Icons.Outlined.Block,
+                        title = if (blocked) stringResource(R.string.contact_unblock_title)
+                        else stringResource(R.string.contact_block_title),
+                        subtitle = if (blocked) stringResource(R.string.contact_unblock_subtitle)
+                        else stringResource(R.string.contact_block_subtitle),
+                        onClick = { vm.setBlocked(!blocked) },
+                        iconContainer = MaterialTheme.colorScheme.errorContainer,
+                        iconTint = MaterialTheme.colorScheme.onErrorContainer,
+                        titleColor = MaterialTheme.colorScheme.error,
+                    )
+                }
+                Spacer(Modifier.height(28.dp))
             }
-
-            SectionGap()
-
-            DetailRow(
-                icon = Icons.Outlined.Block,
-                title = if (blocked) stringResource(R.string.contact_unblock_title)
-                else stringResource(R.string.contact_block_title),
-                subtitle = if (blocked) stringResource(R.string.contact_unblock_subtitle)
-                else stringResource(R.string.contact_block_subtitle),
-                onClick = { vm.setBlocked(!blocked) },
-                iconContainer = MaterialTheme.colorScheme.errorContainer,
-                iconTint = MaterialTheme.colorScheme.onErrorContainer,
-                titleColor = MaterialTheme.colorScheme.error,
-            )
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -417,8 +446,20 @@ private fun HeroAction(
     onClick: () -> Unit,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        FilledTonalIconButton(onClick = onClick, modifier = Modifier.size(60.dp)) {
-            Icon(icon, contentDescription = label, modifier = Modifier.size(26.dp))
+        LiquidGlassCard(
+            modifier = Modifier.size(56.dp),
+            shape = CircleShape,
+            depth = GlassDepth.LOW,
+            onClick = onClick,
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    icon,
+                    contentDescription = label,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
         Spacer(Modifier.height(6.dp))
         Text(
@@ -427,14 +468,6 @@ private fun HeroAction(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-}
-
-@Composable
-private fun SectionGap() {
-    HorizontalDivider(
-        Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-        color = MaterialTheme.colorScheme.outlineVariant,
-    )
 }
 
 /** Detail row: 40dp tonal icon container + title/subtitle + optional trailing. */

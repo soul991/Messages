@@ -3,7 +3,9 @@ package com.messages.app.ui.compose
 import android.app.Application
 import android.provider.ContactsContract
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,11 +51,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.messages.designsystem.AmbientGlassGlow
+import com.messages.designsystem.LocalDarkTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.ui.common.ListSkeleton
 import com.messages.app.ui.common.rememberLoadingGrace
@@ -239,126 +245,153 @@ fun NewMessageScreen(
         if (groupMode) vm.addRecipient(contact) else open(contact.number)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (groupMode) {
-                            stringResource(R.string.compose_group_title, selected.size)
-                        } else {
-                            stringResource(R.string.compose_title)
-                        },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                },
-                actions = {
-                    if (groupMode && selected.size >= 2) {
-                        IconButton(onClick = { open(vm.groupAddress()) }) {
-                            Icon(
-                                Icons.Filled.Check,
-                                contentDescription = stringResource(R.string.compose_start_conversation),
-                                tint = MaterialTheme.colorScheme.primary,
+    val isDark = LocalDarkTheme.current
+
+    Box(Modifier.fillMaxSize()) {
+        AmbientGlassGlow(Modifier.fillMaxSize())
+
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            if (groupMode) {
+                                stringResource(R.string.compose_group_title, selected.size)
+                            } else {
+                                stringResource(R.string.compose_title)
+                            },
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    actions = {
+                        if (groupMode && selected.size >= 2) {
+                            IconButton(onClick = { open(vm.groupAddress()) }) {
+                                Icon(
+                                    Icons.Filled.Check,
+                                    contentDescription = stringResource(R.string.compose_start_conversation),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    },
+                )
+            },
+        ) { padding ->
+            Column(Modifier.padding(padding).fillMaxSize()) {
+                // Staged group recipients
+                if (selected.isNotEmpty()) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                    ) {
+                        selected.forEach { contact ->
+                            InputChip(
+                                selected = false,
+                                onClick = { vm.removeRecipient(contact) },
+                                label = { Text(contact.name) },
+                                trailingIcon = {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = stringResource(R.string.compose_remove_recipient),
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                },
+                                modifier = Modifier.padding(end = 6.dp),
                             )
                         }
                     }
-                },
-            )
-        },
-    ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize()) {
-            // Staged group recipients
-            if (selected.isNotEmpty()) {
-                Row(
+                }
+                Box(
                     Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                ) {
-                    selected.forEach { contact ->
-                        InputChip(
-                            selected = false,
-                            onClick = { vm.removeRecipient(contact) },
-                            label = { Text(contact.name) },
-                            trailingIcon = {
-                                Icon(
-                                    Icons.Filled.Close,
-                                    contentDescription = stringResource(R.string.compose_remove_recipient),
-                                    modifier = Modifier.size(16.dp),
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .clip(CircleShape)
+                        .background(if (isDark) Color(0x33262936) else Color(0x33E2E7F0))
+                        .border(
+                            1.dp,
+                            Brush.linearGradient(
+                                listOf(
+                                    if (isDark) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.8f),
+                                    if (isDark) Color.White.copy(alpha = 0.04f) else Color.White.copy(alpha = 0.3f),
                                 )
-                            },
-                            modifier = Modifier.padding(end = 6.dp),
+                            ),
+                            CircleShape,
                         )
-                    }
+                ) {
+                    TextField(
+                        value = query,
+                        onValueChange = { vm.query.value = it },
+                        placeholder = { Text(stringResource(R.string.compose_recipient_hint)) },
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                    )
                 }
-            }
-            TextField(
-                value = query,
-                onValueChange = { vm.query.value = it },
-                placeholder = { Text(stringResource(R.string.compose_recipient_hint)) },
-                singleLine = true,
-                shape = CircleShape,
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .focusRequester(focusRequester),
-            )
 
-            LazyColumn(Modifier.fillMaxSize()) {
-                if (!groupMode && query.isBlank()) {
-                    item(key = "start-group") {
-                        StartGroupRow(onClick = { groupMode = true })
+                LazyColumn(Modifier.fillMaxSize()) {
+                    if (!groupMode && query.isBlank()) {
+                        item(key = "start-group") {
+                            StartGroupRow(onClick = { groupMode = true })
+                        }
                     }
-                }
-                if (isDialable(query)) {
-                    item(key = "send-to-number") {
-                        val number = query.trim()
-                        SendToNumberRow(
-                            number,
-                            onClick = {
-                                if (groupMode) vm.addRecipient(PickerContact(number, number, ""))
-                                else open(number)
-                            },
-                        )
+                    if (isDialable(query)) {
+                        item(key = "send-to-number") {
+                            val number = query.trim()
+                            SendToNumberRow(
+                                number,
+                                onClick = {
+                                    if (groupMode) vm.addRecipient(PickerContact(number, number, ""))
+                                    else open(number)
+                                },
+                            )
+                        }
                     }
-                }
-                items(contacts, key = { it.name + "|" + it.number }) { contact ->
-                    ContactRow(contact, onClick = { pick(contact) })
-                }
-                // V2-42. Failure notices render whether or not the query is
-                // dialable — a broken address book is worth saying out loud —
-                // while the send-to-number row above keeps manual entry working
-                // through all of them.
-                val notice = contactsNotice(
-                    contactsLoad, query, contacts.size, pastGrace, isDialable(query),
-                )
-                when (notice) {
-                    ContactsNotice.NONE -> Unit
-                    ContactsNotice.LOADING -> item(key = "contacts-loading") {
-                        ListSkeleton(stringResource(R.string.compose_loading_contacts), rows = 6, avatar = 44.dp)
+                    items(contacts, key = { it.name + "|" + it.number }) { contact ->
+                        ContactRow(contact, onClick = { pick(contact) })
                     }
-                    ContactsNotice.PERMISSION -> item(key = "contacts-permission") {
-                        ContactsPermissionNotice(onGranted = vm::refresh)
-                    }
-                    ContactsNotice.FAILED -> item(key = "contacts-failed") {
-                        ContactsFailedNotice(
-                            reason = (contactsLoad as? ContactsLoad.Failed)?.reason,
-                            onRetry = vm::refresh,
-                        )
-                    }
-                    ContactsNotice.NO_CONTACTS -> item(key = "contacts-empty") {
-                        PickerHint(stringResource(R.string.compose_no_contacts))
-                    }
-                    ContactsNotice.NO_MATCHES -> item(key = "contacts-no-matches") {
-                        PickerHint(stringResource(R.string.compose_no_matches))
+                    // V2-42. Failure notices render whether or not the query is
+                    // dialable — a broken address book is worth saying out loud —
+                    // while the send-to-number row above keeps manual entry working
+                    // through all of them.
+                    val notice = contactsNotice(
+                        contactsLoad, query, contacts.size, pastGrace, isDialable(query),
+                    )
+                    when (notice) {
+                        ContactsNotice.NONE -> Unit
+                        ContactsNotice.LOADING -> item(key = "contacts-loading") {
+                            ListSkeleton(stringResource(R.string.compose_loading_contacts), rows = 6, avatar = 44.dp)
+                        }
+                        ContactsNotice.PERMISSION -> item(key = "contacts-permission") {
+                            ContactsPermissionNotice(onGranted = vm::refresh)
+                        }
+                        ContactsNotice.FAILED -> item(key = "contacts-failed") {
+                            ContactsFailedNotice(
+                                reason = (contactsLoad as? ContactsLoad.Failed)?.reason,
+                                onRetry = vm::refresh,
+                            )
+                        }
+                        ContactsNotice.NO_CONTACTS -> item(key = "contacts-empty") {
+                            PickerHint(stringResource(R.string.compose_no_contacts))
+                        }
+                        ContactsNotice.NO_MATCHES -> item(key = "contacts-no-matches") {
+                            PickerHint(stringResource(R.string.compose_no_matches))
+                        }
                     }
                 }
             }

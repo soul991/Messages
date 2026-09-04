@@ -166,27 +166,27 @@ fun schemeForSeed(seed: AccentSeed, dark: Boolean): ColorScheme {
 // Shared neutral surfaces — accents restyle the color roles, not the canvas,
 // so switching accents never shifts the app's background feel.
 private val LightBase = lightColorScheme(
-    primary = Color(0xFF00629E),
+    primary = Color(0xFF007AFF),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFCFE5FF),
-    onPrimaryContainer = Color(0xFF001D34),
-    secondary = Color(0xFF526070),
-    secondaryContainer = Color(0xFFD6E4F7),
-    surface = Color(0xFFF8F9FC),
-    surfaceVariant = Color(0xFFDEE3EB),
-    background = Color(0xFFF8F9FC),
+    primaryContainer = Color(0xFFE5F1FF),
+    onPrimaryContainer = Color(0xFF00366F),
+    secondary = Color(0xFF10B981),
+    secondaryContainer = Color(0xFFD1FAE5),
+    surface = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFFF0F2F7),
+    background = Color(0xFFF6F8FD),
 )
 
 private val DarkBase = darkColorScheme(
-    primary = Color(0xFF99CBFF),
-    onPrimary = Color(0xFF003355),
-    primaryContainer = Color(0xFF004A79),
-    onPrimaryContainer = Color(0xFFCFE5FF),
-    secondary = Color(0xFFBAC8DA),
-    secondaryContainer = Color(0xFF3B4857),
-    surface = Color(0xFF101418),
-    surfaceVariant = Color(0xFF42474E),
-    background = Color(0xFF101418),
+    primary = Color(0xFF0A84FF),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF003B75),
+    onPrimaryContainer = Color(0xFFD0E4FF),
+    secondary = Color(0xFF34D399),
+    secondaryContainer = Color(0xFF064E3B),
+    surface = Color(0xFF121319),
+    surfaceVariant = Color(0xFF1E202B),
+    background = Color(0xFF0A0B0E),
 )
 
 // The pre-accent static schemes were the BLUE seed's values; BLUE reproduces
