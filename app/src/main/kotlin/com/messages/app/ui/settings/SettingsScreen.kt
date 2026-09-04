@@ -115,8 +115,6 @@ import kotlinx.coroutines.withContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.messages.app.R
-import kotlin.math.abs
-import kotlin.math.roundToInt
 
 class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -1227,70 +1225,33 @@ private fun InAppBrightnessSection(
             exit = fadeOut() + shrinkVertically(),
         ) {
             Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
-                val icon = when {
-                    brightness < 0.35f -> Icons.Outlined.BrightnessLow
-                    brightness < 0.70f -> Icons.Outlined.BrightnessMedium
-                    else -> Icons.Outlined.BrightnessHigh
-                }
-                val percent = (brightness * 100).roundToInt()
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(
-                        icon,
+                        Icons.Outlined.BrightnessLow,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
                     )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        stringResource(R.string.settings_brightness_slider_label),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
+                    Spacer(Modifier.width(10.dp))
+                    Slider(
+                        value = brightness,
+                        onValueChange = { onBrightnessChange(it.coerceIn(0.05f, 1.0f)) },
+                        valueRange = 0.05f..1.0f,
                         modifier = Modifier.weight(1f),
                     )
-                    Text(
-                        stringResource(R.string.settings_brightness_percent, percent),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                    Spacer(Modifier.width(10.dp))
+                    Icon(
+                        Icons.Outlined.BrightnessHigh,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
                     )
                 }
 
-                Slider(
-                    value = brightness,
-                    onValueChange = { onBrightnessChange(it.coerceIn(0.05f, 1.0f)) },
-                    valueRange = 0.05f..1.0f,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
                 Spacer(Modifier.height(4.dp))
-
-                val presets = listOf(
-                    stringResource(R.string.settings_brightness_low) to 0.25f,
-                    stringResource(R.string.settings_brightness_medium) to 0.50f,
-                    stringResource(R.string.settings_brightness_high) to 0.75f,
-                    stringResource(R.string.settings_brightness_max) to 1.00f,
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                ) {
-                    presets.forEach { (label, presetValue) ->
-                        val isSelected = abs(brightness - presetValue) < 0.03f
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { onBrightnessChange(presetValue) },
-                            label = { Text(label) },
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(8.dp))
 
                 Text(
                     stringResource(R.string.settings_brightness_footnote),

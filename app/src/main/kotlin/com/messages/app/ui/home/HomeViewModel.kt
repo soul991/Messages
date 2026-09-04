@@ -391,20 +391,16 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchState())
 
     fun setTyping(text: String) {
-        // Space/newline commits the current token as a chip (§8.5.2
-        // type-and-select) — matching "add keywords by typing more words".
-        if (text.isNotEmpty() && (text.last() == ' ' || text.last() == '\n')) {
-            commitTyping(text.trim())
-        } else {
-            typing.value = text
-        }
+        typing.value = text
     }
 
-    /** Commit the live-typed token (IME Search key, or trailing space). */
+    /** Commit the live-typed token as a chip if explicitly requested. */
     fun commitTyping(text: String? = null) {
         val token = (text ?: typing.value).trim()
-        typing.value = ""
-        if (token.length >= 2) addChip(token)
+        if (token.length >= 2) {
+            addChip(token)
+            typing.value = ""
+        }
     }
 
     fun addChip(keyword: String) {

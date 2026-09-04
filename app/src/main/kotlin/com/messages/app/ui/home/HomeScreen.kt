@@ -130,6 +130,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
@@ -228,6 +230,8 @@ fun HomeScreen(
     // Counted, so it is a plural rather than an "s" glued on — and the count is
     // only known inside the click handler, hence a resolver instead of a value.
     val resources = LocalContext.current.resources
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val trashedCount = { n: Int ->
         resources.getQuantityString(R.plurals.home_trashed_count_snackbar, n, n)
     }
@@ -252,6 +256,8 @@ fun HomeScreen(
     fun exitSearch() {
         searchActive = false
         vm.clearSearch()
+        focusManager.clearFocus()
+        keyboardController?.hide()
     }
     BackHandler(enabled = searchActive) { exitSearch() }
     BackHandler(enabled = selectionActive) { vm.clearSelection() }
@@ -489,34 +495,34 @@ fun HomeScreen(
                     listOf(
                         GlassDockItem(
                             key = "INBOX",
-                            title = "Personal",
+                            title = resources.getString(R.string.nav_personal),
                             icon = Icons.Outlined.Forum,
                             unreadCount = inboxUnread,
                         ),
                         GlassDockItem(
                             key = "TRANSACTIONS",
-                            title = "Bank",
+                            title = resources.getString(R.string.nav_bank),
                             icon = Icons.Outlined.ReceiptLong,
                             unreadCount = txnUnread,
                             accentColor = Color(0xFF16A34A),
                         ),
                         GlassDockItem(
                             key = "PROMOTIONS",
-                            title = "Offers",
+                            title = resources.getString(R.string.nav_offers),
                             icon = Icons.Outlined.LocalOffer,
                             unreadCount = promoUnread,
                             accentColor = Color(0xFFD97706),
                         ),
                         GlassDockItem(
                             key = "REVIEW",
-                            title = "Review",
+                            title = resources.getString(R.string.nav_review),
                             icon = Icons.Outlined.RateReview,
                             unreadCount = reviewUnread,
                             accentColor = Color(0xFF2563EB),
                         ),
                         GlassDockItem(
                             key = "SPAM",
-                            title = "Spam",
+                            title = resources.getString(R.string.nav_spam),
                             icon = Icons.Outlined.Shield,
                             unreadCount = spamUnread,
                             accentColor = Color(0xFFDC2626),
@@ -550,30 +556,23 @@ fun HomeScreen(
                 return@Column
             }
 
-            // Search bar — incremental, chip-based (§8.5)
-            Row(
+            // Search bar — Liquid Glass integrated search bar (§8.5)
+            Box(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                AnimatedVisibility(
-                    visible = searchActive,
-                    enter = fadeIn(Motion.effectsDefault()),
-                    exit = fadeOut(Motion.effectsFast()),
-                ) {
-                    IconButton(onClick = { exitSearch() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.chat_close_search))
-                    }
-                }
                 LiquidGlassSurface(
                     shape = RoundedCornerShape(26.dp),
                     depth = GlassDepth.LOW,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     TextField(
                         value = typing,
-                        onValueChange = { vm.setTyping(it); searchActive = true },
+                        onValueChange = {
+                            vm.setTyping(it)
+                            if (!searchActive) searchActive = true
+                        },
                         placeholder = {
                             Text(
                                 if (chips.isEmpty()) stringResource(R.string.home_search_placeholder) else stringResource(R.string.home_search_add_keyword),
@@ -583,24 +582,61 @@ fun HomeScreen(
                             )
                         },
                         leadingIcon = {
-                            if (!searchActive) Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            AnimatedContent(
+                                targetState = searchActive,
+                                transitionSpec = {
+                                    fadeIn(Motion.effectsFast()) togetherWith fadeOut(Motion.effectsFast())
+                                },
+                                label = "search-leading-icon",
+                            ) { active ->
+                                if (active) {
+                                    IconButton(onClick = { exitSearch() }) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.ArrowBack,
+                                            contentDescription = stringResource(R.string.chat_close_search),
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
+                                } else {
+                                    Icon(
+                                        Icons.Filled.Search,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
                         },
                         trailingIcon = {
                             if (searchActive && (typing.isNotEmpty() || chips.isNotEmpty())) {
                                 IconButton(onClick = {
-                                    if (typing.isNotEmpty()) vm.setTyping("") else vm.clearSearch()
-                                }) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear)) }
+                                    if (typing.isNotEmpty()) {
+                                        vm.setTyping("")
+                                    } else {
+                                        vm.clearSearch()
+                                    }
+                                }) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = stringResource(R.string.action_clear),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { vm.commitTyping() }),
+                        keyboardActions = KeyboardActions(onSearch = {
+                            keyboardController?.hide()
+                        }),
                         shape = RoundedCornerShape(26.dp),
                         colors = TextFieldDefaults.colors(
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor = MaterialTheme.colorScheme.primary,
                         ),
                         modifier = Modifier
                             .fillMaxWidth()

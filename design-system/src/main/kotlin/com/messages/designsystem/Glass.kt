@@ -91,11 +91,11 @@ object GlassTokens {
         return when (depth) {
             GlassDepth.LOW -> if (dark) {
                 GlassColors(
-                    background = Color(0x24242633),
+                    background = Color(0x3820232E),
                     specularBorder = Brush.linearGradient(
-                        0.0f to Color(0x38FFFFFF),
-                        0.4f to Color(0x14FFFFFF),
-                        1.0f to Color(0x05000000),
+                        0.0f to Color(0x45FFFFFF),
+                        0.4f to Color(0x1CFFFFFF),
+                        1.0f to Color(0x06FFFFFF),
                     ),
                     borderWidth = 1.dp,
                     blurRadius = 16.dp,
@@ -103,85 +103,85 @@ object GlassTokens {
                 )
             } else {
                 GlassColors(
-                    background = Color(0x85FFFFFF),
+                    background = Color(0xB8FFFFFF),
                     specularBorder = Brush.linearGradient(
-                        0.0f to Color(0xB3FFFFFF),
-                        0.5f to Color(0x59FFFFFF),
-                        1.0f to Color(0x1A000000),
+                        0.0f to Color(0xD0FFFFFF),
+                        0.5f to Color(0x75FFFFFF),
+                        1.0f to Color(0x18000000),
                     ),
                     borderWidth = 1.dp,
                     blurRadius = 16.dp,
-                    shadowElevation = 4.dp,
+                    shadowElevation = 3.dp,
                 )
             }
 
             GlassDepth.MEDIUM -> if (dark) {
                 GlassColors(
-                    background = Color(0xDE14151D),
+                    background = Color(0xEE161822),
                     specularBorder = Brush.linearGradient(
-                        0.0f to Color(0x59FFFFFF),
-                        0.4f to Color(0x24FFFFFF),
-                        1.0f to Color(0x0F000000),
+                        0.0f to Color(0x65FFFFFF),
+                        0.4f to Color(0x28FFFFFF),
+                        1.0f to Color(0x0A000000),
                     ),
                     borderWidth = 1.25.dp,
-                    blurRadius = 28.dp,
-                    shadowElevation = 10.dp,
-                    glowColor = primary.copy(alpha = 0.16f),
+                    blurRadius = 24.dp,
+                    shadowElevation = 8.dp,
+                    glowColor = primary.copy(alpha = 0.12f),
                 )
             } else {
                 GlassColors(
-                    background = Color(0xEBF5F7FD),
+                    background = Color(0xF2F4F7FC),
                     specularBorder = Brush.linearGradient(
                         0.0f to Color(0xFFFFFFFF),
-                        0.4f to Color(0x99FFFFFF),
-                        1.0f to Color(0x2E000000),
+                        0.4f to Color(0xB0FFFFFF),
+                        1.0f to Color(0x22000000),
                     ),
                     borderWidth = 1.25.dp,
-                    blurRadius = 28.dp,
-                    shadowElevation = 10.dp,
-                    glowColor = primary.copy(alpha = 0.14f),
+                    blurRadius = 24.dp,
+                    shadowElevation = 8.dp,
+                    glowColor = primary.copy(alpha = 0.10f),
                 )
             }
 
             GlassDepth.HIGH -> if (dark) {
                 GlassColors(
-                    background = Color(0xF01C1E28),
+                    background = Color(0xF61A1D28),
                     specularBorder = Brush.linearGradient(
-                        0.0f to Color(0x73FFFFFF),
-                        0.5f to Color(0x2EFFFFFF),
-                        1.0f to Color(0x1A000000),
+                        0.0f to Color(0x75FFFFFF),
+                        0.5f to Color(0x35FFFFFF),
+                        1.0f to Color(0x12000000),
                     ),
                     borderWidth = 1.5.dp,
-                    blurRadius = 36.dp,
-                    shadowElevation = 18.dp,
-                    glowColor = primary.copy(alpha = 0.22f),
+                    blurRadius = 32.dp,
+                    shadowElevation = 16.dp,
+                    glowColor = primary.copy(alpha = 0.16f),
                 )
             } else {
                 GlassColors(
-                    background = Color(0xF7FFFFFF),
+                    background = Color(0xFAFFFFFF),
                     specularBorder = Brush.linearGradient(
                         0.0f to Color(0xFFFFFFFF),
-                        0.5f to Color(0xB3FFFFFF),
-                        1.0f to Color(0x3D000000),
+                        0.5f to Color(0xC5FFFFFF),
+                        1.0f to Color(0x30000000),
                     ),
                     borderWidth = 1.5.dp,
-                    blurRadius = 36.dp,
-                    shadowElevation = 18.dp,
-                    glowColor = primary.copy(alpha = 0.18f),
+                    blurRadius = 32.dp,
+                    shadowElevation = 16.dp,
+                    glowColor = primary.copy(alpha = 0.14f),
                 )
             }
 
             GlassDepth.OBSIDIAN -> GlassColors(
-                background = Color(0xF50B0C11),
+                background = Color(0xF80D0F16),
                 specularBorder = Brush.linearGradient(
-                    0.0f to Color(0x66718096),
-                    0.5f to Color(0x264A5568),
+                    0.0f to Color(0x55818CF8),
+                    0.5f to Color(0x20818CF8),
                     1.0f to Color(0x05000000),
                 ),
                 borderWidth = 1.25.dp,
-                blurRadius = 32.dp,
-                shadowElevation = 14.dp,
-                glowColor = Color(0x33818CF8),
+                blurRadius = 28.dp,
+                shadowElevation = 12.dp,
+                glowColor = Color(0x25818CF8),
             )
         }
     }
@@ -210,7 +210,7 @@ fun Modifier.liquidGlass(
 )
 
 /**
- * Premium container composable with Liquid Glass finish.
+ * Premium container composable with Liquid Glass finish and optical specular sheen.
  */
 @Composable
 fun LiquidGlassSurface(
@@ -221,18 +221,29 @@ fun LiquidGlassSurface(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val tokens = GlassTokens.resolve(depth)
+    val dark = LocalDarkTheme.current
     val interactionSource = remember { MutableInteractionSource() }
+
+    // Specular inner sheen gradient (light catch from top edge)
+    val sheenBrush = remember(dark) {
+        Brush.verticalGradient(
+            0.0f to (if (dark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.35f)),
+            0.28f to (if (dark) Color.White.copy(alpha = 0.02f) else Color.White.copy(alpha = 0.10f)),
+            1.0f to Color.Transparent,
+        )
+    }
 
     val baseModifier = modifier
         .shadow(
             elevation = tokens.shadowElevation,
             shape = shape,
             clip = false,
-            ambientColor = tokens.glowColor.takeIf { it != Color.Transparent } ?: Color.Black.copy(0.12f),
-            spotColor = tokens.glowColor.takeIf { it != Color.Transparent } ?: Color.Black.copy(0.12f),
+            ambientColor = tokens.glowColor.takeIf { it != Color.Transparent } ?: Color.Black.copy(0.10f),
+            spotColor = tokens.glowColor.takeIf { it != Color.Transparent } ?: Color.Black.copy(0.10f),
         )
         .clip(shape)
         .background(tokens.background, shape)
+        .background(sheenBrush, shape)
         .border(tokens.borderWidth, tokens.specularBorder, shape)
 
     val clickableModifier = if (onClick != null) {
@@ -299,21 +310,22 @@ fun LiquidGlassBottomDock(
                 )
 
                 val primaryColor = MaterialTheme.colorScheme.primary
+                val targetAccent = item.accentColor ?: primaryColor
                 val iconColor by animateColorAsState(
-                    targetValue = if (selected) (item.accentColor ?: primaryColor) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    targetValue = if (selected) targetAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                     label = "dock-icon-color",
                 )
 
                 val pillBackground by animateColorAsState(
-                    targetValue = if (selected) (item.accentColor ?: primaryColor).copy(alpha = 0.16f) else Color.Transparent,
+                    targetValue = if (selected) targetAccent.copy(alpha = 0.16f) else Color.Transparent,
                     label = "dock-pill-bg",
                 )
 
                 val pillBorder = if (selected) {
                     androidx.compose.ui.graphics.Brush.linearGradient(
                         listOf(
-                            (item.accentColor ?: primaryColor).copy(alpha = 0.5f),
-                            (item.accentColor ?: primaryColor).copy(alpha = 0.15f),
+                            targetAccent.copy(alpha = 0.45f),
+                            targetAccent.copy(alpha = 0.12f),
                         )
                     )
                 } else {
@@ -329,7 +341,7 @@ fun LiquidGlassBottomDock(
                         .border(1.dp, pillBorder, RoundedCornerShape(20.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(bounded = true, color = (item.accentColor ?: primaryColor).copy(alpha = 0.25f)),
+                            indication = ripple(bounded = true, color = targetAccent.copy(alpha = 0.25f)),
                             onClick = { onItemSelected(item.key) },
                         )
                         .padding(vertical = 6.dp),
@@ -353,7 +365,7 @@ fun LiquidGlassBottomDock(
                                         .size(if (item.unreadCount > 99) 16.dp else 12.dp)
                                         .clip(CircleShape)
                                         .background(item.accentColor ?: MaterialTheme.colorScheme.error)
-                                        .border(1.dp, Color.White.copy(alpha = 0.8f), CircleShape),
+                                        .border(1.dp, Color.White.copy(alpha = 0.85f), CircleShape),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     if (item.unreadCount > 9) {
