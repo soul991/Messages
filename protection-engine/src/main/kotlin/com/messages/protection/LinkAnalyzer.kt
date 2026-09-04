@@ -48,15 +48,16 @@ object LinkAnalyzer {
     )
 
     private val OFFICIAL_DOMAINS = setOf(
-        "sbi.co.in", "onlinesbi.sbi", "hdfcbank.com", "icicibank.com",
-        "axisbank.com", "kotak.com", "pnbindia.in", "bankofbaroda.in",
+        "sbi.co.in", "onlinesbi.sbi", "sbicard.com", "hdfcbank.com", "icicibank.com",
+        "axisbank.com", "kotak.com", "kotakbank.com", "pnbindia.in", "bankofbaroda.in",
         "canarabank.com", "unionbankofindia.co.in", "paytm.com", "phonepe.com",
         "pay.google.com", "google.com", "amazon.in", "amazon.com",
-        "flipkart.com", "myntra.com", "meesho.com", "airtel.in", "jio.com",
-        "myvi.in", "vodafoneidea.com", "irctc.co.in", "indiapost.gov.in",
-        "bluedart.com", "delhivery.com", "dhl.com", "fedex.com", "dtdc.in",
-        "ekartlogistics.com", "netflix.com", "hotstar.com", "swiggy.com",
-        "zomato.com", "npci.org.in", "uidai.gov.in", "incometax.gov.in",
+        "flipkart.com", "myntra.com", "meesho.com", "airtel.in", "airtelbank.com",
+        "jio.com", "jiomart.com", "tataneu.com", "myvi.in", "vodafoneidea.com",
+        "irctc.co.in", "indiapost.gov.in", "bluedart.com", "delhivery.com",
+        "dhl.com", "fedex.com", "dtdc.in", "ekartlogistics.com", "netflix.com",
+        "hotstar.com", "swiggy.com", "zomato.com", "npci.org.in", "bhimupi.org.in",
+        "uidai.gov.in", "incometax.gov.in", "parivahan.gov.in",
     )
 
     private val IP_URL = Regex("""(?:https?://)?\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}""")
@@ -111,7 +112,7 @@ object LinkAnalyzer {
                     "link-punycode", 8, "Link uses punycode look-alike characters", isPhishy = true,
                 )
             }
-            if (Regex("""\.apk(\?|$)""").containsMatchIn(url)) {
+            if (Regex("""(?i)\.apk(?=[/?#]|$)""").containsMatchIn(url)) {
                 signals += LinkSignal(
                     "link-apk-download", 12, "Direct APK download link — likely malware",
                     isApk = true, isPhishy = true,

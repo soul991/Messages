@@ -1986,6 +1986,987 @@
       "negativeExamples": [
         "Rs 500 added to your Paytm wallet on 12-Jul. Updated balance: Rs 1,250"
       ]
+    },
+    {
+      "id": "in-deva-otp",
+      "family": "protected-otp",
+      "regex": "(?:\\d{4,8}).{0,40}(?:ओटीपी|वन ?टाइम ?पासवर्ड|सत्यापन कोड|वेरिफिकेशन कोड|प्रमाणीकरण कोड)|(?:ओटीपी|वन ?टाइम ?पासवर्ड|सत्यापन कोड|वेरिफिकेशन कोड|प्रमाणीकरण कोड).{0,40}(?:\\d{4,8})",
+      "weight": 0,
+      "languages": [
+        "hi"
+      ],
+      "description": "OTP / verification code (Devanagari) — mirrors protect-otp-code",
+      "examples": [
+        "५५२३१० आपका ओटीपी है, १० मिनट तक वैध है"
+      ],
+      "negativeExamples": [
+        "५ बजे कॉल करना, कोड रिव्यू करना है"
+      ]
+    },
+    {
+      "id": "in-deva-otp-noshare",
+      "family": "protected-otp",
+      "regex": "(?:साझा|शेयर|साँझा).{0,12}(?:न करें|नहीं करें|मत करें|न कीजिए)|किसी को.{0,15}(?:न बताएं|मत बताएं|न बतायें)",
+      "weight": 0,
+      "languages": [
+        "hi"
+      ],
+      "description": "Do-not-share OTP warning (Devanagari) — mirrors protect-otp-noshare",
+      "examples": [
+        "यह ओटीपी किसी के साथ साझा न करें"
+      ],
+      "negativeExamples": [
+        "यह फोटो सबके साथ शेयर करें"
+      ]
+    },
+    {
+      "id": "in-deva-bank-txn",
+      "family": "protected-bank",
+      "regex": "(?:डेबिट|क्रेडिट|निकाले|निकासी|जमा|काटे गए|कटे).{0,40}(?:खात|अकाउंट|कार्ड)|(?:खात|अकाउंट|कार्ड).{0,40}(?:डेबिट|क्रेडिट|निकाले|निकासी|जमा|काटे गए|कटे)",
+      "weight": 0,
+      "languages": [
+        "hi"
+      ],
+      "description": "Bank transaction alert (Devanagari) — mirrors protect-bank-txn",
+      "examples": [
+        "आपके खाते XX4421 से ₹2,500 डेबिट किए गए"
+      ],
+      "negativeExamples": [
+        "उन्हें उस फिल्म के लेखक का क्रेडिट दिया गया"
+      ]
+    },
+    {
+      "id": "in-deva-bank-balance",
+      "family": "protected-bank",
+      "regex": "(?:शेष राशि|उपलब्ध शेष|बैलेंस|अवशेष).{0,25}[\\d,]{2,}",
+      "weight": 0,
+      "languages": [
+        "hi"
+      ],
+      "description": "Balance information (Devanagari) — mirrors protect-bank-balance",
+      "examples": [
+        "उपलब्ध शेष: ₹18,240 खाते XX882 में"
+      ],
+      "negativeExamples": [
+        "काम और जीवन का संतुलन जरूरी है"
+      ]
+    },
+    {
+      "id": "in-deva-delivery-status",
+      "family": "protected-delivery",
+      "regex": "(?:पार्सल|पैकेज|कूरियर|शिपमेंट|ऑर्डर|खेप).{0,40}(?:डिलीवरी के लिए|भेज दिया|रवाना|डिस्पैच|पहुंच|पहुँच|डिलीवर)|(?:ट्रैकिंग (?:आईडी|नंबर|नं))",
+      "weight": 0,
+      "languages": [
+        "hi"
+      ],
+      "description": "Delivery status update (Devanagari) — mirrors protect-delivery-status",
+      "examples": [
+        "आपका ऑर्डर डिलीवरी के लिए निकल चुका है"
+      ],
+      "negativeExamples": [
+        "भाषण सफलतापूर्वक दिया गया"
+      ]
+    },
+    {
+      "id": "in-deva-appointment",
+      "family": "protected-travel",
+      "regex": "(?:अपॉइंटमेंट|अपॉइन्टमेंट|अपॉयंटमेंट).{0,30}(?:कन्फर्म|पुष्टि|तय|निर्धारित|बुक)",
+      "weight": 0,
+      "languages": [
+        "hi"
+      ],
+      "description": "Appointment confirmation (Devanagari) — mirrors protect-appointment",
+      "examples": [
+        "डॉ मेहता के साथ आपका अपॉइंटमेंट कन्फर्म है"
+      ],
+      "negativeExamples": [
+        "कभी नया फ्लैट देखने के लिए अपॉइंटमेंट लेनी चाहिए"
+      ]
+    },
+    {
+      "id": "in-deva-lottery",
+      "family": "lottery-prize",
+      "regex": "(?:बधाई|जीत|विजेता).{0,60}(?:लॉटरी|लकी ड्रॉ|इनाम|पुरस्कार|लाख|करोड़)|(?:लॉटरी|लकी ड्रॉ|इनाम|पुरस्कार|लाख|करोड़).{0,60}(?:बधाई|जीत|विजेता)",
+      "weight": 9,
+      "languages": [
+        "hi"
+      ],
+      "description": "Prize-win claim (Devanagari) — mirrors lottery-badhai",
+      "examples": [
+        "बधाई हो! आपने 25 लाख की लॉटरी जीती है"
+      ],
+      "negativeExamples": [
+        "बधाई हो! बेटा हुआ है"
+      ]
+    },
+    {
+      "id": "in-deva-kyc-block",
+      "family": "kyc-account-threat",
+      "regex": "(?:खात|अकाउंट|केवाईसी|सिम|एटीएम|डेबिट कार्ड).{0,50}(?:बंद|ब्लॉक|निलंबित|फ्रीज|रद्द).{0,60}(?:क्लिक|लिंक|अपडेट|सत्यापित|केवाईसी|वेरिफाई|http)",
+      "weight": 10,
+      "languages": [
+        "hi"
+      ],
+      "description": "Account-block threat with an action demand (Devanagari) — mirrors kyc-account-block",
+      "examples": [
+        "आपका खाता आज बंद हो जाएगा, केवाईसी अपडेट करने के लिए क्लिक करें"
+      ],
+      "negativeExamples": [
+        "आपका कार्ड आपके अनुरोध पर बंद कर दिया गया है, नया कार्ड के लिए हमें कॉल करें"
+      ]
+    },
+    {
+      "id": "in-deva-electricity",
+      "family": "kyc-account-threat",
+      "regex": "(?:बिजली|विद्युत).{0,50}(?:काट|कट जाएगी|कटेगी|डिस्कनेक्ट|बंद कर).{0,50}(?:आज रात|तुरंत|अभी|संपर्क|कॉल)",
+      "weight": 10,
+      "languages": [
+        "hi"
+      ],
+      "description": "Electricity-disconnection scam (Devanagari) — mirrors kyc-electricity",
+      "examples": [
+        "प्रिय उपभोक्ता आपकी बिजली आज रात काट दी जाएगी, तुरंत संपर्क करें"
+      ],
+      "negativeExamples": [
+        "मरम्मत के कारण आज सुबह 10 से 2 बजे तक बिजली बंद रहेगी"
+      ]
+    },
+    {
+      "id": "in-deva-job-home",
+      "family": "job-fraud",
+      "regex": "(?:घर बैठे|घर बैठकर).{0,30}(?:पैसे|पैसा|कमा|कमाई|इनकम|नौकरी|जॉब|काम)",
+      "weight": 9,
+      "languages": [
+        "hi"
+      ],
+      "description": "Earn-from-home bait (Devanagari) — mirrors job-ghar-baithe",
+      "examples": [
+        "घर बैठे पैसे कमाओ, कोई अनुभव नहीं चाहिए"
+      ],
+      "negativeExamples": [
+        "घर बैठे बैठे बोर हो गया यार"
+      ]
+    },
+    {
+      "id": "in-deva-job-daily",
+      "family": "job-fraud",
+      "regex": "(?:रोज|प्रतिदिन|रोजाना|हर दिन|रोज़).{0,40}[\\d,]{3,}.{0,40}(?:कमा|कमाई|इनकम|आमदनी)|(?:कमा|कमाई|इनकम|आमदनी).{0,40}[\\d,]{3,}.{0,40}(?:रोज|प्रतिदिन|रोजाना|हर दिन|रोज़)",
+      "weight": 9,
+      "languages": [
+        "hi"
+      ],
+      "description": "Earn-per-day income bait (Devanagari) — mirrors job-earn-daily",
+      "examples": [
+        "रोज 5,000 रुपये कमाएं अपने मोबाइल से"
+      ],
+      "negativeExamples": [
+        "मैं रोज सुबह 6 बजे उठता हूँ"
+      ]
+    },
+    {
+      "id": "in-deva-parcel-hold",
+      "family": "delivery-customs-scam",
+      "regex": "(?:पार्सल|पैकेज|कूरियर|शिपमेंट|ऑर्डर|खेप).{0,50}(?:कस्टम|सीमा शुल्क|अटक|रुक|रोक|होल्ड).{0,60}(?:शुल्क|फीस|भुगतान|पेमेंट|क्लिक|लिंक)",
+      "weight": 10,
+      "languages": [
+        "hi"
+      ],
+      "description": "Parcel-held-pay-fee scam (Devanagari) — mirrors delivery-parcel-hold",
+      "examples": [
+        "आपका पार्सल कस्टम में अटका है, 25 रुपये शुल्क का भुगतान करें"
+      ],
+      "negativeExamples": [
+        "आपका पार्सल आज शाम 6 बजे तक पहुंच जाएगा"
+      ]
+    },
+    {
+      "id": "in-deva-loan-instant",
+      "family": "loan-fraud",
+      "regex": "(?:तुरंत|इंस्टेंट|झटपट|फटाफट|तत्काल).{0,15}(?:लोन|ऋण|कर्ज)",
+      "weight": 8,
+      "languages": [
+        "hi"
+      ],
+      "description": "Instant-loan bait (Devanagari) — mirrors loan-instant",
+      "examples": [
+        "तुरंत लोन पाएं 5 लाख तक, 5 मिनट में"
+      ],
+      "negativeExamples": [
+        "बैंक ने दो महीने बाद मेरा होम लोन मंजूर किया"
+      ]
+    },
+    {
+      "id": "in-deva-invest-double",
+      "family": "investment-fraud",
+      "regex": "(?:पैसा|पैसे|रकम|निवेश|रुपये).{0,15}(?:डबल|दोगुना|दुगना|दोगुनी)|(?:डबल|दोगुना|दुगना|दोगुनी).{0,15}(?:पैसा|पैसे|रकम|निवेश|रुपये)",
+      "weight": 10,
+      "languages": [
+        "hi"
+      ],
+      "description": "Double-your-money bait (Devanagari) — mirrors invest-double",
+      "examples": [
+        "30 दिन में अपना पैसा दोगुना करें, 100% सुरक्षित"
+      ],
+      "negativeExamples": [
+        "रेसिपी में आटे की मात्रा दोगुनी करें"
+      ]
+    },
+    {
+      "id": "in-beng-otp",
+      "family": "protected-otp",
+      "regex": "(?:\\d{4,8}).{0,40}(?:ওটিপি|ওয়ান ?টাইম ?পাসওয়ার্ড|যাচাইকরণ কোড|ভেরিফিকেশন কোড)|(?:ওটিপি|ওয়ান ?টাইম ?পাসওয়ার্ড|যাচাইকরণ কোড|ভেরিফিকেশন কোড).{0,40}(?:\\d{4,8})",
+      "weight": 0,
+      "languages": [
+        "bn"
+      ],
+      "description": "OTP / verification code (Bengali) — mirrors protect-otp-code",
+      "examples": [
+        "৫৫২৩১০ আপনার ওটিপি, ১০ মিনিট বৈধ"
+      ],
+      "negativeExamples": [
+        "৫ টায় ফোন করো, কোড রিভিউ আছে"
+      ]
+    },
+    {
+      "id": "in-beng-otp-noshare",
+      "family": "protected-otp",
+      "regex": "(?:শেয়ার|ভাগ).{0,12}(?:করবেন না|করবে না|করো না|করবেননা)|কাউকে.{0,15}(?:বলবেন না|জানাবেন না|দেবেন না)",
+      "weight": 0,
+      "languages": [
+        "bn"
+      ],
+      "description": "Do-not-share OTP warning (Bengali) — mirrors protect-otp-noshare",
+      "examples": [
+        "এই ওটিপি কারও সাথে শেয়ার করবেন না"
+      ],
+      "negativeExamples": [
+        "এই ছবিটা সবার সাথে শেয়ার করুন"
+      ]
+    },
+    {
+      "id": "in-beng-bank-txn",
+      "family": "protected-bank",
+      "regex": "(?:ডেবিট|ক্রেডিট|তোলা হয়েছে|জমা|কাটা হয়েছে).{0,40}(?:অ্যাকাউন্ট|একাউন্ট|হিসাব|কার্ড)|(?:অ্যাকাউন্ট|একাউন্ট|হিসাব|কার্ড).{0,40}(?:ডেবিট|ক্রেডিট|তোলা হয়েছে|জমা|কাটা হয়েছে)",
+      "weight": 0,
+      "languages": [
+        "bn"
+      ],
+      "description": "Bank transaction alert (Bengali) — mirrors protect-bank-txn",
+      "examples": [
+        "আপনার অ্যাকাউন্ট XX4421 থেকে ২,৫০০ টাকা ডেবিট হয়েছে"
+      ],
+      "negativeExamples": [
+        "তাকে ছবির লেখক হিসেবে ক্রেডিট দেওয়া হয়েছিল"
+      ]
+    },
+    {
+      "id": "in-beng-bank-balance",
+      "family": "protected-bank",
+      "regex": "(?:ব্যালেন্স|অবশিষ্ট|উপলব্ধ ব্যালেন্স|বাকি).{0,25}[\\d,]{2,}",
+      "weight": 0,
+      "languages": [
+        "bn"
+      ],
+      "description": "Balance information (Bengali) — mirrors protect-bank-balance",
+      "examples": [
+        "উপলব্ধ ব্যালেন্স: ১৮,২৪০ টাকা"
+      ],
+      "negativeExamples": [
+        "কাজ ও জীবনের ভারসাম্য জরুরি"
+      ]
+    },
+    {
+      "id": "in-beng-delivery-status",
+      "family": "protected-delivery",
+      "regex": "(?:পার্সেল|প্যাকেজ|কুরিয়ার|শিপমেন্ট|অর্ডার).{0,40}(?:ডেলিভারির জন্য|পাঠানো হয়েছে|রওনা|ডিসপ্যাচ|পৌঁছাবে|পৌঁছে|ডেলিভার)|(?:ট্র্যাকিং (?:আইডি|নম্বর))",
+      "weight": 0,
+      "languages": [
+        "bn"
+      ],
+      "description": "Delivery status update (Bengali) — mirrors protect-delivery-status",
+      "examples": [
+        "আপনার অর্ডার ডেলিভারির জন্য রওনা হয়েছে"
+      ],
+      "negativeExamples": [
+        "বক্তৃতা সফলভাবে দেওয়া হয়েছে"
+      ]
+    },
+    {
+      "id": "in-beng-appointment",
+      "family": "protected-travel",
+      "regex": "(?:অ্যাপয়েন্টমেন্ট|এপয়েন্টমেন্ট).{0,30}(?:নিশ্চিত|কনফার্ম|নির্ধারিত|বুক)",
+      "weight": 0,
+      "languages": [
+        "bn"
+      ],
+      "description": "Appointment confirmation (Bengali) — mirrors protect-appointment",
+      "examples": [
+        "ডাঃ সেনের সাথে আপনার অ্যাপয়েন্টমেন্ট নিশ্চিত হয়েছে"
+      ],
+      "negativeExamples": [
+        "কখনও নতুন ফ্ল্যাট দেখতে অ্যাপয়েন্টমেন্ট নেওয়া উচিত"
+      ]
+    },
+    {
+      "id": "in-beng-lottery",
+      "family": "lottery-prize",
+      "regex": "(?:অভিনন্দন|জিতেছেন|জিতেছ|বিজয়ী|জয়ী).{0,60}(?:লটারি|লাকি ড্র|পুরস্কার|ইনাম|লাখ|কোটি)|(?:লটারি|লাকি ড্র|পুরস্কার|ইনাম|লাখ|কোটি).{0,60}(?:অভিনন্দন|জিতেছেন|জিতেছ|বিজয়ী|জয়ী)",
+      "weight": 9,
+      "languages": [
+        "bn"
+      ],
+      "description": "Prize-win claim (Bengali) — mirrors lottery-badhai",
+      "examples": [
+        "অভিনন্দন! আপনি ২৫ লাখের লটারি জিতেছেন"
+      ],
+      "negativeExamples": [
+        "অভিনন্দন! ছেলে হয়েছে"
+      ]
+    },
+    {
+      "id": "in-beng-kyc-block",
+      "family": "kyc-account-threat",
+      "regex": "(?:অ্যাকাউন্ট|একাউন্ট|কেওয়াইসি|সিম|এটিএম|ডেবিট কার্ড).{0,50}(?:বন্ধ|ব্লক|স্থগিত|ফ্রিজ|বাতিল).{0,60}(?:ক্লিক|লিঙ্ক|লিংক|আপডেট|যাচাই|কেওয়াইসি|http)",
+      "weight": 10,
+      "languages": [
+        "bn"
+      ],
+      "description": "Account-block threat with an action demand (Bengali) — mirrors kyc-account-block",
+      "examples": [
+        "আপনার অ্যাকাউন্ট আজ বন্ধ হয়ে যাবে, কেওয়াইসি আপডেট করতে ক্লিক করুন"
+      ],
+      "negativeExamples": [
+        "আপনার অনুরোধে কার্ড বন্ধ করা হয়েছে, নতুন কার্ডের জন্য আমাদের কল করুন"
+      ]
+    },
+    {
+      "id": "in-beng-electricity",
+      "family": "kyc-account-threat",
+      "regex": "(?:বিদ্যুৎ|বিদ্যুত|কারেন্ট).{0,50}(?:কেটে|কাটা হবে|বিচ্ছিন্ন|বন্ধ কর).{0,50}(?:আজ রাতে|এখনই|অবিলম্বে|যোগাযোগ|কল)",
+      "weight": 10,
+      "languages": [
+        "bn"
+      ],
+      "description": "Electricity-disconnection scam (Bengali) — mirrors kyc-electricity",
+      "examples": [
+        "প্রিয় গ্রাহক আজ রাতে আপনার বিদ্যুৎ সংযোগ কেটে দেওয়া হবে, এখনই যোগাযোগ করুন"
+      ],
+      "negativeExamples": [
+        "মেরামতের জন্য আজ সকাল ১০টা থেকে ২টা পর্যন্ত বিদ্যুৎ বন্ধ থাকবে"
+      ]
+    },
+    {
+      "id": "in-beng-job-home",
+      "family": "job-fraud",
+      "regex": "(?:ঘরে বসে|বাড়িতে বসে).{0,30}(?:টাকা|আয়|রোজগার|কাজ|চাকরি|ইনকাম)",
+      "weight": 9,
+      "languages": [
+        "bn"
+      ],
+      "description": "Earn-from-home bait (Bengali) — mirrors job-ghar-baithe",
+      "examples": [
+        "ঘরে বসে টাকা আয় করুন, কোনো অভিজ্ঞতা লাগবে না"
+      ],
+      "negativeExamples": [
+        "ঘরে বসে বসে বোর হয়ে গেছি"
+      ]
+    },
+    {
+      "id": "in-beng-job-daily",
+      "family": "job-fraud",
+      "regex": "(?:প্রতিদিন|রোজ|দৈনিক|প্রতি দিন).{0,40}[\\d,]{3,}.{0,40}(?:আয়|রোজগার|ইনকাম|উপার্জন)|(?:আয়|রোজগার|ইনকাম|উপার্জন).{0,40}[\\d,]{3,}.{0,40}(?:প্রতিদিন|রোজ|দৈনিক|প্রতি দিন)",
+      "weight": 9,
+      "languages": [
+        "bn"
+      ],
+      "description": "Earn-per-day income bait (Bengali) — mirrors job-earn-daily",
+      "examples": [
+        "প্রতিদিন ৫,০০০ টাকা আয় করুন মোবাইল থেকে"
+      ],
+      "negativeExamples": [
+        "আমি প্রতিদিন সকাল ৬টায় উঠি"
+      ]
+    },
+    {
+      "id": "in-beng-parcel-hold",
+      "family": "delivery-customs-scam",
+      "regex": "(?:পার্সেল|প্যাকেজ|কুরিয়ার|শিপমেন্ট|অর্ডার).{0,50}(?:কাস্টমস|শুল্ক|আটকে|আটকা|হোল্ড).{0,60}(?:ফি|চার্জ|পেমেন্ট|পরিশোধ|ক্লিক|লিঙ্ক|লিংক)",
+      "weight": 10,
+      "languages": [
+        "bn"
+      ],
+      "description": "Parcel-held-pay-fee scam (Bengali) — mirrors delivery-parcel-hold",
+      "examples": [
+        "আপনার পার্সেল কাস্টমসে আটকে আছে, ২৫ টাকা ফি পরিশোধ করুন"
+      ],
+      "negativeExamples": [
+        "আপনার পার্সেল আজ সন্ধ্যা ৬টার মধ্যে পৌঁছাবে"
+      ]
+    },
+    {
+      "id": "in-beng-loan-instant",
+      "family": "loan-fraud",
+      "regex": "(?:তাৎক্ষণিক|ইনস্ট্যান্ট|তৎক্ষণাৎ|সঙ্গে সঙ্গে).{0,15}(?:লোন|ঋণ)",
+      "weight": 8,
+      "languages": [
+        "bn"
+      ],
+      "description": "Instant-loan bait (Bengali) — mirrors loan-instant",
+      "examples": [
+        "তাৎক্ষণিক লোন পান ৫ লাখ পর্যন্ত"
+      ],
+      "negativeExamples": [
+        "ব্যাংক দুই মাস পরে আমার হোম লোন অনুমোদন করেছে"
+      ]
+    },
+    {
+      "id": "in-beng-invest-double",
+      "family": "investment-fraud",
+      "regex": "(?:টাকা|অর্থ|বিনিয়োগ).{0,15}(?:ডবল|দ্বিগুণ|দিগুণ)|(?:ডবল|দ্বিগুণ|দিগুণ).{0,15}(?:টাকা|অর্থ|বিনিয়োগ)",
+      "weight": 10,
+      "languages": [
+        "bn"
+      ],
+      "description": "Double-your-money bait (Bengali) — mirrors invest-double",
+      "examples": [
+        "৩০ দিনে আপনার টাকা ডবল করুন, ১০০% নিরাপদ"
+      ],
+      "negativeExamples": [
+        "রেসিপিতে ময়দার পরিমাণ দ্বিগুণ করুন"
+      ]
+    },
+    {
+      "id": "in-gujr-otp",
+      "family": "protected-otp",
+      "regex": "(?:\\d{4,8}).{0,40}(?:ઓટીપી|વન ?ટાઇમ ?પાસવર્ડ|ચકાસણી કોડ|વેરિફિકેશન કોડ)|(?:ઓટીપી|વન ?ટાઇમ ?પાસવર્ડ|ચકાસણી કોડ|વેરિફિકેશન કોડ).{0,40}(?:\\d{4,8})",
+      "weight": 0,
+      "languages": [
+        "gu"
+      ],
+      "description": "OTP / verification code (Gujarati) — mirrors protect-otp-code",
+      "examples": [
+        "૫૫૨૩૧૦ તમારો ઓટીપી છે, ૧૦ મિનિટ માન્ય"
+      ],
+      "negativeExamples": [
+        "૫ વાગ્યે ફોન કરજે, કોડ રિવ્યુ છે"
+      ]
+    },
+    {
+      "id": "in-gujr-otp-noshare",
+      "family": "protected-otp",
+      "regex": "(?:શેર|વહેંચ).{0,12}(?:કરશો નહીં|ન કરો|કરશો ના)|કોઈને.{0,15}(?:કહેશો નહીં|જણાવશો નહીં|આપશો નહીં)",
+      "weight": 0,
+      "languages": [
+        "gu"
+      ],
+      "description": "Do-not-share OTP warning (Gujarati) — mirrors protect-otp-noshare",
+      "examples": [
+        "આ ઓટીપી કોઈની સાથે શેર કરશો નહીં"
+      ],
+      "negativeExamples": [
+        "આ ફોટો બધા સાથે શેર કરો"
+      ]
+    },
+    {
+      "id": "in-gujr-bank-txn",
+      "family": "protected-bank",
+      "regex": "(?:ડેબિટ|ક્રેડિટ|ઉપાડ|જમા|કપાત|કાપવામાં આવ્યા).{0,40}(?:ખાત|એકાઉન્ટ|કાર્ડ)|(?:ખાત|એકાઉન્ટ|કાર્ડ).{0,40}(?:ડેબિટ|ક્રેડિટ|ઉપાડ|જમા|કપાત|કાપવામાં આવ્યા)",
+      "weight": 0,
+      "languages": [
+        "gu"
+      ],
+      "description": "Bank transaction alert (Gujarati) — mirrors protect-bank-txn",
+      "examples": [
+        "તમારા ખાતા XX4421 માંથી ૨,૫૦૦ રૂપિયા ડેબિટ થયા"
+      ],
+      "negativeExamples": [
+        "તેમને ફિલ્મના લેખક તરીકે ક્રેડિટ આપવામાં આવ્યું"
+      ]
+    },
+    {
+      "id": "in-gujr-bank-balance",
+      "family": "protected-bank",
+      "regex": "(?:બેલેન્સ|બાકી રકમ|ઉપલબ્ધ બેલેન્સ|શેષ).{0,25}[\\d,]{2,}",
+      "weight": 0,
+      "languages": [
+        "gu"
+      ],
+      "description": "Balance information (Gujarati) — mirrors protect-bank-balance",
+      "examples": [
+        "ઉપલબ્ધ બેલેન્સ: ૧૮,૨૪૦ રૂપિયા"
+      ],
+      "negativeExamples": [
+        "કામ અને જીવનનું સંતુલન જરૂરી છે"
+      ]
+    },
+    {
+      "id": "in-gujr-delivery-status",
+      "family": "protected-delivery",
+      "regex": "(?:પાર્સલ|પેકેજ|કુરિયર|શિપમેન્ટ|ઓર્ડર).{0,40}(?:ડિલિવરી માટે|મોકલવામાં આવ્યો|રવાના|ડિસ્પેચ|પહોંચશે|પહોંચ|ડિલિવર)|(?:ટ્રેકિંગ (?:આઈડી|નંબર))",
+      "weight": 0,
+      "languages": [
+        "gu"
+      ],
+      "description": "Delivery status update (Gujarati) — mirrors protect-delivery-status",
+      "examples": [
+        "તમારો ઓર્ડર ડિલિવરી માટે રવાના થયો છે"
+      ],
+      "negativeExamples": [
+        "ભાષણ સફળતાપૂર્વક આપવામાં આવ્યું"
+      ]
+    },
+    {
+      "id": "in-gujr-appointment",
+      "family": "protected-travel",
+      "regex": "(?:એપોઇન્ટમેન્ટ|એપોઈન્ટમેન્ટ).{0,30}(?:કન્ફર્મ|પુષ્ટિ|નિશ્ચિત|નક્કી|બુક)",
+      "weight": 0,
+      "languages": [
+        "gu"
+      ],
+      "description": "Appointment confirmation (Gujarati) — mirrors protect-appointment",
+      "examples": [
+        "ડૉ. શાહ સાથે તમારી એપોઇન્ટમેન્ટ કન્ફર્મ છે"
+      ],
+      "negativeExamples": [
+        "ક્યારેક નવો ફ્લેટ જોવા એપોઇન્ટમેન્ટ લેવી જોઈએ"
+      ]
+    },
+    {
+      "id": "in-gujr-lottery",
+      "family": "lottery-prize",
+      "regex": "(?:અભિનંદન|જીત|વિજેતા).{0,60}(?:લોટરી|લકી ડ્રો|ઇનામ|પુરસ્કાર|લાખ|કરોડ)|(?:લોટરી|લકી ડ્રો|ઇનામ|પુરસ્કાર|લાખ|કરોડ).{0,60}(?:અભિનંદન|જીત|વિજેતા)",
+      "weight": 9,
+      "languages": [
+        "gu"
+      ],
+      "description": "Prize-win claim (Gujarati) — mirrors lottery-badhai",
+      "examples": [
+        "અભિનંદન! તમે ૨૫ લાખની લોટરી જીત્યા છો"
+      ],
+      "negativeExamples": [
+        "અભિનંદન! દીકરો જન્મ્યો છે"
+      ]
+    },
+    {
+      "id": "in-gujr-kyc-block",
+      "family": "kyc-account-threat",
+      "regex": "(?:ખાત|એકાઉન્ટ|કેવાયસી|સિમ|એટીએમ|ડેબિટ કાર્ડ).{0,50}(?:બંધ|બ્લોક|સ્થગિત|ફ્રીઝ|રદ).{0,60}(?:ક્લિક|લિંક|અપડેટ|ચકાસ|કેવાયસી|http)",
+      "weight": 10,
+      "languages": [
+        "gu"
+      ],
+      "description": "Account-block threat with an action demand (Gujarati) — mirrors kyc-account-block",
+      "examples": [
+        "તમારું ખાતું આજે બંધ થઈ જશે, કેવાયસી અપડેટ કરવા ક્લિક કરો"
+      ],
+      "negativeExamples": [
+        "તમારી વિનંતી પર કાર્ડ બંધ કરવામાં આવ્યું છે, નવા કાર્ડ માટે અમને કોલ કરો"
+      ]
+    },
+    {
+      "id": "in-gujr-electricity",
+      "family": "kyc-account-threat",
+      "regex": "(?:વીજળી|વીજ).{0,50}(?:કાપી|કપાઈ|કાપવામાં|ડિસ્કનેક્ટ|બંધ કર).{0,50}(?:આજે રાત્રે|તાત્કાલિક|તરત|સંપર્ક|કોલ)",
+      "weight": 10,
+      "languages": [
+        "gu"
+      ],
+      "description": "Electricity-disconnection scam (Gujarati) — mirrors kyc-electricity",
+      "examples": [
+        "પ્રિય ગ્રાહક આજે રાત્રે તમારી વીજળી કાપી નાખવામાં આવશે, તાત્કાલિક સંપર્ક કરો"
+      ],
+      "negativeExamples": [
+        "સમારકામ માટે આજે સવારે ૧૦ થી ૨ સુધી વીજળી બંધ રહેશે"
+      ]
+    },
+    {
+      "id": "in-gujr-job-home",
+      "family": "job-fraud",
+      "regex": "(?:ઘરે બેઠા|ઘરબેઠા).{0,30}(?:પૈસા|કમા|આવક|નોકરી|કામ|ઇન્કમ)",
+      "weight": 9,
+      "languages": [
+        "gu"
+      ],
+      "description": "Earn-from-home bait (Gujarati) — mirrors job-ghar-baithe",
+      "examples": [
+        "ઘરે બેઠા પૈસા કમાઓ, કોઈ અનુભવ જરૂરી નથી"
+      ],
+      "negativeExamples": [
+        "ઘરે બેઠા બેઠા કંટાળી ગયો"
+      ]
+    },
+    {
+      "id": "in-gujr-job-daily",
+      "family": "job-fraud",
+      "regex": "(?:દરરોજ|રોજ|પ્રતિદિન|દૈનિક).{0,40}[\\d,]{3,}.{0,40}(?:કમા|આવક|ઇન્કમ|કમાણી)|(?:કમા|આવક|ઇન્કમ|કમાણી).{0,40}[\\d,]{3,}.{0,40}(?:દરરોજ|રોજ|પ્રતિદિન|દૈનિક)",
+      "weight": 9,
+      "languages": [
+        "gu"
+      ],
+      "description": "Earn-per-day income bait (Gujarati) — mirrors job-earn-daily",
+      "examples": [
+        "દરરોજ ૫,૦૦૦ રૂપિયા કમાઓ તમારા મોબાઇલથી"
+      ],
+      "negativeExamples": [
+        "હું દરરોજ સવારે ૬ વાગ્યે ઉઠું છું"
+      ]
+    },
+    {
+      "id": "in-gujr-parcel-hold",
+      "family": "delivery-customs-scam",
+      "regex": "(?:પાર્સલ|પેકેજ|કુરિયર|શિપમેન્ટ|ઓર્ડર).{0,50}(?:કસ્ટમ|જકાત|અટક|રોક|હોલ્ડ).{0,60}(?:ફી|શુલ્ક|ચાર્જ|ચુકવણી|પેમેન્ટ|ક્લિક|લિંક)",
+      "weight": 10,
+      "languages": [
+        "gu"
+      ],
+      "description": "Parcel-held-pay-fee scam (Gujarati) — mirrors delivery-parcel-hold",
+      "examples": [
+        "તમારું પાર્સલ કસ્ટમમાં અટકેલું છે, ૨૫ રૂપિયા ફી ભરો"
+      ],
+      "negativeExamples": [
+        "તમારું પાર્સલ આજે સાંજે ૬ વાગ્યા સુધીમાં પહોંચશે"
+      ]
+    },
+    {
+      "id": "in-gujr-loan-instant",
+      "family": "loan-fraud",
+      "regex": "(?:તાત્કાલિક|ઇન્સ્ટન્ટ|તરત).{0,15}(?:લોન|ધિરાણ|કરજ)",
+      "weight": 8,
+      "languages": [
+        "gu"
+      ],
+      "description": "Instant-loan bait (Gujarati) — mirrors loan-instant",
+      "examples": [
+        "તાત્કાલિક લોન મેળવો ૫ લાખ સુધી"
+      ],
+      "negativeExamples": [
+        "બેંકે બે મહિના પછી મારી હોમ લોન મંજૂર કરી"
+      ]
+    },
+    {
+      "id": "in-gujr-invest-double",
+      "family": "investment-fraud",
+      "regex": "(?:પૈસા|રકમ|રોકાણ|રૂપિયા).{0,15}(?:ડબલ|બમણા|બમણું)|(?:ડબલ|બમણા|બમણું).{0,15}(?:પૈસા|રકમ|રોકાણ|રૂપિયા)",
+      "weight": 10,
+      "languages": [
+        "gu"
+      ],
+      "description": "Double-your-money bait (Gujarati) — mirrors invest-double",
+      "examples": [
+        "૩૦ દિવસમાં તમારા પૈસા ડબલ કરો, ૧૦૦% સલામત"
+      ],
+      "negativeExamples": [
+        "રેસિપીમાં લોટનું પ્રમાણ બમણું કરો"
+      ]
+    },
+    {
+      "id": "in-guru-otp",
+      "family": "protected-otp",
+      "regex": "(?:\\d{4,8}).{0,40}(?:ਓਟੀਪੀ|ਵਨ ?ਟਾਈਮ ?ਪਾਸਵਰਡ|ਤਸਦੀਕ ਕੋਡ|ਵੈਰੀਫਿਕੇਸ਼ਨ ਕੋਡ)|(?:ਓਟੀਪੀ|ਵਨ ?ਟਾਈਮ ?ਪਾਸਵਰਡ|ਤਸਦੀਕ ਕੋਡ|ਵੈਰੀਫਿਕੇਸ਼ਨ ਕੋਡ).{0,40}(?:\\d{4,8})",
+      "weight": 0,
+      "languages": [
+        "pa"
+      ],
+      "description": "OTP / verification code (Gurmukhi) — mirrors protect-otp-code",
+      "examples": [
+        "੫੫੨੩੧੦ ਤੁਹਾਡਾ ਓਟੀਪੀ ਹੈ, ੧੦ ਮਿੰਟ ਵੈਧ"
+      ],
+      "negativeExamples": [
+        "੫ ਵਜੇ ਕਾਲ ਕਰਨਾ, ਕੋਡ ਰਿਵਿਊ ਹੈ"
+      ]
+    },
+    {
+      "id": "in-guru-otp-noshare",
+      "family": "protected-otp",
+      "regex": "(?:ਸਾਂਝਾ|ਸ਼ੇਅਰ).{0,12}(?:ਨਾ ਕਰੋ|ਨਹੀਂ ਕਰੋ|ਨਾ ਕਰਨਾ)|ਕਿਸੇ ਨੂੰ.{0,15}(?:ਨਾ ਦੱਸੋ|ਨਹੀਂ ਦੱਸੋ|ਨਾ ਦਿਓ)",
+      "weight": 0,
+      "languages": [
+        "pa"
+      ],
+      "description": "Do-not-share OTP warning (Gurmukhi) — mirrors protect-otp-noshare",
+      "examples": [
+        "ਇਹ ਓਟੀਪੀ ਕਿਸੇ ਨਾਲ ਸਾਂਝਾ ਨਾ ਕਰੋ"
+      ],
+      "negativeExamples": [
+        "ਇਹ ਫੋਟੋ ਸਾਰਿਆਂ ਨਾਲ ਸ਼ੇਅਰ ਕਰੋ"
+      ]
+    },
+    {
+      "id": "in-guru-bank-txn",
+      "family": "protected-bank",
+      "regex": "(?:ਡੈਬਿਟ|ਕ੍ਰੈਡਿਟ|ਕਢਵਾਏ|ਜਮ੍ਹਾਂ|ਕੱਟੇ).{0,40}(?:ਖਾਤ|ਅਕਾਊਂਟ|ਕਾਰਡ)|(?:ਖਾਤ|ਅਕਾਊਂਟ|ਕਾਰਡ).{0,40}(?:ਡੈਬਿਟ|ਕ੍ਰੈਡਿਟ|ਕਢਵਾਏ|ਜਮ੍ਹਾਂ|ਕੱਟੇ)",
+      "weight": 0,
+      "languages": [
+        "pa"
+      ],
+      "description": "Bank transaction alert (Gurmukhi) — mirrors protect-bank-txn",
+      "examples": [
+        "ਤੁਹਾਡੇ ਖਾਤੇ XX4421 ਵਿੱਚੋਂ ੨,੫੦੦ ਰੁਪਏ ਡੈਬਿਟ ਹੋਏ"
+      ],
+      "negativeExamples": [
+        "ਉਸਨੂੰ ਫਿਲਮ ਦੇ ਲੇਖਕ ਵਜੋਂ ਕ੍ਰੈਡਿਟ ਦਿੱਤਾ ਗਿਆ"
+      ]
+    },
+    {
+      "id": "in-guru-bank-balance",
+      "family": "protected-bank",
+      "regex": "(?:ਬੈਲੇਂਸ|ਬਕਾਇਆ|ਉਪਲਬਧ ਬੈਲੇਂਸ|ਬਾਕੀ).{0,25}[\\d,]{2,}",
+      "weight": 0,
+      "languages": [
+        "pa"
+      ],
+      "description": "Balance information (Gurmukhi) — mirrors protect-bank-balance",
+      "examples": [
+        "ਉਪਲਬਧ ਬੈਲੇਂਸ: ੧੮,੨੪੦ ਰੁਪਏ"
+      ],
+      "negativeExamples": [
+        "ਕੰਮ ਅਤੇ ਜੀਵਨ ਦਾ ਸੰਤੁਲਨ ਜ਼ਰੂਰੀ ਹੈ"
+      ]
+    },
+    {
+      "id": "in-guru-delivery-status",
+      "family": "protected-delivery",
+      "regex": "(?:ਪਾਰਸਲ|ਪੈਕੇਜ|ਕੋਰੀਅਰ|ਸ਼ਿਪਮੈਂਟ|ਆਰਡਰ).{0,40}(?:ਡਿਲੀਵਰੀ ਲਈ|ਭੇਜ ਦਿੱਤਾ|ਰਵਾਨਾ|ਡਿਸਪੈਚ|ਪਹੁੰਚੇਗਾ|ਪਹੁੰਚ|ਡਿਲੀਵਰ)|(?:ਟਰੈਕਿੰਗ (?:ਆਈਡੀ|ਨੰਬਰ))",
+      "weight": 0,
+      "languages": [
+        "pa"
+      ],
+      "description": "Delivery status update (Gurmukhi) — mirrors protect-delivery-status",
+      "examples": [
+        "ਤੁਹਾਡਾ ਆਰਡਰ ਡਿਲੀਵਰੀ ਲਈ ਰਵਾਨਾ ਹੋ ਗਿਆ ਹੈ"
+      ],
+      "negativeExamples": [
+        "ਭਾਸ਼ਣ ਸਫਲਤਾਪੂਰਵਕ ਦਿੱਤਾ ਗਿਆ"
+      ]
+    },
+    {
+      "id": "in-guru-appointment",
+      "family": "protected-travel",
+      "regex": "(?:ਅਪਾਇੰਟਮੈਂਟ|ਅਪੌਇੰਟਮੈਂਟ).{0,30}(?:ਕਨਫਰਮ|ਪੁਸ਼ਟੀ|ਨਿਸ਼ਚਿਤ|ਤੈਅ|ਬੁੱਕ)",
+      "weight": 0,
+      "languages": [
+        "pa"
+      ],
+      "description": "Appointment confirmation (Gurmukhi) — mirrors protect-appointment",
+      "examples": [
+        "ਡਾ. ਸਿੰਘ ਨਾਲ ਤੁਹਾਡੀ ਅਪਾਇੰਟਮੈਂਟ ਕਨਫਰਮ ਹੈ"
+      ],
+      "negativeExamples": [
+        "ਕਦੇ ਨਵਾਂ ਫਲੈਟ ਦੇਖਣ ਲਈ ਅਪਾਇੰਟਮੈਂਟ ਲੈਣੀ ਚਾਹੀਦੀ ਹੈ"
+      ]
+    },
+    {
+      "id": "in-guru-lottery",
+      "family": "lottery-prize",
+      "regex": "(?:ਵਧਾਈ|ਜਿੱਤ|ਜੇਤੂ).{0,60}(?:ਲਾਟਰੀ|ਲੱਕੀ ਡਰਾਅ|ਇਨਾਮ|ਲੱਖ|ਕਰੋੜ)|(?:ਲਾਟਰੀ|ਲੱਕੀ ਡਰਾਅ|ਇਨਾਮ|ਲੱਖ|ਕਰੋੜ).{0,60}(?:ਵਧਾਈ|ਜਿੱਤ|ਜੇਤੂ)",
+      "weight": 9,
+      "languages": [
+        "pa"
+      ],
+      "description": "Prize-win claim (Gurmukhi) — mirrors lottery-badhai",
+      "examples": [
+        "ਵਧਾਈ ਹੋ! ਤੁਸੀਂ ੨੫ ਲੱਖ ਦੀ ਲਾਟਰੀ ਜਿੱਤੀ ਹੈ"
+      ],
+      "negativeExamples": [
+        "ਵਧਾਈ ਹੋ! ਮੁੰਡਾ ਹੋਇਆ ਹੈ"
+      ]
+    },
+    {
+      "id": "in-guru-kyc-block",
+      "family": "kyc-account-threat",
+      "regex": "(?:ਖਾਤ|ਅਕਾਊਂਟ|ਕੇਵਾਈਸੀ|ਸਿਮ|ਏਟੀਐਮ|ਡੈਬਿਟ ਕਾਰਡ).{0,50}(?:ਬੰਦ|ਬਲਾਕ|ਮੁਅੱਤਲ|ਫ੍ਰੀਜ਼|ਰੱਦ).{0,60}(?:ਕਲਿੱਕ|ਲਿੰਕ|ਅੱਪਡੇਟ|ਤਸਦੀਕ|ਕੇਵਾਈਸੀ|http)",
+      "weight": 10,
+      "languages": [
+        "pa"
+      ],
+      "description": "Account-block threat with an action demand (Gurmukhi) — mirrors kyc-account-block",
+      "examples": [
+        "ਤੁਹਾਡਾ ਖਾਤਾ ਅੱਜ ਬੰਦ ਹੋ ਜਾਵੇਗਾ, ਕੇਵਾਈਸੀ ਅੱਪਡੇਟ ਕਰਨ ਲਈ ਕਲਿੱਕ ਕਰੋ"
+      ],
+      "negativeExamples": [
+        "ਤੁਹਾਡੀ ਬੇਨਤੀ 'ਤੇ ਕਾਰਡ ਬੰਦ ਕਰ ਦਿੱਤਾ ਗਿਆ ਹੈ, ਨਵੇਂ ਕਾਰਡ ਲਈ ਸਾਨੂੰ ਕਾਲ ਕਰੋ"
+      ]
+    },
+    {
+      "id": "in-guru-electricity",
+      "family": "kyc-account-threat",
+      "regex": "(?:ਬਿਜਲੀ).{0,50}(?:ਕੱਟ|ਕੱਟੀ ਜਾਵੇਗੀ|ਡਿਸਕਨੈਕਟ|ਬੰਦ ਕਰ).{0,50}(?:ਅੱਜ ਰਾਤ|ਤੁਰੰਤ|ਹੁਣੇ|ਸੰਪਰਕ|ਕਾਲ)",
+      "weight": 10,
+      "languages": [
+        "pa"
+      ],
+      "description": "Electricity-disconnection scam (Gurmukhi) — mirrors kyc-electricity",
+      "examples": [
+        "ਪਿਆਰੇ ਖਪਤਕਾਰ ਅੱਜ ਰਾਤ ਤੁਹਾਡੀ ਬਿਜਲੀ ਕੱਟ ਦਿੱਤੀ ਜਾਵੇਗੀ, ਤੁਰੰਤ ਸੰਪਰਕ ਕਰੋ"
+      ],
+      "negativeExamples": [
+        "ਮੁਰੰਮਤ ਕਾਰਨ ਅੱਜ ਸਵੇਰੇ ੧੦ ਤੋਂ ੨ ਵਜੇ ਤੱਕ ਬਿਜਲੀ ਬੰਦ ਰਹੇਗੀ"
+      ]
+    },
+    {
+      "id": "in-guru-job-home",
+      "family": "job-fraud",
+      "regex": "(?:ਘਰ ਬੈਠੇ|ਘਰੇ ਬੈਠੇ).{0,30}(?:ਪੈਸੇ|ਕਮਾ|ਆਮਦਨ|ਨੌਕਰੀ|ਕੰਮ|ਇਨਕਮ)",
+      "weight": 9,
+      "languages": [
+        "pa"
+      ],
+      "description": "Earn-from-home bait (Gurmukhi) — mirrors job-ghar-baithe",
+      "examples": [
+        "ਘਰ ਬੈਠੇ ਪੈਸੇ ਕਮਾਓ, ਕੋਈ ਤਜਰਬਾ ਨਹੀਂ ਚਾਹੀਦਾ"
+      ],
+      "negativeExamples": [
+        "ਘਰ ਬੈਠੇ ਬੈਠੇ ਬੋਰ ਹੋ ਗਿਆ ਯਾਰ"
+      ]
+    },
+    {
+      "id": "in-guru-job-daily",
+      "family": "job-fraud",
+      "regex": "(?:ਰੋਜ਼ਾਨਾ|ਹਰ ਰੋਜ਼|ਰੋਜ਼|ਪ੍ਰਤੀ ਦਿਨ).{0,40}[\\d,]{3,}.{0,40}(?:ਕਮਾ|ਆਮਦਨ|ਇਨਕਮ|ਕਮਾਈ)|(?:ਕਮਾ|ਆਮਦਨ|ਇਨਕਮ|ਕਮਾਈ).{0,40}[\\d,]{3,}.{0,40}(?:ਰੋਜ਼ਾਨਾ|ਹਰ ਰੋਜ਼|ਰੋਜ਼|ਪ੍ਰਤੀ ਦਿਨ)",
+      "weight": 9,
+      "languages": [
+        "pa"
+      ],
+      "description": "Earn-per-day income bait (Gurmukhi) — mirrors job-earn-daily",
+      "examples": [
+        "ਰੋਜ਼ਾਨਾ ੫,੦੦੦ ਰੁਪਏ ਕਮਾਓ ਆਪਣੇ ਮੋਬਾਈਲ ਤੋਂ"
+      ],
+      "negativeExamples": [
+        "ਮੈਂ ਰੋਜ਼ਾਨਾ ਸਵੇਰੇ ੬ ਵਜੇ ਉੱਠਦਾ ਹਾਂ"
+      ]
+    },
+    {
+      "id": "in-guru-parcel-hold",
+      "family": "delivery-customs-scam",
+      "regex": "(?:ਪਾਰਸਲ|ਪੈਕੇਜ|ਕੋਰੀਅਰ|ਸ਼ਿਪਮੈਂਟ|ਆਰਡਰ).{0,50}(?:ਕਸਟਮ|ਅਟਕ|ਰੁਕ|ਹੋਲਡ).{0,60}(?:ਫੀਸ|ਚਾਰਜ|ਭੁਗਤਾਨ|ਪੇਮੈਂਟ|ਕਲਿੱਕ|ਲਿੰਕ)",
+      "weight": 10,
+      "languages": [
+        "pa"
+      ],
+      "description": "Parcel-held-pay-fee scam (Gurmukhi) — mirrors delivery-parcel-hold",
+      "examples": [
+        "ਤੁਹਾਡਾ ਪਾਰਸਲ ਕਸਟਮ ਵਿੱਚ ਅਟਕਿਆ ਹੈ, ੨੫ ਰੁਪਏ ਫੀਸ ਭਰੋ"
+      ],
+      "negativeExamples": [
+        "ਤੁਹਾਡਾ ਪਾਰਸਲ ਅੱਜ ਸ਼ਾਮ ੬ ਵਜੇ ਤੱਕ ਪਹੁੰਚੇਗਾ"
+      ]
+    },
+    {
+      "id": "in-guru-loan-instant",
+      "family": "loan-fraud",
+      "regex": "(?:ਤੁਰੰਤ|ਇੰਸਟੈਂਟ|ਝੱਟ).{0,15}(?:ਲੋਨ|ਕਰਜ਼ਾ|ਕਰਜ਼)",
+      "weight": 8,
+      "languages": [
+        "pa"
+      ],
+      "description": "Instant-loan bait (Gurmukhi) — mirrors loan-instant",
+      "examples": [
+        "ਤੁਰੰਤ ਲੋਨ ਪ੍ਰਾਪਤ ਕਰੋ ੫ ਲੱਖ ਤੱਕ"
+      ],
+      "negativeExamples": [
+        "ਬੈਂਕ ਨੇ ਦੋ ਮਹੀਨੇ ਬਾਅਦ ਮੇਰਾ ਹੋਮ ਲੋਨ ਮਨਜ਼ੂਰ ਕੀਤਾ"
+      ]
+    },
+    {
+      "id": "in-guru-invest-double",
+      "family": "investment-fraud",
+      "regex": "(?:ਪੈਸਾ|ਪੈਸੇ|ਰਕਮ|ਨਿਵੇਸ਼).{0,15}(?:ਡਬਲ|ਦੁੱਗਣਾ|ਦੁਗਣਾ)|(?:ਡਬਲ|ਦੁੱਗਣਾ|ਦੁਗਣਾ).{0,15}(?:ਪੈਸਾ|ਪੈਸੇ|ਰਕਮ|ਨਿਵੇਸ਼)",
+      "weight": 10,
+      "languages": [
+        "pa"
+      ],
+      "description": "Double-your-money bait (Gurmukhi) — mirrors invest-double",
+      "examples": [
+        "੩੦ ਦਿਨਾਂ ਵਿੱਚ ਆਪਣੇ ਪੈਸੇ ਡਬਲ ਕਰੋ, ੧੦੦% ਸੁਰੱਖਿਅਤ"
+      ],
+      "negativeExamples": [
+        "ਰੈਸਿਪੀ ਵਿੱਚ ਆਟੇ ਦੀ ਮਾਤਰਾ ਦੁੱਗਣੀ ਕਰੋ"
+      ]
+    },
+    {
+      "id": "scam-echallan",
+      "family": "impersonation-threat",
+      "regex": "(?i)(?:echallan|traffic police|e-challan|challan).{0,35}(?:pending|fine|court|notice|impound|vahan|pay|due|overdue|surrender)",
+      "weight": 8,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Traffic police e-challan pending fine or fake apk",
+      "examples": [
+        "Traffic police notice: Gaadi DL01AB1234 ka fine Rs 1000 pending hai"
+      ],
+      "negativeExamples": [
+        "Traffic was heavy on the highway today"
+      ]
+    },
+    {
+      "id": "scam-electricity-cutoff",
+      "family": "kyc-account-threat",
+      "regex": "(?i)(?:power|electricity|bijli|vidyut|light).{0,35}(?:disconnect|cut off|cut tonight|kaat di jayegi|band ho|disconnected).{0,40}(?:officer|call|contact|helpline|[6-9]\\d{9})",
+      "weight": 8,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Electricity bill disconnection cutoff threat",
+      "examples": [
+        "Your electricity power will be disconnected tonight at 9:30 PM. Call officer at 9876543210"
+      ],
+      "negativeExamples": [
+        "Please turn off the power switch before leaving"
+      ]
+    },
+    {
+      "id": "scam-digital-arrest",
+      "family": "impersonation-threat",
+      "regex": "(?i)(?:cyber (?:crime|cell|police)|cbi|police|trai|customs|narcotics|ed notice).{0,45}(?:arrest|warrant|illegal|court|suspend|digital arrest|parcel seized).{0,70}(?:call|contact|video|skype|[6-9]\\d{9})",
+      "weight": 8,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Digital arrest or cyber police / CBI notice threat",
+      "examples": [
+        "CBI notice: Arrest warrant issued against your Aadhaar. Call inspector on 9876543210"
+      ],
+      "negativeExamples": [
+        "I met a police officer at the community event"
+      ]
+    },
+    {
+      "id": "scam-job-task",
+      "family": "job-fraud",
+      "regex": "(?i)(?:like|subscribe|review|rating|part time job|daily income).{0,35}(?:youtube|google map|hotel|task|video).{0,35}(?:earn|daily|per day|payout|salary).{0,35}(?:telegram|whatsapp|[6-9]\\d{9}|http)",
+      "weight": 7,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Part-time job YouTube like or Telegram rating task fraud",
+      "examples": [
+        "Like YouTube videos and earn Rs 3000 daily from home. WhatsApp 9876543210"
+      ],
+      "negativeExamples": [
+        "I liked the video you sent me yesterday"
+      ]
+    },
+    {
+      "id": "scam-points-expiry",
+      "family": "lottery-prize",
+      "regex": "(?i)(?:reward points?|bonus points?|credit points?|card points?).{0,35}(?:expir|worth rs|redeem|claim|lapse).{0,35}(?:https?://|bit\\.ly|link|cash|portal)",
+      "weight": 7,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "description": "Credit card reward points expiry phishing",
+      "examples": [
+        "Your 9850 reward points worth Rs 4925 expire tonight. Redeem cash at bit.ly/pts"
+      ],
+      "negativeExamples": [
+        "Thank you for paying your credit card bill"
+      ]
     }
   ]
 }

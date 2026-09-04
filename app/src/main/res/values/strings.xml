@@ -527,6 +527,8 @@
     <string name="settings_brightness_custom_subtitle">Override device brightness while Messages is open</string>
     <string name="settings_brightness_footnote">In-app brightness applies only while Messages is in the foreground. It does not affect other apps or system brightness.</string>
     <string name="settings_section_sensitivity">Protection sensitivity</string>
+    <string name="settings_advanced_filtering_title">Advanced Message Filtering</string>
+    <string name="settings_advanced_filtering_subtitle">On-device AI protection against reworded scams, phishing, and Indic-script fraud. 100% private &amp; offline.</string>
     <string name="settings_sensitivity_relaxed_body">Fewer messages filtered — borderline messages stay in your Inbox or Review.</string>
     <string name="settings_sensitivity_strict_body">Aggressive filtering — borderline messages go to Spam sooner. Protected messages (OTPs, bank alerts) are never filtered at any level.</string>
     <string name="settings_sensitivity_default_body">Balanced filtering, recommended for most people. Protected messages (OTPs, bank alerts) are never filtered.</string>

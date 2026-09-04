@@ -53,6 +53,7 @@ import androidx.compose.material.icons.outlined.Summarize
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SwipeLeft
 import androidx.compose.material.icons.outlined.SwipeRight
 import androidx.compose.material.icons.outlined.SystemUpdate
@@ -211,6 +212,13 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setSensitivity(name: String) {
         repo.setSensitivity(name)
         sensitivity.value = name
+    }
+
+    val advancedFiltering = MutableStateFlow(repo.isAdvancedFilteringEnabled())
+
+    fun setAdvancedFiltering(enabled: Boolean) {
+        repo.setAdvancedFilteringEnabled(enabled)
+        advancedFiltering.value = enabled
     }
 
     /**
@@ -475,6 +483,7 @@ fun SettingsScreen(
     val appLock by vm.appLock.collectAsStateWithLifecycle()
     val lockAfterMs by vm.lockAfterMs.collectAsStateWithLifecycle()
     val hidePreviews by vm.hidePreviews.collectAsStateWithLifecycle()
+    val advancedFiltering by vm.advancedFiltering.collectAsStateWithLifecycle()
     val activity = androidx.compose.ui.platform.LocalContext.current
         as? androidx.fragment.app.FragmentActivity
 
@@ -596,6 +605,14 @@ fun SettingsScreen(
             item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.Shield,
+                    title = stringResource(R.string.settings_advanced_filtering_title),
+                    subtitle = stringResource(R.string.settings_advanced_filtering_subtitle),
+                    checked = advancedFiltering,
+                    onChange = { vm.setAdvancedFiltering(it) },
+                )
+                Spacer(Modifier.height(12.dp))
                 val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     Slider(

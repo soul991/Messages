@@ -35,6 +35,10 @@ import com.messages.protection.SafeRegexPolicy
 import com.messages.protection.containsMatchWithin
 import com.messages.protection.SenderAnalyzer
 import com.messages.protection.Verdict
+import com.messages.protection.ProtectedLabel
+import com.messages.protection.EvidenceAxis
+import com.messages.protection.AiLayer
+import com.messages.protection.NGramScorer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -143,6 +147,23 @@ class MessageRepository private constructor(private val context: Context) {
     fun setSensitivity(name: String) {
         settingsPrefs.edit().putString("sensitivity", name).apply()
         engine.updateSensitivity(currentSensitivity())
+    }
+
+    // ---- On-Device AI Shield & Advanced Message Filtering ----
+
+    val aiScorer: NGramScorer? by lazy {
+        runCatching {
+            val text = ProtectionEngine::class.java.getResourceAsStream("/ngram_model.json")
+                ?.bufferedReader()?.readText()
+            text?.let { NGramScorer.fromJson(it) }
+        }.getOrNull()
+    }
+
+    fun isAdvancedFilteringEnabled(): Boolean =
+        settingsPrefs.getBoolean("advanced_message_filtering", true)
+
+    fun setAdvancedFilteringEnabled(enabled: Boolean) {
+        settingsPrefs.edit().putBoolean("advanced_message_filtering", enabled).apply()
     }
 
     // ---- Pattern-pack import (§7.5) ----
@@ -787,7 +808,15 @@ class MessageRepository private constructor(private val context: Context) {
                 category,
             )
         }
-        return engine.classify(ProtectionEngine.Input(body, senderInfo, allow, block, custom))
+        val base = engine.classify(ProtectionEngine.Input(body, senderInfo, allow, block, custom))
+        val afterAxis = EvidenceAxis.apply(base, EvidenceAxis.evaluate(base, engine.familiesByPatternId))
+        val scorer = if (isAdvancedFilteringEnabled()) aiScorer else null
+        if (scorer != null) {
+            val readsAsProtected = base.category == Category.TRANSACTIONS || base.protectedLabel != ProtectedLabel.NONE
+            val shadow = AiLayer.evaluate(afterAxis, body, System.currentTimeMillis().toString(), scorer, readsAsProtected)
+            return AiLayer.apply(afterAxis, shadow, enabled = true)
+        }
+        return afterAxis
     }
 
     /**

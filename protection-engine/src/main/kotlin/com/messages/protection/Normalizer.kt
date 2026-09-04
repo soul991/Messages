@@ -44,7 +44,7 @@ object Normalizer {
     )
     private val PHONE_REGEX = Regex("""(?<!\d)(?:\+\d{1,3}[\s-]?)?[6-9]\d{9}(?!\d)|(?<!\d)\+\d{7,15}(?!\d)""")
     private val AMOUNT_REGEX = Regex(
-        """(?i)(?:₹|rs\.?|inr|\$|usd)\s*[\d,]+(?:\.\d+)?(?:\s?(?:lakh|lakhs|crore|cr|k))?|[\d,]+(?:\.\d+)?\s?(?:lakh|lakhs|crore)"""
+        """(?i)(?:₹|৳|rs\.?|inr|\$|usd|টাকা|ট|रु\.?|रू\.?|રૂ\.?|ਰੁ\.?|ரூ\.?|రూ\.?)\s*[\d,]+(?:\.\d+)?(?:\s?(?:lakh|lakhs|crore|cr|k))?|[\d,]+(?:\.\d+)?\s?(?:lakh|lakhs|crore)"""
     )
     private val DIGIT_RUN_REGEX = Regex("""\d{4,}""")
 
@@ -54,8 +54,8 @@ object Normalizer {
     private val REPEATED_CHARS = Regex("""([a-zA-Z])\1{2,}""")
 
     fun normalize(text: String): NormalizedMessage {
-        // 1. Unicode NFKC + zero-width strip
-        var s = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFKC)
+        // 1. Unicode NFKC + zero-width strip (with Indic digit & danda folding)
+        var s = java.text.Normalizer.normalize(IndicNormalizer.fold(text), java.text.Normalizer.Form.NFKC)
         s = ZERO_WIDTH.replace(s, "")
 
         // 2. Homoglyphs → Latin
