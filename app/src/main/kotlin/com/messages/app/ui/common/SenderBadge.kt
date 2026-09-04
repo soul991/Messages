@@ -57,6 +57,9 @@ fun SenderBadgeIcon(
     size: Dp = 16.dp,
     onClick: (() -> Unit)? = null,
 ) {
+    // User requested removal of blue check ticks from message senders
+    if (badge == SenderBadges.Badge.VERIFIED) return
+
     val label = stringResource(
         when (badge) {
             SenderBadges.Badge.VERIFIED -> R.string.badge_verified_sender
@@ -93,12 +96,7 @@ fun SenderBadgeIcon(
 @Composable
 private fun BadgeGlyph(badge: SenderBadges.Badge, modifier: Modifier, size: Dp) {
     when (badge) {
-        SenderBadges.Badge.VERIFIED -> Icon(
-            Icons.Filled.CheckCircle,
-            contentDescription = null,
-            tint = VerifiedBlue,
-            modifier = modifier.size(size),
-        )
+        SenderBadges.Badge.VERIFIED -> Unit
         SenderBadges.Badge.BUSINESS -> Surface(
             shape = MaterialTheme.shapes.extraSmall,
             color = MaterialTheme.colorScheme.surfaceContainerHighest,

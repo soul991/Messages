@@ -2,6 +2,7 @@ package com.messages.app.ui.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -31,6 +32,8 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Commit
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.NotificationsActive
@@ -52,6 +55,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -69,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.messages.app.BuildConfig
 import com.messages.app.R
+import com.messages.app.update.AppUpdateManager
 import com.messages.app.update.UpdateCheck
 import com.messages.designsystem.GlassDepth
 import com.messages.designsystem.LiquidGlassSurface
@@ -78,6 +84,7 @@ import kotlinx.coroutines.withContext
 
 private const val REPO_URL = "https://github.com/soul991/Messages"
 private const val RELEASES_URL = "https://github.com/soul991/Messages/releases"
+private const val COMMITS_URL = "https://github.com/soul991/Messages/commits/main"
 
 private enum class LegalDoc(val titleRes: Int, val bodyRes: Int) {
     PRIVACY(R.string.about_privacy_policy, R.string.about_privacy_policy_body),
@@ -320,6 +327,54 @@ fun AboutScreen(
                             },
                         )
                     }
+
+                    // Clear downloaded APKs (if any)
+                    var cachedCount by remember { mutableIntStateOf(AppUpdateManager.listCachedApks(context).size) }
+                    var cachedBytes by remember { mutableLongStateOf(AppUpdateManager.cachedSizeBytes(context)) }
+
+                    if (cachedCount > 0) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val deleted = AppUpdateManager.clearCache(context)
+                                    cachedCount = AppUpdateManager.listCachedApks(context).size
+                                    cachedBytes = AppUpdateManager.cachedSizeBytes(context)
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.update_cleared_toast, deleted),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Outlined.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    stringResource(R.string.update_clear_downloads),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    stringResource(
+                                        R.string.update_clear_downloads_subtitle,
+                                        cachedCount,
+                                        AppUpdateManager.formatBytes(cachedBytes),
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -359,6 +414,13 @@ fun AboutScreen(
                         title = stringResource(R.string.about_view_source),
                         subtitle = stringResource(R.string.about_view_source_subtitle),
                         onClick = { open(REPO_URL) },
+                        external = true,
+                    )
+                    AboutGlassRow(
+                        icon = Icons.Outlined.Commit,
+                        title = stringResource(R.string.update_commits),
+                        subtitle = stringResource(R.string.update_commits_subtitle),
+                        onClick = { open(COMMITS_URL) },
                         external = true,
                     )
                     AboutGlassRow(

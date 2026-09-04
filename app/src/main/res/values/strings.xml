@@ -171,6 +171,15 @@
     <string name="trash_restored_snackbar">Message restored</string>
     <string name="trash_deleted_forever_snackbar">Deleted forever</string>
     <string name="trash_emptied_snackbar">Trash emptied</string>
+    <string name="trash_select_all">Select all</string>
+    <string name="trash_deselect_all">Deselect all</string>
+    <string name="trash_restore_selected">Restore selected</string>
+    <string name="trash_delete_selected">Delete selected</string>
+    <string name="trash_delete_selected_title">Delete selected forever?</string>
+    <plurals name="trash_delete_selected_body">
+        <item quantity="one">The %1$d selected message will be permanently deleted. This cannot be undone.</item>
+        <item quantity="other">The %1$d selected messages will be permanently deleted. This cannot be undone.</item>
+    </plurals>
 
     <!-- ========================== New message ========================== -->
 

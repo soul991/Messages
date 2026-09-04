@@ -3,7 +3,6 @@ package com.messages.app.ui.why
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +30,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -40,10 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import com.messages.designsystem.AmbientGlassGlow
-import com.messages.designsystem.GlassDepth
-import com.messages.designsystem.LiquidGlassCard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
@@ -114,51 +108,45 @@ fun WhyFilteredScreen(
     )
     val message by vm.message.collectAsStateWithLifecycle()
 
-    Box(Modifier.fillMaxSize()) {
-        AmbientGlassGlow(Modifier.fillMaxSize())
-
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.why_title), fontWeight = FontWeight.SemiBold) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                )
-            },
-        ) { padding ->
-            val msg = message ?: return@Scaffold
-            Column(
-                Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                VerdictHeader(msg)
-                MessageCard(msg)
-                // Phase 4 item 20 (Truecaller rec A5): links in Dangerous messages
-                // do nothing in the chat; the ONLY way to a flagged link is this
-                // deliberate reveal, and even then it never becomes tappable.
-                if (msg.dangerous || msg.fraudWarning) {
-                    DangerousLinksSection(msg)
-                }
-                ExplanationList(msg)
-                if (msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED")) {
-                    Button(onClick = vm::moveToInbox, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.why_not_spam_action))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.why_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
-                    Text(
-                        stringResource(R.string.why_not_spam_effect, msg.address),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
+                },
+            )
+        },
+    ) { padding ->
+        val msg = message ?: return@Scaffold
+        Column(
+            Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            VerdictHeader(msg)
+            MessageCard(msg)
+            // Phase 4 item 20 (Truecaller rec A5): links in Dangerous messages
+            // do nothing in the chat; the ONLY way to a flagged link is this
+            // deliberate reveal, and even then it never becomes tappable.
+            if (msg.dangerous || msg.fraudWarning) {
+                DangerousLinksSection(msg)
+            }
+            ExplanationList(msg)
+            if (msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED")) {
+                Button(onClick = vm::moveToInbox, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.why_not_spam_action))
                 }
+                Text(
+                    stringResource(R.string.why_not_spam_effect, msg.address),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
             }
         }
     }
@@ -182,45 +170,32 @@ private fun VerdictHeader(msg: MessageEntity) {
         else -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer,
             stringResource(R.string.category_inbox))
     }
-    LiquidGlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        depth = GlassDepth.LOW,
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(container)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(container),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    when {
-                        msg.dangerous || msg.fraudWarning -> Icons.Filled.Warning
-                        msg.category in listOf("INBOX", "TRANSACTIONS") -> Icons.Filled.CheckCircle
-                        else -> Icons.Filled.Info
-                    },
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-            Spacer(Modifier.width(14.dp))
-            Column {
-                Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    stringResource(R.string.why_verdict_score, msg.score, msg.address),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Icon(
+            when {
+                msg.dangerous || msg.fraudWarning -> Icons.Filled.Warning
+                msg.category in listOf("INBOX", "TRANSACTIONS") -> Icons.Filled.CheckCircle
+                else -> Icons.Filled.Info
+            },
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(28.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(label, style = MaterialTheme.typography.titleMedium, color = color)
+            Text(
+                stringResource(R.string.why_verdict_score, msg.score, msg.address),
+                style = MaterialTheme.typography.bodySmall,
+                color = color,
+            )
         }
     }
 }
@@ -289,17 +264,16 @@ private fun DangerousLinksSection(msg: MessageEntity) {
 }
 
 @Composable
-private fun MessageCard(msg: MessageEntity) {
-    LiquidGlassCard(
+private fun MessageCard(msg: MessageEntity) {    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        depth = GlassDepth.LOW,
     ) {
         Text(
             msg.body,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(16.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(14.dp),
         )
     }
 }
@@ -310,55 +284,42 @@ private fun ExplanationList(msg: MessageEntity) {
     val patternIds = msg.matchedPatternIds.split(',').filter { it.isNotBlank() }
     val comboIds = msg.matchedComboIds.split(',').filter { it.isNotBlank() }
 
-    LiquidGlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        depth = GlassDepth.LOW,
-    ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            stringResource(R.string.why_matched_rules),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        if (explanations.isEmpty() && patternIds.isEmpty() && comboIds.isEmpty()) {
             Text(
-                stringResource(R.string.why_matched_rules),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
+                stringResource(R.string.why_no_patterns),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline,
             )
-            if (explanations.isEmpty() && patternIds.isEmpty() && comboIds.isEmpty()) {
-                Text(
-                    stringResource(R.string.why_no_patterns),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-                return@Column
+            return@Column
+        }
+        explanations.forEach { line ->
+            Row(verticalAlignment = Alignment.Top) {
+                Text("•", color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(8.dp))
+                Text(line, style = MaterialTheme.typography.bodyMedium)
             }
-            explanations.forEach { line ->
-                Row(verticalAlignment = Alignment.Top) {
-                    Text("•", color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(8.dp))
-                    Text(line, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            if (patternIds.isNotEmpty() || comboIds.isNotEmpty()) {
-                HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                Text(
-                    stringResource(
-                        R.string.why_pattern_ids,
-                        (patternIds + comboIds).joinToString(", "),
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
-            Spacer(Modifier.height(4.dp))
+        }
+        if (patternIds.isNotEmpty() || comboIds.isNotEmpty()) {
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
             Text(
-                stringResource(R.string.why_deterministic),
-                style = MaterialTheme.typography.bodySmall,
+                stringResource(
+                    R.string.why_pattern_ids,
+                    (patternIds + comboIds).joinToString(", "),
+                ),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
             )
         }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.why_deterministic),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.outline,
+        )
     }
 }

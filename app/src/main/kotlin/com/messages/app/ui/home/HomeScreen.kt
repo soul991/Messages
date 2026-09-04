@@ -2,11 +2,9 @@ package com.messages.app.ui.home
 
 import androidx.activity.compose.BackHandler
 import com.messages.app.MainActivity
-import com.messages.designsystem.AmbientGlassGlow
 import com.messages.designsystem.GlassDepth
 import com.messages.designsystem.GlassDockItem
 import com.messages.designsystem.LiquidGlassBottomDock
-import com.messages.designsystem.LiquidGlassCard
 import com.messages.designsystem.LiquidGlassSurface
 import com.messages.designsystem.LocalDarkTheme
 import androidx.compose.animation.AnimatedContent
@@ -26,7 +24,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.border
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -295,13 +292,10 @@ fun HomeScreen(
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        AmbientGlassGlow(Modifier.fillMaxSize())
-        Scaffold(
-            containerColor = Color.Transparent,
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            topBar = {
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
             // Multi-select contextual bar (Phase 4 item 14).
             if (selectionActive) {
                 TopAppBar(
@@ -467,10 +461,6 @@ fun HomeScreen(
                             }
                         }
                     },
-                    colors = TopAppBarDefaults.largeTopAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    ),
                     scrollBehavior = scrollBehavior,
                 )
             }
@@ -482,11 +472,8 @@ fun HomeScreen(
                 ExtendedFloatingActionButton(
                     onClick = onCompose,
                     expanded = fabExpanded,
-                    shape = RoundedCornerShape(20.dp),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White,
                     icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                    text = { Text(stringResource(R.string.home_new_message), fontWeight = FontWeight.SemiBold) },
+                    text = { Text(stringResource(R.string.home_new_message)) },
                 )
             }
         },
@@ -664,7 +651,6 @@ fun HomeScreen(
                 }
             }
         }
-    }
     }
 }
 
@@ -913,29 +899,13 @@ private fun PinnedConversationsRow(
                         .padding(vertical = 4.dp),
                 ) {
                     Box(contentAlignment = Alignment.TopEnd) {
-                        val dark = LocalDarkTheme.current
-                        val ringBorder = if (unread) {
-                            androidx.compose.ui.graphics.Brush.linearGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                                )
-                            )
-                        } else {
-                            androidx.compose.ui.graphics.Brush.linearGradient(
-                                listOf(
-                                    if (dark) Color(0x35FFFFFF) else Color(0x60FFFFFF),
-                                    if (dark) Color(0x0CFFFFFF) else Color(0x15000000),
-                                )
-                            )
-                        }
                         Box(
                             modifier = Modifier
-                                .size(58.dp)
+                                .size(56.dp)
                                 .clip(CircleShape)
                                 .border(
-                                    width = if (unread) 1.5.dp else 1.dp,
-                                    brush = ringBorder,
+                                    width = if (unread) 2.dp else 1.dp,
+                                    color = if (unread) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                     shape = CircleShape,
                                 ),
                             contentAlignment = Alignment.Center,
@@ -951,10 +921,10 @@ private fun PinnedConversationsRow(
                         if (unread) {
                             Box(
                                 modifier = Modifier
-                                    .size(12.dp)
+                                    .size(13.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary)
-                                    .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
                             )
                         }
                     }
@@ -1449,44 +1419,8 @@ private fun SwipeableConversationRow(
     val rightEnabled = rightAction != SwipeActions.NONE && !selectionActive
     val leftEnabled = leftAction != SwipeActions.NONE && !selectionActive
 
-    val dark = LocalDarkTheme.current
-    val categoryAccentBorder = remember(conv.category, dark) {
-        when (conv.category) {
-            "TRANSACTIONS" -> Brush.linearGradient(
-                listOf(
-                    Color(0x5534D399),
-                    Color(0x1234D399),
-                    Color.Transparent,
-                )
-            )
-            "PROMOTIONS" -> Brush.linearGradient(
-                listOf(
-                    Color(0x45FBBF24),
-                    Color(0x10FBBF24),
-                    Color.Transparent,
-                )
-            )
-            "SPAM", "BLOCKED" -> Brush.linearGradient(
-                listOf(
-                    Color(0x45F87171),
-                    Color(0x10F87171),
-                    Color.Transparent,
-                )
-            )
-            else -> null
-        }
-    }
-
     if (selectionActive || (!rightEnabled && !leftEnabled)) {
-        LiquidGlassCard(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 3.dp),
-            shape = RoundedCornerShape(18.dp),
-            depth = GlassDepth.LOW,
-            selected = selected,
-            accentBorder = categoryAccentBorder,
-        ) {
+        Box(modifier.background(MaterialTheme.colorScheme.surface)) {
             ConversationRow(
                 conv = conv, draft = draft, onClick = onClick,
                 badge = badge, onBadgeTap = onBadgeTap,
@@ -1533,16 +1467,12 @@ private fun SwipeableConversationRow(
                 )
             }
         },
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 3.dp),
+        modifier = modifier,
     ) {
-        LiquidGlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            depth = GlassDepth.LOW,
-            selected = selected,
-            accentBorder = categoryAccentBorder,
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             ConversationRow(
                 conv = conv,
@@ -1711,16 +1641,29 @@ private fun ConversationRow(
     onLongClick: (() -> Unit)? = null,
 ) {
     val unread = conv.unreadCount > 0
+    val rowShape = RoundedCornerShape(16.dp)
+    val rowBg = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+    } else {
+        Color.Transparent
+    }
 
     Row(
         modifier
             .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(rowShape)
+            .background(rowBg)
+            .then(
+                if (selected) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, rowShape)
+                else Modifier
+            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
                 onLongClickLabel = if (onLongClick != null) stringResource(R.string.home_select_conversation) else null,
             )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ContactAvatar(
@@ -1749,7 +1692,7 @@ private fun ConversationRow(
                         // long names still ellipsize before the badge.
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    if (badge != null) {
+                    if (badge != null && badge != com.messages.protection.SenderBadges.Badge.VERIFIED) {
                         Spacer(Modifier.width(4.dp))
                         com.messages.app.ui.common.SenderBadgeIcon(
                             badge,

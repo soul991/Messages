@@ -9,11 +9,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -93,97 +91,97 @@ object GlassTokens {
         return when (depth) {
             GlassDepth.LOW -> if (dark) {
                 GlassColors(
-                    background = Color(0x161C1E29),
-                    specularBorder = Brush.linearGradient(
-                        0.0f to Color(0x2EFFFFFF),
-                        0.5f to Color(0x10FFFFFF),
-                        1.0f to Color(0x02000000),
-                    ),
-                    borderWidth = 1.dp,
-                    blurRadius = 18.dp,
-                    shadowElevation = 2.dp,
-                )
-            } else {
-                GlassColors(
-                    background = Color(0x8CFFFFFF),
-                    specularBorder = Brush.linearGradient(
-                        0.0f to Color(0xD9FFFFFF),
-                        0.5f to Color(0x59FFFFFF),
-                        1.0f to Color(0x10000000),
-                    ),
-                    borderWidth = 1.dp,
-                    blurRadius = 18.dp,
-                    shadowElevation = 3.dp,
-                )
-            }
-
-            GlassDepth.MEDIUM -> if (dark) {
-                GlassColors(
-                    background = Color(0xE812131A),
+                    background = Color(0x24242633),
                     specularBorder = Brush.linearGradient(
                         0.0f to Color(0x38FFFFFF),
                         0.4f to Color(0x14FFFFFF),
                         1.0f to Color(0x05000000),
                     ),
                     borderWidth = 1.dp,
-                    blurRadius = 26.dp,
-                    shadowElevation = 8.dp,
-                    glowColor = Color.Black.copy(alpha = 0.35f),
+                    blurRadius = 16.dp,
+                    shadowElevation = 2.dp,
                 )
             } else {
                 GlassColors(
-                    background = Color(0xF2FFFFFF),
+                    background = Color(0x85FFFFFF),
                     specularBorder = Brush.linearGradient(
-                        0.0f to Color(0xFFFFFFFF),
-                        0.4f to Color(0x80FFFFFF),
+                        0.0f to Color(0xB3FFFFFF),
+                        0.5f to Color(0x59FFFFFF),
                         1.0f to Color(0x1A000000),
                     ),
                     borderWidth = 1.dp,
-                    blurRadius = 26.dp,
-                    shadowElevation = 6.dp,
-                    glowColor = Color.Black.copy(alpha = 0.06f),
+                    blurRadius = 16.dp,
+                    shadowElevation = 4.dp,
+                )
+            }
+
+            GlassDepth.MEDIUM -> if (dark) {
+                GlassColors(
+                    background = Color(0xDE14151D),
+                    specularBorder = Brush.linearGradient(
+                        0.0f to Color(0x59FFFFFF),
+                        0.4f to Color(0x24FFFFFF),
+                        1.0f to Color(0x0F000000),
+                    ),
+                    borderWidth = 1.25.dp,
+                    blurRadius = 28.dp,
+                    shadowElevation = 10.dp,
+                    glowColor = primary.copy(alpha = 0.16f),
+                )
+            } else {
+                GlassColors(
+                    background = Color(0xEBF5F7FD),
+                    specularBorder = Brush.linearGradient(
+                        0.0f to Color(0xFFFFFFFF),
+                        0.4f to Color(0x99FFFFFF),
+                        1.0f to Color(0x2E000000),
+                    ),
+                    borderWidth = 1.25.dp,
+                    blurRadius = 28.dp,
+                    shadowElevation = 10.dp,
+                    glowColor = primary.copy(alpha = 0.14f),
                 )
             }
 
             GlassDepth.HIGH -> if (dark) {
                 GlassColors(
-                    background = Color(0xF2181922),
+                    background = Color(0xF01C1E28),
                     specularBorder = Brush.linearGradient(
-                        0.0f to Color(0x45FFFFFF),
-                        0.5f to Color(0x1AFFFFFF),
-                        1.0f to Color(0x08000000),
+                        0.0f to Color(0x73FFFFFF),
+                        0.5f to Color(0x2EFFFFFF),
+                        1.0f to Color(0x1A000000),
                     ),
-                    borderWidth = 1.dp,
-                    blurRadius = 34.dp,
-                    shadowElevation = 14.dp,
-                    glowColor = Color.Black.copy(alpha = 0.45f),
+                    borderWidth = 1.5.dp,
+                    blurRadius = 36.dp,
+                    shadowElevation = 18.dp,
+                    glowColor = primary.copy(alpha = 0.22f),
                 )
             } else {
                 GlassColors(
-                    background = Color(0xF8FFFFFF),
+                    background = Color(0xF7FFFFFF),
                     specularBorder = Brush.linearGradient(
                         0.0f to Color(0xFFFFFFFF),
-                        0.5f to Color(0x99FFFFFF),
-                        1.0f to Color(0x24000000),
+                        0.5f to Color(0xB3FFFFFF),
+                        1.0f to Color(0x3D000000),
                     ),
-                    borderWidth = 1.dp,
-                    blurRadius = 34.dp,
-                    shadowElevation = 12.dp,
-                    glowColor = Color.Black.copy(alpha = 0.08f),
+                    borderWidth = 1.5.dp,
+                    blurRadius = 36.dp,
+                    shadowElevation = 18.dp,
+                    glowColor = primary.copy(alpha = 0.18f),
                 )
             }
 
             GlassDepth.OBSIDIAN -> GlassColors(
-                background = Color(0xF80A0B0F),
+                background = Color(0xF50B0C11),
                 specularBorder = Brush.linearGradient(
-                    0.0f to Color(0x28FFFFFF),
-                    0.5f to Color(0x10FFFFFF),
-                    1.0f to Color(0x02000000),
+                    0.0f to Color(0x66718096),
+                    0.5f to Color(0x264A5568),
+                    1.0f to Color(0x05000000),
                 ),
-                borderWidth = 1.dp,
-                blurRadius = 30.dp,
-                shadowElevation = 10.dp,
-                glowColor = Color.Black.copy(alpha = 0.6f),
+                borderWidth = 1.25.dp,
+                blurRadius = 32.dp,
+                shadowElevation = 14.dp,
+                glowColor = Color(0x33818CF8),
             )
         }
     }
@@ -245,109 +243,6 @@ fun LiquidGlassSurface(
         )
     } else {
         baseModifier
-    }
-
-    Box(
-        modifier = clickableModifier,
-        content = content,
-    )
-}
-
-/**
- * Classy ambient light background providing subtle depth behind glass surfaces.
- * In Dark Mode: An ethereal, deep blue/indigo ambient glow (only 6-8% opacity)
- * In Light Mode: A soft daylight sky shimmer (only 4% opacity).
- */
-@Composable
-fun AmbientGlassGlow(
-    modifier: Modifier = Modifier,
-) {
-    val dark = LocalDarkTheme.current
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    Box(modifier = modifier) {
-        // Top-left subtle ambient orb
-        Box(
-            modifier = Modifier
-                .offset(x = (-60).dp, y = (-40).dp)
-                .size(240.dp)
-                .clip(CircleShape)
-                .background(
-                    if (dark) primaryColor.copy(alpha = 0.08f)
-                    else primaryColor.copy(alpha = 0.04f)
-                )
-        )
-        // Bottom-right subtle secondary orb
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = 60.dp, y = 80.dp)
-                .size(260.dp)
-                .clip(CircleShape)
-                .background(
-                    if (dark) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.04f)
-                    else MaterialTheme.colorScheme.secondary.copy(alpha = 0.03f)
-                )
-        )
-    }
-}
-
-/**
- * High-craft Liquid Glass card container.
- * Encapsulates hair-thin specular borders, soft ambient elevation,
- * and optional click/long-click interactions with tactile feedback.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun LiquidGlassCard(
-    modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(18.dp),
-    depth: GlassDepth = GlassDepth.LOW,
-    onClick: (() -> Unit)? = null,
-    onLongClick: (() -> Unit)? = null,
-    selected: Boolean = false,
-    accentBorder: Brush? = null,
-    content: @Composable BoxScope.() -> Unit,
-) {
-    val tokens = GlassTokens.resolve(depth)
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val borderBrush = when {
-        selected -> Brush.linearGradient(listOf(primaryColor, primaryColor.copy(alpha = 0.7f)))
-        accentBorder != null -> accentBorder
-        else -> tokens.specularBorder
-    }
-    val borderWidth = if (selected) 1.5.dp else tokens.borderWidth
-
-    val baseModifier = modifier
-        .shadow(
-            elevation = tokens.shadowElevation,
-            shape = shape,
-            clip = false,
-            ambientColor = tokens.glowColor,
-            spotColor = tokens.glowColor,
-        )
-        .clip(shape)
-        .background(
-            if (selected) primaryColor.copy(alpha = 0.12f) else tokens.background,
-            shape
-        )
-        .border(borderWidth, borderBrush, shape)
-
-    val clickableModifier = when {
-        onClick != null && onLongClick != null -> {
-            baseModifier.combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-        }
-        onClick != null -> {
-            baseModifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(color = primaryColor.copy(alpha = 0.15f)),
-                onClick = onClick,
-            )
-        }
-        else -> baseModifier
     }
 
     Box(

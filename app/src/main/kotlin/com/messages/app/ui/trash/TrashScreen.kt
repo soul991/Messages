@@ -1,6 +1,9 @@
 package com.messages.app.ui.trash
 
 import android.app.Application
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,11 +18,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -89,6 +96,16 @@ class TrashViewModel(app: Application) : AndroidViewModel(app) {
         lastAction.value = R.string.trash_deleted_forever_snackbar
     }
 
+    fun restoreBatch(messageIds: Set<Long>) = viewModelScope.launch {
+        messageIds.forEach { repo.restoreFromTrash(it) }
+        lastAction.value = R.string.trash_restored_snackbar
+    }
+
+    fun deleteForeverBatch(messageIds: Set<Long>) = viewModelScope.launch {
+        messageIds.forEach { repo.deleteForever(it) }
+        lastAction.value = R.string.trash_deleted_forever_snackbar
+    }
+
     fun emptyTrash() = viewModelScope.launch {
         trashed.value.forEach { repo.deleteForever(it.id) }
         lastAction.value = R.string.trash_emptied_snackbar
@@ -115,6 +132,15 @@ fun TrashScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmForever by remember { mutableStateOf<MessageEntity?>(null) }
     var confirmEmpty by remember { mutableStateOf(false) }
+    var confirmDeleteSelected by remember { mutableStateOf(false) }
+
+    // Multi-select state
+    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
+    val selectionActive = selectedIds.isNotEmpty()
+
+    BackHandler(enabled = selectionActive) {
+        selectedIds = emptySet()
+    }
 
     // Per-folder search (§8.5): 3-char threshold, live filter + highlighting.
     var query by remember { mutableStateOf("") }
@@ -141,19 +167,71 @@ fun TrashScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.trash_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                },
-                actions = {
-                    if (trashed.isNotEmpty()) {
-                        TextButton(onClick = { confirmEmpty = true }) { Text(stringResource(R.string.trash_empty_action)) }
-                    }
-                },
-            )
+            if (selectionActive) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "${selectedIds.size}",
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { selectedIds = emptySet() }) {
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.trash_deselect_all))
+                        }
+                    },
+                    actions = {
+                        val allSelected = shown.isNotEmpty() && shown.all { it.id in selectedIds }
+                        IconButton(onClick = {
+                            selectedIds = if (allSelected) emptySet() else shown.map { it.id }.toSet()
+                        }) {
+                            Icon(
+                                if (allSelected) Icons.Filled.Deselect else Icons.Filled.SelectAll,
+                                contentDescription = stringResource(if (allSelected) R.string.trash_deselect_all else R.string.trash_select_all),
+                            )
+                        }
+                        IconButton(onClick = {
+                            val ids = selectedIds
+                            selectedIds = emptySet()
+                            vm.restoreBatch(ids)
+                        }) {
+                            Icon(
+                                Icons.Filled.RestoreFromTrash,
+                                contentDescription = stringResource(R.string.trash_restore_selected),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        IconButton(onClick = { confirmDeleteSelected = true }) {
+                            Icon(
+                                Icons.Filled.DeleteForever,
+                                contentDescription = stringResource(R.string.trash_delete_selected),
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    },
+                )
+            } else {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.trash_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        }
+                    },
+                    actions = {
+                        if (trashed.isNotEmpty()) {
+                            IconButton(onClick = {
+                                selectedIds = shown.map { it.id }.toSet()
+                            }) {
+                                Icon(Icons.Filled.SelectAll, contentDescription = stringResource(R.string.trash_select_all))
+                            }
+                            TextButton(onClick = { confirmEmpty = true }) {
+                                Text(stringResource(R.string.trash_empty_action))
+                            }
+                        }
+                    },
+                )
+            }
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
@@ -207,6 +285,11 @@ fun TrashScreen(
                         TrashRow(
                             msg = msg,
                             terms = terms,
+                            selected = msg.id in selectedIds,
+                            selectionActive = selectionActive,
+                            onToggleSelect = {
+                                selectedIds = if (msg.id in selectedIds) selectedIds - msg.id else selectedIds + msg.id
+                            },
                             onRestore = { vm.restore(msg.id) },
                             onDeleteForever = { confirmForever = msg },
                         )
@@ -242,6 +325,32 @@ fun TrashScreen(
             },
         )
     }
+    if (confirmDeleteSelected) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteSelected = false },
+            title = { Text(stringResource(R.string.trash_delete_selected_title)) },
+            text = {
+                Text(
+                    pluralStringResource(
+                        R.plurals.trash_delete_selected_body,
+                        selectedIds.size,
+                        selectedIds.size,
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val ids = selectedIds
+                    selectedIds = emptySet()
+                    confirmDeleteSelected = false
+                    vm.deleteForeverBatch(ids)
+                }) { Text(stringResource(R.string.trash_delete_forever_action)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteSelected = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
     if (confirmEmpty) {
         AlertDialog(
             onDismissRequest = { confirmEmpty = false },
@@ -268,10 +377,14 @@ fun TrashScreen(
 
 // V2-45: locale and zone read at render time, not at class-init.
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TrashRow(
     msg: MessageEntity,
     terms: List<String> = emptyList(),
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onToggleSelect: () -> Unit = {},
     onRestore: () -> Unit,
     onDeleteForever: () -> Unit,
 ) {
@@ -282,9 +395,23 @@ private fun TrashRow(
         background = MaterialTheme.colorScheme.primaryContainer,
     )
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { if (selectionActive) onToggleSelect() },
+                onLongClick = onToggleSelect,
+                onLongClickLabel = stringResource(R.string.trash_select_all),
+            )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (selectionActive) {
+            Checkbox(
+                checked = selected,
+                onCheckedChange = { onToggleSelect() },
+                modifier = Modifier.padding(end = 12.dp),
+            )
+        }
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -329,17 +456,19 @@ private fun TrashRow(
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        IconButton(onClick = onRestore) {
-            Icon(
-                Icons.Filled.RestoreFromTrash, contentDescription = stringResource(R.string.trash_restore),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        }
-        IconButton(onClick = onDeleteForever) {
-            Icon(
-                Icons.Filled.DeleteForever, contentDescription = stringResource(R.string.trash_delete_forever_action),
-                tint = MaterialTheme.colorScheme.error,
-            )
+        if (!selectionActive) {
+            IconButton(onClick = onRestore) {
+                Icon(
+                    Icons.Filled.RestoreFromTrash, contentDescription = stringResource(R.string.trash_restore),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            IconButton(onClick = onDeleteForever) {
+                Icon(
+                    Icons.Filled.DeleteForever, contentDescription = stringResource(R.string.trash_delete_forever_action),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }
