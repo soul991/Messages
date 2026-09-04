@@ -522,6 +522,16 @@
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_subtitle">Choose how Messages looks across the app.</string>
+    <string name="settings_section_brightness">In-app brightness</string>
+    <string name="settings_brightness_custom_title">Custom brightness</string>
+    <string name="settings_brightness_custom_subtitle">Override device brightness while Messages is open</string>
+    <string name="settings_brightness_slider_label">Brightness level</string>
+    <string name="settings_brightness_percent">%1$d%%</string>
+    <string name="settings_brightness_low">25%</string>
+    <string name="settings_brightness_medium">50%</string>
+    <string name="settings_brightness_high">75%</string>
+    <string name="settings_brightness_max">100%</string>
+    <string name="settings_brightness_footnote">In-app brightness applies only while Messages is in the foreground. It does not affect other apps or system brightness.</string>
     <string name="settings_section_sensitivity">Protection sensitivity</string>
     <string name="settings_sensitivity_relaxed_body">Fewer messages filtered — borderline messages stay in your Inbox or Review.</string>
     <string name="settings_sensitivity_strict_body">Aggressive filtering — borderline messages go to Spam sooner. Protected messages (OTPs, bank alerts) are never filtered at any level.</string>

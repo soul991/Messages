@@ -115,6 +115,18 @@ class MainActivity : FragmentActivity() {
     /** Resolved from settings before composition, then updated live from Settings. */
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
     private var accentSeed by mutableStateOf(com.messages.designsystem.AccentSeed.DYNAMIC)
+    private var customBrightnessEnabled by mutableStateOf(false)
+    private var brightnessLevel by mutableStateOf(ThemePreferences.DEFAULT_BRIGHTNESS)
+
+    private fun applyScreenBrightness(enabled: Boolean, level: Float) {
+        val lp = window.attributes
+        lp.screenBrightness = if (enabled) {
+            level.coerceIn(0.05f, 1.0f)
+        } else {
+            android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        }
+        window.attributes = lp
+    }
 
     /** Keeps FLAG_SECURE in sync with the App lock toggle while Settings is
      *  open in this same activity. Field-held: SharedPreferences only keeps a
@@ -159,6 +171,9 @@ class MainActivity : FragmentActivity() {
             .registerOnSharedPreferenceChangeListener(secureFlagListener)
         themeMode = ThemePreferences.current(this)
         accentSeed = ThemePreferences.currentAccent(this)
+        customBrightnessEnabled = ThemePreferences.isCustomBrightnessEnabled(this)
+        brightnessLevel = ThemePreferences.getBrightnessLevel(this)
+        applyScreenBrightness(customBrightnessEnabled, brightnessLevel)
         refreshDefaultState()
         // Note: blind requestCorePermissions() removed on cold start.
         // Default SMS role automatically grants SMS permissions upon assignment.
@@ -558,6 +573,18 @@ class MainActivity : FragmentActivity() {
                                 ThemePreferences.set(this@MainActivity, mode)
                                 themeMode = mode
                             },
+                            customBrightness = customBrightnessEnabled,
+                            onCustomBrightnessChange = { enabled ->
+                                customBrightnessEnabled = enabled
+                                ThemePreferences.setCustomBrightnessEnabled(this@MainActivity, enabled)
+                                applyScreenBrightness(enabled, brightnessLevel)
+                            },
+                            brightnessLevel = brightnessLevel,
+                            onBrightnessLevelChange = { level ->
+                                brightnessLevel = level
+                                ThemePreferences.setBrightnessLevel(this@MainActivity, level)
+                                applyScreenBrightness(customBrightnessEnabled, level)
+                            },
                         )
                     }
                     composable("drive_backup") {
@@ -732,6 +759,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
+        applyScreenBrightness(customBrightnessEnabled, brightnessLevel)
         refreshDefaultState()
     }
 

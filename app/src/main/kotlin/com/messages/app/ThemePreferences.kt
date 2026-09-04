@@ -32,4 +32,26 @@ object ThemePreferences {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(KEY_ACCENT_SEED, accent.name).apply()
     }
+
+    private const val KEY_CUSTOM_BRIGHTNESS = "custom_brightness_enabled"
+    private const val KEY_BRIGHTNESS_LEVEL = "custom_brightness_level"
+    const val DEFAULT_BRIGHTNESS = 0.70f
+
+    fun isCustomBrightnessEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_CUSTOM_BRIGHTNESS, false)
+
+    fun setCustomBrightnessEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_CUSTOM_BRIGHTNESS, enabled).apply()
+    }
+
+    fun getBrightnessLevel(context: Context): Float =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getFloat(KEY_BRIGHTNESS_LEVEL, DEFAULT_BRIGHTNESS)
+
+    fun setBrightnessLevel(context: Context, level: Float) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putFloat(KEY_BRIGHTNESS_LEVEL, level.coerceIn(0.05f, 1.0f)).apply()
+    }
 }

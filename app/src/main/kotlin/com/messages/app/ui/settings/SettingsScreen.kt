@@ -7,6 +7,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,6 +39,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Accessibility
 import androidx.compose.material.icons.outlined.AutoDelete
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.BrightnessHigh
+import androidx.compose.material.icons.outlined.BrightnessLow
+import androidx.compose.material.icons.outlined.BrightnessMedium
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
@@ -107,6 +115,8 @@ import kotlinx.coroutines.withContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.messages.app.R
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -451,6 +461,10 @@ fun SettingsScreen(
     onThemeModeChange: (ThemeMode) -> Unit = {},
     accent: AccentSeed = AccentSeed.DYNAMIC,
     onAccentChange: (AccentSeed) -> Unit = {},
+    customBrightness: Boolean = false,
+    onCustomBrightnessChange: (Boolean) -> Unit = {},
+    brightnessLevel: Float = 0.70f,
+    onBrightnessLevelChange: (Float) -> Unit = {},
     vm: SettingsViewModel = viewModel(),
 ) {
     val rules by vm.rules.collectAsStateWithLifecycle()
@@ -566,6 +580,18 @@ fun SettingsScreen(
                 )
                 AccentPickerRow(selected = accent, onSelect = onAccentChange)
                 MessageTextSizeRow()
+            }
+
+            // ---- In-app brightness ----
+            item {
+                SettingsSectionDivider()
+                SettingsSectionHeader(stringResource(R.string.settings_section_brightness))
+                InAppBrightnessSection(
+                    customEnabled = customBrightness,
+                    brightness = brightnessLevel,
+                    onCustomEnabledChange = onCustomBrightnessChange,
+                    onBrightnessChange = onBrightnessLevelChange,
+                )
             }
 
             // ---- Protection sensitivity (§3 Stage 5) ----
@@ -1173,6 +1199,105 @@ private fun MessageTextSizeRow() {
                     },
                     label = { Text(label) },
                 )
+            }
+        }
+    }
+}
+
+/** In-app brightness adjustment section. */
+@Composable
+private fun InAppBrightnessSection(
+    customEnabled: Boolean,
+    brightness: Float,
+    onCustomEnabledChange: (Boolean) -> Unit,
+    onBrightnessChange: (Float) -> Unit,
+) {
+    Column {
+        SettingsSwitchRow(
+            icon = Icons.Outlined.BrightnessMedium,
+            title = stringResource(R.string.settings_brightness_custom_title),
+            subtitle = stringResource(R.string.settings_brightness_custom_subtitle),
+            checked = customEnabled,
+            onChange = onCustomEnabledChange,
+        )
+
+        AnimatedVisibility(
+            visible = customEnabled,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+                val icon = when {
+                    brightness < 0.35f -> Icons.Outlined.BrightnessLow
+                    brightness < 0.70f -> Icons.Outlined.BrightnessMedium
+                    else -> Icons.Outlined.BrightnessHigh
+                }
+                val percent = (brightness * 100).roundToInt()
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                ) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        stringResource(R.string.settings_brightness_slider_label),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        stringResource(R.string.settings_brightness_percent, percent),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Slider(
+                    value = brightness,
+                    onValueChange = { onBrightnessChange(it.coerceIn(0.05f, 1.0f)) },
+                    valueRange = 0.05f..1.0f,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                val presets = listOf(
+                    stringResource(R.string.settings_brightness_low) to 0.25f,
+                    stringResource(R.string.settings_brightness_medium) to 0.50f,
+                    stringResource(R.string.settings_brightness_high) to 0.75f,
+                    stringResource(R.string.settings_brightness_max) to 1.00f,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                ) {
+                    presets.forEach { (label, presetValue) ->
+                        val isSelected = abs(brightness - presetValue) < 0.03f
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onBrightnessChange(presetValue) },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    stringResource(R.string.settings_brightness_footnote),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
