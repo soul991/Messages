@@ -21,10 +21,26 @@ object ThemePreferences {
             .edit().putString(KEY_THEME_MODE, mode.name).apply()
     }
 
+    private const val KEY_THEME_VERSION = "theme_version"
+    private const val CURRENT_THEME_VERSION = 2 // v1: green default (v1.4.1), v2: violet 2026 refresh (v1.5.1)
+
     /** App accent — Violet by default (2026 identity), Dynamic and 8 more seeds selectable. */
     fun currentAccent(context: Context): AccentSeed {
-        val saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_ACCENT_SEED, AccentSeed.VIOLET.name)
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val version = prefs.getInt(KEY_THEME_VERSION, 0)
+        if (version < CURRENT_THEME_VERSION) {
+            val saved = prefs.getString(KEY_ACCENT_SEED, null)
+            // Migrate users from previous Green default (or unset) to 2026 Violet identity
+            if (saved == null || saved == AccentSeed.GREEN.name) {
+                prefs.edit()
+                    .putString(KEY_ACCENT_SEED, AccentSeed.VIOLET.name)
+                    .putInt(KEY_THEME_VERSION, CURRENT_THEME_VERSION)
+                    .apply()
+                return AccentSeed.VIOLET
+            }
+            prefs.edit().putInt(KEY_THEME_VERSION, CURRENT_THEME_VERSION).apply()
+        }
+        val saved = prefs.getString(KEY_ACCENT_SEED, AccentSeed.VIOLET.name)
         return AccentSeed.values().firstOrNull { it.name == saved } ?: AccentSeed.VIOLET
     }
 

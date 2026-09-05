@@ -21,7 +21,7 @@ object NotificationAvatarGenerator {
     private const val SIZE = 128 // dp-scaled density target (standard large icon)
 
     /**
-     * Renders the app's branded emerald squircle launcher icon into a high-res [Bitmap]
+     * Renders the app's branded Signature Violet squircle launcher icon into a high-res [Bitmap]
      * for system notifications (e.g. in-app updates, service notifications).
      */
     fun getAppIconBitmap(context: Context): Bitmap {
@@ -146,9 +146,9 @@ object NotificationAvatarGenerator {
     }
 
     private val USER_GRADIENTS = listOf(
+        0xFF8B5CF6.toInt() to 0xFF5A41DD.toInt(), // Violet (Brand Identity)
         0xFF10B981.toInt() to 0xFF059669.toInt(), // Emerald
         0xFF3B82F6.toInt() to 0xFF1D4ED8.toInt(), // Sapphire
-        0xFF8B5CF6.toInt() to 0xFF6D28D9.toInt(), // Violet
         0xFFEC4899.toInt() to 0xFFBE185D.toInt(), // Rose
         0xFF06B6D4.toInt() to 0xFF0E7490.toInt(), // Cyan
         0xFFF97316.toInt() to 0xFFC2410C.toInt(), // Coral Orange

@@ -173,12 +173,12 @@ fun schemeForSeed(seed: AccentSeed, dark: Boolean): ColorScheme {
 // Shared neutral surfaces — accents restyle the color roles, not the canvas,
 // so switching accents never shifts the app's background feel.
 private val LightBase = lightColorScheme(
-    primary = Color(0xFF00629E),
+    primary = Color(0xFF5A41DD),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFCFE5FF),
-    onPrimaryContainer = Color(0xFF001D34),
-    secondary = Color(0xFF526070),
-    secondaryContainer = Color(0xFFD6E4F7),
+    primaryContainer = Color(0xFFE8DEFF),
+    onPrimaryContainer = Color(0xFF1E0060),
+    secondary = Color(0xFF605A71),
+    secondaryContainer = Color(0xFFE6DFF9),
     // 2026 visual refresh: warm paper canvas replaces the cooler blue-gray —
     // reads calmer and softer, per the 2026 visual spec.
     surface = Color(0xFFFAF7F2),
@@ -187,12 +187,12 @@ private val LightBase = lightColorScheme(
 )
 
 private val DarkBase = darkColorScheme(
-    primary = Color(0xFF99CBFF),
-    onPrimary = Color(0xFF003355),
-    primaryContainer = Color(0xFF004A79),
-    onPrimaryContainer = Color(0xFFCFE5FF),
-    secondary = Color(0xFFBAC8DA),
-    secondaryContainer = Color(0xFF3B4857),
+    primary = Color(0xFFD1BBFD),
+    onPrimary = Color(0xFF381E72),
+    primaryContainer = Color(0xFF4F378B),
+    onPrimaryContainer = Color(0xFFE8DEFF),
+    secondary = Color(0xFFCBC2DB),
+    secondaryContainer = Color(0xFF484358),
     // 2026 visual refresh: warm violet-tinted charcoal, ties the "Dark"
     // tier to the new accent without touching the "AMOLED" tier below.
     surface = Color(0xFF17151F),

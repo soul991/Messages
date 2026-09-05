@@ -446,7 +446,7 @@ class MessageNotifier(private val context: Context) {
         )
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_PERSONAL)
             .setSmallIcon(R.drawable.ic_notif_message)
-            .setColor(0xFF10B981.toInt())
+            .setColor(0xFF5A41DD.toInt())
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(context.getString(R.string.notif_new_message))
             .setContentIntent(openIntent)

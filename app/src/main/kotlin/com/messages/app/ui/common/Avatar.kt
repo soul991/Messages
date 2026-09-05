@@ -32,8 +32,8 @@ fun ContactAvatar(
     photoUri: String? = null,
 ) {
     val palette = categoryPalette(category)
-    val bg = palette?.container ?: MaterialTheme.colorScheme.primaryContainer
-    val fg = palette?.onContainer ?: MaterialTheme.colorScheme.onPrimaryContainer
+    val bg = palette?.container ?: MaterialTheme.colorScheme.primary
+    val fg = palette?.onContainer ?: MaterialTheme.colorScheme.onPrimary
     Box(
         modifier
             .size(size)

@@ -321,7 +321,7 @@ fun LiquidGlassBottomDock(
                 )
 
                 val pillBackground by animateColorAsState(
-                    targetValue = if (selected) targetAccent.copy(alpha = 0.16f) else Color.Transparent,
+                    targetValue = if (selected) targetAccent.copy(alpha = 0.28f) else Color.Transparent,
                     label = "dock-pill-bg",
                 )
 

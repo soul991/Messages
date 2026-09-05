@@ -478,6 +478,9 @@ fun HomeScreen(
                 ExtendedFloatingActionButton(
                     onClick = onCompose,
                     expanded = fabExpanded,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
                     icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
                     text = { Text(stringResource(R.string.home_new_message)) },
                 )
@@ -1800,7 +1803,10 @@ private fun ConversationRow(
                                 )
                             }
                         } else {
-                            Badge {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ) {
                                 Text(
                                     conv.unreadCount.toString(),
                                     modifier = Modifier.semantics {

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="brand_primary">#5A41DD</color>
+    <color name="brand_primary_variant">#4338CA</color>
 
     <!--
       V2-37: the window behind the first composition. Before Compose has drawn
