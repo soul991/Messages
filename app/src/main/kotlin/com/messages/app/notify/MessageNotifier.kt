@@ -237,7 +237,7 @@ class MessageNotifier(private val context: Context) {
                 if (verdict.protectedLabel == com.messages.protection.ProtectedLabel.OTP) {
                     0xFF10B981.toInt()
                 } else {
-                    0xFF10B981.toInt() // Brand signature Emerald
+                    0xFF5A41DD.toInt() // Brand signature Violet
                 }
             }
         }

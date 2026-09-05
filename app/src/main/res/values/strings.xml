@@ -615,6 +615,7 @@
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_amoled">AMOLED black</string>
     <string name="accent_dynamic">Dynamic</string>
+    <string name="accent_violet">Violet</string>
     <string name="accent_blue">Blue</string>
     <string name="accent_teal">Teal</string>
     <string name="accent_green">Green</string>

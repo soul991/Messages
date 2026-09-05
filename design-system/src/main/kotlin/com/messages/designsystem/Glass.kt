@@ -117,7 +117,8 @@ object GlassTokens {
 
             GlassDepth.MEDIUM -> if (dark) {
                 GlassColors(
-                    background = Color(0xEE161822),
+                    // 2026 visual refresh: warm-shifted dark matching DarkBase.surface
+                    background = Color(0xEE17151F),
                     specularBorder = Brush.linearGradient(
                         0.0f to Color(0x65FFFFFF),
                         0.4f to Color(0x28FFFFFF),
@@ -130,7 +131,8 @@ object GlassTokens {
                 )
             } else {
                 GlassColors(
-                    background = Color(0xF2F4F7FC),
+                    // 2026 visual refresh: warm paper matching LightBase.surface
+                    background = Color(0xF2FAF7F2),
                     specularBorder = Brush.linearGradient(
                         0.0f to Color(0xFFFFFFFF),
                         0.4f to Color(0xB0FFFFFF),
@@ -145,7 +147,8 @@ object GlassTokens {
 
             GlassDepth.HIGH -> if (dark) {
                 GlassColors(
-                    background = Color(0xF61A1D28),
+                    // 2026 visual refresh: warm-tinted dark elevation
+                    background = Color(0xF6231F29),
                     specularBorder = Brush.linearGradient(
                         0.0f to Color(0x75FFFFFF),
                         0.5f to Color(0x35FFFFFF),
@@ -158,7 +161,8 @@ object GlassTokens {
                 )
             } else {
                 GlassColors(
-                    background = Color(0xFAFFFFFF),
+                    // 2026 visual refresh: warm-shifted high elevation
+                    background = Color(0xFAFFFBF3),
                     specularBorder = Brush.linearGradient(
                         0.0f to Color(0xFFFFFFFF),
                         0.5f to Color(0xC5FFFFFF),

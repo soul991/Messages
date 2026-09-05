@@ -227,7 +227,7 @@ class SnoozeWorker(
         val notification = NotificationCompat.Builder(ctx, MessagesApp.CH_REMINDERS)
             .setSmallIcon(com.messages.app.R.drawable.ic_notif_reminder)
             .setLargeIcon(NotificationAvatarGenerator.getAppIconBitmap(ctx))
-            .setColor(0xFF10B981.toInt())
+            .setColor(0xFF5A41DD.toInt())
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

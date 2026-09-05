@@ -8,7 +8,7 @@
       is about to use or startup flashes. Tracks LightBase.background /
       DarkBase.background in design-system Theme.kt; see values-night.
     -->
-    <color name="window_background">#F8F9FC</color>
+    <color name="window_background">#FAF7F2</color>
 
     <!--
       V2-44: widget colors. RemoteViews are inflated by the launcher, so these

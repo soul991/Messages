@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- V2-37: matches DarkBase.background in design-system Theme.kt. -->
-    <color name="window_background">#101418</color>
+    <color name="window_background">#17151F</color>
 
     <!--
       V2-44: dark widget surface. A fixed light card glares on a dark home

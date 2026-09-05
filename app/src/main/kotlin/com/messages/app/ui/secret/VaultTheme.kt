@@ -103,6 +103,7 @@ fun VaultTheme(content: @Composable () -> Unit) {
         MaterialTheme(
             colorScheme = scheme,
             typography = MaterialTheme.typography, // inherit the app's hierarchy
+            shapes = MaterialTheme.shapes, // inherit the app's shape scale (MessagesShapes)
             content = content,
         )
     }

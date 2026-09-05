@@ -23,8 +23,8 @@ val LocalDarkTheme = staticCompositionLocalOf { false }
 
 /**
  * Sent-bubble color role (Phase 5 §2): the outgoing bubble's container/on
- * pair. Defaults to the scheme's primary/onPrimary — Material You dynamic
- * color is the app's identity, deliberately not the messengers' green.
+ * pair. Defaults to the scheme's primary/onPrimary — Violet is the app's
+ * identity (2026 visual refresh), deliberately not the messengers' green or blue.
  * ChatStyle presets (including the green family) override it per chat.
  */
 @Immutable
@@ -76,18 +76,25 @@ object CategoryColors {
     val ReviewContainer = Color(0xFFD9E3F8)
 }
 
-// ---- Curated accent seeds (Phase 5 §4) ----------------------------------
+// ---- Curated accent seeds (Phase 5 §4, Violet added in 2026 visual refresh)
 //
-// Material You dynamic color stays the default identity; these eight seeds
-// give non-dynamic devices (and brand screenshots) a full scheme each. Colors
-// are generated at exact CIELAB tones — tone == L*, the same axis M3's HCT
-// uses — so every on/container pair lands at the tone distances that make
-// WCAG AA hold by construction (T100-on-T40, T10-on-T90, T20-on-T80,
-// T90-on-T30). `AccentSchemesContrastTest` in :app asserts the ratios.
+// Violet is the default identity; Dynamic and eight further curated seeds
+// remain fully selectable choices in Settings. Colors are generated at exact
+// CIELAB tones — tone == L*, the same axis M3's HCT uses — so every
+// on/container pair lands at the tone distances that make WCAG AA hold by
+// construction (T100-on-T40, T10-on-T90, T20-on-T80, T90-on-T30).
+// `AccentSchemesContrastTest` in :app asserts the ratios generically.
 
 /** A selectable app accent. DYNAMIC = Material You (falls back to BLUE pre-S). */
 enum class AccentSeed(val displayName: String, internal val hue: Double, internal val chroma: Double) {
     DYNAMIC("Dynamic", 0.0, 0.0),
+    /**
+     * App identity (2026 visual refresh): an unclaimed hue in this category
+     * — every major messenger sits on blue or green — chosen clear of the
+     * fraud/promo/protected/review category hues below. Hue/chroma land at
+     * Tone 40 == #5A41DD.
+     */
+    VIOLET("Violet", 304.5, 92.0),
     BLUE("Blue", 262.0, 36.0),
     TEAL("Teal", 193.0, 28.0),
     GREEN("Green", 135.0, 42.0),
@@ -172,9 +179,11 @@ private val LightBase = lightColorScheme(
     onPrimaryContainer = Color(0xFF001D34),
     secondary = Color(0xFF526070),
     secondaryContainer = Color(0xFFD6E4F7),
-    surface = Color(0xFFF8F9FC),
-    surfaceVariant = Color(0xFFDEE3EB),
-    background = Color(0xFFF8F9FC),
+    // 2026 visual refresh: warm paper canvas replaces the cooler blue-gray —
+    // reads calmer and softer, per the 2026 visual spec.
+    surface = Color(0xFFFAF7F2),
+    surfaceVariant = Color(0xFFE8E2D6),
+    background = Color(0xFFFAF7F2),
 )
 
 private val DarkBase = darkColorScheme(
@@ -184,9 +193,11 @@ private val DarkBase = darkColorScheme(
     onPrimaryContainer = Color(0xFFCFE5FF),
     secondary = Color(0xFFBAC8DA),
     secondaryContainer = Color(0xFF3B4857),
-    surface = Color(0xFF101418),
-    surfaceVariant = Color(0xFF42474E),
-    background = Color(0xFF101418),
+    // 2026 visual refresh: warm violet-tinted charcoal, ties the "Dark"
+    // tier to the new accent without touching the "AMOLED" tier below.
+    surface = Color(0xFF17151F),
+    surfaceVariant = Color(0xFF4A4450),
+    background = Color(0xFF17151F),
 )
 
 // The pre-accent static schemes were the BLUE seed's values; BLUE reproduces
@@ -224,7 +235,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 @Composable
 fun MessagesTheme(
     mode: ThemeMode = ThemeMode.SYSTEM,
-    accent: AccentSeed = AccentSeed.GREEN,
+    accent: AccentSeed = AccentSeed.VIOLET,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = when (mode) {
@@ -252,6 +263,7 @@ fun MessagesTheme(
         MaterialTheme(
             colorScheme = scheme,
             typography = MessagesTypography,
+            shapes = MessagesShapes,
             content = content,
         )
     }

@@ -79,7 +79,7 @@ class UpdateCheckWorker(
         val builder = NotificationCompat.Builder(applicationContext, MessagesApp.CH_UPDATES)
             .setSmallIcon(R.drawable.ic_notif_message)
             .setLargeIcon(appIcon)
-            .setColor(0xFF10B981.toInt())
+            .setColor(0xFF5A41DD.toInt())
             .setContentTitle(
                 applicationContext.getString(R.string.update_notif_title, version)
             )

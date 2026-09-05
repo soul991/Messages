@@ -61,8 +61,8 @@ object ChatStyle {
         WallpaperPreset("none", "None", emptyList(), emptyList()),
         WallpaperPreset(
             "mist", "Mist",
-            listOf(Color(0xFFE3F0FA), Color(0xFFF8F9FC)),
-            listOf(Color(0xFF12202C), Color(0xFF101418)),
+            listOf(Color(0xFFE3F0FA), Color(0xFFFAF7F2)),
+            listOf(Color(0xFF12202C), Color(0xFF17151F)),
         ),
         WallpaperPreset(
             "dawn", "Dawn",

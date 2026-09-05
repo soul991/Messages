@@ -465,7 +465,7 @@ fun SettingsScreen(
     onSecretEntry: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {},
-    accent: AccentSeed = AccentSeed.GREEN,
+    accent: AccentSeed = AccentSeed.VIOLET,
     onAccentChange: (AccentSeed) -> Unit = {},
     customBrightness: Boolean = false,
     onCustomBrightnessChange: (Boolean) -> Unit = {},
@@ -1060,6 +1060,7 @@ internal fun ThemeMode.labelRes(): Int = when (this) {
 @StringRes
 internal fun AccentSeed.labelRes(): Int = when (this) {
     AccentSeed.DYNAMIC -> R.string.accent_dynamic
+    AccentSeed.VIOLET -> R.string.accent_violet
     AccentSeed.BLUE -> R.string.accent_blue
     AccentSeed.TEAL -> R.string.accent_teal
     AccentSeed.GREEN -> R.string.accent_green

@@ -114,7 +114,7 @@ class MainActivity : FragmentActivity() {
 
     /** Resolved from settings before composition, then updated live from Settings. */
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
-    private var accentSeed by mutableStateOf(com.messages.designsystem.AccentSeed.GREEN)
+    private var accentSeed by mutableStateOf(com.messages.designsystem.AccentSeed.VIOLET)
     private var customBrightnessEnabled by mutableStateOf(false)
     private var brightnessLevel by mutableStateOf(ThemePreferences.DEFAULT_BRIGHTNESS)
 

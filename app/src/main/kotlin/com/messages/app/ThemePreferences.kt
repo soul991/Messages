@@ -21,11 +21,11 @@ object ThemePreferences {
             .edit().putString(KEY_THEME_MODE, mode.name).apply()
     }
 
-    /** Phase 5 §4: app accent — Green by default, or user-selected curated seed / dynamic. */
+    /** App accent — Violet by default (2026 identity), Dynamic and 8 more seeds selectable. */
     fun currentAccent(context: Context): AccentSeed {
         val saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_ACCENT_SEED, AccentSeed.GREEN.name)
-        return AccentSeed.values().firstOrNull { it.name == saved } ?: AccentSeed.GREEN
+            .getString(KEY_ACCENT_SEED, AccentSeed.VIOLET.name)
+        return AccentSeed.values().firstOrNull { it.name == saved } ?: AccentSeed.VIOLET
     }
 
     fun setAccent(context: Context, accent: AccentSeed) {
