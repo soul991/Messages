@@ -57,16 +57,16 @@ message instead of deep inside AGP.
 ## Certificate identity
 
 The signing identity — not the password — is what Android enforces on update.
-It has never changed:
+It matches the live release keystore in `~/keystores/messages-release.jks`:
 
 ```
-Owner:  CN=Messages, OU=Personal, O=Personal, C=IN
+Owner:  CN=Messages, OU=Android, O=MessagesApp, L=City, ST=State, C=US
 Alias:  messages
-SHA-256: 8F:06:A5:76:A0:5F:50:89:2B:35:F6:B4:E5:98:3D:E5:
-         18:26:D9:83:96:6B:D7:1C:48:0D:73:D0:D7:91:49:15
-SHA-1:   79:E2:F9:51:44:81:4F:30:30:9D:AF:56:98:04:D3:CC:A7:9C:2C:62
-Signature algorithm: SHA384withRSA
-Valid:  2026-07-24 → 2053-12-09
+SHA-256: 91:0C:79:B9:3B:6D:DF:C7:BE:DB:FE:1F:A7:B4:8C:FD:24:40:4C:D4:
+         D2:89:2C:B8:05:02:01:CC:67:C7:FB:9A
+SHA-1:   53:B6:D5:71:E7:D4:8F:D8:76:4D:25:B1:5E:B8:A4:0D:F4:C7:D8:3B
+Signature algorithm: SHA256withRSA
+Valid:  2026-09-01 → 2054-01-17
 ```
 
 Verify at any time with:
@@ -75,7 +75,7 @@ Verify at any time with:
 export JAVA_HOME=/opt/homebrew/opt/openjdk@17
 keytool -list -v -keystore ~/keystores/messages-release.jks | grep -A1 'Certificate fingerprints'
 # and, for an APK you already built:
-apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
+apksigner verify --print-certs app/build/outputs/apk/release/Messages.apk
 ```
 
 The SHA-1 above is the value Google Cloud Console needs for the release
