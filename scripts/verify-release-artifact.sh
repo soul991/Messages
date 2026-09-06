@@ -46,7 +46,7 @@ fi
 # The identity from docs/ops/RELEASE_SIGNING.md. Rotating the signing key means
 # updating this and that document together — deliberately awkward, because on
 # Android an identity change is permanent for every installed user.
-DEFAULT_CERT_SHA256="910C79B93B6DDFC7BEDBFE1FA7B48CFD24404CD4D2892CB8050201CC67C7FB9A"
+DEFAULT_CERT_SHA256="8F06A576A05F50892B35F6B4E5983DE51826D983966BD71C480D73D0D7914915"
 EXPECTED_CERT_SHA256="${EXPECTED_CERT_SHA256:-$DEFAULT_CERT_SHA256}"
 
 failures=0

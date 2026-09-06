@@ -233,13 +233,7 @@ class MessageNotifier(private val context: Context) {
             Category.PROMOTIONS -> 0xFFD97706.toInt()   // Amber
             Category.SPAM -> 0xFFD32F2F.toInt()         // Red
             Category.REVIEW -> 0xFF4B5563.toInt()       // Slate
-            Category.INBOX, Category.BLOCKED -> {
-                if (verdict.protectedLabel == com.messages.protection.ProtectedLabel.OTP) {
-                    0xFF10B981.toInt()
-                } else {
-                    0xFF5A41DD.toInt() // Brand signature Violet
-                }
-            }
+            Category.INBOX, Category.BLOCKED -> 0xFF5A41DD.toInt() // Brand signature Violet
         }
 
         val builder = NotificationCompat.Builder(context, effectiveChannel)
