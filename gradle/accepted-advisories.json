@@ -29,10 +29,10 @@
       "ids": [
         "GHSA-3qp7-7mw8-wx86", "GHSA-4g8c-wm8x-jfhw", "GHSA-558v-64gr-wgg4",
         "GHSA-57rv-r2g8-2cj3", "GHSA-6jqx-86gh-f27w", "GHSA-93wv-jw9v-4972",
-        "GHSA-c653-97m9-rcg9", "GHSA-f6hv-jmp6-3vwv", "GHSA-jppx-w49h-x2qq",
-        "GHSA-mj4r-2hfc-f8p6", "GHSA-mvh2-crg5-v77c", "GHSA-prj3-ccx8-p6x4",
-        "GHSA-pwqr-wmgm-9rr8", "GHSA-w9fj-cfpg-grvv", "GHSA-x4gw-5cx5-pgmh",
-        "GHSA-xpw8-rcwv-8f8p"
+        "GHSA-c4c3-7fpv-j4q5", "GHSA-c653-97m9-rcg9", "GHSA-f6hv-jmp6-3vwv",
+        "GHSA-jppx-w49h-x2qq", "GHSA-mj4r-2hfc-f8p6", "GHSA-mvh2-crg5-v77c",
+        "GHSA-prj3-ccx8-p6x4", "GHSA-pwqr-wmgm-9rr8", "GHSA-w9fj-cfpg-grvv",
+        "GHSA-x4gw-5cx5-pgmh", "GHSA-xpw8-rcwv-8f8p"
       ],
       "coordinate": "io.netty:*",
       "scope": "build",
