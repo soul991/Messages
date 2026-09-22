@@ -40,10 +40,14 @@
       "expires": "2027-02-01"
     },
     {
-      "ids": ["GHSA-574f-3g2m-x479"],
+      "ids": [
+        "GHSA-574f-3g2m-x479",
+        "GHSA-9pwp-9qqc-pr26",
+        "GHSA-qp49-qgx5-5m26"
+      ],
       "coordinate": "org.bouncycastle:*",
       "scope": "build",
-      "reason": "bcprov 1.77/1.78.1 via com.android.tools:sdk-common <- AGP, used for APK signing. The advisory is in Ed25519 signature verification; our signing path verifies nothing with BouncyCastle, and the key material is the release keystore, which never reaches an untrusted input. AGP 8.13.2 moves this only to 1.79, which is still affected.",
+      "reason": "bcprov 1.77/1.78.1 via com.android.tools:sdk-common <- AGP, used for APK signing. GHSA-574f-3g2m-x479 is in Ed25519 verification; GHSA-9pwp-9qqc-pr26 is a name constraints bypass in rfc822Name/URI; GHSA-qp49-qgx5-5m26 is an ASN.1 nesting guard reset. Build-only: APK signing uses local keystore material and verifies no untrusted certificates or ASN.1 structures. Fixed in BC 1.85, but AGP 8.13.2 only moves to 1.79.",
       "expires": "2027-02-01"
     },
     {
