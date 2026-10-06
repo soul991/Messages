@@ -11,8 +11,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -95,7 +93,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -110,7 +107,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -128,7 +124,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -246,12 +241,9 @@ fun HomeScreen(
     val selectionActive = selectedThreads.isNotEmpty()
     var showHomeMenu by remember { mutableStateOf(false) }
 
-    // §9: large-title collapsing app bar; its collapse fraction also drives
-    // the FAB shrinking to icon-only as the list scrolls.
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val fabExpanded by remember {
-        derivedStateOf { scrollBehavior.state.collapsedFraction < 0.5f }
-    }
+    // Keep the inbox toolbar compact so the conversation list remains the
+    // visual focus and more rows fit on screen.
+    val fabExpanded = true
 
     fun exitSearch() {
         searchActive = false
@@ -299,7 +291,6 @@ fun HomeScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             // Multi-select contextual bar (Phase 4 item 14).
@@ -359,7 +350,7 @@ fun HomeScreen(
                 enter = expandVertically(Motion.spatialDefault()) + fadeIn(Motion.effectsDefault()),
                 exit = shrinkVertically(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
             ) {
-                LargeTopAppBar(
+                TopAppBar(
                     // Secret space entry: press and hold the title for 1.5s —
                     // standard long-press feel, still deliberate. pointerInput
                     // + a timed press (not combinedClickable — its long-press
@@ -455,6 +446,13 @@ fun HomeScreen(
                                     onClick = { showHomeMenu = false; onOpenStarred() },
                                 )
                                 DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.category_blocked)) },
+                                    onClick = {
+                                        showHomeMenu = false
+                                        vm.setFolder("BLOCKED")
+                                    },
+                                )
+                                DropdownMenuItem(
                                     text = { Text(stringResource(R.string.home_mark_all_as_read)) },
                                     onClick = {
                                         showHomeMenu = false
@@ -467,7 +465,6 @@ fun HomeScreen(
                             }
                         }
                     },
-                    scrollBehavior = scrollBehavior,
                 )
             }
             }
@@ -822,6 +819,7 @@ private fun FolderPane(
                                 rightAction = rightAction,
                                 leftAction = leftAction,
                                 onAction = onSwipeAction,
+                                accessibilityActionsEnabled = !selectionActive,
                                 onClick = {
                                     if (selectionActive) vm.toggleSelected(conv.threadId)
                                     else onOpenThread(conv.threadId)
@@ -1447,6 +1445,7 @@ private fun SwipeableConversationRow(
     rightAction: String,
     leftAction: String,
     onAction: (String, ConversationEntity) -> Unit,
+    accessibilityActionsEnabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     badge: com.messages.protection.SenderBadges.Badge? = null,
@@ -1464,6 +1463,10 @@ private fun SwipeableConversationRow(
                 conv = conv, draft = draft, onClick = onClick,
                 badge = badge, onBadgeTap = onBadgeTap,
                 selected = selected, onLongClick = onLongClick,
+                rightAction = rightAction,
+                leftAction = leftAction,
+                onAction = { action -> onAction(action, conv) },
+                accessibilityActionsEnabled = accessibilityActionsEnabled,
             )
         }
         return
@@ -1521,6 +1524,10 @@ private fun SwipeableConversationRow(
                 onBadgeTap = onBadgeTap,
                 selected = selected,
                 onLongClick = onLongClick,
+                rightAction = rightAction,
+                leftAction = leftAction,
+                onAction = { action -> onAction(action, conv) },
+                accessibilityActionsEnabled = accessibilityActionsEnabled,
             )
         }
     }
@@ -1587,7 +1594,7 @@ private fun SwipeActionBackground(
     // Gmail-style physics-based animations
     val iconScale by animateFloatAsState(
         targetValue = if (willDismiss) 1.22f else (0.72f + progress * 0.35f).coerceIn(0.72f, 1.05f),
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = Motion.spatialDefault(),
         label = "gmail-swipe-scale",
     )
 
@@ -1603,7 +1610,7 @@ private fun SwipeActionBackground(
 
     val textSlide by animateDpAsState(
         targetValue = if (willDismiss) 0.dp else ((1f - progress.coerceIn(0f, 1f)) * 14).dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
+        animationSpec = Motion.spatialFast(),
         label = "gmail-swipe-text-slide",
     )
 
@@ -1678,8 +1685,13 @@ private fun ConversationRow(
     onBadgeTap: (com.messages.protection.SenderBadges.Badge) -> Unit = {},
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
+    rightAction: String = SwipeActions.NONE,
+    leftAction: String = SwipeActions.NONE,
+    onAction: (String) -> Unit = {},
+    accessibilityActionsEnabled: Boolean = false,
 ) {
     val unread = conv.unreadCount > 0
+    val context = LocalContext.current
     val rowShape = RoundedCornerShape(16.dp)
     val rowBg = if (selected) {
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
@@ -1702,6 +1714,33 @@ private fun ConversationRow(
                 onLongClick = onLongClick,
                 onLongClickLabel = if (onLongClick != null) stringResource(R.string.home_select_conversation) else null,
             )
+            .semantics {
+                if (accessibilityActionsEnabled) {
+                    val availableActions = listOf(rightAction, leftAction)
+                        .distinct()
+                        .filter { it != SwipeActions.NONE }
+                    customActions = availableActions.mapNotNull { action ->
+                        val label = when (action) {
+                            SwipeActions.ARCHIVE -> context.getString(R.string.home_archive)
+                            SwipeActions.DELETE -> context.getString(R.string.action_delete)
+                            SwipeActions.PIN -> context.getString(
+                                if (conv.pinned) R.string.home_unpin else R.string.home_pin,
+                            )
+                            SwipeActions.READ -> context.getString(
+                                if (unread) R.string.home_mark_read else R.string.home_mark_unread,
+                            )
+                            SwipeActions.MUTE -> context.getString(
+                                if (conv.muted) R.string.home_unmute else R.string.home_mute,
+                            )
+                            else -> null
+                        } ?: return@mapNotNull null
+                        CustomAccessibilityAction(label) {
+                            onAction(action)
+                            true
+                        }
+                    }
+                }
+            }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1763,7 +1802,7 @@ private fun ConversationRow(
                 val showDraft = draft != null && !conv.locked
                 Text(
                     when {
-                        conv.locked -> "🔒 Locked conversation"
+                        conv.locked -> stringResource(R.string.conversation_locked_preview)
                         showDraft -> stringResource(R.string.home_draft_prefix, draft)
                         else -> conv.lastMessage
                     },

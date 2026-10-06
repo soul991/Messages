@@ -10,10 +10,10 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 /**
- * Check-and-notify update support. **Check only** — this package never
- * downloads, installs, or requests `REQUEST_INSTALL_PACKAGES`. The single
- * outbound call is an unauthenticated GET of the GitHub Releases API; when a
- * newer release exists the user is handed a URL and the browser takes over.
+ * Check-and-notify update support. This class checks release metadata only;
+ * the separately user-initiated download and installer flow lives in
+ * [AppUpdateManager]. Its outbound check is an unauthenticated GET of the
+ * GitHub Releases API.
  *
  * **What is sent.** A plain GET to [RELEASES_LATEST_URL] with `Accept` and
  * `User-Agent` headers, and nothing else. No message content, no sender, no
@@ -87,8 +87,8 @@ object UpdateCheck {
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** Weekly background check. Default ON — can be turned off in Settings. */
-    fun autoCheckEnabled(context: Context): Boolean = prefs(context).getBoolean(K_AUTO, true)
+    /** Weekly background check. Off until the user enables it in Settings. */
+    fun autoCheckEnabled(context: Context): Boolean = prefs(context).getBoolean(K_AUTO, false)
 
     fun setAutoCheckEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(K_AUTO, enabled).apply()

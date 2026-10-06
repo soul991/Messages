@@ -97,7 +97,7 @@ class BackfillWorker(
                             if (t is kotlin.coroutines.cancellation.CancellationException) throw t
                             // One poison message must not kill the whole import
                             // (§14.2 never-lose). Log it, keep going.
-                            Log.e(TAG, "indexHistorical failed for sms ${row.id}", t)
+                            Log.e(TAG, "indexHistorical failed for SMS row; will retry (${t.javaClass.simpleName})")
                             failedIds.add(row.id)
                         }
                     }
@@ -118,7 +118,7 @@ class BackfillWorker(
             if (t is kotlin.coroutines.cancellation.CancellationException) throw t
             // Throwable, not Exception: an Error here previously marked the work
             // FAILED with no retry and the import silently never happened.
-            Log.e(TAG, "backfill batch failed at checkpoint $checkpointDate/$checkpointId — retrying", t)
+            Log.e(TAG, "SMS backfill batch failed; retrying (${t.javaClass.simpleName})")
             return Result.retry() // resumes from the checkpoint
         }
 
@@ -134,7 +134,7 @@ class BackfillWorker(
                         indexMms(ctx, repo, row)
                     } catch (t: Throwable) {
                         if (t is kotlin.coroutines.cancellation.CancellationException) throw t
-                        Log.e(TAG, "indexHistoricalMms failed for mms ${row.id}", t)
+                        Log.e(TAG, "indexHistoricalMms failed for MMS row; will retry (${t.javaClass.simpleName})")
                         failedMmsIds.add(row.id)
                     }
                 }
@@ -150,7 +150,7 @@ class BackfillWorker(
             }
         } catch (t: Throwable) {
             if (t is kotlin.coroutines.cancellation.CancellationException) throw t
-            Log.e(TAG, "mms backfill batch failed at $mmsCheckpointDate/$mmsCheckpointId — retrying", t)
+            Log.e(TAG, "MMS backfill batch failed; retrying (${t.javaClass.simpleName})")
             return Result.retry() // resumes from the MMS checkpoint
         }
 

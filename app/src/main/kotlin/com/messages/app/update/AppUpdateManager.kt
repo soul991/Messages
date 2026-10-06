@@ -14,22 +14,27 @@ import androidx.core.content.FileProvider
 import com.messages.app.MessagesApp
 import com.messages.app.R
 import com.messages.app.notify.NotificationAvatarGenerator
+import com.messages.app.net.SafeHttp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import okhttp3.OkHttpClient
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.Response
 import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
  * In-app APK download engine with Chrome-style notification progress.
  *
  * Downloads the APK from the GitHub release asset URL using a dedicated
- * OkHttpClient (separate from [com.messages.app.net.SafeHttp] which has a
- * max-bytes ceiling too small for APKs). Writes to `cacheDir/updates/`
+ * OkHttpClient with a GitHub-host allowlist, hop-by-hop HTTPS redirect checks,
+ * public-DNS validation and a hard byte ceiling. Writes to `cacheDir/updates/`
  * which is registered in `file_paths.xml` for [FileProvider] access.
  *
  * Emits [DownloadState] through a coroutine [Flow] for the UI's progress
@@ -49,16 +54,59 @@ object AppUpdateManager {
     private const val NOTIFICATION_ID = -301
     private const val REQUEST_CODE_INSTALL = 9_311
     private const val REQUEST_CODE_CANCEL = 9_312
+    private const val MAX_REDIRECTS = 4
+    private const val MAX_APK_BYTES = 150L * 1024 * 1024
+    private val releaseAssetHosts = setOf(
+        "github.com",
+        "release-assets.githubusercontent.com",
+        "objects.githubusercontent.com",
+    )
 
-    /** Dedicated client for large downloads — generous timeouts, no SafeHttp restrictions. */
+    /** Large-download client with public DNS checks; redirects are validated hop by hop. */
     private val downloadClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .dns(SafeHttp.PublicOnlyDns)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .callTimeout(10, TimeUnit.MINUTES)
-            .followRedirects(true)
-            .followSslRedirects(true)
+            .followRedirects(false)
+            .followSslRedirects(false)
             .build()
+    }
+
+    private fun validatedAssetUrl(raw: String): HttpUrl {
+        val url = raw.toHttpUrlOrNull()
+            ?: throw IOException("Invalid release asset URL")
+        if (!url.isHttps || url.port != 443 ||
+            url.username.isNotEmpty() || url.password.isNotEmpty() ||
+            url.host !in releaseAssetHosts
+        ) {
+            throw IOException("Untrusted release asset URL")
+        }
+        return url
+    }
+
+    /** Follow only HTTPS GitHub release redirects, revalidating every hop. */
+    private fun executeReleaseDownload(raw: String): Response {
+        var current = validatedAssetUrl(raw)
+        for (redirectCount in 0..MAX_REDIRECTS) {
+            val response = downloadClient.newCall(
+                Request.Builder()
+                    .url(current)
+                    .header("Accept", "application/octet-stream")
+                    .build(),
+            ).execute()
+            if (!response.isRedirect) return response
+
+            val location = response.header("Location")
+            val next = location?.let(current::resolve)
+            response.close()
+            if (redirectCount == MAX_REDIRECTS || next == null) {
+                throw IOException("Release download redirect limit exceeded")
+            }
+            current = validatedAssetUrl(next.toString())
+        }
+        throw IOException("Release download redirect limit exceeded")
     }
 
     private fun updatesDir(context: Context): File =
@@ -101,12 +149,7 @@ object AppUpdateManager {
             .setPriority(NotificationCompat.PRIORITY_LOW)
 
         try {
-            val request = Request.Builder()
-                .url(url)
-                .header("Accept", "application/octet-stream")
-                .build()
-
-            val response = downloadClient.newCall(request).execute()
+            val response = executeReleaseDownload(url)
 
             if (!response.isSuccessful) {
                 val errorMsg = "HTTP ${response.code}"
@@ -135,6 +178,10 @@ object AppUpdateManager {
             }
 
             val totalBytes = body.contentLength()
+            if (totalBytes > MAX_APK_BYTES) {
+                response.close()
+                throw IOException("Release APK exceeds the download size limit")
+            }
             var downloadedBytes = 0L
             var lastNotifiedPercent = -1
 
@@ -152,6 +199,9 @@ object AppUpdateManager {
                         val bytesRead = input.read(buffer)
                         if (bytesRead < 0) break
 
+                        if (downloadedBytes + bytesRead > MAX_APK_BYTES) {
+                            throw IOException("Release APK exceeds the download size limit")
+                        }
                         output.write(buffer, 0, bytesRead)
                         downloadedBytes += bytesRead
 

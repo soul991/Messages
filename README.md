@@ -1,7 +1,7 @@
 # Messages
 
-An Android-first default SMS/MMS app with deterministic, on-device protection
-against promotional, spam, scam, and fraud messages.
+An Android-first default SMS/MMS app with layered, on-device protection against
+promotional, spam, scam, and fraud messages.
 
 Messages keeps the Inbox calm without treating filtering as permission to lose
 data: every message is stored, every filtering decision is explainable, and the
@@ -18,8 +18,11 @@ Pre-built release APKs are available on the [Releases page](https://github.com/s
 
 ## Trust promises
 
-- **No AI or cloud classification.** Classification is offline and deterministic:
-  a versioned word, phrase, regex, link, and sender-context pattern library.
+- **Classification stays on-device.** A deterministic, explainable protection
+  engine uses a versioned word, phrase, regex, link, and sender-context pattern
+  library. An optional-in-settings local character n-gram scorer can move
+  eligible Inbox messages to Review; it cannot mark a message as Spam or
+  Dangerous. Message text is not sent to an AI provider for classification.
 - **Nothing is silently deleted or buried.** Spam, Promotions, Blocked, and
   Review remain browsable and searchable. User deletions go to Trash for 60
   days; the only opt-in exception is expired OTP cleanup for unstarred

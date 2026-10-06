@@ -3,9 +3,11 @@ package com.messages.designsystem
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
+import android.animation.ValueAnimator
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 
 /**
  * M3 Expressive motion scheme (§9: spring-based animations throughout).
@@ -17,25 +19,36 @@ import androidx.compose.animation.core.spring
  * wobble, so never use a spatial spec for a fade.
  */
 object Motion {
+    /** Follow Android's system animation scale for reduced-motion users. */
+    fun animationsEnabled(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ValueAnimator.areAnimatorsEnabled()
+
     /** Position/size/layout changes — the visible, bouncy character. */
-    fun <T> spatialDefault(): SpringSpec<T> = spring(dampingRatio = 0.8f, stiffness = 380f)
+    fun <T> spatialDefault(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 0.88f, stiffness = 420f) else snap()
 
     /** Quick spatial transitions (chips, small components). */
-    fun <T> spatialFast(): SpringSpec<T> = spring(dampingRatio = 0.6f, stiffness = 800f)
+    fun <T> spatialFast(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 0.82f, stiffness = 800f) else snap()
 
     /** Deliberate spatial transitions (screen-level movement). */
-    fun <T> spatialSlow(): SpringSpec<T> = spring(dampingRatio = 0.8f, stiffness = 200f)
+    fun <T> spatialSlow(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 0.88f, stiffness = 220f) else snap()
 
     /** Opacity/color — critically damped, no overshoot. */
-    fun <T> effectsDefault(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = 1600f)
+    fun <T> effectsDefault(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 1f, stiffness = 1600f) else snap()
 
-    fun <T> effectsFast(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = 3800f)
+    fun <T> effectsFast(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 1f, stiffness = 3800f) else snap()
 
-    fun <T> effectsSlow(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = 800f)
+    fun <T> effectsSlow(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 1f, stiffness = 800f) else snap()
 
     /** Low-stiffness spring for hero/ambient elements (empty-state art). */
-    fun <T> gentle(): SpringSpec<T> =
-        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+    fun <T> gentle(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+        else snap()
 }
 
 /** Haptics on key actions (§9) — thin wrappers over view feedback constants. */

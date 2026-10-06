@@ -1,66 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  App identity: Compact, perfectly-proportioned Signature Violet
-  squircle speech bubble with message lines on pearl white background.
--->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <group
-        android:pivotX="54"
-        android:pivotY="54"
-        android:scaleX="0.88"
-        android:scaleY="0.88">
-
-        <!-- 1. Soft Violet Drop Shadow -->
-        <path
-            android:pathData="M40,28 h28 c9,0 16,7 16,16 v16 c0,9 -7,16 -16,16 h-18 l-13,10 v-10 c-9,0 -16,-7 -16,-16 v-16 c0,-9 7,-16 16,-16 z"
-            android:fillColor="#4D5A41DD" />
-
-        <!-- 2. Compact Violet Bubble Body (2026 Signature Identity #5A41DD) -->
-        <path
-            android:pathData="M40,27 h28 c9,0 16,7 16,16 v16 c0,9 -7,16 -16,16 h-18 l-13,10 v-10 c-9,0 -16,-7 -16,-16 v-16 c0,-9 7,-16 16,-16 z">
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="0.88" android:scaleY="0.88">
+        <path android:pathData="M40,28 h28 c9,0 16,7 16,16 v16 c0,9 -7,16 -16,16 h-18 l-13,10 v-10 c-9,0 -16,-7 -16,-16 v-16 c0,-9 7,-16 16,-16 z" android:fillColor="#4D5A41DD" />
+        <path android:pathData="M40,27 h28 c9,0 16,7 16,16 v16 c0,9 -7,16 -16,16 h-18 l-13,10 v-10 c-9,0 -16,-7 -16,-16 v-16 c0,-9 7,-16 16,-16 z">
             <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="26"
-                    android:startY="26"
-                    android:endX="82"
-                    android:endY="82"
-                    android:type="linear">
+                <gradient android:startX="26" android:startY="26" android:endX="82" android:endY="82" android:type="linear">
                     <item android:offset="0.0" android:color="#FF7C3AED" />
                     <item android:offset="0.5" android:color="#FF5A41DD" />
                     <item android:offset="1.0" android:color="#FF4338CA" />
                 </gradient>
             </aapt:attr>
         </path>
-
-        <!-- 3. Specular Gloss Arc Highlight -->
-        <path
-            android:pathData="M40,27 h28 c9,0 16,7 16,16 v2 c0,-9 -7,-16 -16,-16 h-28 c-9,0 -16,7 -16,16 v-2 c0,-9 7,-16 16,-16 z">
+        <path android:pathData="M40,27 h28 c9,0 16,7 16,16 v2 c0,-9 -7,-16 -16,-16 h-28 c-9,0 -16,7 -16,16 v-2 c0,-9 7,-16 16,-16 z">
             <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="54"
-                    android:startY="27"
-                    android:endX="54"
-                    android:endY="45"
-                    android:type="linear">
+                <gradient android:startX="54" android:startY="27" android:endX="54" android:endY="45" android:type="linear">
                     <item android:offset="0.0" android:color="#73FFFFFF" />
                     <item android:offset="1.0" android:color="#00FFFFFF" />
                 </gradient>
             </aapt:attr>
         </path>
-
-        <!-- 4. Crisp White Text Message Lines -->
-        <path
-            android:pathData="M42,44 h24 c1,0 1.8,0.8 1.8,1.8 v0 c0,1 -0.8,1.8 -1.8,1.8 h-24 c-1,0 -1.8,-0.8 -1.8,-1.8 v0 c0,-1 0.8,-1.8 1.8,-1.8 z"
-            android:fillColor="#FFFFFFFF" />
-        <path
-            android:pathData="M42,51 h16 c1,0 1.8,0.8 1.8,1.8 v0 c0,1 -0.8,1.8 -1.8,1.8 h-16 c-1,0 -1.8,-0.8 -1.8,-1.8 v0 c0,-1 0.8,-1.8 1.8,-1.8 z"
-            android:fillColor="#FFFFFFFF" />
-
+        <path android:pathData="M42,44 h24 c1,0 1.8,0.8 1.8,1.8 v0 c0,1 -0.8,1.8 -1.8,1.8 h-24 c-1,0 -1.8,-0.8 -1.8,-1.8 v0 c0,-1 0.8,-1.8 1.8,-1.8 z" android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M42,51 h16 c1,0 1.8,0.8 1.8,1.8 v0 c0,1 -0.8,1.8 -1.8,1.8 h-16 c-1,0 -1.8,-0.8 -1.8,-1.8 v0 c0,-1 0.8,-1.8 1.8,-1.8 z" android:fillColor="#FFFFFFFF" />
     </group>
 </vector>

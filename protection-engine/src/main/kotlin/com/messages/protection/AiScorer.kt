@@ -214,15 +214,13 @@ class NGramScorer(
 object AiLayer {
 
     /**
-     * **Ships false and stays false.** §11 is explicit that Layers 5 and 6 ship
-     * dormant, and nothing measured in Stage 5 authorises flipping this. The
-     * held-out recovery figure is real (38 of 43 messages the engine loses to a
-     * reword, from a model that never read them) and the held-out false-positive
-     * figure is 3.4%, which is far too high to route real mail on. The gate is
-     * `deliverable/evalset/heldout.jsonl`, which does not exist yet.
+     * Default-off safety gate. The repository also exposes a user setting;
+     * callers must not bypass that setting by passing `enabled = true` without
+     * a completed held-out evaluation. The historical 3.4% false-positive
+     * measurement is too high for an always-on routing decision.
      *
-     * With this false, [apply] returns its input by identity and the whole
-     * layer is arithmetically invisible — the same code path as "layer deleted".
+     * With this false, [apply] returns its input by identity unless a caller
+     * explicitly opts in after consulting the setting.
      */
     const val AI_LAYER_ENABLED = false
 
@@ -348,11 +346,9 @@ object AiLayer {
      * "Why?" screen lie.
      */
     /**
-     * @param enabled defaults to [AI_LAYER_ENABLED], so every production call
-     *   site reads the constant and cannot accidentally opt in. It is a
-     *   parameter at all so `layer5-verify` can run the flag-on stack and diff
-     *   it against the flag-off one in a single process — the alternative was a
-     *   mutable `var` flag, which is a thing that can be left on.
+     * @param enabled defaults to [AI_LAYER_ENABLED]. Production call sites
+     *   should also honor the user setting; the parameter exists for controlled
+     *   evaluation of the flag-on stack against the flag-off one.
      */
     fun apply(verdict: Verdict, shadow: Shadow?, enabled: Boolean = AI_LAYER_ENABLED): Verdict {
         if (!enabled) return verdict

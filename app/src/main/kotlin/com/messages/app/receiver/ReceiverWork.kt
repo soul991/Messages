@@ -80,7 +80,11 @@ internal object ReceiverWork {
         finish: () -> Unit,
         // android.util.Log is not available to a plain JVM test; the default is
         // the only thing production ever passes.
-        log: (String, Throwable) -> Unit = { message, t -> Log.e(tag, message, t) },
+        log: (String, Throwable) -> Unit = { message, t ->
+            // Do not attach Throwable: telephony/provider exceptions can carry
+            // message-derived input in their message or stack trace.
+            Log.e(tag, "$message (${t.javaClass.simpleName})")
+        },
         block: suspend CoroutineScope.() -> Unit,
     ) {
         try {

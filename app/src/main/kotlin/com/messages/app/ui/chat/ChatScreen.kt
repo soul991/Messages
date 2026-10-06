@@ -624,9 +624,15 @@ fun ChatScreen(
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.semantics {
-                                    contentDescription =
-                                        if (matchIndices.isEmpty()) "No matches"
-                                        else "Match ${currentMatch + 1} of ${matchIndices.size}"
+                                    contentDescription = if (matchIndices.isEmpty()) {
+                                        context.getString(R.string.chat_search_no_matches_a11y)
+                                    } else {
+                                        context.getString(
+                                            R.string.chat_search_match_count_a11y,
+                                            currentMatch + 1,
+                                            matchIndices.size,
+                                        )
+                                    }
                                 },
                             )
                         }
@@ -1265,13 +1271,13 @@ fun ChatScreen(
                     Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(32.dp),
                 ) {
-                    AttachOption(Icons.Filled.Image, "Gallery") {
+                    AttachOption(Icons.Filled.Image, stringResource(R.string.chat_attachment_gallery)) {
                         showAttachSheet = false
                         galleryPicker.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     }
-                    AttachOption(Icons.Filled.PhotoCamera, "Camera") {
+                    AttachOption(Icons.Filled.PhotoCamera, stringResource(R.string.chat_attachment_camera)) {
                         showAttachSheet = false
                         // V2-32: sweep captures nothing is waiting on before
                         // adding another. A capture in flight when Android kills
@@ -1587,7 +1593,10 @@ private fun AttachOption(
 }
 
 /** Quick time presets shared by schedule-send and snooze ("this evening" = 18:00). */
+@Composable
 private fun timePresets(): List<Pair<String, Long>> {
+    val context = LocalContext.current
+    val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
     val now = System.currentTimeMillis()
     fun at(hour: Int, addDays: Int): Long = Calendar.getInstance().run {
         add(Calendar.DAY_OF_YEAR, addDays)
@@ -1600,9 +1609,9 @@ private fun timePresets(): List<Pair<String, Long>> {
     val evening = at(18, 0).let { if (it > now + 60_000) it else at(18, 1) }
     val morning = at(8, 0).let { if (it > now + 60_000) it else at(8, 1) }
     return listOf(
-        "In 1 hour" to now + 60 * 60 * 1000,
-        "This evening (6:00 PM)" to evening,
-        "Tomorrow morning (8:00 AM)" to morning,
+        stringResource(R.string.chat_time_in_one_hour) to now + 60 * 60 * 1000,
+        stringResource(R.string.chat_time_this_evening, timeFormat.format(java.util.Date(evening))) to evening,
+        stringResource(R.string.chat_time_tomorrow_morning, timeFormat.format(java.util.Date(morning))) to morning,
     )
 }
 
@@ -1612,14 +1621,19 @@ private fun timePresets(): List<Pair<String, Long>> {
 
 @Composable
 private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
-    val label = remember(ts) {
+    val todayLabel = stringResource(R.string.chat_date_today)
+    val yesterdayLabel = stringResource(R.string.chat_date_yesterday)
+    val label = remember(ts, todayLabel, yesterdayLabel) {
         val now = System.currentTimeMillis()
+        val yesterday = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, -1)
+        }.timeInMillis
         val cal = Calendar.getInstance()
         val thisYear = cal.get(Calendar.YEAR)
         cal.timeInMillis = ts
         when {
-            sameDay(ts, now) -> "Today"
-            sameDay(ts, now - 24 * 60 * 60 * 1000) -> "Yesterday"
+            sameDay(ts, now) -> todayLabel
+            sameDay(ts, yesterday) -> yesterdayLabel
             cal.get(Calendar.YEAR) == thisYear -> AppDateFormat.weekdayDayMonth(ts)
             else -> AppDateFormat.dayMonthYear(ts)
         }
@@ -1992,7 +2006,10 @@ private fun MessageBubble(
         // their status (and its actions) is never hidden.
         if (isScheduled) {
             Text(
-                "Scheduled · " + AppDateFormat.weekdayDayMonthClock(msg.timestamp),
+                stringResource(
+                    R.string.chat_scheduled_status,
+                    AppDateFormat.weekdayDayMonthClock(msg.timestamp),
+                ),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp),
@@ -2166,8 +2183,11 @@ private fun ScheduleSendDialog(
     onPick: (Long) -> Unit,
 ) {
     var step by remember { mutableStateOf("presets") } // presets | date | time
+    val context = LocalContext.current
     val dateState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
-    val timeState = rememberTimePickerState(is24Hour = false)
+    val timeState = rememberTimePickerState(
+        is24Hour = android.text.format.DateFormat.is24HourFormat(context),
+    )
 
     when (step) {
         "presets" -> AlertDialog(

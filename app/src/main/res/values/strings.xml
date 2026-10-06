@@ -258,6 +258,7 @@
     <string name="onboarding_set_default">Set as default</string>
     <string name="onboarding_start_messaging">Start messaging</string>
     <string name="onboarding_restore_from_drive">Restore from Google Drive backup</string>
+    <string name="onboarding_page_progress">Page %1$d of %2$d</string>
 
     <!-- The line break is a deliberate two-line title; keep or move it. -->
     <string name="onboarding_hero_title">A calm inbox,\nby design</string>
@@ -270,7 +271,7 @@
     -->
     <string name="onboarding_feature_silent">Spam, scams and promos are filed silently — you\'re only notified for messages that matter.</string>
     <!-- formatted="false": the literal per-cent sign is not a format specifier. -->
-    <string name="onboarding_feature_on_device" formatted="false">100% on-device pattern matching. No AI, no cloud — every decision is explainable.</string>
+    <string name="onboarding_feature_on_device" formatted="false">On-device pattern matching and optional local AI. No message text is sent to a cloud classifier.</string>
     <string name="onboarding_feature_nothing_deleted">Nothing is ever deleted. Every filtered message stays reviewable, forever.</string>
 
     <string name="onboarding_default_title">Make it your\nmessaging app</string>
@@ -400,7 +401,7 @@
       always produces the same verdict, decided by the listed rules alone. Keep
       the claim exact — it is the reason the user is being shown this page.
     -->
-    <string name="why_deterministic">The protection engine is fully deterministic — no AI, no network. Every verdict comes from the rules listed above.</string>
+    <string name="why_deterministic">The rule-based protection engine is deterministic and works offline. Its verdict comes from the rules listed above; the separate local AI layer can only move eligible Inbox messages to Review.</string>
 
     <!-- ======================== Conversation ============================ -->
 
@@ -474,6 +475,16 @@
     <string name="chat_locked_setup_title">Locked chats aren\'t set up</string>
     <string name="chat_locked_setup_body">To use locked chats, first set your secret code: press and hold the &quot;Messages&quot; title on the home screen.</string>
     <string name="chat_lock_sheet_title">Lock this chat</string>
+    <string name="chat_attachment_gallery">Gallery</string>
+    <string name="chat_attachment_camera">Camera</string>
+    <string name="chat_date_today">Today</string>
+    <string name="chat_date_yesterday">Yesterday</string>
+    <string name="chat_scheduled_status">Scheduled · %1$s</string>
+    <string name="chat_search_no_matches_a11y">No matches</string>
+    <string name="chat_search_match_count_a11y">Match %1$d of %2$d</string>
+    <string name="chat_time_in_one_hour">In 1 hour</string>
+    <string name="chat_time_this_evening">This evening (%1$s)</string>
+    <string name="chat_time_tomorrow_morning">Tomorrow morning (%1$s)</string>
     <string name="chat_lock_new_title">New locked chat</string>
     <string name="chat_lock_new_body">This chat and its history stay here. A locked chat for this sender starts in your locked space — all future messages from them go there, never here.</string>
     <string name="chat_lock_new_snackbar">Locked chat created — new messages from this sender go to your locked space</string>
@@ -519,6 +530,7 @@
     <string name="settings_restore_confirm_body">Messages, rules, and settings from the backup will be added. Nothing on this device is deleted or overwritten; duplicates are skipped.</string>
     <string name="settings_choose_file">Choose file</string>
     <string name="settings_title">Settings</string>
+    <string name="app_lock_title">Messages is locked</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_subtitle">Choose how Messages looks across the app.</string>
@@ -528,7 +540,7 @@
     <string name="settings_brightness_footnote">In-app brightness applies only while Messages is in the foreground. It does not affect other apps or system brightness.</string>
     <string name="settings_section_sensitivity">Protection sensitivity</string>
     <string name="settings_advanced_filtering_title">Advanced Message Filtering</string>
-    <string name="settings_advanced_filtering_subtitle">On-device AI protection against reworded scams, phishing, and Indic-script fraud. 100% private &amp; offline.</string>
+    <string name="settings_advanced_filtering_subtitle">Optional on-device text scoring may move uncertain Inbox messages to Review. Message text stays on this device.</string>
     <string name="settings_sensitivity_relaxed_body">Fewer messages filtered — borderline messages stay in your Inbox or Review.</string>
     <string name="settings_sensitivity_strict_body">Aggressive filtering — borderline messages go to Spam sooner. Protected messages (OTPs, bank alerts) are never filtered at any level.</string>
     <string name="settings_sensitivity_default_body">Balanced filtering, recommended for most people. Protected messages (OTPs, bank alerts) are never filtered.</string>
@@ -776,6 +788,10 @@
     <string name="home_mark_read">Mark read</string>
     <string name="home_mark_unread">Mark unread</string>
     <string name="home_archive">Archive</string>
+    <string name="home_pin">Pin</string>
+    <string name="home_unpin">Unpin</string>
+    <string name="home_mute">Mute</string>
+    <string name="home_unmute">Unmute</string>
     <string name="home_protection_dashboard">Protection dashboard</string>
     <string name="home_starred_messages">Starred messages</string>
     <string name="home_mark_all_as_read">Mark all as read</string>
@@ -1564,7 +1580,7 @@
     <string name="about_title">About</string>
     <string name="settings_about">About</string>
     <string name="settings_about_subtitle">Version, legal, updates, and source code.</string>
-    <string name="about_tagline">Private, on-device SMS — no servers, no ML, no data ever leaves your device.</string>
+    <string name="about_tagline">Private, on-device SMS with no remote classification.</string>
     <!-- %1$s is the version name, e.g. "1.0". -->
     <string name="about_version">Version %1$s</string>
     <string name="about_icon_description">Messages app icon</string>
@@ -1586,11 +1602,11 @@
     <string name="about_privacy_policy_body">Privacy Policy
 Last updated: 2026-08-07
 
-Messages is a personal, on-device SMS application. It does not collect, transmit, store remotely, or share any personal data whatsoever.
+Messages has no service that collects your conversations or contacts. They stay on this device in normal use. Optional backups, link previews, spam reports, and update checks involve only the data and provider described below.
 
-All messages, contacts, and filter decisions remain exclusively on your device. No analytics, no crash reporting, no telemetry, and no network requests are made by this app.
+Message filtering runs on your device. No analytics, crash reporting, or telemetry are used. Optional update checks contact GitHub and send ordinary connection metadata, but never message or contact data.
 
-The app requires SMS permissions solely to function as your default SMS handler. It requires Contacts permission solely to display sender names. No data derived from these permissions ever leaves your device.
+SMS and Contacts permissions let Messages receive and organize conversations and show sender names. Backups, link previews, and spam reports use the separate data flows described in the privacy policy.
 
 This app has no backend, no accounts, and no third-party SDKs that transmit data.
 
@@ -1604,7 +1620,7 @@ This application is provided as-is for personal use. By using it you accept that
 1. The app is provided without warranty of any kind.
 2. The author is not liable for any loss of messages or data.
 3. You are responsible for maintaining your own backups.
-4. The spam/scam filter is heuristic and deterministic — it will make mistakes. Never rely on it as a sole security measure.
+4. The spam/scam filter uses on-device rules and optional local scoring and can make mistakes. Never rely on it as a sole security measure.
 5. The source code is available at https://github.com/soul991/Messages under the licence stated there.</string>
 
     <!-- In-App Update Engine Strings -->

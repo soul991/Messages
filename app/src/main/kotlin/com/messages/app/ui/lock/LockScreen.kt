@@ -28,7 +28,7 @@ import com.messages.app.R
 @Composable
 fun LockScreen(
     onRequestUnlock: () -> Unit,
-    title: String = "Messages is locked",
+    title: String? = null,
     /**
      * Shown under [title] when unlocking cannot proceed. V2-16: the gate fails
      * closed, so the user needs to be told why rather than left tapping a
@@ -49,7 +49,7 @@ fun LockScreen(
                 modifier = Modifier.size(48.dp),
             )
             Spacer(Modifier.height(16.dp))
-            Text(title, style = MaterialTheme.typography.titleLarge)
+            Text(title ?: stringResource(R.string.app_lock_title), style = MaterialTheme.typography.titleLarge)
             if (message != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(

@@ -94,8 +94,8 @@ android {
         applicationId = "com.messages.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "1.5.2"
+        versionCode = 19
+        versionName = "1.6.1"
     }
 
     if (keystoreProps.isNotEmpty()) {

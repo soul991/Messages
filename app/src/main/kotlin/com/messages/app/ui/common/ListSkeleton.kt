@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.messages.designsystem.Motion
 import kotlinx.coroutines.delay
 
 /**
@@ -76,13 +77,16 @@ fun ListSkeleton(
 ) {
     // One transition for the block: every row pulsing on its own phase would
     // read as activity in the list rather than as a placeholder for it.
-    val transition = rememberInfiniteTransition(label = "skeleton")
-    val alpha by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
-        label = "skeleton-alpha",
-    )
+    val alpha = if (Motion.animationsEnabled()) {
+        val transition = rememberInfiniteTransition(label = "skeleton")
+        val animatedAlpha by transition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 0.7f,
+            animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+            label = "skeleton-alpha",
+        )
+        animatedAlpha
+    } else 0.52f
     Column(
         modifier
             .fillMaxWidth()

@@ -60,7 +60,7 @@ class HeadlessSmsSendService : Service() {
                         )
                     }
                 }
-                android.util.Log.e("HeadlessSmsSend", "quick reply failed", t)
+                android.util.Log.e("HeadlessSmsSend", "quick reply failed (${t.javaClass.simpleName})")
             } finally {
                 stopSelf(startId)
             }

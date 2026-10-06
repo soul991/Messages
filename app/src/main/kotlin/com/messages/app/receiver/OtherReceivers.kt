@@ -240,7 +240,7 @@ private suspend fun storeUndownloadable(
     } catch (t: Throwable) {
         // This is the final line of defense. The raw WAP PDU was received, so
         // log loudly for diagnostics rather than crashing the telephony process.
-        android.util.Log.e("MmsReceiveFallback", "Could not index MMS fallback", t)
+        android.util.Log.e("MmsReceiveFallback", "Could not index MMS fallback (${t.javaClass.simpleName})")
     }
 }
 

@@ -20,9 +20,9 @@ Everything, unless you switch on one of the optional features in section 3.
 - **Message content.** SMS and MMS live in the Android Telephony provider (the
   system message store) and in a local database the app maintains alongside it.
 - **The protection engine.** Spam filtering, fraud detection and categorisation
-  run entirely on your device against a pattern library bundled with the app.
-  No message text is sent anywhere to be classified, and there is no server-side
-  model.
+  run entirely on your device using bundled rules and, when Advanced Message
+  Filtering is enabled, a local character n-gram scorer. No message text is
+  sent to an AI provider for classification, and there is no server-side model.
 - **Derived data.** Categories, protection labels, matched pattern IDs, the
   explanations shown on the "Why?" screen, sender reputation counters, your
   custom rules, and a normalised copy of message text used for local search.
@@ -56,7 +56,7 @@ telemetry** of any kind in this app.
 | Notifications | Alert you to new messages |
 | Phone state (read) | Identify SIM subscriptions on dual-SIM devices |
 | Biometric | The optional app lock and the locked space |
-| Internet | **Only** for the optional features in section 3. With both switched off, the app makes no network requests |
+| Internet | Used for the optional features in section 3. Automatic update checks are off until enabled; manual checks and downloads happen only when you request them. |
 
 ## 3. What leaves your device, and only if you turn it on
 
@@ -138,6 +138,18 @@ SMS **you send** to an industry short code — `1909` (TRAI, India) or `7726`
 the sender's number**, because that is what the reporting scheme requires. It
 goes to your mobile carrier over the cellular network. Nothing is reported
 automatically and nothing is sent without your explicit action.
+
+### 3.4 Checking for app updates — manual or opt-in automatic checks
+
+When you manually check for an update, or enable automatic checks in Settings,
+the app contacts GitHub's release service. Automatic checks run weekly on an
+unmetered network and are off until you enable them. GitHub receives the
+request, your IP address, and ordinary connection metadata. The request does
+not contain message text, sender details, contacts, an account token, or a
+device identifier. If you choose to download an update, the APK is fetched
+from the GitHub release asset hosts and opened with Android's package
+installer; installation remains subject to Android's confirmation and package
+signature checks.
 
 ## 4. Pattern library updates
 

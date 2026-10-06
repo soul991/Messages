@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Weekly "is there a newer release?" check.
  *
- * Off by default. Runs only when the user has switched on automatic checking,
+ * Off by default. Runs only after the user switches on automatic checking,
  * and only on an **unmetered** network — [NetworkType.UNMETERED] is a WorkManager
  * constraint, so the job is not merely skipped on mobile data, it is never run
  * by the system in the first place. That is the enforcement point; the worker

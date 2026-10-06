@@ -160,7 +160,9 @@ class MessageRepository private constructor(private val context: Context) {
     }
 
     fun isAdvancedFilteringEnabled(): Boolean =
-        settingsPrefs.getBoolean("advanced_message_filtering", true)
+        // The bundled model has not cleared the held-out false-positive gate.
+        // Keep its routing effect opt-in until that evaluation is complete.
+        settingsPrefs.getBoolean("advanced_message_filtering", false)
 
     fun setAdvancedFilteringEnabled(enabled: Boolean) {
         settingsPrefs.edit().putBoolean("advanced_message_filtering", enabled).apply()
@@ -826,7 +828,12 @@ class MessageRepository private constructor(private val context: Context) {
      */
     private suspend fun classifyIncomingOrInbox(address: String, body: String, source: String): Verdict =
         runCatching { classify(address, body) }.getOrElse { t ->
-            android.util.Log.e("MessageRepository", "$source classification failed — defaulting to Inbox", t)
+            // Never log the Throwable itself: provider/engine exceptions can
+            // include message-derived input in their message or stack trace.
+            android.util.Log.e(
+                "MessageRepository",
+                "$source classification failed — defaulting to Inbox (${t.javaClass.simpleName})",
+            )
             Verdict(Category.INBOX, explanations = listOf("Classification unavailable — defaulted to Inbox"))
         }
 

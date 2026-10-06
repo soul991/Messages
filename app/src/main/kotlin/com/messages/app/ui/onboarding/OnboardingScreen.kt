@@ -54,9 +54,14 @@ import com.messages.core.backfill.Backfill
 import com.messages.core.backfill.BackfillWorker
 import com.messages.designsystem.GlassDepth
 import com.messages.designsystem.LiquidGlassSurface
+import com.messages.designsystem.Motion
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import com.messages.app.R
 
 /**
@@ -74,11 +79,15 @@ fun OnboardingScreen(
 ) {
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
+    suspend fun goToPage(page: Int) {
+        if (Motion.animationsEnabled()) pagerState.animateScrollToPage(page)
+        else pagerState.scrollToPage(page)
+    }
 
     // Auto-advance off the set-as-default page once the role is granted.
     LaunchedEffect(isDefaultSmsApp) {
         if (isDefaultSmsApp && pagerState.currentPage == 1) {
-            pagerState.animateScrollToPage(2)
+            goToPage(2)
         }
     }
 
@@ -101,7 +110,7 @@ fun OnboardingScreen(
 
         when (pagerState.currentPage) {
             0 -> Button(
-                onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                onClick = { scope.launch { goToPage(1) } },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.action_continue)) }
 
@@ -109,7 +118,7 @@ fun OnboardingScreen(
                 val context = LocalContext.current
                 val isRestricted = !isDefaultSmsApp && (roleRequestFailed || com.messages.app.MainActivity.isRestrictedSettingsActive(context))
                 Button(
-                    onClick = { if (isDefaultSmsApp) scope.launch { pagerState.animateScrollToPage(2) } else onRequestDefault() },
+                    onClick = { if (isDefaultSmsApp) scope.launch { goToPage(2) } else onRequestDefault() },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(
                         if (isDefaultSmsApp) stringResource(R.string.action_continue)
@@ -117,7 +126,7 @@ fun OnboardingScreen(
                         else stringResource(R.string.onboarding_set_default),
                     ) }
                 TextButton(
-                    onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
+                    onClick = { scope.launch { goToPage(2) } },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(stringResource(R.string.action_not_now)) }
             }
@@ -197,7 +206,10 @@ private fun DefaultAppPage(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AnimatedVisibility(visible = isDefault, enter = scaleIn() + fadeIn()) {
+        AnimatedVisibility(
+            visible = isDefault,
+            enter = scaleIn(Motion.spatialFast()) + fadeIn(Motion.effectsDefault()),
+        ) {
             HeroIcon(
                 Icons.Filled.CheckCircle,
                 tint = MaterialTheme.colorScheme.primary,
@@ -295,7 +307,11 @@ private fun DonePage() {
     else info?.progress?.getInt(BackfillWorker.KEY_PROCESSED, 0) ?: 0
     val total = if (finished) processed
     else info?.progress?.getInt(BackfillWorker.KEY_TOTAL, 0) ?: 0
-    val animated by animateIntAsState(targetValue = processed, label = "backfillCount")
+    val animated by animateIntAsState(
+        targetValue = processed,
+        animationSpec = Motion.effectsDefault(),
+        label = "backfillCount",
+    )
 
     Column(
         Modifier.fillMaxSize(),
@@ -398,8 +414,12 @@ private fun FeatureRow(icon: ImageVector, text: String) {
 
 @Composable
 private fun PageDots(current: Int) {
+    val progressLabel = stringResource(R.string.onboarding_page_progress, current + 1, 3)
     Row(
-        Modifier.fillMaxWidth(),
+        Modifier.fillMaxWidth().semantics {
+            contentDescription = progressLabel
+            progressBarRangeInfo = ProgressBarRangeInfo(current + 1f, 1f..3f)
+        },
         horizontalArrangement = Arrangement.Center,
     ) {
         repeat(3) { i ->
