@@ -1,0 +1,631 @@
+{
+  "source": {
+    "rows": 120,
+    "uniqueTexts": 49,
+    "conflictingLabelTexts": 0,
+    "scoredUniqueTexts": 49,
+    "sha256": "3f55ed6f161d0b5f5dafde8b41b5134c8b64b7f854dc34cc265b946927e21bb6"
+  },
+  "models": {
+    "baseline": {
+      "all_rows": {
+        "threshold": 0.8233981536460876,
+        "metrics": {
+          "byLanguage": {
+            "english_or_romanized": {
+              "n": 41,
+              "fp": 7,
+              "fn": 20,
+              "tn": 12,
+              "tp": 2,
+              "precision": 0.2222,
+              "recall": 0.0909,
+              "f1": 0.129,
+              "falsePositiveRate": 0.3684
+            },
+            "hindi": {
+              "n": 37,
+              "fn": 19,
+              "tn": 10,
+              "fp": 6,
+              "tp": 2,
+              "precision": 0.25,
+              "recall": 0.0952,
+              "f1": 0.1379,
+              "falsePositiveRate": 0.375
+            },
+            "hinglish": {
+              "n": 42,
+              "fn": 17,
+              "fp": 9,
+              "tn": 16,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.36
+            }
+          },
+          "bySource": {
+            "banking": {
+              "n": 22,
+              "fp": 5,
+              "fn": 11,
+              "tn": 6,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.4545
+            },
+            "ecommerce": {
+              "n": 27,
+              "fn": 12,
+              "tn": 10,
+              "fp": 3,
+              "tp": 2,
+              "precision": 0.4,
+              "recall": 0.1429,
+              "f1": 0.2105,
+              "falsePositiveRate": 0.2308
+            },
+            "finance": {
+              "n": 19,
+              "fn": 9,
+              "tn": 7,
+              "fp": 3,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.3
+            },
+            "government": {
+              "n": 24,
+              "fp": 4,
+              "fn": 9,
+              "tn": 10,
+              "tp": 1,
+              "precision": 0.2,
+              "recall": 0.1,
+              "f1": 0.1333,
+              "falsePositiveRate": 0.2857
+            },
+            "telecom": {
+              "n": 19,
+              "fp": 4,
+              "fn": 9,
+              "tn": 5,
+              "tp": 1,
+              "precision": 0.2,
+              "recall": 0.1,
+              "f1": 0.1333,
+              "falsePositiveRate": 0.4444
+            },
+            "utilities": {
+              "n": 9,
+              "fp": 3,
+              "fn": 6,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 1.0
+            }
+          }
+        }
+      },
+      "unique_texts": {
+        "threshold": 0.8233981536460876,
+        "metrics": {
+          "byLanguage": {
+            "english_or_romanized": {
+              "n": 14,
+              "fp": 3,
+              "fn": 7,
+              "tn": 4,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.4286
+            },
+            "hindi": {
+              "n": 15,
+              "fn": 7,
+              "tn": 4,
+              "fp": 2,
+              "tp": 2,
+              "precision": 0.5,
+              "recall": 0.2222,
+              "f1": 0.3077,
+              "falsePositiveRate": 0.3333
+            },
+            "hinglish": {
+              "n": 20,
+              "fn": 8,
+              "fp": 4,
+              "tn": 8,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.3333
+            }
+          },
+          "bySource": {
+            "banking": {
+              "n": 8,
+              "fn": 5,
+              "fp": 1,
+              "tn": 2,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.3333
+            },
+            "ecommerce": {
+              "n": 10,
+              "fn": 4,
+              "tn": 3,
+              "fp": 1,
+              "tp": 2,
+              "precision": 0.6667,
+              "recall": 0.3333,
+              "f1": 0.4444,
+              "falsePositiveRate": 0.25
+            },
+            "finance": {
+              "n": 10,
+              "fn": 4,
+              "tn": 5,
+              "fp": 1,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.1667
+            },
+            "government": {
+              "n": 10,
+              "fp": 2,
+              "fn": 4,
+              "tn": 4,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.3333
+            },
+            "telecom": {
+              "n": 8,
+              "fp": 3,
+              "fn": 3,
+              "tn": 2,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.6
+            },
+            "utilities": {
+              "n": 3,
+              "fp": 1,
+              "fn": 2,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 1.0
+            }
+          }
+        }
+      }
+    },
+    "imc25_augmented": {
+      "all_rows": {
+        "threshold": 0.8455439017845153,
+        "metrics": {
+          "byLanguage": {
+            "english_or_romanized": {
+              "n": 41,
+              "fp": 4,
+              "tn": 15,
+              "tp": 12,
+              "fn": 10,
+              "precision": 0.75,
+              "recall": 0.5455,
+              "f1": 0.6316,
+              "falsePositiveRate": 0.2105
+            },
+            "hindi": {
+              "n": 37,
+              "fn": 12,
+              "tn": 12,
+              "tp": 9,
+              "fp": 4,
+              "precision": 0.6923,
+              "recall": 0.4286,
+              "f1": 0.5294,
+              "falsePositiveRate": 0.25
+            },
+            "hinglish": {
+              "n": 42,
+              "tp": 6,
+              "fp": 5,
+              "tn": 20,
+              "fn": 11,
+              "precision": 0.5455,
+              "recall": 0.3529,
+              "f1": 0.4286,
+              "falsePositiveRate": 0.2
+            }
+          },
+          "bySource": {
+            "banking": {
+              "n": 22,
+              "fp": 1,
+              "tp": 4,
+              "fn": 7,
+              "tn": 10,
+              "precision": 0.8,
+              "recall": 0.3636,
+              "f1": 0.5,
+              "falsePositiveRate": 0.0909
+            },
+            "ecommerce": {
+              "n": 27,
+              "fn": 6,
+              "tn": 11,
+              "tp": 8,
+              "fp": 2,
+              "precision": 0.8,
+              "recall": 0.5714,
+              "f1": 0.6667,
+              "falsePositiveRate": 0.1538
+            },
+            "finance": {
+              "n": 19,
+              "fn": 7,
+              "tn": 8,
+              "fp": 2,
+              "tp": 2,
+              "precision": 0.5,
+              "recall": 0.2222,
+              "f1": 0.3077,
+              "falsePositiveRate": 0.2
+            },
+            "government": {
+              "n": 24,
+              "tn": 11,
+              "fp": 3,
+              "fn": 5,
+              "tp": 5,
+              "precision": 0.625,
+              "recall": 0.5,
+              "f1": 0.5556,
+              "falsePositiveRate": 0.2143
+            },
+            "telecom": {
+              "n": 19,
+              "fp": 4,
+              "tp": 5,
+              "tn": 5,
+              "fn": 5,
+              "precision": 0.5556,
+              "recall": 0.5,
+              "f1": 0.5263,
+              "falsePositiveRate": 0.4444
+            },
+            "utilities": {
+              "n": 9,
+              "tn": 2,
+              "tp": 3,
+              "fn": 3,
+              "fp": 1,
+              "precision": 0.75,
+              "recall": 0.5,
+              "f1": 0.6,
+              "falsePositiveRate": 0.3333
+            }
+          }
+        }
+      },
+      "unique_texts": {
+        "threshold": 0.8455439017845153,
+        "metrics": {
+          "byLanguage": {
+            "english_or_romanized": {
+              "n": 14,
+              "fp": 2,
+              "tn": 5,
+              "tp": 4,
+              "fn": 3,
+              "precision": 0.6667,
+              "recall": 0.5714,
+              "f1": 0.6154,
+              "falsePositiveRate": 0.2857
+            },
+            "hindi": {
+              "n": 15,
+              "fn": 5,
+              "tn": 4,
+              "tp": 4,
+              "fp": 2,
+              "precision": 0.6667,
+              "recall": 0.4444,
+              "f1": 0.5333,
+              "falsePositiveRate": 0.3333
+            },
+            "hinglish": {
+              "n": 20,
+              "tp": 2,
+              "fp": 1,
+              "tn": 11,
+              "fn": 6,
+              "precision": 0.6667,
+              "recall": 0.25,
+              "f1": 0.3636,
+              "falsePositiveRate": 0.0833
+            }
+          },
+          "bySource": {
+            "banking": {
+              "n": 8,
+              "tp": 2,
+              "fn": 3,
+              "tn": 3,
+              "precision": 1.0,
+              "recall": 0.4,
+              "f1": 0.5714,
+              "falsePositiveRate": 0.0
+            },
+            "ecommerce": {
+              "n": 10,
+              "fn": 3,
+              "tn": 4,
+              "tp": 3,
+              "precision": 1.0,
+              "recall": 0.5,
+              "f1": 0.6667,
+              "falsePositiveRate": 0.0
+            },
+            "finance": {
+              "n": 10,
+              "fn": 4,
+              "tn": 5,
+              "fp": 1,
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "falsePositiveRate": 0.1667
+            },
+            "government": {
+              "n": 10,
+              "tn": 5,
+              "fp": 1,
+              "fn": 2,
+              "tp": 2,
+              "precision": 0.6667,
+              "recall": 0.5,
+              "f1": 0.5714,
+              "falsePositiveRate": 0.1667
+            },
+            "telecom": {
+              "n": 8,
+              "fp": 3,
+              "tp": 2,
+              "tn": 2,
+              "fn": 1,
+              "precision": 0.4,
+              "recall": 0.6667,
+              "f1": 0.5,
+              "falsePositiveRate": 0.6
+            },
+            "utilities": {
+              "n": 3,
+              "tn": 1,
+              "tp": 1,
+              "fn": 1,
+              "precision": 1.0,
+              "recall": 0.5,
+              "f1": 0.6667,
+              "falsePositiveRate": 0.0
+            }
+          }
+        }
+      }
+    },
+    "active_app_ngram": {
+      "all_rows": {
+        "threshold": 0.330984475,
+        "metrics": {
+          "byLanguage": {
+            "english_or_romanized": {
+              "n": 41,
+              "tn": 16,
+              "tp": 21,
+              "fp": 3,
+              "fn": 1,
+              "precision": 0.875,
+              "recall": 0.9545,
+              "f1": 0.913,
+              "falsePositiveRate": 0.1579
+            },
+            "hindi": {
+              "n": 37,
+              "tp": 20,
+              "tn": 15,
+              "fn": 1,
+              "fp": 1,
+              "precision": 0.9524,
+              "recall": 0.9524,
+              "f1": 0.9524,
+              "falsePositiveRate": 0.0625
+            },
+            "hinglish": {
+              "n": 42,
+              "tp": 14,
+              "tn": 23,
+              "fn": 3,
+              "fp": 2,
+              "precision": 0.875,
+              "recall": 0.8235,
+              "f1": 0.8485,
+              "falsePositiveRate": 0.08
+            }
+          },
+          "bySource": {
+            "banking": {
+              "n": 22,
+              "tn": 11,
+              "tp": 10,
+              "fn": 1,
+              "precision": 1.0,
+              "recall": 0.9091,
+              "f1": 0.9524,
+              "falsePositiveRate": 0.0
+            },
+            "ecommerce": {
+              "n": 27,
+              "tp": 12,
+              "tn": 11,
+              "fn": 2,
+              "fp": 2,
+              "precision": 0.8571,
+              "recall": 0.8571,
+              "f1": 0.8571,
+              "falsePositiveRate": 0.1538
+            },
+            "finance": {
+              "n": 19,
+              "tp": 8,
+              "tn": 9,
+              "fn": 1,
+              "fp": 1,
+              "precision": 0.8889,
+              "recall": 0.8889,
+              "f1": 0.8889,
+              "falsePositiveRate": 0.1
+            },
+            "government": {
+              "n": 24,
+              "tn": 12,
+              "tp": 9,
+              "fp": 2,
+              "fn": 1,
+              "precision": 0.8182,
+              "recall": 0.9,
+              "f1": 0.8571,
+              "falsePositiveRate": 0.1429
+            },
+            "telecom": {
+              "n": 19,
+              "tn": 8,
+              "tp": 10,
+              "fp": 1,
+              "precision": 0.9091,
+              "recall": 1.0,
+              "f1": 0.9524,
+              "falsePositiveRate": 0.1111
+            },
+            "utilities": {
+              "n": 9,
+              "tn": 3,
+              "tp": 6,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "falsePositiveRate": 0.0
+            }
+          }
+        }
+      },
+      "unique_texts": {
+        "threshold": 0.330984475,
+        "metrics": {
+          "byLanguage": {
+            "english_or_romanized": {
+              "n": 14,
+              "tn": 5,
+              "tp": 7,
+              "fp": 2,
+              "precision": 0.7778,
+              "recall": 1.0,
+              "f1": 0.875,
+              "falsePositiveRate": 0.2857
+            },
+            "hindi": {
+              "n": 15,
+              "tp": 9,
+              "tn": 6,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "falsePositiveRate": 0.0
+            },
+            "hinglish": {
+              "n": 20,
+              "tp": 7,
+              "tn": 12,
+              "fn": 1,
+              "precision": 1.0,
+              "recall": 0.875,
+              "f1": 0.9333,
+              "falsePositiveRate": 0.0
+            }
+          },
+          "bySource": {
+            "banking": {
+              "n": 8,
+              "tp": 5,
+              "tn": 3,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "falsePositiveRate": 0.0
+            },
+            "ecommerce": {
+              "n": 10,
+              "tp": 6,
+              "tn": 4,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "falsePositiveRate": 0.0
+            },
+            "finance": {
+              "n": 10,
+              "tp": 3,
+              "tn": 5,
+              "fn": 1,
+              "fp": 1,
+              "precision": 0.75,
+              "recall": 0.75,
+              "f1": 0.75,
+              "falsePositiveRate": 0.1667
+            },
+            "government": {
+              "n": 10,
+              "tn": 5,
+              "tp": 4,
+              "fp": 1,
+              "precision": 0.8,
+              "recall": 1.0,
+              "f1": 0.8889,
+              "falsePositiveRate": 0.1667
+            },
+            "telecom": {
+              "n": 8,
+              "tn": 5,
+              "tp": 3,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "falsePositiveRate": 0.0
+            },
+            "utilities": {
+              "n": 3,
+              "tn": 1,
+              "tp": 2,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "falsePositiveRate": 0.0
+            }
+          }
+        }
+      }
+    }
+  }
+}

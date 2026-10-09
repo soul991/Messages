@@ -1,0 +1,336 @@
+{
+  "model": "Keshav0av/HinSpam-spam-detection",
+  "revision": "3c0e106bf979c4295b8c31f26553c603651c892c",
+  "weightsSha256": "85aa4eabc780b47979e61b50fc4bbd39f1e39c45e25ac922b75533e3f3d63954",
+  "sizeBytes": 498612824,
+  "labelMapping": {
+    "positiveClassId": 1,
+    "positiveLabelInterpretation": "publisher card says label 1 is spam; downloaded config omits id2label"
+  },
+  "inputs": [
+    {
+      "path": "/Users/istakahamed06/Desktop/Messages App/Datasets/scamshield-dataset/test.jsonl",
+      "sha256": "a3a569a69529fe3398445bdd31046bfbcc19755c6b87f1133c8ed6c0134cdd6c",
+      "usableRows": 8202
+    },
+    {
+      "path": "/Users/istakahamed06/Desktop/Messages App/Datasets/bengali-sms-smishing-dataset/test-00000-of-00001.parquet",
+      "sha256": "2719d61aaf82b4b38e256e7e0d5ecee4a19588a7f522b863c713a435d0dffa31",
+      "usableRows": 1401
+    }
+  ],
+  "validationFilesUsedOnlyForExactDuplicateExclusion": [
+    "/Users/istakahamed06/Desktop/Messages App/Datasets/scamshield-dataset/val.jsonl",
+    "/Users/istakahamed06/Desktop/Messages App/Datasets/bengali-sms-smishing-dataset/validation-00000-of-00001.parquet"
+  ],
+  "scoredRowsAfterDuplicateExclusion": 9600,
+  "exactDuplicateRowsRemovedFromScoredInputs": 1,
+  "duplicateLabelConflicts": 0,
+  "metrics": {
+    "all": {
+      "n": 9600,
+      "tp": 3491,
+      "fp": 960,
+      "fn": 79,
+      "tn": 5070,
+      "precision": 0.7843,
+      "recall": 0.9779,
+      "f1": 0.8705,
+      "falsePositiveRate": 0.1592
+    },
+    "language:banglish": {
+      "n": 360,
+      "tp": 137,
+      "fp": 117,
+      "fn": 4,
+      "tn": 102,
+      "precision": 0.5394,
+      "recall": 0.9716,
+      "f1": 0.6937,
+      "falsePositiveRate": 0.5342
+    },
+    "language:bengali": {
+      "n": 358,
+      "tp": 129,
+      "fp": 58,
+      "fn": 12,
+      "tn": 159,
+      "precision": 0.6898,
+      "recall": 0.9149,
+      "f1": 0.7866,
+      "falsePositiveRate": 0.2673
+    },
+    "language:codemix": {
+      "n": 336,
+      "tp": 136,
+      "fp": 125,
+      "fn": 2,
+      "tn": 73,
+      "precision": 0.5211,
+      "recall": 0.9855,
+      "f1": 0.6817,
+      "falsePositiveRate": 0.6313
+    },
+    "language:english": {
+      "n": 7978,
+      "tp": 2984,
+      "fp": 467,
+      "fn": 59,
+      "tn": 4468,
+      "precision": 0.8647,
+      "recall": 0.9806,
+      "f1": 0.919,
+      "falsePositiveRate": 0.0946
+    },
+    "language:hindi": {
+      "n": 460,
+      "tp": 10,
+      "fp": 189,
+      "fn": 1,
+      "tn": 260,
+      "precision": 0.0503,
+      "recall": 0.9091,
+      "f1": 0.0952,
+      "falsePositiveRate": 0.4209
+    },
+    "language:hinglish": {
+      "n": 108,
+      "tp": 95,
+      "fp": 4,
+      "fn": 1,
+      "tn": 8,
+      "precision": 0.9596,
+      "recall": 0.9896,
+      "f1": 0.9744,
+      "falsePositiveRate": 0.3333
+    },
+    "source:banglish": {
+      "n": 360,
+      "tp": 137,
+      "fp": 117,
+      "fn": 4,
+      "tn": 102,
+      "precision": 0.5394,
+      "recall": 0.9716,
+      "f1": 0.6937,
+      "falsePositiveRate": 0.5342
+    },
+    "source:benchmark_ground_truth": {
+      "n": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 0,
+      "tn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "falsePositiveRate": 1.0
+    },
+    "source:bengali": {
+      "n": 358,
+      "tp": 129,
+      "fp": 58,
+      "fn": 12,
+      "tn": 159,
+      "precision": 0.6898,
+      "recall": 0.9149,
+      "f1": 0.7866,
+      "falsePositiveRate": 0.2673
+    },
+    "source:codemix": {
+      "n": 336,
+      "tp": 136,
+      "fp": 125,
+      "fn": 2,
+      "tn": 73,
+      "precision": 0.5211,
+      "recall": 0.9855,
+      "f1": 0.6817,
+      "falsePositiveRate": 0.6313
+    },
+    "source:english": {
+      "n": 347,
+      "tp": 141,
+      "fp": 95,
+      "fn": 0,
+      "tn": 111,
+      "precision": 0.5975,
+      "recall": 1.0,
+      "f1": 0.748,
+      "falsePositiveRate": 0.4612
+    },
+    "source:indian_telecom_sms": {
+      "n": 217,
+      "tp": 83,
+      "fp": 22,
+      "fn": 0,
+      "tn": 112,
+      "precision": 0.7905,
+      "recall": 1.0,
+      "f1": 0.883,
+      "falsePositiveRate": 0.1642
+    },
+    "source:kaggle_hindi_merged": {
+      "n": 460,
+      "tp": 10,
+      "fp": 189,
+      "fn": 1,
+      "tn": 260,
+      "precision": 0.0503,
+      "recall": 0.9091,
+      "f1": 0.0952,
+      "falsePositiveRate": 0.4209
+    },
+    "source:smishing_dataset": {
+      "n": 6986,
+      "tp": 2733,
+      "fp": 347,
+      "fn": 59,
+      "tn": 3847,
+      "precision": 0.8873,
+      "recall": 0.9789,
+      "f1": 0.9309,
+      "falsePositiveRate": 0.0827
+    },
+    "source:uci_sms_spam": {
+      "n": 464,
+      "tp": 62,
+      "fp": 5,
+      "fn": 0,
+      "tn": 397,
+      "precision": 0.9254,
+      "recall": 1.0,
+      "f1": 0.9612,
+      "falsePositiveRate": 0.0124
+    },
+    "source:ysangam/indian_cyber_scam_hinglish": {
+      "n": 70,
+      "tp": 60,
+      "fp": 0,
+      "fn": 1,
+      "tn": 9,
+      "precision": 1.0,
+      "recall": 0.9836,
+      "f1": 0.9917,
+      "falsePositiveRate": 0.0
+    }
+  },
+  "validationCalibratedMetrics": {
+    "policy": "per-language threshold selected using validation ham only; target <=1% FPR",
+    "validationRowsAfterExactDedupAndTestExclusion": 8892,
+    "validationHamCounts": {
+      "banglish": 109,
+      "bengali": 108,
+      "codemix": 99,
+      "english": 4832,
+      "hindi": 447,
+      "hinglish": 10
+    },
+    "thresholds": {
+      "banglish": 0.99998903,
+      "bengali": 0.9998281,
+      "codemix": 0.99997413,
+      "english": 0.99998069,
+      "hindi": 0.99954385,
+      "hinglish": 0.98342448
+    },
+    "testMetrics": {
+      "all": {
+        "n": 9600,
+        "tp": 1654,
+        "fp": 89,
+        "fn": 1916,
+        "tn": 5941,
+        "precision": 0.9489,
+        "recall": 0.4633,
+        "f1": 0.6226,
+        "falsePositiveRate": 0.0148
+      },
+      "language:banglish": {
+        "n": 360,
+        "tp": 2,
+        "fp": 1,
+        "fn": 139,
+        "tn": 218,
+        "precision": 0.6667,
+        "recall": 0.0142,
+        "f1": 0.0278,
+        "falsePositiveRate": 0.0046
+      },
+      "language:bengali": {
+        "n": 358,
+        "tp": 45,
+        "fp": 2,
+        "fn": 96,
+        "tn": 215,
+        "precision": 0.9574,
+        "recall": 0.3191,
+        "f1": 0.4787,
+        "falsePositiveRate": 0.0092
+      },
+      "language:codemix": {
+        "n": 336,
+        "tp": 6,
+        "fp": 0,
+        "fn": 132,
+        "tn": 198,
+        "precision": 1.0,
+        "recall": 0.0435,
+        "f1": 0.0833,
+        "falsePositiveRate": 0.0
+      },
+      "language:english": {
+        "n": 7978,
+        "tp": 1503,
+        "fp": 74,
+        "fn": 1540,
+        "tn": 4861,
+        "precision": 0.9531,
+        "recall": 0.4939,
+        "f1": 0.6506,
+        "falsePositiveRate": 0.015
+      },
+      "language:hindi": {
+        "n": 460,
+        "tp": 7,
+        "fp": 9,
+        "fn": 4,
+        "tn": 440,
+        "precision": 0.4375,
+        "recall": 0.6364,
+        "f1": 0.5185,
+        "falsePositiveRate": 0.02
+      },
+      "language:hinglish": {
+        "n": 108,
+        "tp": 91,
+        "fp": 3,
+        "fn": 5,
+        "tn": 9,
+        "precision": 0.9681,
+        "recall": 0.9479,
+        "f1": 0.9579,
+        "falsePositiveRate": 0.25
+      }
+    }
+  },
+  "meanPositiveClassProbabilityByLanguageAndGold": {
+    "banglish:ham": 0.5307,
+    "banglish:scam": 0.9718,
+    "bengali:ham": 0.2768,
+    "bengali:scam": 0.9175,
+    "codemix:ham": 0.6251,
+    "codemix:scam": 0.9876,
+    "english:ham": 0.0962,
+    "english:scam": 0.9802,
+    "hindi:ham": 0.4426,
+    "hindi:scam": 0.9432,
+    "hinglish:ham": 0.3304,
+    "hinglish:scam": 0.987
+  },
+  "caveats": [
+    "No fitting, threshold tuning, or test-directed selection.",
+    "Model config omits explicit class names; results depend on label-1-as-spam convention.",
+    "Publisher model card claims Hinglish; English, Hindi, and Punjabi scores are transfer diagnostics."
+  ]
+}

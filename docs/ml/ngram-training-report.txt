@@ -1,0 +1,56 @@
+Layer 5 - character n-gram model
+============================================================================
+
+Training set   : 1176 messages (375 corpus, 801 synthetic)
+Held out       : 138 corpus messages, of which 43 are the fragility set
+Features       : char_wb 2-5 grams, min_df=3 -> 13499 kept (cap 20000)
+Threshold      : 0.0000  (chosen on TRAINING ham only, <=1% FP)
+
+1. The fragility set - the only non-circular number here
+----------------------------------------------------------------------------
+   43 corpus messages fall from a filtered folder into the Inbox when one
+   matched pattern is removed. None of them were in training. Does a model
+   that has never read them still call them scam?
+
+   recovered by the model : 38 / 43  (88.4%)
+
+2. False positives on held-out ham
+----------------------------------------------------------------------------
+   Layer 5 can only move a message INTO Review, so every false positive
+   here is a real message a user has to go and dig out. This number, not
+   the one above, is what decides whether the flag may ever be flipped.
+
+   held-out ham           : 59
+   flagged as scam        : 2  (3.4% false positive rate)
+   held-out scam          : 79, of which flagged 68 (86.1% recall)
+
+   Every false positive, in full - these are the ones to argue with:
+   +0.3692  [genuine] Loan ka paperwork ho gaya complete. Bank wale bole 3 din me disbursement ho jayega
+   +0.1388  [genuine] Our team won the hackathon! The prize money is 50k, splitting 5 ways
+
+3. Size
+----------------------------------------------------------------------------
+   protection-engine/src/main/resources/ngram_model.json
+   13499 grams, 198893 bytes (0.19 MiB). Budget in the brief: 2 MiB. PASS
+   Latency and per-classification allocation are measured on the JVM by
+   `layer5-verify`, not here - Python timings say nothing about the
+   phone. No Android-device latency is claimed by this trainer.
+
+4. What these numbers do not say
+----------------------------------------------------------------------------
+   * Nothing about Indic accuracy. Native-script training rows are
+     synthetic and share one author; no independent script-level
+     evaluation set is available. Below is a plumbing check only.
+     hi: 80 grams, 74 known to the model, score +0.7136
+     bn: 88 grams, 85 known to the model, score +0.9180
+   * Nothing about real traffic. Both the synthetic rows and the
+     paraphrase judgement behind them come from one author.
+   * The 20% non-fragile held-out slice shares its authorship with the
+     training corpus, so section 2's false-positive rate is a floor, not
+     an estimate. Real inboxes contain message types neither set has.
+
+   The real held-out gate remains an owner-supplied, human-labeled set.
+   Until it exists,
+   Fresh installs keep Advanced Message Filtering off; these results do
+   not justify an always-on default.
+

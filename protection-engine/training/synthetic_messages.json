@@ -1,0 +1,6413 @@
+{
+ "note": "SYNTHETIC. Written for Layer 5 training only. Not evidence, not a corpus, never scored against. See the header of work/tools/gen_training_data.py.",
+ "entries": [
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Work from your own home and take home 999 every single day. No degree needed, no interview. Ping 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Work from your own home and take home 999 every single day. No degree needed, no interview. Ping 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Work from your own home and take home 999 every single day. No degree needed, no interview. Ping 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Work from your own home and take home 999 every single day. No degree needed, no interview. Ping 9900112233",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Work from your own home and take home 1,999 every single day. No degree needed, no interview. Ping 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Work from your own home and take home 1,999 every single day. No degree needed, no interview. Ping 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Part time opening, 2 hrs daily, weekly payout 999. Only 4 seats left. Whatsapp 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Part time opening, 2 hrs daily, weekly payout 999. Only 4 seats left. Whatsapp 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Part time opening, 2 hrs daily, weekly payout 999. Only 4 seats left. Whatsapp 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Part time opening, 2 hrs daily, weekly payout 999. Only 4 seats left. Whatsapp 9900112233",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Part time opening, 2 hrs daily, weekly payout 1,999. Only 4 seats left. Whatsapp 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Part time opening, 2 hrs daily, weekly payout 1,999. Only 4 seats left. Whatsapp 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Your profile was selected for online data entry. Joining charge 999 refundable after first task.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Your profile was selected for online data entry. Joining charge 1,999 refundable after first task.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Your profile was selected for online data entry. Joining charge 2,500 refundable after first task.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Your profile was selected for online data entry. Joining charge 450 refundable after first task.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Your profile was selected for online data entry. Joining charge 5,100 refundable after first task.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Your profile was selected for online data entry. Joining charge 10,000 refundable after first task.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Earn while you sit at home. Simple typing job, payment 999 per day, start immediately bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Earn while you sit at home. Simple typing job, payment 999 per day, start immediately tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Earn while you sit at home. Simple typing job, payment 999 per day, start immediately kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Earn while you sit at home. Simple typing job, payment 999 per day, start immediately rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Earn while you sit at home. Simple typing job, payment 1,999 per day, start immediately bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Earn while you sit at home. Simple typing job, payment 1,999 per day, start immediately tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Congratulations, you are shortlisted for the post. Kindly deposit 999 security amount to rajkumar@okaxis to block your seat.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Congratulations, you are shortlisted for the post. Kindly deposit 999 security amount to helpdesk9@ybl to block your seat.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Congratulations, you are shortlisted for the post. Kindly deposit 999 security amount to support.pay@paytm to block your seat.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Congratulations, you are shortlisted for the post. Kindly deposit 999 security amount to care4u@upi to block your seat.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Congratulations, you are shortlisted for the post. Kindly deposit 999 security amount to quickhelp@ibl to block your seat.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Congratulations, you are shortlisted for the post. Kindly deposit 1,999 security amount to rajkumar@okaxis to block your seat.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Hiring now. No experience. Daily settlement 999 direct to your account. Contact HR on 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Hiring now. No experience. Daily settlement 999 direct to your account. Contact HR on 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Hiring now. No experience. Daily settlement 999 direct to your account. Contact HR on 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Hiring now. No experience. Daily settlement 999 direct to your account. Contact HR on 9900112233",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Hiring now. No experience. Daily settlement 1,999 direct to your account. Contact HR on 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "job-fraud",
+   "text": "Hiring now. No experience. Daily settlement 1,999 direct to your account. Contact HR on 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Your loan file of Rs 5 lakh has been sanctioned. Remit 999 as file charges to rajkumar@okaxis for same day disbursal.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Your loan file of Rs 5 lakh has been sanctioned. Remit 999 as file charges to helpdesk9@ybl for same day disbursal.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Your loan file of Rs 5 lakh has been sanctioned. Remit 999 as file charges to support.pay@paytm for same day disbursal.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Your loan file of Rs 5 lakh has been sanctioned. Remit 999 as file charges to care4u@upi for same day disbursal.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Your loan file of Rs 5 lakh has been sanctioned. Remit 999 as file charges to quickhelp@ibl for same day disbursal.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Your loan file of Rs 12 lakh has been sanctioned. Remit 999 as file charges to rajkumar@okaxis for same day disbursal.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Sanction letter ready for Rs 5 lakh. Only processing amount 999 pending. Pay to rajkumar@okaxis within 24 hours.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Sanction letter ready for Rs 5 lakh. Only processing amount 999 pending. Pay to rajkumar@okaxis within 2 hours.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Sanction letter ready for Rs 5 lakh. Only processing amount 999 pending. Pay to rajkumar@okaxis within today.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Sanction letter ready for Rs 5 lakh. Only processing amount 999 pending. Pay to rajkumar@okaxis within tonight.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Sanction letter ready for Rs 5 lakh. Only processing amount 999 pending. Pay to rajkumar@okaxis within 6 pm.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Sanction letter ready for Rs 5 lakh. Only processing amount 999 pending. Pay to helpdesk9@ybl within 24 hours.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Approved: Rs 5 lakh at 0% interest. Documentation fee 999 payable before release of funds.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Approved: Rs 12 lakh at 0% interest. Documentation fee 999 payable before release of funds.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Approved: Rs 25,00,000 at 0% interest. Documentation fee 999 payable before release of funds.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Approved: Rs 2 crore at 0% interest. Documentation fee 999 payable before release of funds.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Approved: Rs 50 lakh at 0% interest. Documentation fee 999 payable before release of funds.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Approved: Rs 8,00,000 at 0% interest. Documentation fee 999 payable before release of funds.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Congratulation your amount Rs 5 lakh is on hold at RBI. Clearance charge 999 required to release.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Congratulation your amount Rs 12 lakh is on hold at RBI. Clearance charge 999 required to release.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Congratulation your amount Rs 25,00,000 is on hold at RBI. Clearance charge 999 required to release.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Congratulation your amount Rs 2 crore is on hold at RBI. Clearance charge 999 required to release.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Congratulation your amount Rs 50 lakh is on hold at RBI. Clearance charge 999 required to release.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Congratulation your amount Rs 8,00,000 is on hold at RBI. Clearance charge 999 required to release.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Loan without any document, Rs 5 lakh in 24 hours. Small verification fee 999 only. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Loan without any document, Rs 5 lakh in 24 hours. Small verification fee 999 only. tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Loan without any document, Rs 5 lakh in 24 hours. Small verification fee 999 only. kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Loan without any document, Rs 5 lakh in 24 hours. Small verification fee 999 only. rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Loan without any document, Rs 5 lakh in 2 hours. Small verification fee 999 only. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "advance-fee",
+   "text": "Loan without any document, Rs 5 lakh in 2 hours. Small verification fee 999 only. tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I am a widow undergoing treatment abroad. I wish to hand over $5 lakh to a trustworthy person for charity. Kindly respond.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I am a widow undergoing treatment abroad. I wish to hand over $12 lakh to a trustworthy person for charity. Kindly respond.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I am a widow undergoing treatment abroad. I wish to hand over $25,00,000 to a trustworthy person for charity. Kindly respond.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I am a widow undergoing treatment abroad. I wish to hand over $2 crore to a trustworthy person for charity. Kindly respond.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I am a widow undergoing treatment abroad. I wish to hand over $50 lakh to a trustworthy person for charity. Kindly respond.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I am a widow undergoing treatment abroad. I wish to hand over $8,00,000 to a trustworthy person for charity. Kindly respond.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "A client of mine with your surname passed away leaving 5 lakh unclaimed. As next of kin you may claim it. Reply urgently.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "A client of mine with your surname passed away leaving 12 lakh unclaimed. As next of kin you may claim it. Reply urgently.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "A client of mine with your surname passed away leaving 25,00,000 unclaimed. As next of kin you may claim it. Reply urgently.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "A client of mine with your surname passed away leaving 2 crore unclaimed. As next of kin you may claim it. Reply urgently.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "A client of mine with your surname passed away leaving 50 lakh unclaimed. As next of kin you may claim it. Reply urgently.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "A client of mine with your surname passed away leaving 8,00,000 unclaimed. As next of kin you may claim it. Reply urgently.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "Barrister here. My late client left 5 lakh with no beneficiary. Fifty fifty sharing if you assist me.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "Barrister here. My late client left 12 lakh with no beneficiary. Fifty fifty sharing if you assist me.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "Barrister here. My late client left 25,00,000 with no beneficiary. Fifty fifty sharing if you assist me.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "Barrister here. My late client left 2 crore with no beneficiary. Fifty fifty sharing if you assist me.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "Barrister here. My late client left 50 lakh with no beneficiary. Fifty fifty sharing if you assist me.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "Barrister here. My late client left 8,00,000 with no beneficiary. Fifty fifty sharing if you assist me.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I have terminal illness and no family. Willing to transfer my estate worth 5 lakh to you for orphanage work. Please reply.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I have terminal illness and no family. Willing to transfer my estate worth 12 lakh to you for orphanage work. Please reply.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I have terminal illness and no family. Willing to transfer my estate worth 25,00,000 to you for orphanage work. Please reply.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I have terminal illness and no family. Willing to transfer my estate worth 2 crore to you for orphanage work. Please reply.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I have terminal illness and no family. Willing to transfer my estate worth 50 lakh to you for orphanage work. Please reply.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "inheritance",
+   "text": "I have terminal illness and no family. Willing to transfer my estate worth 8,00,000 to you for orphanage work. Please reply.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "romance",
+   "text": "Hey, saved your number long back but never messaged. You look lovely in that photo. Free to chat?",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "romance",
+   "text": "Got your contact from a common friend, hope you dont mind. New in this city and quite alone here.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "romance",
+   "text": "Hi, I think we matched somewhere. I am posted far from home and would love someone to talk to.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "romance",
+   "text": "That was the wrong number but your reply was so sweet. Can we continue talking here or somewhere else?",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "romance",
+   "text": "You seem like a genuine person. I am abroad for work and honestly quite lonely. Shall we be friends?",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Beta I am stuck, met with a small accident and phone is dying. Send 999 to rajkumar@okaxis quickly, will return tomorrow.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Beta I am stuck, met with a small accident and phone is dying. Send 999 to helpdesk9@ybl quickly, will return tomorrow.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Beta I am stuck, met with a small accident and phone is dying. Send 999 to support.pay@paytm quickly, will return tomorrow.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Beta I am stuck, met with a small accident and phone is dying. Send 999 to care4u@upi quickly, will return tomorrow.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Beta I am stuck, met with a small accident and phone is dying. Send 999 to quickhelp@ibl quickly, will return tomorrow.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Beta I am stuck, met with a small accident and phone is dying. Send 1,999 to rajkumar@okaxis quickly, will return tomorrow.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "This is Rahul, my wallet got stolen at the station. Please transfer 999 to rajkumar@okaxis, I will explain later.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "This is Priya, my wallet got stolen at the station. Please transfer 999 to rajkumar@okaxis, I will explain later.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "This is Anil, my wallet got stolen at the station. Please transfer 999 to rajkumar@okaxis, I will explain later.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "This is Meera, my wallet got stolen at the station. Please transfer 999 to rajkumar@okaxis, I will explain later.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "This is Sanjay, my wallet got stolen at the station. Please transfer 999 to rajkumar@okaxis, I will explain later.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "This is Rahul, my wallet got stolen at the station. Please transfer 999 to helpdesk9@ybl, I will explain later.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Mummy is admitted and hospital wants deposit 999 right now. Sending UPI rajkumar@okaxis, please do it fast.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Mummy is admitted and hospital wants deposit 999 right now. Sending UPI helpdesk9@ybl, please do it fast.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Mummy is admitted and hospital wants deposit 999 right now. Sending UPI support.pay@paytm, please do it fast.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Mummy is admitted and hospital wants deposit 999 right now. Sending UPI care4u@upi, please do it fast.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Mummy is admitted and hospital wants deposit 999 right now. Sending UPI quickhelp@ibl, please do it fast.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Mummy is admitted and hospital wants deposit 1,999 right now. Sending UPI rajkumar@okaxis, please do it fast.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Emergency, need 999 urgently for my father's surgery. Any help will be returned by month end. rajkumar@okaxis",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Emergency, need 999 urgently for my father's surgery. Any help will be returned by month end. helpdesk9@ybl",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Emergency, need 999 urgently for my father's surgery. Any help will be returned by month end. support.pay@paytm",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Emergency, need 999 urgently for my father's surgery. Any help will be returned by month end. care4u@upi",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Emergency, need 999 urgently for my father's surgery. Any help will be returned by month end. quickhelp@ibl",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "emergency",
+   "text": "Emergency, need 1,999 urgently for my father's surgery. Any help will be returned by month end. rajkumar@okaxis",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Dear user your account will be deactivated 24 hours as documents are not updated. Complete verification here bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Dear user your account will be deactivated 24 hours as documents are not updated. Complete verification here tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Dear user your account will be deactivated 24 hours as documents are not updated. Complete verification here kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Dear user your account will be deactivated 24 hours as documents are not updated. Complete verification here rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Dear user your account will be deactivated 2 hours as documents are not updated. Complete verification here bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Dear user your account will be deactivated 2 hours as documents are not updated. Complete verification here tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Your SIM will stop working 24 hours due to incomplete formalities. Update immediately on bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Your SIM will stop working 24 hours due to incomplete formalities. Update immediately on tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Your SIM will stop working 24 hours due to incomplete formalities. Update immediately on kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Your SIM will stop working 24 hours due to incomplete formalities. Update immediately on rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Your SIM will stop working 2 hours due to incomplete formalities. Update immediately on bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Your SIM will stop working 2 hours due to incomplete formalities. Update immediately on tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Attention: services on account XX4421 suspended pending re verification. Restore access bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Attention: services on account XX8890 suspended pending re verification. Restore access bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Attention: services on account XX2213 suspended pending re verification. Restore access bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Attention: services on account XX0761 suspended pending re verification. Restore access bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Attention: services on account XX4421 suspended pending re verification. Restore access tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Attention: services on account XX8890 suspended pending re verification. Restore access tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Final reminder, your net banking is being frozen for want of updated papers. Act now bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Final reminder, your net banking is being frozen for want of updated papers. Act now tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Final reminder, your net banking is being frozen for want of updated papers. Act now kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Final reminder, your net banking is being frozen for want of updated papers. Act now rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Card XX4421 temporarily on hold. Re authenticate within 24 hours to avoid permanent closure bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Card XX8890 temporarily on hold. Re authenticate within 24 hours to avoid permanent closure bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Card XX2213 temporarily on hold. Re authenticate within 24 hours to avoid permanent closure bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Card XX0761 temporarily on hold. Re authenticate within 24 hours to avoid permanent closure bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Card XX4421 temporarily on hold. Re authenticate within 24 hours to avoid permanent closure tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "kyc-threat",
+   "text": "Card XX8890 temporarily on hold. Re authenticate within 24 hours to avoid permanent closure tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Great news, your mobile number came up in our quarterly draw and you have won 5 lakh. Claim before 24 hours.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Great news, your mobile number came up in our quarterly draw and you have won 5 lakh. Claim before 2 hours.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Great news, your mobile number came up in our quarterly draw and you have won 5 lakh. Claim before today.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Great news, your mobile number came up in our quarterly draw and you have won 5 lakh. Claim before tonight.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Great news, your mobile number came up in our quarterly draw and you have won 5 lakh. Claim before 6 pm.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Great news, your mobile number came up in our quarterly draw and you have won 12 lakh. Claim before 24 hours.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Selected! Your number is among 5 winners of our anniversary scheme worth 5 lakh. Share details to receive.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Selected! Your number is among 5 winners of our anniversary scheme worth 12 lakh. Share details to receive.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Selected! Your number is among 5 winners of our anniversary scheme worth 25,00,000. Share details to receive.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Selected! Your number is among 5 winners of our anniversary scheme worth 2 crore. Share details to receive.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Selected! Your number is among 5 winners of our anniversary scheme worth 50 lakh. Share details to receive.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "Selected! Your number is among 5 winners of our anniversary scheme worth 8,00,000. Share details to receive.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "You are today's lucky customer. Prize money 5 lakh reserved in your name, processing charge 999 applies.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "You are today's lucky customer. Prize money 12 lakh reserved in your name, processing charge 999 applies.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "You are today's lucky customer. Prize money 25,00,000 reserved in your name, processing charge 999 applies.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "You are today's lucky customer. Prize money 2 crore reserved in your name, processing charge 999 applies.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "You are today's lucky customer. Prize money 50 lakh reserved in your name, processing charge 999 applies.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "prize",
+   "text": "You are today's lucky customer. Prize money 8,00,000 reserved in your name, processing charge 999 applies.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Guaranteed returns, 100% of your capital in 30 days. Zero risk plan, limited entries. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Guaranteed returns, 200% of your capital in 30 days. Zero risk plan, limited entries. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Guaranteed returns, double of your capital in 30 days. Zero risk plan, limited entries. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Guaranteed returns, triple of your capital in 30 days. Zero risk plan, limited entries. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Guaranteed returns, 100% of your capital in 45 days. Zero risk plan, limited entries. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Guaranteed returns, 200% of your capital in 45 days. Zero risk plan, limited entries. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Our trading group members are making 999 daily. Join free, capital protected. 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Our trading group members are making 999 daily. Join free, capital protected. 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Our trading group members are making 999 daily. Join free, capital protected. 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Our trading group members are making 999 daily. Join free, capital protected. 9900112233",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Our trading group members are making 1,999 daily. Join free, capital protected. 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Our trading group members are making 1,999 daily. Join free, capital protected. 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Pre IPO allotment open, 100% listing gain assured. Minimum 999. Book your quota bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Pre IPO allotment open, 200% listing gain assured. Minimum 999. Book your quota bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Pre IPO allotment open, double listing gain assured. Minimum 999. Book your quota bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Pre IPO allotment open, triple listing gain assured. Minimum 999. Book your quota bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Pre IPO allotment open, 100% listing gain assured. Minimum 999. Book your quota tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Pre IPO allotment open, 200% listing gain assured. Minimum 999. Book your quota tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Crypto plan with fixed payout, your money becomes 100% in 30 days. Start with 999.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Crypto plan with fixed payout, your money becomes 200% in 30 days. Start with 999.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Crypto plan with fixed payout, your money becomes double in 30 days. Start with 999.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Crypto plan with fixed payout, your money becomes triple in 30 days. Start with 999.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Crypto plan with fixed payout, your money becomes 100% in 45 days. Start with 999.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "investment",
+   "text": "Crypto plan with fixed payout, your money becomes 200% in 45 days. Start with 999.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Shipment held at customs due to incomplete duty. Pay 999 within 24 hours or consignment returns. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Shipment held at customs due to incomplete duty. Pay 999 within 24 hours or consignment returns. tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Shipment held at customs due to incomplete duty. Pay 999 within 24 hours or consignment returns. kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Shipment held at customs due to incomplete duty. Pay 999 within 24 hours or consignment returns. rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Shipment held at customs due to incomplete duty. Pay 999 within 2 hours or consignment returns. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Shipment held at customs due to incomplete duty. Pay 999 within 2 hours or consignment returns. tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Your package could not be released. Outstanding clearance 999. Settle here bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Your package could not be released. Outstanding clearance 999. Settle here tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Your package could not be released. Outstanding clearance 999. Settle here kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Your package could not be released. Outstanding clearance 999. Settle here rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Your package could not be released. Outstanding clearance 1,999. Settle here bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Your package could not be released. Outstanding clearance 1,999. Settle here tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Courier attempt failed, redelivery charge 999 pending. Reschedule bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Courier attempt failed, redelivery charge 999 pending. Reschedule tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Courier attempt failed, redelivery charge 999 pending. Reschedule kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Courier attempt failed, redelivery charge 999 pending. Reschedule rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Courier attempt failed, redelivery charge 1,999 pending. Reschedule bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "parcel-fee",
+   "text": "Courier attempt failed, redelivery charge 1,999 pending. Reschedule tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Dear consumer your electricity connection will be disconnected 24 hours as previous month bill is not updated. Call 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Dear consumer your electricity connection will be disconnected 2 hours as previous month bill is not updated. Call 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Dear consumer your electricity connection will be disconnected today as previous month bill is not updated. Call 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Dear consumer your electricity connection will be disconnected tonight as previous month bill is not updated. Call 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Dear consumer your electricity connection will be disconnected 6 pm as previous month bill is not updated. Call 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Dear consumer your electricity connection will be disconnected 24 hours as previous month bill is not updated. Call 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Power supply to your meter will be cut 24 hours. Contact our officer on 9876012345 to avoid disconnection.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Power supply to your meter will be cut 2 hours. Contact our officer on 9876012345 to avoid disconnection.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Power supply to your meter will be cut today. Contact our officer on 9876012345 to avoid disconnection.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Power supply to your meter will be cut tonight. Contact our officer on 9876012345 to avoid disconnection.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Power supply to your meter will be cut 6 pm. Contact our officer on 9876012345 to avoid disconnection.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Power supply to your meter will be cut 24 hours. Contact our officer on 8123400987 to avoid disconnection.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Gas connection blocked for want of verification. Speak to 9876012345 immediately.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Gas connection blocked for want of verification. Speak to 8123400987 immediately.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Gas connection blocked for want of verification. Speak to 7011229988 immediately.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "utility",
+   "text": "Gas connection blocked for want of verification. Speak to 9900112233 immediately.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "impersonation",
+   "text": "I am posted at the army unit and being transferred. Selling household items cheap. Advance through canteen account only.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "impersonation",
+   "text": "This is from the CBI cyber cell. A case is registered against your Aadhaar. Call 9876012345 before we proceed.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "impersonation",
+   "text": "This is from the CBI cyber cell. A case is registered against your Aadhaar. Call 8123400987 before we proceed.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "impersonation",
+   "text": "This is from the CBI cyber cell. A case is registered against your Aadhaar. Call 7011229988 before we proceed.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "impersonation",
+   "text": "This is from the CBI cyber cell. A case is registered against your Aadhaar. Call 9900112233 before we proceed.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "impersonation",
+   "text": "Customs department here. A parcel in your name contains contraband. Reply immediately to settle.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "credential",
+   "text": "To complete the refund kindly confirm the code we just sent to your handset.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "credential",
+   "text": "Share the 6 digit number received now so our executive can validate your identity.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "en",
+   "family": "credential",
+   "text": "For security please read out the number on the reverse of your card to our officer.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Ghar par baith kar kaam kijiye, roz ke 999 pakke. Koi degree nahi chahiye. 9876012345 par msg karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Ghar par baith kar kaam kijiye, roz ke 999 pakke. Koi degree nahi chahiye. 8123400987 par msg karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Ghar par baith kar kaam kijiye, roz ke 999 pakke. Koi degree nahi chahiye. 7011229988 par msg karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Ghar par baith kar kaam kijiye, roz ke 999 pakke. Koi degree nahi chahiye. 9900112233 par msg karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Ghar par baith kar kaam kijiye, roz ke 1,999 pakke. Koi degree nahi chahiye. 9876012345 par msg karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Ghar par baith kar kaam kijiye, roz ke 1,999 pakke. Koi degree nahi chahiye. 8123400987 par msg karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Part time kaam hai, sirf 2 ghante, hafte me 999. Seat limited hai bhai. 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Part time kaam hai, sirf 2 ghante, hafte me 999. Seat limited hai bhai. 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Part time kaam hai, sirf 2 ghante, hafte me 999. Seat limited hai bhai. 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Part time kaam hai, sirf 2 ghante, hafte me 999. Seat limited hai bhai. 9900112233",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Part time kaam hai, sirf 2 ghante, hafte me 1,999. Seat limited hai bhai. 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Part time kaam hai, sirf 2 ghante, hafte me 1,999. Seat limited hai bhai. 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Aapka form select hua hai. Joining ke liye 999 jama karna padega, baad me wapas mil jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Aapka form select hua hai. Joining ke liye 1,999 jama karna padega, baad me wapas mil jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Aapka form select hua hai. Joining ke liye 2,500 jama karna padega, baad me wapas mil jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Aapka form select hua hai. Joining ke liye 450 jama karna padega, baad me wapas mil jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Aapka form select hua hai. Joining ke liye 5,100 jama karna padega, baad me wapas mil jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Aapka form select hua hai. Joining ke liye 10,000 jama karna padega, baad me wapas mil jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Mobile se kamai shuru karo, daily 999 tak. Abhi register karo bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Mobile se kamai shuru karo, daily 999 tak. Abhi register karo tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Mobile se kamai shuru karo, daily 999 tak. Abhi register karo kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Mobile se kamai shuru karo, daily 999 tak. Abhi register karo rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Mobile se kamai shuru karo, daily 1,999 tak. Abhi register karo bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "job-fraud",
+   "text": "Mobile se kamai shuru karo, daily 1,999 tak. Abhi register karo tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Aapka loan Rs 5 lakh pass ho gaya hai. Sirf 999 file charge rajkumar@okaxis par bhej dijiye, aaj hi paisa aa jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Aapka loan Rs 5 lakh pass ho gaya hai. Sirf 999 file charge helpdesk9@ybl par bhej dijiye, aaj hi paisa aa jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Aapka loan Rs 5 lakh pass ho gaya hai. Sirf 999 file charge support.pay@paytm par bhej dijiye, aaj hi paisa aa jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Aapka loan Rs 5 lakh pass ho gaya hai. Sirf 999 file charge care4u@upi par bhej dijiye, aaj hi paisa aa jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Aapka loan Rs 5 lakh pass ho gaya hai. Sirf 999 file charge quickhelp@ibl par bhej dijiye, aaj hi paisa aa jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Aapka loan Rs 12 lakh pass ho gaya hai. Sirf 999 file charge rajkumar@okaxis par bhej dijiye, aaj hi paisa aa jayega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Bina kagaz ke Rs 5 lakh ka loan, 24 hours me. Chhota sa 999 verification charge lagega. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Bina kagaz ke Rs 5 lakh ka loan, 24 hours me. Chhota sa 999 verification charge lagega. tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Bina kagaz ke Rs 5 lakh ka loan, 24 hours me. Chhota sa 999 verification charge lagega. kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Bina kagaz ke Rs 5 lakh ka loan, 24 hours me. Chhota sa 999 verification charge lagega. rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Bina kagaz ke Rs 5 lakh ka loan, 2 hours me. Chhota sa 999 verification charge lagega. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Bina kagaz ke Rs 5 lakh ka loan, 2 hours me. Chhota sa 999 verification charge lagega. tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Rs 5 lakh approve hai, bas processing ke 999 pending hai. Turant rajkumar@okaxis par karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Rs 5 lakh approve hai, bas processing ke 999 pending hai. Turant helpdesk9@ybl par karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Rs 5 lakh approve hai, bas processing ke 999 pending hai. Turant support.pay@paytm par karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Rs 5 lakh approve hai, bas processing ke 999 pending hai. Turant care4u@upi par karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Rs 5 lakh approve hai, bas processing ke 999 pending hai. Turant quickhelp@ibl par karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "advance-fee",
+   "text": "Rs 12 lakh approve hai, bas processing ke 999 pending hai. Turant rajkumar@okaxis par karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Beta accident ho gaya hai, phone band hone wala hai. 999 rajkumar@okaxis par bhej de jaldi.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Beta accident ho gaya hai, phone band hone wala hai. 999 helpdesk9@ybl par bhej de jaldi.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Beta accident ho gaya hai, phone band hone wala hai. 999 support.pay@paytm par bhej de jaldi.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Beta accident ho gaya hai, phone band hone wala hai. 999 care4u@upi par bhej de jaldi.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Beta accident ho gaya hai, phone band hone wala hai. 999 quickhelp@ibl par bhej de jaldi.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Beta accident ho gaya hai, phone band hone wala hai. 1,999 rajkumar@okaxis par bhej de jaldi.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Bhai purse chori ho gaya station par. 999 turant rajkumar@okaxis par daal de, kal lauta dunga.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Bhai purse chori ho gaya station par. 999 turant helpdesk9@ybl par daal de, kal lauta dunga.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Bhai purse chori ho gaya station par. 999 turant support.pay@paytm par daal de, kal lauta dunga.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Bhai purse chori ho gaya station par. 999 turant care4u@upi par daal de, kal lauta dunga.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Bhai purse chori ho gaya station par. 999 turant quickhelp@ibl par daal de, kal lauta dunga.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Bhai purse chori ho gaya station par. 1,999 turant rajkumar@okaxis par daal de, kal lauta dunga.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Papa ko hospital me admit kiya hai, 999 abhi jama karna hai. UPI rajkumar@okaxis",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Papa ko hospital me admit kiya hai, 999 abhi jama karna hai. UPI helpdesk9@ybl",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Papa ko hospital me admit kiya hai, 999 abhi jama karna hai. UPI support.pay@paytm",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Papa ko hospital me admit kiya hai, 999 abhi jama karna hai. UPI care4u@upi",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Papa ko hospital me admit kiya hai, 999 abhi jama karna hai. UPI quickhelp@ibl",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "emergency",
+   "text": "Papa ko hospital me admit kiya hai, 1,999 abhi jama karna hai. UPI rajkumar@okaxis",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Aapka account 24 hours me band ho jayega, kagaz update nahi hai. Yahan pura karein bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Aapka account 24 hours me band ho jayega, kagaz update nahi hai. Yahan pura karein tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Aapka account 24 hours me band ho jayega, kagaz update nahi hai. Yahan pura karein kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Aapka account 24 hours me band ho jayega, kagaz update nahi hai. Yahan pura karein rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Aapka account 2 hours me band ho jayega, kagaz update nahi hai. Yahan pura karein bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Aapka account 2 hours me band ho jayega, kagaz update nahi hai. Yahan pura karein tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "SIM band hone wali hai, verification adhoora hai. Abhi update karein bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "SIM band hone wali hai, verification adhoora hai. Abhi update karein tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "SIM band hone wali hai, verification adhoora hai. Abhi update karein kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "SIM band hone wali hai, verification adhoora hai. Abhi update karein rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Net banking rok di gayi hai. 24 hours ke andar bit.ly/3xKq9 par jaakar chalu karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Net banking rok di gayi hai. 24 hours ke andar tinyurl.com/rp4m par jaakar chalu karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Net banking rok di gayi hai. 24 hours ke andar kyc-update.in/v par jaakar chalu karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Net banking rok di gayi hai. 24 hours ke andar rb.gy/8ta2 par jaakar chalu karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Net banking rok di gayi hai. 2 hours ke andar bit.ly/3xKq9 par jaakar chalu karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "kyc-threat",
+   "text": "Net banking rok di gayi hai. 2 hours ke andar tinyurl.com/rp4m par jaakar chalu karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Badhai ho, aapka number lucky draw me aaya hai aur 5 lakh ka inaam nikla hai. 24 hours tak claim karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Badhai ho, aapka number lucky draw me aaya hai aur 5 lakh ka inaam nikla hai. 2 hours tak claim karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Badhai ho, aapka number lucky draw me aaya hai aur 5 lakh ka inaam nikla hai. today tak claim karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Badhai ho, aapka number lucky draw me aaya hai aur 5 lakh ka inaam nikla hai. tonight tak claim karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Badhai ho, aapka number lucky draw me aaya hai aur 5 lakh ka inaam nikla hai. 6 pm tak claim karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Badhai ho, aapka number lucky draw me aaya hai aur 12 lakh ka inaam nikla hai. 24 hours tak claim karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Aap aaj ke vijeta hain. 5 lakh aapke naam reserve hai, sirf 999 processing lagega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Aap aaj ke vijeta hain. 12 lakh aapke naam reserve hai, sirf 999 processing lagega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Aap aaj ke vijeta hain. 25,00,000 aapke naam reserve hai, sirf 999 processing lagega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Aap aaj ke vijeta hain. 2 crore aapke naam reserve hai, sirf 999 processing lagega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Aap aaj ke vijeta hain. 50 lakh aapke naam reserve hai, sirf 999 processing lagega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "prize",
+   "text": "Aap aaj ke vijeta hain. 8,00,000 aapke naam reserve hai, sirf 999 processing lagega.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Paisa 100% kar dijiye sirf 30 days me. Bilkul safe plan hai. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Paisa 200% kar dijiye sirf 30 days me. Bilkul safe plan hai. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Paisa double kar dijiye sirf 30 days me. Bilkul safe plan hai. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Paisa triple kar dijiye sirf 30 days me. Bilkul safe plan hai. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Paisa 100% kar dijiye sirf 45 days me. Bilkul safe plan hai. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Paisa 200% kar dijiye sirf 45 days me. Bilkul safe plan hai. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Hamare group ke log roz 999 kama rahe hain. Free join karein 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Hamare group ke log roz 999 kama rahe hain. Free join karein 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Hamare group ke log roz 999 kama rahe hain. Free join karein 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Hamare group ke log roz 999 kama rahe hain. Free join karein 9900112233",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Hamare group ke log roz 1,999 kama rahe hain. Free join karein 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "investment",
+   "text": "Hamare group ke log roz 1,999 kama rahe hain. Free join karein 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "romance",
+   "text": "Aapka number kahin se mila tha, bura mat maniyega. Yahan naya hoon aur akela rehta hoon.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "romance",
+   "text": "Galti se number laga tha par aapne itna acha reply kiya. Baat karte rahen kya?",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Priya upbhokta aapki bijli 24 hours me kaat di jayegi, pichhla bill update nahi hai. 9876012345 par baat karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Priya upbhokta aapki bijli 2 hours me kaat di jayegi, pichhla bill update nahi hai. 9876012345 par baat karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Priya upbhokta aapki bijli today me kaat di jayegi, pichhla bill update nahi hai. 9876012345 par baat karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Priya upbhokta aapki bijli tonight me kaat di jayegi, pichhla bill update nahi hai. 9876012345 par baat karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Priya upbhokta aapki bijli 6 pm me kaat di jayegi, pichhla bill update nahi hai. 9876012345 par baat karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Priya upbhokta aapki bijli 24 hours me kaat di jayegi, pichhla bill update nahi hai. 8123400987 par baat karein",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Meter ka connection band hone wala hai. Turant 9876012345 par sampark karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Meter ka connection band hone wala hai. Turant 8123400987 par sampark karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Meter ka connection band hone wala hai. Turant 7011229988 par sampark karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "utility",
+   "text": "Meter ka connection band hone wala hai. Turant 9900112233 par sampark karein.",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Aapka parcel customs me atka hai, 999 duty pending hai. 24 hours me jama karein bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Aapka parcel customs me atka hai, 999 duty pending hai. 24 hours me jama karein tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Aapka parcel customs me atka hai, 999 duty pending hai. 24 hours me jama karein kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Aapka parcel customs me atka hai, 999 duty pending hai. 24 hours me jama karein rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Aapka parcel customs me atka hai, 999 duty pending hai. 2 hours me jama karein bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Aapka parcel customs me atka hai, 999 duty pending hai. 2 hours me jama karein tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Delivery fail ho gayi, dobara bhejne ka 999 charge hai. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Delivery fail ho gayi, dobara bhejne ka 999 charge hai. tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Delivery fail ho gayi, dobara bhejne ka 999 charge hai. kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Delivery fail ho gayi, dobara bhejne ka 999 charge hai. rb.gy/8ta2",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Delivery fail ho gayi, dobara bhejne ka 1,999 charge hai. bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hinglish",
+   "family": "parcel-fee",
+   "text": "Delivery fail ho gayi, dobara bhejne ka 1,999 charge hai. tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "999 is your one time code. It is valid for 10 minutes. Never share it with anyone including bank staff.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "1,999 is your one time code. It is valid for 10 minutes. Never share it with anyone including bank staff.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "2,500 is your one time code. It is valid for 10 minutes. Never share it with anyone including bank staff.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "450 is your one time code. It is valid for 10 minutes. Never share it with anyone including bank staff.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "5,100 is your one time code. It is valid for 10 minutes. Never share it with anyone including bank staff.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "10,000 is your one time code. It is valid for 10 minutes. Never share it with anyone including bank staff.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "199 is your one time code. It is valid for 10 minutes. Never share it with anyone including bank staff.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "3,499 is your one time code. It is valid for 10 minutes. Never share it with anyone including bank staff.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Use code 999 to sign in. If you did not request this, ignore this message.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Use code 1,999 to sign in. If you did not request this, ignore this message.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Use code 2,500 to sign in. If you did not request this, ignore this message.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Use code 450 to sign in. If you did not request this, ignore this message.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Use code 5,100 to sign in. If you did not request this, ignore this message.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Use code 10,000 to sign in. If you did not request this, ignore this message.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Use code 199 to sign in. If you did not request this, ignore this message.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Use code 3,499 to sign in. If you did not request this, ignore this message.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Your verification code is 999. Do not disclose it to any caller.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Your verification code is 1,999. Do not disclose it to any caller.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Your verification code is 2,500. Do not disclose it to any caller.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Your verification code is 450. Do not disclose it to any caller.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Your verification code is 5,100. Do not disclose it to any caller.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Your verification code is 10,000. Do not disclose it to any caller.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Your verification code is 199. Do not disclose it to any caller.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-otp",
+   "text": "Your verification code is 3,499. Do not disclose it to any caller.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX4421 on 14-03 to Rahul. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX4421 on 14-03 to Priya. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX4421 on 14-03 to Anil. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX4421 on 14-03 to Meera. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX4421 on 14-03 to Sanjay. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX8890 on 14-03 to Rahul. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX8890 on 14-03 to Priya. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX8890 on 14-03 to Anil. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX8890 on 14-03 to Meera. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX8890 on 14-03 to Sanjay. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX2213 on 14-03 to Rahul. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 debited from a/c XX2213 on 14-03 to Priya. Avl bal Rs 18,240. Not you? Call your bank.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 credited to a/c XX4421 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 credited to a/c XX8890 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 credited to a/c XX2213 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 999 credited to a/c XX0761 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 1,999 credited to a/c XX4421 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 1,999 credited to a/c XX8890 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 1,999 credited to a/c XX2213 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 1,999 credited to a/c XX0761 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 2,500 credited to a/c XX4421 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 2,500 credited to a/c XX8890 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 2,500 credited to a/c XX2213 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Rs 2,500 credited to a/c XX0761 by NEFT. Available balance Rs 42,110.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX4421 was used for Rs 999 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX8890 was used for Rs 999 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX2213 was used for Rs 999 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX0761 was used for Rs 999 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX4421 was used for Rs 1,999 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX8890 was used for Rs 1,999 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX2213 was used for Rs 1,999 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX0761 was used for Rs 1,999 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX4421 was used for Rs 2,500 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX8890 was used for Rs 2,500 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX2213 was used for Rs 2,500 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Your card XX0761 was used for Rs 2,500 at a merchant outlet. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 999 towards your SIP is scheduled from a/c XX4421 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 999 towards your SIP is scheduled from a/c XX8890 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 999 towards your SIP is scheduled from a/c XX2213 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 999 towards your SIP is scheduled from a/c XX0761 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 1,999 towards your SIP is scheduled from a/c XX4421 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 1,999 towards your SIP is scheduled from a/c XX8890 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 1,999 towards your SIP is scheduled from a/c XX2213 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 1,999 towards your SIP is scheduled from a/c XX0761 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 2,500 towards your SIP is scheduled from a/c XX4421 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 2,500 towards your SIP is scheduled from a/c XX8890 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 2,500 towards your SIP is scheduled from a/c XX2213 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-bank",
+   "text": "Auto debit of Rs 2,500 towards your SIP is scheduled from a/c XX0761 on 05-04.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Flipkart order has left the facility and will reach you by 24 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Amazon order has left the facility and will reach you by 24 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Myntra order has left the facility and will reach you by 24 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your BigBasket order has left the facility and will reach you by 24 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Zomato order has left the facility and will reach you by 24 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Flipkart order has left the facility and will reach you by 2 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Amazon order has left the facility and will reach you by 2 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Myntra order has left the facility and will reach you by 2 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your BigBasket order has left the facility and will reach you by 2 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Zomato order has left the facility and will reach you by 2 hours. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Flipkart order has left the facility and will reach you by today. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your Amazon order has left the facility and will reach you by today. Track it on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Out for delivery today. Our partner will call before arriving. Order from Flipkart.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Out for delivery today. Our partner will call before arriving. Order from Amazon.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Out for delivery today. Our partner will call before arriving. Order from Myntra.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Out for delivery today. Our partner will call before arriving. Order from BigBasket.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Out for delivery today. Our partner will call before arriving. Order from Zomato.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Delivered. Thanks for shopping with Flipkart. Rate your experience in the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Delivered. Thanks for shopping with Amazon. Rate your experience in the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Delivered. Thanks for shopping with Myntra. Rate your experience in the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Delivered. Thanks for shopping with BigBasket. Rate your experience in the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Delivered. Thanks for shopping with Zomato. Rate your experience in the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 999 will reflect in 30 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 999 will reflect in 45 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 999 will reflect in one month.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 999 will reflect in 90 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 1,999 will reflect in 30 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 1,999 will reflect in 45 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 1,999 will reflect in one month.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 1,999 will reflect in 90 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 2,500 will reflect in 30 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 2,500 will reflect in 45 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 2,500 will reflect in one month.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-delivery",
+   "text": "Your return has been picked up. Refund of Rs 2,500 will reflect in 90 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Appointment with Dr Rahul is confirmed for tomorrow 11:30 am. Please arrive 15 minutes early.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Appointment with Dr Priya is confirmed for tomorrow 11:30 am. Please arrive 15 minutes early.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Appointment with Dr Anil is confirmed for tomorrow 11:30 am. Please arrive 15 minutes early.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Appointment with Dr Meera is confirmed for tomorrow 11:30 am. Please arrive 15 minutes early.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Appointment with Dr Sanjay is confirmed for tomorrow 11:30 am. Please arrive 15 minutes early.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Your booking is confirmed. Reference XX4421. Reschedule from the app if needed.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Your booking is confirmed. Reference XX8890. Reschedule from the app if needed.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Your booking is confirmed. Reference XX2213. Reschedule from the app if needed.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Your booking is confirmed. Reference XX0761. Reschedule from the app if needed.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Reminder: your service visit is scheduled 24 hours. Technician will call on arrival.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Reminder: your service visit is scheduled 2 hours. Technician will call on arrival.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Reminder: your service visit is scheduled today. Technician will call on arrival.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Reminder: your service visit is scheduled tonight. Technician will call on arrival.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "protected-appointment",
+   "text": "Reminder: your service visit is scheduled 6 pm. Technician will call on arrival.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Reached office, will call you in the evening. Did you eat something?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Rahul said the meeting moved to 4. Are you coming or should I go alone?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Priya said the meeting moved to 4. Are you coming or should I go alone?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Anil said the meeting moved to 4. Are you coming or should I go alone?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Meera said the meeting moved to 4. Are you coming or should I go alone?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sanjay said the meeting moved to 4. Are you coming or should I go alone?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 999 for the groceries, please check once. UPI rajkumar@okaxis",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 999 for the groceries, please check once. UPI helpdesk9@ybl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 999 for the groceries, please check once. UPI support.pay@paytm",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 999 for the groceries, please check once. UPI care4u@upi",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 999 for the groceries, please check once. UPI quickhelp@ibl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 1,999 for the groceries, please check once. UPI rajkumar@okaxis",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 1,999 for the groceries, please check once. UPI helpdesk9@ybl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 1,999 for the groceries, please check once. UPI support.pay@paytm",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 1,999 for the groceries, please check once. UPI care4u@upi",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 1,999 for the groceries, please check once. UPI quickhelp@ibl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 2,500 for the groceries, please check once. UPI rajkumar@okaxis",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Sending 2,500 for the groceries, please check once. UPI helpdesk9@ybl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Happy birthday! Have a wonderful year ahead, see you at dinner.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Flight is delayed by two hours, dont start from home yet.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-personal",
+   "text": "Can you send me the address again? Maps is showing something else.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Please find the revised numbers attached. Review before the 24 hours call.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Please find the revised numbers attached. Review before the 2 hours call.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Please find the revised numbers attached. Review before the today call.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Please find the revised numbers attached. Review before the tonight call.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Please find the revised numbers attached. Review before the 6 pm call.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Server maintenance is planned tonight. Expect a brief outage around 2 am.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Your leave application has been approved by the reporting manager.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 999 is due 24 hours. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 999 is due 2 hours. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 999 is due today. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 999 is due tonight. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 999 is due 6 pm. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 1,999 is due 24 hours. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 1,999 is due 2 hours. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 1,999 is due today. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 1,999 is due tonight. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 1,999 is due 6 pm. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 2,500 is due 24 hours. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "genuine-work",
+   "text": "Invoice for Rs 2,500 is due 2 hours. Kindly arrange payment at your convenience.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flipkart end of season sale is live. Up to 60% off across categories. Shop on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Amazon end of season sale is live. Up to 60% off across categories. Shop on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Myntra end of season sale is live. Up to 60% off across categories. Shop on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "BigBasket end of season sale is live. Up to 60% off across categories. Shop on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Zomato end of season sale is live. Up to 60% off across categories. Shop on the app.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Flipkart. Offer valid 30 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Amazon. Offer valid 30 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Myntra. Offer valid 30 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at BigBasket. Offer valid 30 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Zomato. Offer valid 30 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Flipkart. Offer valid 45 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Amazon. Offer valid 45 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Myntra. Offer valid 45 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at BigBasket. Offer valid 45 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Zomato. Offer valid 45 days.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Flipkart. Offer valid one month.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Flat Rs 999 off on your next order above Rs 999 at Amazon. Offer valid one month.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Flipkart. Members get early access from 24 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Amazon. Members get early access from 24 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Myntra. Members get early access from 24 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at BigBasket. Members get early access from 24 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Zomato. Members get early access from 24 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Flipkart. Members get early access from 2 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Amazon. Members get early access from 2 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Myntra. Members get early access from 2 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at BigBasket. Members get early access from 2 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Zomato. Members get early access from 2 hours.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Flipkart. Members get early access from today.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "New arrivals just dropped at Amazon. Members get early access from today.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before 24 hours to keep your plan active. Packs start at Rs 999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before 2 hours to keep your plan active. Packs start at Rs 999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before today to keep your plan active. Packs start at Rs 999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before tonight to keep your plan active. Packs start at Rs 999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before 6 pm to keep your plan active. Packs start at Rs 999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before 24 hours to keep your plan active. Packs start at Rs 1,999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before 2 hours to keep your plan active. Packs start at Rs 1,999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before today to keep your plan active. Packs start at Rs 1,999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before tonight to keep your plan active. Packs start at Rs 1,999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before 6 pm to keep your plan active. Packs start at Rs 1,999.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before 24 hours to keep your plan active. Packs start at Rs 2,500.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "en",
+   "family": "promo-legit",
+   "text": "Recharge before 2 hours to keep your plan active. Packs start at Rs 2,500.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Ghar pahunch gaya, sham ko call karta hoon. Khana kha liya?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Rahul bol raha tha meeting 4 baje ho gayi hai. Tu aa raha hai?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Priya bol raha tha meeting 4 baje ho gayi hai. Tu aa raha hai?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Anil bol raha tha meeting 4 baje ho gayi hai. Tu aa raha hai?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Meera bol raha tha meeting 4 baje ho gayi hai. Tu aa raha hai?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sanjay bol raha tha meeting 4 baje ho gayi hai. Tu aa raha hai?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 999 bhej diye hain, ek baar dekh lena. UPI rajkumar@okaxis",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 999 bhej diye hain, ek baar dekh lena. UPI helpdesk9@ybl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 999 bhej diye hain, ek baar dekh lena. UPI support.pay@paytm",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 999 bhej diye hain, ek baar dekh lena. UPI care4u@upi",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 999 bhej diye hain, ek baar dekh lena. UPI quickhelp@ibl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 1,999 bhej diye hain, ek baar dekh lena. UPI rajkumar@okaxis",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 1,999 bhej diye hain, ek baar dekh lena. UPI helpdesk9@ybl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 1,999 bhej diye hain, ek baar dekh lena. UPI support.pay@paytm",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 1,999 bhej diye hain, ek baar dekh lena. UPI care4u@upi",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 1,999 bhej diye hain, ek baar dekh lena. UPI quickhelp@ibl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 2,500 bhej diye hain, ek baar dekh lena. UPI rajkumar@okaxis",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Sabzi ke 2,500 bhej diye hain, ek baar dekh lena. UPI helpdesk9@ybl",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Train late hai do ghante, abhi mat nikalna ghar se.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Aaj shaam ko free ho? Chai peene chalte hain kahin.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Bhai kal subah jaldi nikalna hai, alarm laga lena zaroor.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Papa ki tabiyat theek hai ab, dawai time par le rahe hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Yaar wo kaam ho gaya kya? Kal tak dena tha na.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Mummy pooch rahi thi tu kab aa raha hai. Bata dena.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Recharge kara dena mera, main sham tak 999 de dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Recharge kara dena mera, main sham tak 1,999 de dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Recharge kara dena mera, main sham tak 2,500 de dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Recharge kara dena mera, main sham tak 450 de dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Recharge kara dena mera, main sham tak 5,100 de dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Recharge kara dena mera, main sham tak 10,000 de dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Recharge kara dena mera, main sham tak 199 de dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Recharge kara dena mera, main sham tak 3,499 de dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Shaadi me zaroor aana, Rahul bhi aa raha hai. Address bhej dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Shaadi me zaroor aana, Priya bhi aa raha hai. Address bhej dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Shaadi me zaroor aana, Anil bhi aa raha hai. Address bhej dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Shaadi me zaroor aana, Meera bhi aa raha hai. Address bhej dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Shaadi me zaroor aana, Sanjay bhi aa raha hai. Address bhej dunga.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Nikal gaya hoon office se, thodi der me pahunchta hoon.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Kal ka plan cancel kar dete hain, mausam kharab hai.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Wo file bhej di hai mail par, ek baar check kar lena.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Bahut badhiya khabar hai! Result aa gaya, pass ho gaya.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-personal",
+   "text": "Doctor ne kaha hai do din aaram karna hai, office nahi aa raha.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Meeting 24 hours tak shift ho gayi hai, calendar update kar diya hai.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Meeting 2 hours tak shift ho gayi hai, calendar update kar diya hai.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Meeting today tak shift ho gayi hai, calendar update kar diya hai.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Meeting tonight tak shift ho gayi hai, calendar update kar diya hai.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Meeting 6 pm tak shift ho gayi hai, calendar update kar diya hai.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Aapki chhutti approve ho gayi hai, HR ko bata diya gaya hai.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Report ready hai, 24 hours tak bhej deta hoon review ke liye.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Report ready hai, 2 hours tak bhej deta hoon review ke liye.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Report ready hai, today tak bhej deta hoon review ke liye.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Report ready hai, tonight tak bhej deta hoon review ke liye.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "genuine-work",
+   "text": "Report ready hai, 6 pm tak bhej deta hoon review ke liye.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Flipkart par sale shuru ho gayi hai, 60% tak chhoot. App par dekhein.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Amazon par sale shuru ho gayi hai, 60% tak chhoot. App par dekhein.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Myntra par sale shuru ho gayi hai, 60% tak chhoot. App par dekhein.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "BigBasket par sale shuru ho gayi hai, 60% tak chhoot. App par dekhein.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Zomato par sale shuru ho gayi hai, 60% tak chhoot. App par dekhein.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge 24 hours tak kara lein warna plan band ho jayega. Rs 999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge 2 hours tak kara lein warna plan band ho jayega. Rs 999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge today tak kara lein warna plan band ho jayega. Rs 999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge tonight tak kara lein warna plan band ho jayega. Rs 999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge 6 pm tak kara lein warna plan band ho jayega. Rs 999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge 24 hours tak kara lein warna plan band ho jayega. Rs 1,999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge 2 hours tak kara lein warna plan band ho jayega. Rs 1,999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge today tak kara lein warna plan band ho jayega. Rs 1,999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge tonight tak kara lein warna plan band ho jayega. Rs 1,999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge 6 pm tak kara lein warna plan band ho jayega. Rs 1,999 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge 24 hours tak kara lein warna plan band ho jayega. Rs 2,500 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Recharge 2 hours tak kara lein warna plan band ho jayega. Rs 2,500 se shuru.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Flipkart par naya collection aa gaya hai. Members ko pehle access milega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Amazon par naya collection aa gaya hai. Members ko pehle access milega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Myntra par naya collection aa gaya hai. Members ko pehle access milega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "BigBasket par naya collection aa gaya hai. Members ko pehle access milega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "promo-legit",
+   "text": "Zomato par naya collection aa gaya hai. Members ko pehle access milega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX4421 se Rs 999 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX8890 se Rs 999 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX2213 se Rs 999 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX0761 se Rs 999 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX4421 se Rs 1,999 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX8890 se Rs 1,999 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX2213 se Rs 1,999 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX0761 se Rs 1,999 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX4421 se Rs 2,500 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX8890 se Rs 2,500 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX2213 se Rs 2,500 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke khate XX0761 se Rs 2,500 debit hue hain. Shesh rashi Rs 18,240.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 999 aapke khate XX4421 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 999 aapke khate XX8890 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 999 aapke khate XX2213 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 999 aapke khate XX0761 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 1,999 aapke khate XX4421 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 1,999 aapke khate XX8890 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 1,999 aapke khate XX2213 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 1,999 aapke khate XX0761 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 2,500 aapke khate XX4421 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 2,500 aapke khate XX8890 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 2,500 aapke khate XX2213 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Rs 2,500 aapke khate XX0761 me jama hue hain.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX4421 se Rs 999 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX8890 se Rs 999 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX2213 se Rs 999 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX0761 se Rs 999 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX4421 se Rs 1,999 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX8890 se Rs 1,999 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX2213 se Rs 1,999 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX0761 se Rs 1,999 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX4421 se Rs 2,500 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX8890 se Rs 2,500 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX2213 se Rs 2,500 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-bank",
+   "text": "Aapke card XX0761 se Rs 2,500 ka bhugtan hua hai. Balance Rs 9,004.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Flipkart ka order nikal chuka hai, 24 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Amazon ka order nikal chuka hai, 24 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Myntra ka order nikal chuka hai, 24 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka BigBasket ka order nikal chuka hai, 24 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Zomato ka order nikal chuka hai, 24 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Flipkart ka order nikal chuka hai, 2 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Amazon ka order nikal chuka hai, 2 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Myntra ka order nikal chuka hai, 2 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka BigBasket ka order nikal chuka hai, 2 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Zomato ka order nikal chuka hai, 2 hours tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Flipkart ka order nikal chuka hai, today tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Aapka Amazon ka order nikal chuka hai, today tak pahunch jayega.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Order deliver ho gaya hai. Flipkart se kharidne ke liye dhanyavaad.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Order deliver ho gaya hai. Amazon se kharidne ke liye dhanyavaad.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Order deliver ho gaya hai. Myntra se kharidne ke liye dhanyavaad.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Order deliver ho gaya hai. BigBasket se kharidne ke liye dhanyavaad.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hinglish",
+   "family": "protected-delivery",
+   "text": "Order deliver ho gaya hai. Zomato se kharidne ke liye dhanyavaad.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "घर बैठे रोज 999 रुपये कमाइए, कोई अनुभव नहीं चाहिए। संपर्क करें 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "घर बैठे रोज 999 रुपये कमाइए, कोई अनुभव नहीं चाहिए। संपर्क करें 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "घर बैठे रोज 999 रुपये कमाइए, कोई अनुभव नहीं चाहिए। संपर्क करें 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपका 5 lakh रुपये का लोन मंजूर हो गया है, बस 999 फाइल चार्ज rajkumar@okaxis पर भेजिए",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपका 5 lakh रुपये का लोन मंजूर हो गया है, बस 999 फाइल चार्ज helpdesk9@ybl पर भेजिए",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपका 5 lakh रुपये का लोन मंजूर हो गया है, बस 999 फाइल चार्ज support.pay@paytm पर भेजिए",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपका खाता 24 hours में बंद हो जाएगा, दस्तावेज अपडेट करने के लिए यहाँ जाएँ bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपका खाता 24 hours में बंद हो जाएगा, दस्तावेज अपडेट करने के लिए यहाँ जाएँ tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपका खाता 24 hours में बंद हो जाएगा, दस्तावेज अपडेट करने के लिए यहाँ जाएँ kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "बधाई हो, लकी ड्रॉ में आपका नंबर आया है और 5 lakh का इनाम निकला है",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "बधाई हो, लकी ड्रॉ में आपका नंबर आया है और 12 lakh का इनाम निकला है",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "बधाई हो, लकी ड्रॉ में आपका नंबर आया है और 25,00,000 का इनाम निकला है",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपकी बिजली 24 hours में काट दी जाएगी, तुरंत 9876012345 पर संपर्क करें",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपकी बिजली 2 hours में काट दी जाएगी, तुरंत 9876012345 पर संपर्क करें",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपकी बिजली today में काट दी जाएगी, तुरंत 9876012345 पर संपर्क करें",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपका पार्सल कस्टम में रुका है, 999 शुल्क 24 hours में जमा करें bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपका पार्सल कस्टम में रुका है, 999 शुल्क 24 hours में जमा करें tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "आपका पार्सल कस्टम में रुका है, 999 शुल्क 24 hours में जमा करें kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "बेटा दुर्घटना हो गई है, 999 रुपये rajkumar@okaxis पर तुरंत भेज दो",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "बेटा दुर्घटना हो गई है, 999 रुपये helpdesk9@ybl पर तुरंत भेज दो",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "बेटा दुर्घटना हो गई है, 999 रुपये support.pay@paytm पर तुरंत भेज दो",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "30 days में अपना पैसा 100% कीजिए, पूरी तरह सुरक्षित योजना है bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "30 days में अपना पैसा 200% कीजिए, पूरी तरह सुरक्षित योजना है bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "hi",
+   "family": "indic-scam",
+   "text": "30 days में अपना पैसा double कीजिए, पूरी तरह सुरक्षित योजना है bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "ঘরে বসে প্রতিদিন 999 টাকা আয় করুন, কোনো অভিজ্ঞতা লাগবে না। 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "ঘরে বসে প্রতিদিন 999 টাকা আয় করুন, কোনো অভিজ্ঞতা লাগবে না। 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "ঘরে বসে প্রতিদিন 999 টাকা আয় করুন, কোনো অভিজ্ঞতা লাগবে না। 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার 5 lakh টাকার ঋণ অনুমোদিত হয়েছে, শুধু 999 ফি rajkumar@okaxis তে পাঠান",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার 5 lakh টাকার ঋণ অনুমোদিত হয়েছে, শুধু 999 ফি helpdesk9@ybl তে পাঠান",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার 5 lakh টাকার ঋণ অনুমোদিত হয়েছে, শুধু 999 ফি support.pay@paytm তে পাঠান",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার অ্যাকাউন্ট 24 hours এর মধ্যে বন্ধ হয়ে যাবে, এখানে আপডেট করুন bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার অ্যাকাউন্ট 24 hours এর মধ্যে বন্ধ হয়ে যাবে, এখানে আপডেট করুন tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার অ্যাকাউন্ট 24 hours এর মধ্যে বন্ধ হয়ে যাবে, এখানে আপডেট করুন kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "অভিনন্দন, লাকি ড্রতে আপনার নম্বর উঠেছে এবং 5 lakh পুরস্কার পেয়েছেন",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "অভিনন্দন, লাকি ড্রতে আপনার নম্বর উঠেছে এবং 12 lakh পুরস্কার পেয়েছেন",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "অভিনন্দন, লাকি ড্রতে আপনার নম্বর উঠেছে এবং 25,00,000 পুরস্কার পেয়েছেন",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার বিদ্যুৎ 24 hours এর মধ্যে কেটে দেওয়া হবে, এখনই 9876012345 এ যোগাযোগ করুন",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার বিদ্যুৎ 2 hours এর মধ্যে কেটে দেওয়া হবে, এখনই 9876012345 এ যোগাযোগ করুন",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার বিদ্যুৎ today এর মধ্যে কেটে দেওয়া হবে, এখনই 9876012345 এ যোগাযোগ করুন",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার পার্সেল কাস্টমসে আটকে আছে, 999 টাকা ফি জমা দিন bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার পার্সেল কাস্টমসে আটকে আছে, 999 টাকা ফি জমা দিন tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "bn",
+   "family": "indic-scam",
+   "text": "আপনার পার্সেল কাস্টমসে আটকে আছে, 999 টাকা ফি জমা দিন kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "ઘરે બેઠા દરરોજ 999 રૂપિયા કમાઓ, કોઈ અનુભવ જરૂરી નથી. 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "ઘરે બેઠા દરરોજ 999 રૂપિયા કમાઓ, કોઈ અનુભવ જરૂરી નથી. 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "ઘરે બેઠા દરરોજ 999 રૂપિયા કમાઓ, કોઈ અનુભવ જરૂરી નથી. 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "તમારી 5 lakh રૂપિયાની લોન મંજૂર થઈ છે, ફક્ત 999 ફી rajkumar@okaxis પર મોકલો",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "તમારી 5 lakh રૂપિયાની લોન મંજૂર થઈ છે, ફક્ત 999 ફી helpdesk9@ybl પર મોકલો",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "તમારી 5 lakh રૂપિયાની લોન મંજૂર થઈ છે, ફક્ત 999 ફી support.pay@paytm પર મોકલો",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "તમારું ખાતું 24 hours માં બંધ થઈ જશે, અહીં અપડેટ કરો bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "તમારું ખાતું 24 hours માં બંધ થઈ જશે, અહીં અપડેટ કરો tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "તમારું ખાતું 24 hours માં બંધ થઈ જશે, અહીં અપડેટ કરો kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "અભિનંદન, લકી ડ્રોમાં તમારો નંબર આવ્યો છે અને 5 lakh નું ઇનામ મળ્યું છે",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "અભિનંદન, લકી ડ્રોમાં તમારો નંબર આવ્યો છે અને 12 lakh નું ઇનામ મળ્યું છે",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "અભિનંદન, લકી ડ્રોમાં તમારો નંબર આવ્યો છે અને 25,00,000 નું ઇનામ મળ્યું છે",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "તમારી વીજળી 24 hours માં કાપી નાખવામાં આવશે, તાત્કાલિક 9876012345 પર સંપર્ક કરો",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "તમારી વીજળી 2 hours માં કાપી નાખવામાં આવશે, તાત્કાલિક 9876012345 પર સંપર્ક કરો",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "gu",
+   "family": "indic-scam",
+   "text": "તમારી વીજળી today માં કાપી નાખવામાં આવશે, તાત્કાલિક 9876012345 પર સંપર્ક કરો",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਘਰ ਬੈਠੇ ਰੋਜ਼ਾਨਾ 999 ਰੁਪਏ ਕਮਾਓ, ਕੋਈ ਤਜਰਬਾ ਨਹੀਂ ਚਾਹੀਦਾ। 9876012345",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਘਰ ਬੈਠੇ ਰੋਜ਼ਾਨਾ 999 ਰੁਪਏ ਕਮਾਓ, ਕੋਈ ਤਜਰਬਾ ਨਹੀਂ ਚਾਹੀਦਾ। 8123400987",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਘਰ ਬੈਠੇ ਰੋਜ਼ਾਨਾ 999 ਰੁਪਏ ਕਮਾਓ, ਕੋਈ ਤਜਰਬਾ ਨਹੀਂ ਚਾਹੀਦਾ। 7011229988",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਤੁਹਾਡਾ 5 lakh ਰੁਪਏ ਦਾ ਲੋਨ ਮਨਜ਼ੂਰ ਹੋ ਗਿਆ ਹੈ, ਸਿਰਫ਼ 999 ਫੀਸ rajkumar@okaxis ਤੇ ਭੇਜੋ",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਤੁਹਾਡਾ 5 lakh ਰੁਪਏ ਦਾ ਲੋਨ ਮਨਜ਼ੂਰ ਹੋ ਗਿਆ ਹੈ, ਸਿਰਫ਼ 999 ਫੀਸ helpdesk9@ybl ਤੇ ਭੇਜੋ",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਤੁਹਾਡਾ 5 lakh ਰੁਪਏ ਦਾ ਲੋਨ ਮਨਜ਼ੂਰ ਹੋ ਗਿਆ ਹੈ, ਸਿਰਫ਼ 999 ਫੀਸ support.pay@paytm ਤੇ ਭੇਜੋ",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਤੁਹਾਡਾ ਖਾਤਾ 24 hours ਵਿੱਚ ਬੰਦ ਹੋ ਜਾਵੇਗਾ, ਇੱਥੇ ਅੱਪਡੇਟ ਕਰੋ bit.ly/3xKq9",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਤੁਹਾਡਾ ਖਾਤਾ 24 hours ਵਿੱਚ ਬੰਦ ਹੋ ਜਾਵੇਗਾ, ਇੱਥੇ ਅੱਪਡੇਟ ਕਰੋ tinyurl.com/rp4m",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਤੁਹਾਡਾ ਖਾਤਾ 24 hours ਵਿੱਚ ਬੰਦ ਹੋ ਜਾਵੇਗਾ, ਇੱਥੇ ਅੱਪਡੇਟ ਕਰੋ kyc-update.in/v",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਵਧਾਈ ਹੋ, ਲੱਕੀ ਡਰਾਅ ਵਿੱਚ ਤੁਹਾਡਾ ਨੰਬਰ ਆਇਆ ਹੈ ਅਤੇ 5 lakh ਦਾ ਇਨਾਮ ਨਿਕਲਿਆ ਹੈ",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਵਧਾਈ ਹੋ, ਲੱਕੀ ਡਰਾਅ ਵਿੱਚ ਤੁਹਾਡਾ ਨੰਬਰ ਆਇਆ ਹੈ ਅਤੇ 12 lakh ਦਾ ਇਨਾਮ ਨਿਕਲਿਆ ਹੈ",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਵਧਾਈ ਹੋ, ਲੱਕੀ ਡਰਾਅ ਵਿੱਚ ਤੁਹਾਡਾ ਨੰਬਰ ਆਇਆ ਹੈ ਅਤੇ 25,00,000 ਦਾ ਇਨਾਮ ਨਿਕਲਿਆ ਹੈ",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਤੁਹਾਡੀ ਬਿਜਲੀ 24 hours ਵਿੱਚ ਕੱਟ ਦਿੱਤੀ ਜਾਵੇਗੀ, ਤੁਰੰਤ 9876012345 ਤੇ ਸੰਪਰਕ ਕਰੋ",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਤੁਹਾਡੀ ਬਿਜਲੀ 2 hours ਵਿੱਚ ਕੱਟ ਦਿੱਤੀ ਜਾਵੇਗੀ, ਤੁਰੰਤ 9876012345 ਤੇ ਸੰਪਰਕ ਕਰੋ",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "scam",
+   "lang": "pa",
+   "family": "indic-scam",
+   "text": "ਤੁਹਾਡੀ ਬਿਜਲੀ today ਵਿੱਚ ਕੱਟ ਦਿੱਤੀ ਜਾਵੇਗੀ, ਤੁਰੰਤ 9876012345 ਤੇ ਸੰਪਰਕ ਕਰੋ",
+   "source": "synthetic",
+   "review": false
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "999 आपका ओटीपी है, दस मिनट तक वैध है। किसी के साथ साझा न करें।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "1,999 आपका ओटीपी है, दस मिनट तक वैध है। किसी के साथ साझा न करें।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "2,500 आपका ओटीपी है, दस मिनट तक वैध है। किसी के साथ साझा न करें।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "आपके खाते XX4421 से 999 रुपये डेबिट हुए हैं। उपलब्ध शेष 18,240 रुपये।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "आपके खाते XX8890 से 999 रुपये डेबिट हुए हैं। उपलब्ध शेष 18,240 रुपये।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "आपके खाते XX2213 से 999 रुपये डेबिट हुए हैं। उपलब्ध शेष 18,240 रुपये।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "आपका ऑर्डर डिलीवरी के लिए निकल चुका है, 24 hours तक पहुँच जाएगा।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "आपका ऑर्डर डिलीवरी के लिए निकल चुका है, 2 hours तक पहुँच जाएगा।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "आपका ऑर्डर डिलीवरी के लिए निकल चुका है, today तक पहुँच जाएगा।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "डॉक्टर Rahul के साथ आपका अपॉइंटमेंट कल सुबह ग्यारह बजे तय है।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "डॉक्टर Priya के साथ आपका अपॉइंटमेंट कल सुबह ग्यारह बजे तय है।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "डॉक्टर Anil के साथ आपका अपॉइंटमेंट कल सुबह ग्यारह बजे तय है।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "घर पहुँच गया हूँ, शाम को बात करते हैं। खाना खा लिया?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "Flipkart पर सेल शुरू हो गई है, साठ प्रतिशत तक की छूट। ऐप पर देखें।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "Amazon पर सेल शुरू हो गई है, साठ प्रतिशत तक की छूट। ऐप पर देखें।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "hi",
+   "family": "indic-ham",
+   "text": "Myntra पर सेल शुरू हो गई है, साठ प्रतिशत तक की छूट। ऐप पर देखें।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "999 আপনার ওটিপি, দশ মিনিট বৈধ। কারও সাথে শেয়ার করবেন না।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "1,999 আপনার ওটিপি, দশ মিনিট বৈধ। কারও সাথে শেয়ার করবেন না।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "2,500 আপনার ওটিপি, দশ মিনিট বৈধ। কারও সাথে শেয়ার করবেন না।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "আপনার অ্যাকাউন্ট XX4421 থেকে 999 টাকা ডেবিট হয়েছে। ব্যালেন্স 18,240 টাকা।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "আপনার অ্যাকাউন্ট XX8890 থেকে 999 টাকা ডেবিট হয়েছে। ব্যালেন্স 18,240 টাকা।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "আপনার অ্যাকাউন্ট XX2213 থেকে 999 টাকা ডেবিট হয়েছে। ব্যালেন্স 18,240 টাকা।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "আপনার অর্ডার ডেলিভারির জন্য রওনা হয়েছে, 24 hours এর মধ্যে পৌঁছাবে।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "আপনার অর্ডার ডেলিভারির জন্য রওনা হয়েছে, 2 hours এর মধ্যে পৌঁছাবে।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "আপনার অর্ডার ডেলিভারির জন্য রওনা হয়েছে, today এর মধ্যে পৌঁছাবে।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "bn",
+   "family": "indic-ham",
+   "text": "বাড়ি পৌঁছে গেছি, সন্ধ্যায় কথা বলব। খেয়েছ?",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "gu",
+   "family": "indic-ham",
+   "text": "999 તમારો ઓટીપી છે, દસ મિનિટ માન્ય. કોઈની સાથે શેર કરશો નહીં.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "gu",
+   "family": "indic-ham",
+   "text": "1,999 તમારો ઓટીપી છે, દસ મિનિટ માન્ય. કોઈની સાથે શેર કરશો નહીં.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "gu",
+   "family": "indic-ham",
+   "text": "2,500 તમારો ઓટીપી છે, દસ મિનિટ માન્ય. કોઈની સાથે શેર કરશો નહીં.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "gu",
+   "family": "indic-ham",
+   "text": "તમારા ખાતા XX4421 માંથી 999 રૂપિયા ડેબિટ થયા. બેલેન્સ 18,240 રૂપિયા.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "gu",
+   "family": "indic-ham",
+   "text": "તમારા ખાતા XX8890 માંથી 999 રૂપિયા ડેબિટ થયા. બેલેન્સ 18,240 રૂપિયા.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "gu",
+   "family": "indic-ham",
+   "text": "તમારા ખાતા XX2213 માંથી 999 રૂપિયા ડેબિટ થયા. બેલેન્સ 18,240 રૂપિયા.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "gu",
+   "family": "indic-ham",
+   "text": "તમારો ઓર્ડર ડિલિવરી માટે રવાના થયો છે, 24 hours સુધીમાં પહોંચશે.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "gu",
+   "family": "indic-ham",
+   "text": "તમારો ઓર્ડર ડિલિવરી માટે રવાના થયો છે, 2 hours સુધીમાં પહોંચશે.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "gu",
+   "family": "indic-ham",
+   "text": "તમારો ઓર્ડર ડિલિવરી માટે રવાના થયો છે, today સુધીમાં પહોંચશે.",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "pa",
+   "family": "indic-ham",
+   "text": "999 ਤੁਹਾਡਾ ਓਟੀਪੀ ਹੈ, ਦਸ ਮਿੰਟ ਵੈਧ। ਕਿਸੇ ਨਾਲ ਸਾਂਝਾ ਨਾ ਕਰੋ।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "pa",
+   "family": "indic-ham",
+   "text": "1,999 ਤੁਹਾਡਾ ਓਟੀਪੀ ਹੈ, ਦਸ ਮਿੰਟ ਵੈਧ। ਕਿਸੇ ਨਾਲ ਸਾਂਝਾ ਨਾ ਕਰੋ।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "pa",
+   "family": "indic-ham",
+   "text": "2,500 ਤੁਹਾਡਾ ਓਟੀਪੀ ਹੈ, ਦਸ ਮਿੰਟ ਵੈਧ। ਕਿਸੇ ਨਾਲ ਸਾਂਝਾ ਨਾ ਕਰੋ।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "pa",
+   "family": "indic-ham",
+   "text": "ਤੁਹਾਡੇ ਖਾਤੇ XX4421 ਵਿੱਚੋਂ 999 ਰੁਪਏ ਡੈਬਿਟ ਹੋਏ। ਬੈਲੇਂਸ 18,240 ਰੁਪਏ।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "pa",
+   "family": "indic-ham",
+   "text": "ਤੁਹਾਡੇ ਖਾਤੇ XX8890 ਵਿੱਚੋਂ 999 ਰੁਪਏ ਡੈਬਿਟ ਹੋਏ। ਬੈਲੇਂਸ 18,240 ਰੁਪਏ।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "pa",
+   "family": "indic-ham",
+   "text": "ਤੁਹਾਡੇ ਖਾਤੇ XX2213 ਵਿੱਚੋਂ 999 ਰੁਪਏ ਡੈਬਿਟ ਹੋਏ। ਬੈਲੇਂਸ 18,240 ਰੁਪਏ।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "pa",
+   "family": "indic-ham",
+   "text": "ਤੁਹਾਡਾ ਆਰਡਰ ਡਿਲੀਵਰੀ ਲਈ ਰਵਾਨਾ ਹੋ ਗਿਆ ਹੈ, 24 hours ਤੱਕ ਪਹੁੰਚੇਗਾ।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "pa",
+   "family": "indic-ham",
+   "text": "ਤੁਹਾਡਾ ਆਰਡਰ ਡਿਲੀਵਰੀ ਲਈ ਰਵਾਨਾ ਹੋ ਗਿਆ ਹੈ, 2 hours ਤੱਕ ਪਹੁੰਚੇਗਾ।",
+   "source": "synthetic",
+   "review": true
+  },
+  {
+   "label": "ham",
+   "lang": "pa",
+   "family": "indic-ham",
+   "text": "ਤੁਹਾਡਾ ਆਰਡਰ ਡਿਲੀਵਰੀ ਲਈ ਰਵਾਨਾ ਹੋ ਗਿਆ ਹੈ, today ਤੱਕ ਪਹੁੰਚੇਗਾ।",
+   "source": "synthetic",
+   "review": true
+  }
+ ]
+}

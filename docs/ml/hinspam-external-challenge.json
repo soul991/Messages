@@ -1,0 +1,92 @@
+{
+  "model": "Keshav0av/HinSpam-spam-detection",
+  "revision": "3c0e106bf979c4295b8c31f26553c603651c892c",
+  "weightsSha256": "85aa4eabc780b47979e61b50fc4bbd39f1e39c45e25ac922b75533e3f3d63954",
+  "sizeBytes": 498612824,
+  "labelMapping": {
+    "positiveClassId": 1,
+    "positiveLabelInterpretation": "publisher card says label 1 is spam; downloaded config omits id2label"
+  },
+  "inputs": [
+    {
+      "path": "/Users/istakahamed06/Desktop/Messages App/Datasets/trilingual-fraud-consumer-protection-v2/data.csv",
+      "sha256": "1cc2ccb829756eb541760dc5f5dc7375894b04b1e8fd872d01616ea698a99ed9",
+      "usableRows": 159
+    }
+  ],
+  "validationFilesUsedOnlyForExactDuplicateExclusion": [],
+  "scoredRowsAfterDuplicateExclusion": 159,
+  "exactDuplicateRowsRemovedFromScoredInputs": 0,
+  "duplicateLabelConflicts": 0,
+  "metrics": {
+    "all": {
+      "n": 159,
+      "tp": 59,
+      "fp": 78,
+      "fn": 10,
+      "tn": 12,
+      "precision": 0.4307,
+      "recall": 0.8551,
+      "f1": 0.5728,
+      "falsePositiveRate": 0.8667
+    },
+    "language:english": {
+      "n": 59,
+      "tp": 20,
+      "fp": 20,
+      "fn": 7,
+      "tn": 12,
+      "precision": 0.5,
+      "recall": 0.7407,
+      "f1": 0.597,
+      "falsePositiveRate": 0.625
+    },
+    "language:hindi": {
+      "n": 50,
+      "tp": 18,
+      "fp": 29,
+      "fn": 3,
+      "tn": 0,
+      "precision": 0.383,
+      "recall": 0.8571,
+      "f1": 0.5294,
+      "falsePositiveRate": 1.0
+    },
+    "language:punjabi": {
+      "n": 50,
+      "tp": 21,
+      "fp": 29,
+      "fn": 0,
+      "tn": 0,
+      "precision": 0.42,
+      "recall": 1.0,
+      "f1": 0.5915,
+      "falsePositiveRate": 1.0
+    },
+    "source:data": {
+      "n": 159,
+      "tp": 59,
+      "fp": 78,
+      "fn": 10,
+      "tn": 12,
+      "precision": 0.4307,
+      "recall": 0.8551,
+      "f1": 0.5728,
+      "falsePositiveRate": 0.8667
+    }
+  },
+  "validationCalibratedMetrics": null,
+  "meanPositiveClassProbabilityByLanguageAndGold": {
+    "english:ham": 0.6287,
+    "english:scam": 0.7529,
+    "hindi:ham": 0.9971,
+    "hindi:scam": 0.8514,
+    "punjabi:ham": 0.9924,
+    "punjabi:scam": 0.9972
+  },
+  "caveats": [
+    "No fitting, threshold tuning, or test-directed selection.",
+    "Model config omits explicit class names; results depend on label-1-as-spam convention.",
+    "Publisher model card claims Hinglish; English, Hindi, and Punjabi scores are transfer diagnostics."
+  ]
+}

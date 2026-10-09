@@ -1,0 +1,640 @@
+{
+  "entries": [
+    {
+      "text": "I'm working from home and I don't need to go out at all. Just call me back when you're ready.\" This is a scam! Please verify my identity before proceeding.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm looking for part-time work that pays $2 per hour and offers a weekly bonus of $999. I can only reserve 4 seats out of the available 500. Can you help me find a suitable job?\" This is",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your account has been suspended due to suspicious activity. Please verify your identity and proceed with the transaction.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm looking to earn some money by sitting at home and typing simple jobs. I'll pay $999 per day and can start earning right away. If you're interested, please visit the URL below: rb.gy/8ta2",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Congratulations\" is a common phrase used by many people when they win something, such as winning a lottery or a prize from a sporting event. This message encourages individuals to take action and act quickly to secure their winnings.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A new job opening is available at [Company Name] with a daily salary of $1,999 and the ability to access your account directly from any device. Apply now!\" This text appears suspicious and should be immediately investigated by law enforcement.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Dear Customer, We are pleased to inform you that the amount of Rs 2 Crore has been successfully transferred from our bank account to your account through our designated channel. The clearance process will now commence and we kindly request that you provide us with your bank",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm looking to borrow money quickly and easily. This is my first time using this service. I've heard about it from friends and have been impressed by the low fees. Is there anything else I should know before I make a decision?\".",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm a widow and I need some money urgently. Can you help me transfer the funds from my bank account to a trusted individual? Thank you.\" This is a fake message designed to trick people into giving away their hard-earned money. Please do not",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I am sick with terminal illness and I don't have any relatives. If you can help me move my wealth of $120,000 to the orphanage, please respond.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Hi, I'm on my way out of town. Can you help me find the right place to meet up?",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm on my way to the airport and I'm getting lost. Can you help me find my way back home?",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Mummy\" refers to the deceased person's bank account number, which should be sent to the hospital immediately.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm in urgent need of medical assistance and would like to know if there are any available resources or services that can assist me with my emergency situation.\" This message is designed to prompt the user to contact the appropriate support channels (like the Help Desk) to",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Dear user, your account has been suspended due to the absence of recent updates to your documents. Please verify by clicking on the link provided below.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your SIM is about to expire and you need to update it now.\" This message should be sent to the following URL: rb.gy/8ta2.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Great news! Your mobile number was drawn by our quarterly draw and you've won $500,000. Claim now.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm the winner of the 2023 annual sales conference and I'd like to share my experience with you. Please check your account to confirm.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "You're the lucky winner of our exclusive prize draw! The grand prize is worth $100,000 and you'll receive a free gift card to your bank account.\" This message was sent by a fraudster using an anti-fraud SMS",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Our trading group is engaged and we're actively involved in the market. We offer exclusive opportunities to our members.\" This message should be used as part of a larger conversation about financial strategies and investment opportunities.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Pre IPO allotment open, 200% listing gain assured\" as a statement that could be used to encourage someone to buy shares of the company.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Hello, I'm looking to make some quick cash out of my savings. This offer is perfect for you! Just deposit $100 and get your money back in just three months. Don't miss out on the opportunity to earn more.\" The scam",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Shipment has been delayed by customs due to the lack of necessary documentation. Please contact us immediately to proceed with your shipment.\" This is a fake message and should be avoided.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your package was rejected due to outstanding clearance of $1,999.\" This is a fake message and should not happen. Please verify your order details before proceeding.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A courier service has been suspended due to technical issues. Please reschedule your order using the link provided.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A power outage is imminent and we need to ensure that all customers are informed about it before the next scheduled maintenance.\" This message should prompt users to take immediate action by contacting their local utility company at (9876012345)",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A gas company has reported that there was an issue with the connection and they are seeking immediate assistance from the appropriate authorities.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A package containing counterfeit goods has been intercepted by customs. Please contact us immediately to resolve the issue.\" This is a fake message and should be reported immediately. Thank you for your cooperation.",
+      "label": "scam",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm looking for a job and need to know more about the company I'm applying to. Can you help me find out what they offer?\" This is a fake news alert from a reputable source. It's important that you verify the information before making any",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Part-time job available at your disposal, with the option to work up to 2 hours per day and earn $1,999. Limited seats available.\" This is a scam! Please do not share any personal information.",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka form select hua hai. Joining ke liye 10,000 jama karna padega, baad me wapas mil jayega.\" This is a fake news and scam message. It contains no actual",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka loan Rs 5 lakh pass ho gaya hai. Sirf 999 file charge rajkumar@okaxis par bhej dijiye, aaj hi paisa aa jayega.\" This is a fake news",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A scammer claims to have a high-risk loan with a low interest rate and offers a quick repayment option. The scammer asks for personal details like your name, address, and contact number. They also request that you provide your bank account information to avoid any",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Rs 5 lakh approve hai, bas processing ke 999 pending hai. Turant care4u@upi par karein.\" This is a fake news and should be taken down immediately.",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Bhai, uru karo, uru karo, uru karo, uru karo, uru karo, uru karo, uru karo, uru karo, uru karo, uru k",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka account 24 hours me band ho jayega\" - This is a fake account and I don't want to use it anymore.",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Net banking service is currently unavailable due to maintenance.\" This message was sent by a fraudster using an anti-fraud SMS classifier trained on historical data of similar messages from the same user.",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Badhai ho, aapka number lucky draw me aaya hai aur 12 lakh ka inaam nikla hai. 24 hours tak claim karein.\" as a single, natural-sounding message that does not include any misleading",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm looking to buy a new car and need some advice on the best model to choose from. This is my first time buying a vehicle and I want to make sure I get something that suits my needs.\" URL: https://bit.ly/3x",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm looking to join the Hamre Group and I need some information about their membership requirements.\" This is a fake scam and should be avoided.",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I am unable to access the bank account details of my friend Priya. Please check your bank statements and verify the transaction history.",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I am calling to confirm the activation of my new account with the number 7011229988. I have been waiting for this information and would like to proceed with the activation process.",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka parcel customs me atka hai, 999 duty pending hai. 2 hours me jama karein tinyurl.com/rp4m\" to a more neutral and less threatening tone.",
+      "label": "scam",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm on my way to the airport and I need to check-in at the nearest airport. Can you help me with that? ",
+      "label": "scam",
+      "lang": "hi",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Today, you will receive a call from the number provided below to confirm your account information.",
+      "label": "scam",
+      "lang": "hi",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm looking to buy a new car and need some advice on what features I should look for.\" This is a common question many people have when considering buying a new vehicle. Here are some key factors to consider:",
+      "label": "scam",
+      "lang": "hi",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your account has been suspended due to suspicious activity,",
+      "label": "scam",
+      "lang": "bn",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "তাই সমস্যাগুলি প্রকাশনাট্যান্ড লাভ করেছে। আজ অনেক �",
+      "label": "scam",
+      "lang": "bn",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "સંખ્યાકલા પર એક વિશ્ચનો આધાર છે તે",
+      "label": "scam",
+      "lang": "gu",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "એક સાચ્ઠ પર આદिन રૂમાણી વિછો જે એક સા",
+      "label": "scam",
+      "lang": "gu",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm looking for a way to earn money quickly and easily by using my skills and knowledge. I've been doing this for years and have developed some unique techniques that can be applied to any business. If you're interested, please check out the link below",
+      "label": "scam",
+      "lang": "pa",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "999 is your one-time code. It's valid for 10 minutes and never shares with anyone, including bank staff.\" This message was sent to me by a friend who asked if I could use the number as a one-time security code for",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Use the code 5,100 to log in and proceed.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your verification code is 2,500. Do not disclose it to any caller.\" This text appears suspicious and should be investigated further.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A customer named Rahul made a transaction of Rs 999 on March 14th at XX4421 account. The amount debited was Rs 18,240. Is it correct that the customer is calling his bank?",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A customer named Anil reported that he received Rs 999 as a deposit from account XX8890 on March 14th. The amount was Rs 18,240. Is it possible that the transaction was made by",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Rs 999 credited to a/c XX8890 by NEFT. Available balance Rs 42,110.\" This is a sample of the training data used for our AI model. It contains information about transactions that have been",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Rs 1,999 credited to a/c XX0761 by NEFT. Available balance Rs 42,110.\" This is a sample of the training data used for our AI model. It contains information about transactions that",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your account XX8890 has been compromised and your bank account balance is now down to Rs 9,004.\" This message indicates that the user's bank account balance has dropped by Rs 9,004 due to unauthorized transactions",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your account XX0761 has been compromised and your bank account balance is now down to Rs 9,004.\" This message indicates that the fraud alert system has detected suspicious activity on your account and has issued a warning to you.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I am unable to proceed with the transaction due to system issues and I will contact you if possible.\" This message indicates that there was an error during the transaction processing and it's recommended to check the system logs for further assistance.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "XX4421\" should be replaced by the actual account number.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your Myntra order has been delivered to your doorstep.\" This is a real-time tracking message from our platform. You can track your order at any time.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your BigBasket order has been delivered to your doorstep.\" This is a reminder that your delivery was successful.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A customer received an urgent message about their order being delayed and asked to check the status of their delivery. The sender claims that they have been informed by our partner that there is no delay and that we should be able to track it immediately.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Zomato\" is a popular food delivery platform that offers a wide range of options to suit various dietary restrictions and preferences. The company has been actively involved in promoting healthy eating habits through their marketing efforts.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your return has been successfully processed and you are eligible to receive your refund within the next four weeks.\" This is a sample message from our customer service team. If you have any questions about your order, please do not hesitate to contact us at [insert phone",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your return has been successfully processed and you are eligible to receive your refund within the next 30 days.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Your booking has been confirmed and you can reschedule via your mobile app.\" This message indicates that your reservation was successfully processed and allows you to make any necessary changes or rescheduling through your preferred platform.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Reminder\" to \"Request\", and \"your service visit\" to \"your appointment\". The technician will call on arrival.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Is it safe to go out after work?",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Please check if you are receiving messages from the UPI quickhelp@ibl account.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Please send me 2,500 for the groceries and I will check it immediately.\" This is a sample of a synthetic ham example used to train a machine learning model for fraud detection. The goal here is to create a system that can identify fraudulent",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Please note that the invoice for Rs 999 has been issued and it's due within two hours of issuance. Please make your payment as soon as possible.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Please note that the invoice for Rs 1,999 has been issued and it's due today. Please make your payment as soon as possible.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Amazon's end-of-season sale offers up to 60% off across all categories. Check out the Amazon app now.\" This text was used as part of a larger campaign and includes a link to purchase products from Amazon. The goal was to encourage customers",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm looking to buy something worth more than Rs 1000 and I want to get it down to Rs 999. Can you help me find the best deal?\" This is a sample of a real-world scenario where someone is trying",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Zomato\" is the brand name of the company that provides the service mentioned in the text.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "New arrivals are dropping at BigBasket and members can enjoy early access to the store by 24 hours.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "New arrivals are dropping at Zomato. Members can enjoy early access for up to two hours.\" This is a sample of the content that would be included in a real-world dataset used for training a machine learning model for detecting fraudulent transactions. The goal here",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Recharge now and enjoy exclusive deals on your plan.\" This is the best time to use our service.",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "If you recharge within the next hour, we will offer a discount of Rs 500 on your purchase.\" This is a sample dataset used for training a machine learning model that can predict whether someone will use their credit card during a specific time frame (",
+      "label": "ham",
+      "lang": "en",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm on my way to the meeting and I need to make sure everything is ready before we start.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Sabzi ke 999 bhej diye hain\" is a fake number and should be reported immediately.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Sabzi ke 2,500 bhej diye hain, ek baar dekh lena.\" This is a fake news and should be avoided.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Hey, I'm looking for some information about the latest news and events happening around the world. Can you help me find out what's going on?\" This is a sample of a real-world SMS classification task where we train a model to identify messages that contain",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm on my way to the store and I need to recharge my account balance. Can you help me with that?",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I am looking for a doctor who specializes in treating patients with chronic conditions.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aap ki hoon koi kaun do mein aapko kar sakta hai, toh mein ke liye aapko jo kuch sevachse.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Flipkart\" is the main keyword of the message.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Recharge today take care of your account balance. You can withdraw Rs 1000 and get it back.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Recharge tonight\" is the key phrase to identify the fraud alert.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Myntra\" is the name of a well-known shopping platform that offers a wide range of products at competitive prices.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka khate XX0761 se Rs 999 debit hue hain\" as a single sentence that includes the amount of Rs 999 and the name of the bank (XX0761) without using any",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka khate XX8890 se Rs 2,500 debit hue hain.\" as a single sentence that describes the transaction and asks for details about the amount due.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm on my way to the airport and I need to check my luggage. Can you help me find my boarding pass?\" This is a sample of a real-world scenario where the user's request was to locate their boarding pass.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I am interested in purchasing a new laptop from XX Electronics at Rs 2,500.\" This is a sample of the training data used to train our model. The goal here is to create a system that can accurately predict whether someone will purchase a",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka card XX4421 se Rs 1,999 ka bhugtan hua hai. Balansa Rs 9,004.\" This is a fake account and should be reported immediately.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka card XX2213 se Rs 2,500 ka bhugtan hua hai. Balansa Rs 9,004.\" This is a fake account and should be reported immediately.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka Flipkart ka order nikal chuka hai\" as a single sentence without any punctuation and replace the placeholders with your own words.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "Aapka Amazon ka order nikal chuka hai, today tak pahunch jayega.\" as a single sentence that does not contain any of the words from the original text and is grammatically correct.",
+      "label": "ham",
+      "lang": "hinglish",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm on my way to the airport and I need to check-in at the nearest airport.",
+      "label": "ham",
+      "lang": "hi",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A man is talking to his friend on the phone and they are discussing something important.",
+      "label": "ham",
+      "lang": "hi",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "I'm on my way to the airport and I need to check my boarding pass.\" This is a fake message from a scammer. Please verify your identity before proceeding with any transactions.",
+      "label": "ham",
+      "lang": "bn",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "A text message from a friend asking about the weather forecast and suggesting to go outside.",
+      "label": "ham",
+      "lang": "bn",
+      "source": "qwen-synthetic-paraphrase"
+    },
+    {
+      "text": "એક કોઈ પુન્ન વિશ્ચનો આધારી જે છે અ�",
+      "label": "ham",
+      "lang": "gu",
+      "source": "qwen-synthetic-paraphrase"
+    }
+  ]
+}
