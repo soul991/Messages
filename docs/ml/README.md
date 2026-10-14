@@ -2,6 +2,12 @@
 
 The current evidence and gated development sequence are summarized in
 [`model-capability-roadmap.md`](model-capability-roadmap.md).
+The Phase 1 scope and numerical acceptance targets are specified in
+[`scope-and-acceptance-criteria.md`](scope-and-acceptance-criteria.md).
+The Phase 2 data labeling, privacy, and split design protocol is in
+[`data-and-split-design.md`](data-and-split-design.md).
+Work progress across all phases is tracked in
+[`implementation-backlog.md`](implementation-backlog.md).
 
 For the separate from-scratch GPU experiment, see
 [`kaggle-free-gpu-training.md`](kaggle-free-gpu-training.md) and

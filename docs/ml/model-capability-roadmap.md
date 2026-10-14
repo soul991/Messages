@@ -20,17 +20,17 @@ Build the strongest SMS protection model that can be supported by representative
 
 ### 1. Freeze scope, threat model, and release criteria
 
-Write down supported languages and scripts, scam types, benign transaction and OTP messages, protected categories, expected routing behavior, and supported device tiers. Establish the operating target before model comparisons. At minimum, track per-language scam recall at fixed ham false-positive budgets, precision at realistic prevalence, false-positive counts by benign subtype, protected-message misses, calibration, model bytes, cold-start and steady-state latency, and memory use.
+Write down supported languages and scripts, scam types, benign transaction and OTP messages, protected categories, expected routing behavior, and supported device tiers. Establish the operating target before model comparisons. At minimum, track per-language scam recall at fixed ham false-positive budgets, precision at realistic prevalence, false-positive counts by benign subtype, protected-message misses, calibration, model bytes, cold-start and steady-state latency, and memory use. See detailed specification in [`scope-and-acceptance-criteria.md`](scope-and-acceptance-criteria.md).
 
 Define a hard invariant: AI may contribute only to review or a clearly specified reversible signal until the independent acceptance gate passes. AI must never suppress or misroute OTP, account-security, emergency, or other protected messages. Deterministic rules and the user's existing settings remain authoritative.
 
 ### 2. Build trustworthy labeled data
 
-Create a consented, de-identified collection plan with a documented retention policy and a private raw-to-review crosswalk. Keep raw SMS, identities, exports, and signing material outside Git and external training services unless a separate explicit data-sharing decision authorizes it. Commit schemas, scripts, aggregate reports, and provenance; keep message bodies and row-level predictions in access-controlled local storage.
+Create a consented, de-identified collection plan with a documented retention policy and a private raw-to-review crosswalk. Keep raw SMS, identities, exports, and signing material outside Git and external training services unless a separate explicit data-sharing decision authorizes it. Commit schemas, scripts, aggregate reports, and provenance; keep message bodies and row-level predictions in access-controlled local storage. Detailed protocol and schema: [`data-and-split-design.md`](data-and-split-design.md). Automated partition audit: `protection-engine/tools/verify_split_leakage.py`.
 
 Use a label rubric that separates scam/fraud, promotion/spam, genuine personal, account/transaction/OTP, protected, and uncertain/insufficient-context cases. Preserve the distinction between message intent and message type. Have trained human reviewers label independently, adjudicate disagreements, and record evidence and uncertainty. Use native-language reviewers for Hindi, Bengali, Hinglish, Banglish, Punjabi, and any additional supported language; do not infer language quality from script alone.
 
-Deduplicate exact and normalized variants, group template families and campaigns, and split by source, time, sender/campaign where safe, and template family before fitting. Keep near-duplicates and translations in one partition. Maintain a prevalence-aware training/development set, a representative human-labeled acceptance set, and a separate stress set for rare attacks and safe counterexamples.
+Deduplicate exact and normalized variants, group template families and campaigns, and split by source, time, sender/campaign where safe, and template family before fitting. Keep near-duplicates and translations in one partition. Maintain a prevalence-aware training/development set, a representative human-labeled acceptance set, and a separate stress set for rare attacks and safe counterexamples. Work progress is tracked in [`implementation-backlog.md`](implementation-backlog.md).
 
 ### 3. Protect evaluation from leakage
 
