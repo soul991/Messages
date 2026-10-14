@@ -73,6 +73,10 @@ def main():
         ROOT, "..", "..", "Datasets", "trilingual-fraud-consumer-protection-v2", "data.csv")))
     parser.add_argument("--output", default=os.path.join(ROOT, "docs", "ml",
                                                            "external-challenge-report.json"))
+    parser.add_argument("--global-candidate", default=os.path.join(
+        ROOT, "protection-engine", "training", "ngram_multilingual_candidate.json"))
+    parser.add_argument("--experts", default=os.path.join(
+        ROOT, "protection-engine", "training", "ngram_language_experts_candidate.json"))
     args = parser.parse_args()
     rows = read_rows(args.data)
     if not rows:
@@ -85,14 +89,14 @@ def main():
     active_result = evaluate(rows, lambda text: base.score(active_weights, text),
                              float(active_payload["threshold"]))
 
-    candidate_path = os.path.join(ROOT, "protection-engine", "training", "ngram_multilingual_candidate.json")
+    candidate_path = args.global_candidate
     candidate = json.load(open(candidate_path, encoding="utf-8"))
     candidate_weights = {g: float(v) for g, v in candidate["weights"].items()}
     global_result = evaluate(rows, lambda text: multi.score(candidate_weights, text,
                                                               int(candidate["minWords"])),
                              float(candidate["threshold"]))
 
-    experts_path = os.path.join(ROOT, "protection-engine", "training", "ngram_language_experts_candidate.json")
+    experts_path = args.experts
     experts = json.load(open(experts_path, encoding="utf-8"))["models"]
     def expert_score(text):
         route = multi.script_route(text)

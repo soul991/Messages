@@ -18,6 +18,8 @@ from collections import Counter, defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+WORKSPACE_ROOT = os.path.abspath(os.path.join(ROOT, "..", "..", ".."))
+DATA_ROOT = os.path.join(WORKSPACE_ROOT, "Datasets")
 sys.path.insert(0, HERE)
 import train_ngram as base  # noqa: E402
 
@@ -236,7 +238,7 @@ def metrics(weights, threshold, rows, min_words):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", default=os.path.abspath(os.path.join(ROOT, "..", "..", "Datasets")))
+    parser.add_argument("--data-root", default=DATA_ROOT)
     parser.add_argument("--output", default=os.path.join(ROOT, "protection-engine", "training", "ngram_multilingual_candidate.json"))
     parser.add_argument("--report", default=os.path.join(ROOT, "docs", "ml", "multilingual-model-report.json"))
     args = parser.parse_args()

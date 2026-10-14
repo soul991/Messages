@@ -23,6 +23,8 @@ from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+WORKSPACE_ROOT = ROOT.parents[2]
+DATA_ROOT = WORKSPACE_ROOT / "Datasets"
 sys.path.insert(0, str(HERE))
 import train_char_cnn as data  # noqa: E402
 from evaluate_char_cnn_candidate import load_challenge  # noqa: E402
@@ -108,16 +110,22 @@ def predict(model, rows, dataset, collator, device, batch_size):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", default=str(ROOT.parent.parent / "Datasets"))
+    parser.add_argument("--data-root", default=str(DATA_ROOT))
     parser.add_argument("--model-dir", default="/private/tmp/messages-minilm-model")
     parser.add_argument("--model-repo", default=MODEL_REPO)
     parser.add_argument("--model-revision", default=MODEL_REVISION)
     parser.add_argument("--tokenizer", choices=("xlm-roberta", "auto"), default="xlm-roberta")
     parser.add_argument("--out-dir", default="/private/tmp/messages-minilm-candidate")
-    parser.add_argument("--challenge", default=str(ROOT.parent.parent / "Datasets" /
+    parser.add_argument("--challenge", default=str(DATA_ROOT /
                         "trilingual-fraud-consumer-protection-v2" / "data.csv"))
     parser.add_argument("--imc-smishing-csv", default="",
                         help="Optional CC BY 4.0 IMC25 public-report CSV; unique India or Hindi scam texts are added to fit only.")
+    parser.add_argument("--indic14-train-parquet", default="",
+                        help="Optional train-only split of the synthetic 14-language Indian corpus.")
+    parser.add_argument("--audited-synthetic-csv", default="",
+                        help="Optional synthetic audited corpus; only reviewed Groq-hosted GPT-OSS rows are admitted.")
+    parser.add_argument("--scam-hum-india-csv", default="",
+                        help="Optional Apache-2.0 Indian English scam/ham corpus; duplicates and protected split overlaps are excluded.")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--freeze-encoder-layers", type=int, default=0,
                         help="Freeze embeddings and this many lowest encoder layers before fine-tuning.")
@@ -137,13 +145,138 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     train_rows, val_rows, test_rows, audit = data.load_corpora(args.data_root)
+    # Freeze the project challenge before augmentation. No supplemental row may
+    # duplicate any base split or any valid challenge text.
+    base_keys = {data.digest(row["text"]) for row in train_rows + val_rows + test_rows}
+    challenge_rows, valid_challenge, overlaps = load_challenge(args.challenge, base_keys)
+    protected_keys = base_keys | {data.digest(row["text"]) for row in challenge_rows}
+    augmentation_audits = []
+
+    def add_supplemental(candidates, audit_record):
+        seen = set()
+        accepted = []
+        for row in candidates:
+            key = data.digest(row["text"])
+            if key in protected_keys:
+                audit_record["protectedOverlapRows"] += 1
+            elif key in seen:
+                audit_record["duplicateRows"] += 1
+            else:
+                seen.add(key)
+                accepted.append(row)
+        train_rows.extend(accepted)
+        protected_keys.update(seen)
+        audit_record["acceptedRows"] = len(accepted)
+        audit_record["acceptedLabels"] = dict(Counter(r["label"] for r in accepted))
+        audit_record["acceptedLanguages"] = dict(Counter(r["eval_lang"] for r in accepted))
+        augmentation_audits.append(audit_record)
+
+    if args.indic14_train_parquet:
+        import pyarrow.parquet as pq
+        path = Path(args.indic14_train_parquet)
+        table = pq.read_table(path, columns=["text", "label", "language"])
+        records = []
+        invalid = 0
+        for row in table.to_pylist():
+            text = str(row.get("text") or "").strip()
+            raw_label = row.get("label")
+            if not text or raw_label not in (0, 1, "0", "1", "ham", "scam"):
+                invalid += 1
+                continue
+            label = "scam" if str(raw_label).casefold() in ("1", "scam") else "ham"
+            key = data.digest(text)
+            records.append((key, {"text": text, "label": label,
+                "eval_lang": data.script_language(text, str(row.get("language") or "en").casefold()),
+                "src": "indic14_synthetic_train"}))
+        labels_by_key = defaultdict(set)
+        for key, row in records:
+            labels_by_key[key].add(row["label"])
+        conflicts = {key for key, labels in labels_by_key.items() if len(labels) > 1}
+        seen_keys = set()
+        candidates = []
+        for key, row in records:
+            if key in conflicts or key in seen_keys:
+                continue
+            seen_keys.add(key)
+            candidates.append(row)
+        indic_audit = {"source": "anmolshrivastav/scam_ham_india_14_languages",
+            "sourceFile": str(path), "sourceSha256": digest(path),
+            "sourceRows": table.num_rows, "invalidRows": invalid,
+            "uniqueTexts": len(labels_by_key), "conflictingTextsExcluded": len(conflicts),
+            "duplicateRows": max(0, len(records) - len(labels_by_key)),
+            "split": "train parquet only; public test and clean test suite excluded",
+            "protectedOverlapRows": 0}
+        add_supplemental(candidates, indic_audit)
+
+    if args.audited_synthetic_csv:
+        path = Path(args.audited_synthetic_csv)
+        audited = {"source": "Ridham115/indian-scam-sms-synthetic-audited",
+            "sourceSha256": digest(path), "sourceRows": 0, "providerFilteredRows": 0,
+            "unreviewedRowsExcluded": 0, "invalidRows": 0, "duplicateRows": 0,
+            "protectedOverlapRows": 0,
+            "filter": "generator=groq/openai/gpt-oss-120b and audit_action in keep,flip"}
+        candidates = []
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            for record in csv.DictReader(stream):
+                audited["sourceRows"] += 1
+                if (record.get("generator") or "").strip().casefold() != "groq/openai/gpt-oss-120b":
+                    audited["providerFilteredRows"] += 1
+                    continue
+                if (record.get("audit_action") or "").strip().casefold() not in ("keep", "flip"):
+                    audited["unreviewedRowsExcluded"] += 1
+                    continue
+                text = (record.get("text") or "").strip()
+                raw_label = (record.get("label") or "").strip().casefold()
+                if not text or raw_label not in ("safe", "scam"):
+                    audited["invalidRows"] += 1
+                    continue
+                language = (record.get("language") or "en").strip().casefold()
+                candidates.append({"text": text, "label": "ham" if raw_label == "safe" else "scam",
+                    "eval_lang": data.script_language(text, language),
+                    "src": "ridham_gpt_oss_reviewed_synthetic"})
+        add_supplemental(candidates, audited)
+
+    if args.scam_hum_india_csv:
+        path = Path(args.scam_hum_india_csv)
+        corpus_audit = {"source": "anmolshrivastav/scam-hum-india",
+            "sourceSha256": digest(path), "sourceRows": 0, "invalidRows": 0,
+            "duplicateRows": 0, "conflictingTextsExcluded": 0,
+            "protectedOverlapRows": 0}
+        rows_by_key = {}
+        labels_by_key = {}
+        raw_records = []
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            for record in csv.DictReader(stream):
+                corpus_audit["sourceRows"] += 1
+                text = (record.get("text") or "").strip()
+                label = (record.get("label") or "").strip().casefold()
+                if label == "spam":
+                    label = "scam"
+                if not text or label not in ("ham", "scam"):
+                    corpus_audit["invalidRows"] += 1
+                    continue
+                key = data.digest(text)
+                rows_by_key.setdefault(key, text)
+                labels_by_key.setdefault(key, set()).add(label)
+                raw_records.append((key, label))
+        conflicts = {key for key, labels in labels_by_key.items() if len(labels) > 1}
+        corpus_audit["duplicateRows"] = len(raw_records) - len(rows_by_key)
+        corpus_audit["conflictingTextsExcluded"] = len(conflicts)
+        candidates = []
+        for key, text in rows_by_key.items():
+            if key in conflicts:
+                continue
+            language = data.script_language(text, "en")
+            candidates.append({"text": text, "label": next(iter(labels_by_key[key])),
+                "eval_lang": language, "src": "scam_hum_india_apache2"})
+        add_supplemental(candidates, corpus_audit)
     imc_audit = {"provided": bool(args.imc_smishing_csv), "selectedRows": 0,
                  "duplicateRows": 0, "emptyRows": 0, "nonTargetRows": 0,
                  "overlapRows": 0, "sourceSha256": None}
     if args.imc_smishing_csv:
         imc_path = Path(args.imc_smishing_csv)
         imc_audit["sourceSha256"] = digest(imc_path)
-        fit_keys = {data.digest(row["text"]) for row in train_rows + val_rows + test_rows}
+        fit_keys = protected_keys | {data.digest(row["text"]) for row in train_rows}
         added_keys = set()
         with imc_path.open(encoding="utf-8", newline="") as stream:
             for record in csv.DictReader(stream):
@@ -272,8 +405,6 @@ def main():
     val_probs = predict(model, val_rows, val_data, collator, device, args.batch_size)
     threshold = pick_threshold(val_rows, val_probs, args.target_fpr)
     test_probs = predict(model, test_rows, test_data, collator, device, args.batch_size)
-    known = {data.digest(row["text"]) for row in train_rows + val_rows + test_rows}
-    challenge_rows, valid_challenge, overlaps = load_challenge(args.challenge, known)
     challenge_data = EncodedSms(challenge_rows, tokenizer, args.max_length)
     challenge_probs = predict(model, challenge_rows, challenge_data, collator,
                               device, args.batch_size)
@@ -292,6 +423,7 @@ def main():
                         "validation": dict(Counter(r["label"] for r in val_rows)),
                         "test": dict(Counter(r["label"] for r in test_rows))},
         "dataAudit": audit,
+        "augmentationAudits": augmentation_audits,
         "validationMetrics": summarize(val_rows, val_probs, threshold),
         "testMetrics": summarize(test_rows, test_probs, threshold),
         "challenge": {"validRows": valid_challenge, "exactOverlapsExcluded": overlaps,

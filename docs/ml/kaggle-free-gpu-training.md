@@ -13,9 +13,9 @@ temporary virtual environment so the app's Gradle/Python setup stays untouched:
 ```sh
 python3 -m venv /tmp/messages-ml
 /tmp/messages-ml/bin/python -m pip install torch pyarrow numpy
-cd 01_active_codebase/messages
+cd "Messages App/01_active_codebase/messages"
 /tmp/messages-ml/bin/python protection-engine/tools/train_char_cnn.py \
-  --data-root ../../Datasets \
+  --data-root ../../../Datasets \
   --out-dir protection-engine/training/char_cnn \
   --epochs 12 --patience 3 --batch-size 512
 ```

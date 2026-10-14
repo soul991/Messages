@@ -1,0 +1,479 @@
+{
+  "model": "ai4bharat/IndicBERTv2-MLM-only",
+  "revision": "8598f13fe52443bc3fc054fcd665944560145b5c",
+  "modelFileSha256": "9ed2814b9a6d68e5b71e7837474a1d177c8904419693e87cdb81d4b0cc5aa3ed",
+  "checkpointBytes": 1112195200,
+  "device": "cuda",
+  "seed": 20261006,
+  "epochs": [
+    {
+      "epoch": 1,
+      "steps": 3092,
+      "trainLoss": 0.128465,
+      "validationLoss": 0.070213
+    },
+    {
+      "epoch": 2,
+      "steps": 6184,
+      "trainLoss": 0.05868,
+      "validationLoss": 0.051601
+    },
+    {
+      "epoch": 3,
+      "steps": 9276,
+      "trainLoss": 0.042552,
+      "validationLoss": 0.049672
+    }
+  ],
+  "bestEpoch": 3,
+  "thresholdPolicy": "validation ham only, target FPR <= 0.01",
+  "threshold": 0.6499461935592651,
+  "batchSize": 24,
+  "maxLength": 160,
+  "learningRate": 2e-05,
+  "freezeEncoderLayers": 8,
+  "trainableParameters": 28943618,
+  "classCounts": {
+    "train": {
+      "ham": 47199,
+      "scam": 27008
+    },
+    "validation": {
+      "ham": 5605,
+      "scam": 3287
+    },
+    "test": {
+      "ham": 6030,
+      "scam": 3570
+    }
+  },
+  "dataAudit": {
+    "conflictingExactTextsExcluded": 1,
+    "conflictSourceGroups": {
+      "scamshield:Benchmark_Ground_Truth | scamshield:Smishing_Dataset": 1
+    },
+    "testRowsRemovedForValidationOverlap": 2,
+    "exactTextSplitLeakageAfterCleaning": 0,
+    "imc25ScamOnlyAugmentation": {
+      "provided": false,
+      "selectedRows": 0,
+      "duplicateRows": 0,
+      "emptyRows": 0,
+      "nonTargetRows": 0,
+      "overlapRows": 0,
+      "sourceSha256": null
+    }
+  },
+  "validationMetrics": {
+    "all": {
+      "n": 8892,
+      "tp": 3215,
+      "fp": 56,
+      "fn": 72,
+      "tn": 5549,
+      "precision": 0.9829,
+      "recall": 0.9781,
+      "f1": 0.9805,
+      "falsePositiveRate": 0.01
+    },
+    "language:bengali": {
+      "n": 342,
+      "tp": 138,
+      "fp": 4,
+      "fn": 2,
+      "tn": 198,
+      "precision": 0.9718,
+      "recall": 0.9857,
+      "f1": 0.9787,
+      "falsePositiveRate": 0.0198
+    },
+    "language:english_or_romanized": {
+      "n": 7989,
+      "tp": 2974,
+      "fp": 51,
+      "fn": 69,
+      "tn": 4895,
+      "precision": 0.9831,
+      "recall": 0.9773,
+      "f1": 0.9802,
+      "falsePositiveRate": 0.0103
+    },
+    "language:hindi": {
+      "n": 456,
+      "tp": 9,
+      "fp": 1,
+      "fn": 0,
+      "tn": 446,
+      "precision": 0.9,
+      "recall": 1.0,
+      "f1": 0.9474,
+      "falsePositiveRate": 0.0022
+    },
+    "language:hinglish": {
+      "n": 105,
+      "tp": 94,
+      "fp": 0,
+      "fn": 1,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 0.9895,
+      "f1": 0.9947,
+      "falsePositiveRate": 0.0
+    },
+    "source:bengali:Banglish": {
+      "n": 180,
+      "tp": 65,
+      "fp": 1,
+      "fn": 6,
+      "tn": 108,
+      "precision": 0.9848,
+      "recall": 0.9155,
+      "f1": 0.9489,
+      "falsePositiveRate": 0.0092
+    },
+    "source:bengali:Bengali": {
+      "n": 179,
+      "tp": 71,
+      "fp": 2,
+      "fn": 0,
+      "tn": 106,
+      "precision": 0.9726,
+      "recall": 1.0,
+      "f1": 0.9861,
+      "falsePositiveRate": 0.0185
+    },
+    "source:bengali:CodeMix": {
+      "n": 168,
+      "tp": 67,
+      "fp": 2,
+      "fn": 2,
+      "tn": 97,
+      "precision": 0.971,
+      "recall": 0.971,
+      "f1": 0.971,
+      "falsePositiveRate": 0.0202
+    },
+    "source:bengali:English": {
+      "n": 174,
+      "tp": 70,
+      "fp": 4,
+      "fn": 1,
+      "tn": 99,
+      "precision": 0.9459,
+      "recall": 0.9859,
+      "f1": 0.9655,
+      "falsePositiveRate": 0.0388
+    },
+    "source:scamshield:Benchmark_Ground_Truth": {
+      "n": 3,
+      "tp": 1,
+      "fp": 2,
+      "fn": 0,
+      "tn": 0,
+      "precision": 0.3333,
+      "recall": 1.0,
+      "f1": 0.5,
+      "falsePositiveRate": 1.0
+    },
+    "source:scamshield:Indian_Telecom_SMS": {
+      "n": 189,
+      "tp": 63,
+      "fp": 1,
+      "fn": 1,
+      "tn": 124,
+      "precision": 0.9844,
+      "recall": 0.9844,
+      "f1": 0.9844,
+      "falsePositiveRate": 0.008
+    },
+    "source:scamshield:Kaggle_Hindi_Merged": {
+      "n": 455,
+      "tp": 8,
+      "fp": 1,
+      "fn": 0,
+      "tn": 446,
+      "precision": 0.8889,
+      "recall": 1.0,
+      "f1": 0.9412,
+      "falsePositiveRate": 0.0022
+    },
+    "source:scamshield:Smishing_Dataset": {
+      "n": 6954,
+      "tp": 2750,
+      "fp": 43,
+      "fn": 59,
+      "tn": 4102,
+      "precision": 0.9846,
+      "recall": 0.979,
+      "f1": 0.9818,
+      "falsePositiveRate": 0.0104
+    },
+    "source:scamshield:UCI_SMS_Spam": {
+      "n": 514,
+      "tp": 55,
+      "fp": 0,
+      "fn": 3,
+      "tn": 456,
+      "precision": 1.0,
+      "recall": 0.9483,
+      "f1": 0.9735,
+      "falsePositiveRate": 0.0
+    },
+    "source:scamshield:ysangam/Indian_Cyber_Scam_Hinglish": {
+      "n": 76,
+      "tp": 65,
+      "fp": 0,
+      "fn": 0,
+      "tn": 11,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "falsePositiveRate": 0.0
+    }
+  },
+  "testMetrics": {
+    "all": {
+      "n": 9600,
+      "tp": 3490,
+      "fp": 80,
+      "fn": 80,
+      "tn": 5950,
+      "precision": 0.9776,
+      "recall": 0.9776,
+      "f1": 0.9776,
+      "falsePositiveRate": 0.0133
+    },
+    "language:bengali": {
+      "n": 688,
+      "tp": 275,
+      "fp": 5,
+      "fn": 2,
+      "tn": 406,
+      "precision": 0.9821,
+      "recall": 0.9928,
+      "f1": 0.9874,
+      "falsePositiveRate": 0.0122
+    },
+    "language:english_or_romanized": {
+      "n": 8344,
+      "tp": 3110,
+      "fp": 73,
+      "fn": 76,
+      "tn": 5085,
+      "precision": 0.9771,
+      "recall": 0.9761,
+      "f1": 0.9766,
+      "falsePositiveRate": 0.0142
+    },
+    "language:hindi": {
+      "n": 460,
+      "tp": 9,
+      "fp": 1,
+      "fn": 2,
+      "tn": 448,
+      "precision": 0.9,
+      "recall": 0.8182,
+      "f1": 0.8571,
+      "falsePositiveRate": 0.0022
+    },
+    "language:hinglish": {
+      "n": 108,
+      "tp": 96,
+      "fp": 1,
+      "fn": 0,
+      "tn": 11,
+      "precision": 0.9897,
+      "recall": 1.0,
+      "f1": 0.9948,
+      "falsePositiveRate": 0.0833
+    },
+    "source:bengali:Banglish": {
+      "n": 360,
+      "tp": 137,
+      "fp": 5,
+      "fn": 4,
+      "tn": 214,
+      "precision": 0.9648,
+      "recall": 0.9716,
+      "f1": 0.9682,
+      "falsePositiveRate": 0.0228
+    },
+    "source:bengali:Bengali": {
+      "n": 358,
+      "tp": 140,
+      "fp": 2,
+      "fn": 1,
+      "tn": 215,
+      "precision": 0.9859,
+      "recall": 0.9929,
+      "f1": 0.9894,
+      "falsePositiveRate": 0.0092
+    },
+    "source:bengali:CodeMix": {
+      "n": 336,
+      "tp": 137,
+      "fp": 4,
+      "fn": 1,
+      "tn": 194,
+      "precision": 0.9716,
+      "recall": 0.9928,
+      "f1": 0.9821,
+      "falsePositiveRate": 0.0202
+    },
+    "source:bengali:English": {
+      "n": 347,
+      "tp": 140,
+      "fp": 4,
+      "fn": 1,
+      "tn": 202,
+      "precision": 0.9722,
+      "recall": 0.9929,
+      "f1": 0.9825,
+      "falsePositiveRate": 0.0194
+    },
+    "source:scamshield:Benchmark_Ground_Truth": {
+      "n": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 0,
+      "tn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "falsePositiveRate": 1.0
+    },
+    "source:scamshield:Indian_Telecom_SMS": {
+      "n": 217,
+      "tp": 80,
+      "fp": 1,
+      "fn": 3,
+      "tn": 133,
+      "precision": 0.9877,
+      "recall": 0.9639,
+      "f1": 0.9756,
+      "falsePositiveRate": 0.0075
+    },
+    "source:scamshield:Kaggle_Hindi_Merged": {
+      "n": 460,
+      "tp": 9,
+      "fp": 1,
+      "fn": 2,
+      "tn": 448,
+      "precision": 0.9,
+      "recall": 0.8182,
+      "f1": 0.8571,
+      "falsePositiveRate": 0.0022
+    },
+    "source:scamshield:Smishing_Dataset": {
+      "n": 6986,
+      "tp": 2730,
+      "fp": 58,
+      "fn": 62,
+      "tn": 4136,
+      "precision": 0.9792,
+      "recall": 0.9778,
+      "f1": 0.9785,
+      "falsePositiveRate": 0.0138
+    },
+    "source:scamshield:UCI_SMS_Spam": {
+      "n": 464,
+      "tp": 56,
+      "fp": 3,
+      "fn": 6,
+      "tn": 399,
+      "precision": 0.9492,
+      "recall": 0.9032,
+      "f1": 0.9256,
+      "falsePositiveRate": 0.0075
+    },
+    "source:scamshield:ysangam/Indian_Cyber_Scam_Hinglish": {
+      "n": 70,
+      "tp": 61,
+      "fp": 0,
+      "fn": 0,
+      "tn": 9,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "falsePositiveRate": 0.0
+    }
+  },
+  "challenge": {
+    "validRows": 159,
+    "exactOverlapsExcluded": 0,
+    "scoredRows": 159,
+    "metrics": {
+      "all": {
+        "n": 159,
+        "tp": 23,
+        "fp": 34,
+        "fn": 46,
+        "tn": 56,
+        "precision": 0.4035,
+        "recall": 0.3333,
+        "f1": 0.3651,
+        "falsePositiveRate": 0.3778
+      },
+      "language:english_or_romanized": {
+        "n": 144,
+        "tp": 23,
+        "fp": 29,
+        "fn": 44,
+        "tn": 48,
+        "precision": 0.4423,
+        "recall": 0.3433,
+        "f1": 0.3866,
+        "falsePositiveRate": 0.3766
+      },
+      "language:hindi": {
+        "n": 15,
+        "tp": 0,
+        "fp": 5,
+        "fn": 2,
+        "tn": 8,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "falsePositiveRate": 0.3846
+      },
+      "source:english": {
+        "n": 59,
+        "tp": 12,
+        "fp": 14,
+        "fn": 15,
+        "tn": 18,
+        "precision": 0.4615,
+        "recall": 0.4444,
+        "f1": 0.4528,
+        "falsePositiveRate": 0.4375
+      },
+      "source:hindi": {
+        "n": 50,
+        "tp": 10,
+        "fp": 19,
+        "fn": 11,
+        "tn": 10,
+        "precision": 0.3448,
+        "recall": 0.4762,
+        "f1": 0.4,
+        "falsePositiveRate": 0.6552
+      },
+      "source:punjabi": {
+        "n": 50,
+        "tp": 1,
+        "fp": 1,
+        "fn": 20,
+        "tn": 28,
+        "precision": 0.5,
+        "recall": 0.0476,
+        "f1": 0.087,
+        "falsePositiveRate": 0.0345
+      }
+    }
+  },
+  "caveats": [
+    "Public test splits have been inspected in earlier work.",
+    "The challenge set is small and authored, not representative traffic.",
+    "This transformer checkpoint is an experimental teacher, not an Android asset."
+  ]
+}

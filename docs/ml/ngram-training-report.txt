@@ -31,7 +31,7 @@ Threshold      : 0.0000  (chosen on TRAINING ham only, <=1% FP)
 3. Size
 ----------------------------------------------------------------------------
    protection-engine/src/main/resources/ngram_model.json
-   13499 grams, 198893 bytes (0.19 MiB). Budget in the brief: 2 MiB. PASS
+   13499 grams, 198894 bytes (0.19 MiB). Budget in the brief: 2 MiB. PASS
    Latency and per-classification allocation are measured on the JVM by
    `layer5-verify`, not here - Python timings say nothing about the
    phone. No Android-device latency is claimed by this trainer.

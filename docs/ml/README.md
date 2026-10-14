@@ -1,19 +1,37 @@
 # Local model training
 
+The current evidence and gated development sequence are summarized in
+[`model-capability-roadmap.md`](model-capability-roadmap.md).
+
 For the separate from-scratch GPU experiment, see
 [`kaggle-free-gpu-training.md`](kaggle-free-gpu-training.md) and
 `protection-engine/tools/train_char_cnn.py`.
+For the local Windows CUDA setup and reproducible RTX training commands, see
+[`windows-training.md`](windows-training.md).
 The latest local CPU experiment and its deployment decision are documented in
 [`char-cnn-experiment.md`](char-cnn-experiment.md).
+The Windows RTX 3060 rerun and fit-only Apache-2.0 India corpus comparison are
+in [`char-cnn-windows-experiment.md`](char-cnn-windows-experiment.md).
 The multilingual MiniLM teacher baseline and scam-only IMC25 augmentation
 comparison are in [`minilm-imc25-experiment.md`](minilm-imc25-experiment.md),
 with aggregate-only reports alongside it. The same IMC25 augmentation was
 tested on the compact from-scratch CNN; see
 [`char-cnn-imc25-experiment.md`](char-cnn-imc25-experiment.md).
-The Indic-focused MuRIL teacher fine-tune is documented in
-[`muril-experiment.md`](muril-experiment.md); its first-epoch checkpoint and resume
-notes are preserved in the workspace model archive. Training is paused pending
-continuation.
+The Indic-focused MuRIL teacher fine-tune and October 10 resumed evaluation are
+documented in [`muril-experiment.md`](muril-experiment.md), with the
+aggregate-only resume report alongside it.
+The Windows RTX 3060 fine-tune of AI4Bharat IndicBERTv2, including the
+pretrained-model analysis and frozen challenge comparison, is documented in
+[`indicbertv2-experiment.md`](indicbertv2-experiment.md), with its
+aggregate-only report alongside it.
+The follow-up run with two filtered Indian synthetic corpora, its source audit,
+and frozen challenge comparison are documented in
+[`indicbertv2-india-augmentation.md`](indicbertv2-india-augmentation.md), with
+the aggregate-only report alongside it. This candidate also remains offline
+and is not ready for integration.
+The October 12 India-focused n-gram retraining and its script-routed candidate
+are recorded in [`india-variant-candidate-2026-10-12.md`](india-variant-candidate-2026-10-12.md),
+with aggregate counts and evaluation metrics in the adjacent JSON report.
 The source-level data review, including the IMC25 training-only filtering, is
 in [`multilingual-dataset-audit.md`](multilingual-dataset-audit.md) and
 [`imc25-smishing-augmentation-audit.md`](imc25-smishing-augmentation-audit.md).

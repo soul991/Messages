@@ -23,6 +23,8 @@ from torch.utils.data import DataLoader, Dataset
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+WORKSPACE_ROOT = ROOT.parents[2]
+DATA_ROOT = WORKSPACE_ROOT / "Datasets"
 sys.path.insert(0, str(HERE))
 import train_multilingual_candidate as data  # noqa: E402
 
@@ -99,6 +101,70 @@ def load_corpora(dataset_root):
         "conflictSourceGroups": dict(sorted(conflict_sources.items())),
         "testRowsRemovedForValidationOverlap": test_validation_overlap,
         "exactTextSplitLeakageAfterCleaning": 0,
+    }
+
+
+def load_scam_ham_india(csv_path, existing_rows, challenge_path):
+    """Load Apache-2.0 English India SMS rows into fit only, with leakage guards."""
+    path = Path(csv_path)
+    challenge = Path(challenge_path)
+    split_keys = {digest(r["text"]) for r in existing_rows}
+    challenge_keys = set()
+    with challenge.open(encoding="utf-8-sig", newline="") as stream:
+        for item in csv.DictReader(stream):
+            text = str(item.get("text", "")).strip()
+            if text:
+                challenge_keys.add(digest(text))
+
+    by_key = defaultdict(set)
+    text_by_key = {}
+    invalid_rows = 0
+    valid_rows = 0
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        for item in csv.DictReader(stream):
+            text = str(item.get("text", "")).strip()
+            label = str(item.get("label", "")).strip().casefold()
+            if label == "spam":
+                label = "scam"
+            if not text or label not in ("ham", "scam"):
+                invalid_rows += 1
+                continue
+            valid_rows += 1
+            key = digest(text)
+            by_key[key].add(label)
+            text_by_key.setdefault(key, text)
+
+    conflicts = {key for key, labels in by_key.items() if len(labels) > 1}
+    added, seen = [], set()
+    overlaps_splits = overlaps_challenge = 0
+    for key, labels in by_key.items():
+        if key in conflicts:
+            continue
+        if key in split_keys:
+            overlaps_splits += 1
+            continue
+        if key in challenge_keys:
+            overlaps_challenge += 1
+            continue
+        label = next(iter(labels))
+        text = text_by_key[key]
+        added.append({"text": text, "label": label,
+                      "eval_lang": script_language(text, "en"),
+                      "src": "scam_ham_india_apache2"})
+        seen.add(key)
+
+    if seen & split_keys or seen & challenge_keys:
+        raise RuntimeError("supplemental fit rows overlap a protected evaluation split")
+    return added, {
+        "sourceSha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "challengeSha256": hashlib.sha256(challenge.read_bytes()).hexdigest(),
+        "acceptedFitRows": len(added),
+        "uniqueSourceTexts": len(by_key),
+        "duplicateRowsRemoved": valid_rows - len(by_key),
+        "conflictingTextsExcluded": len(conflicts),
+        "invalidRows": invalid_rows,
+        "existingSplitOverlapsExcluded": overlaps_splits,
+        "frozenChallengeOverlapsExcluded": overlaps_challenge,
     }
 
 
@@ -189,9 +255,13 @@ def predict(model, loader, device):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", default=str(ROOT.parent.parent / "Datasets"))
+    parser.add_argument("--data-root", default=str(DATA_ROOT))
     parser.add_argument("--imc-smishing-csv", default="",
                         help="Optional CC BY 4.0 IMC25 public-report CSV; unique India or Hindi scam texts are added to fit only.")
+    parser.add_argument("--scam-ham-india-csv", default="",
+                        help="Optional Apache-2.0 India SMS CSV (text,label); added to fit only after split/challenge overlap removal.")
+    parser.add_argument("--challenge-exclusion", default="",
+                        help="Challenge CSV whose text hashes are excluded from supplemental fitting; defaults under --data-root.")
     parser.add_argument("--out-dir", default=str(ROOT / "protection-engine" / "training" / "char_cnn"))
     parser.add_argument("--epochs", type=int, default=12)
     parser.add_argument("--batch-size", type=int, default=256)
@@ -212,6 +282,14 @@ def main():
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     train_rows, val_rows, test_rows, data_audit = load_corpora(args.data_root)
+    if args.scam_ham_india_csv:
+        challenge_exclusion = args.challenge_exclusion or str(
+            Path(args.data_root) / "trilingual-fraud-consumer-protection-v2" / "data.csv")
+        added_rows, supplement_audit = load_scam_ham_india(
+            args.scam_ham_india_csv, train_rows + val_rows + test_rows,
+            challenge_exclusion)
+        train_rows.extend(added_rows)
+        data_audit["scamHamIndiaApache2FitAugmentation"] = supplement_audit
     if args.imc_smishing_csv:
         path = Path(args.imc_smishing_csv)
         file_hash = hashlib.sha256(path.read_bytes()).hexdigest()

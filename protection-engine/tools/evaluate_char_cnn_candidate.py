@@ -78,6 +78,8 @@ def main():
     parser.add_argument("--data-root", required=True)
     parser.add_argument("--candidate-dir", required=True)
     parser.add_argument("--challenge", required=True)
+    parser.add_argument("--scam-ham-india-csv", default="",
+                        help="Same Apache-2.0 fit-only CSV used during training, for overlap auditing.")
     parser.add_argument("--target-fpr", type=float, default=0.01)
     args = parser.parse_args()
     candidate_dir = Path(args.candidate_dir)
@@ -91,13 +93,18 @@ def main():
                           "cuda" if torch.cuda.is_available() else "cpu")
     model.to(device).eval()
     train, validation, test, audit = trainer.load_corpora(args.data_root)
+    supplement_audit = None
+    supplemental_rows = []
+    if args.scam_ham_india_csv:
+        supplemental_rows, supplement_audit = trainer.load_scam_ham_india(
+            args.scam_ham_india_csv, train + validation + test, args.challenge)
     val_probs = get_probs(validation, vocab, config, model, device)
     test_probs = get_probs(test, vocab, config, model, device)
     global_threshold = trainer.pick_threshold(validation, val_probs, args.target_fpr)
     language_thresholds, validation_ham_counts = thresholds_by_language(
         validation, val_probs, args.target_fpr)
     challenge, challenge_valid_rows, challenge_overlaps = load_challenge(args.challenge,
-        {trainer.digest(r["text"]) for r in train + validation + test})
+        {trainer.digest(r["text"]) for r in train + validation + test + supplemental_rows})
     challenge_probs = get_probs(challenge, vocab, config, model, device)
     app_resource = Path(__file__).resolve().parents[1] / "src/main/resources/ngram_model.json"
     app_model, app_val = active_ngram_scores(validation, app_resource)
@@ -127,6 +134,7 @@ def main():
             "sha256": hashlib.sha256(Path(args.challenge).read_bytes()).hexdigest(),
             "validRows": challenge_valid_rows, "exactOverlapRowsExcluded": challenge_overlaps,
             "scoredRows": len(challenge)},
+        "supplementalFitSource": supplement_audit,
         "challengeAtGlobalThreshold": trainer.summarize(challenge, challenge_probs, global_threshold),
         "challengeAtPerLanguageThresholds": trainer.summarize(challenge, challenge_probs, calibrated),
         "activeAppNgramBaseline": {
