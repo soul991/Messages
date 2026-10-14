@@ -27,21 +27,39 @@ local `SOURCE.md` and in any eventual app distribution that includes a model
 trained on these examples. These dataset-level labels do not replace
 upstream-source review.
 
-## Duplicate and split handling
+## Cross-Corpus Duplication and Overlap Findings
 
-- Bengali train has 3 exact normalized-message overlaps with validation. The
-  trainer excludes held-out duplicates from fitting; Bengali test has no
-  exact overlap with the other Bengali splits.
-- ScamShield has 12 exact train/validation, 13 train/test, and 2
-  validation/test overlaps in the inventory. The trainer removes train rows
-  that occur in validation or test, and removes the 2 test rows duplicated in
-  validation.
-- The two India CSVs share 2,052 exact normalized messages. The Telecom CSV
-  also substantially overlaps ScamShield. Exact duplicates are deduplicated
-  before fitting, and the second India CSV is not added.
-- Labels on the exact overlaps inspected so far agreed. This does not validate
-  the remaining labels or establish that near-duplicate templates are
-  independent.
+An empirical cross-corpus hash analysis was conducted using PyArrow across all candidate corpora (`ScamShield`, `India Telecom CSV`, `Scam-Ham India`, `Bolewara`, `Precog Indian Spam`, `Bengali Smishing`, and the frozen challenge).
+
+### Key Empirical Findings:
+1. **ScamShield Subsumption**:
+   - `ScamShield` (85,680 records across train/val/test) heavily subsumes older Indian SMS datasets:
+     - **89.7%** (2,033 / 2,267) of `india-spam-sms-classification-main/dataset/spam_ham_india.csv`.
+     - **89.4%** (2,032 / 2,272) of `scam-ham-india/scam_hum_india.csv`.
+     - **91.7%** (3,471 / 3,787) of `bolewara-hinglish-scam-text-dataset/data.json`.
+     - **68.2%** (1,363 / 2,000) of `indian_spam.csv` (Precog 2011 crowdsource).
+   - *Implication*: Naively combining these datasets without exact-text deduplication severely artificially inflates duplicated rows and skews likelihood ratios toward repeated spam templates.
+2. **Near-Total Redundancy Between Telecom and Scam-Ham CSVs**:
+   - `india-spam-sms-classification-main/dataset/spam_ham_india.csv` and `scam-ham-india/scam_hum_india.csv` share **2,062 / 2,063** messages (**99.9% duplicate**). `scam-ham-india` is completely redundant and is excluded from training.
+3. **Bengali Dataset Independence**:
+   - `bengali-sms-smishing-dataset` (7,005 rows: `smish` 2,809, `normal` 2,488, `promo` 1,708) has only **3** exact text overlaps with `scamshield`, confirming it is an independent, non-subsumed collection.
+4. **Frozen Challenge Leakage Check**:
+   - The 159-row frozen challenge (`trilingual-fraud-consumer-protection-v2`) has **0** exact or normalized message overlaps with any dataset in the repository. Its separation remains intact, though as noted in the roadmap it is already used as a diagnostic set and cannot serve as an independent blind release gate.
+
+## Non-Human and Provisional Data Boundary
+
+1. **Synthetic Data is Not Ground Truth**:
+   - `scam-ham-india-14-languages`: 12,600 rows collapse to 5,135 unique normalized texts across languages due to AI template translation. It is unverified by human annotators and must not be used as gold evaluation.
+   - `indian-scam-sms-synthetic-audited`: Out of 1,580 rows, only 110 rows received human review; the remaining 1,470 are unreviewed LLM outputs.
+   - Any synthetic gains must be treated separately from real-world evidence and never cited as proof of production generalization.
+2. **Private Review Workbook Boundary**:
+   - The private 5,358-message remark workbook contains message-type/redaction triage remarks and provisional notes, **not** human ground-truth scam/ham labels.
+   - It is strictly forbidden to convert these remarks into classifier training supervision.
+
+## Duplicate and Split Handling in Training
+
+- **Cross-split leakage prevention**: Bengali train has 3 exact normalized overlaps with validation; ScamShield has 12 train/validation, 13 train/test, and 2 validation/test overlaps. The trainer excludes all validation and test hashes from training fitting, and removes validation duplicates from test splits.
+- **Supplemental deduplication**: Bolewara and Telecom CSVs are filtered against all held-out splits (val + test) and against existing training rows, admitting only strictly unique unseen training texts.
 
 ## Current candidate experiment
 

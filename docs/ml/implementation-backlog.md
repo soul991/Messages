@@ -8,14 +8,21 @@ Status: Active Work Tracker
 
 ## Roadmap Phase Status Summary
 
-| Phase | Description | Current State | Immediate Next Steps |
-|---|---|---|---|
-| **Phase 1** | Scope & Acceptance Criteria | **Complete** | Staged threshold policy (Stage 1 FPR <=0.50%, Stage 2 recall >=90.0%) and V1 language scope (bn, hi, en) approved by owner. |
-| **Phase 2** | Data & Split Design | **Complete (Specification)** | Recruit native annotators and configure access-controlled storage. |
-| **Phase 3** | Reproducible Baselines | **Complete** | Standard n-gram reproduced; split leakage verification operational; Kotlin/Python cross-language parity verified. |
-| **Phase 4** | Evidence-Led Improvements | **Proposed / Queued** | Analyze error distributions on development set; address Devanagari Hindi and advisory lookalike gaps. |
-| **Phase 5** | Candidate Evaluation | **Blocked** | Blocked until independent blind human-labeled acceptance set is collected, adjudicated, and frozen. |
-| **Phase 6** | Android Suitability & Safe Integration | **Blocked** | Blocked until candidate clears Phase 5 acceptance gates; runtime safeguards currently default-off. |
+| Phase | Description | Feasible Research Track | Release Certification Gate | Current State & Action |
+|---|---|---|---|---|
+| **Phase 1** | Scope & Acceptance Criteria | Feasible | Frozen specification | **Complete**: Staged threshold policy (Stage 1 FPR <=0.50%, Stage 2 recall >=90.0%) and V1 language scope (bn, hi, en) approved. |
+| **Phase 2** | Data & Split Design | Feasible (schemas, tooling, audits) | Infeasible (human annotator recruitment) | **Specification Complete; Annotator recruitment Infeasible**: Automated leakage verification tool operational; human annotator recruitment marked unavailable. |
+| **Phase 3** | Reproducible Baselines | Feasible | Internal checks | **Complete**: Standard n-gram reproduced; split leakage verification operational; Kotlin/Python parity fixture strictly enforced. |
+| **Phase 4** | Evidence-Led Improvements | Feasible (development-only diagnostics) | N/A | **Active Research**: Error analysis on bank advisories & Devanagari vocabulary using development data only; no tuning on frozen challenge. |
+| **Phase 5** | Candidate Evaluation | Feasible on Dev Split | Infeasible (blind human acceptance set) | **Research-Only**: Development validation calibration queued; blind human acceptance release evaluation marked unavailable. |
+| **Phase 6** | Android Suitability & Safe Integration | Feasible (parity, latency checks) | Blocked (production enablement) | **Certification Blocked**: Runtime safeguards default-off (`advanced_message_filtering = false`); no research candidate may be promoted or enabled. |
+
+> [!IMPORTANT]
+> **Research-Only Path Policy (2026-10-15)**:
+> - Because qualified annotators and an independent human-labeled acceptance set are unavailable, **production release certification is infeasible**.
+> - Work continues strictly on feasible engineering and scientific diagnostics.
+> - **AI filtering must remain disabled by default in the Android app**, and research scores on development data must never be presented as release readiness.
+
 
 ---
 
@@ -66,10 +73,12 @@ Status: Active Work Tracker
 
 #### [P2-04] Native-Language Annotator Recruitment & Onboarding
 - **Priority**: P1
-- **Status**: **Proposed / Blocked on Owner**
+- **Status**: **Infeasible for now (Annotator Recruitment Unavailable)**
 - **Prerequisites**: [P2-01], [P2-02]
 - **Description**: Onboard native speakers for Hindi, Hinglish, Bengali, Banglish to execute dual independent blinded annotation.
-- **Acceptance Evidence**: Documented inter-annotator agreement (Fleiss' Kappa >= 0.85).
+- **Infeasibility Note**: Owner confirmed qualified annotator recruitment is unavailable. Quarantined from current milestones. Research proceeds on development splits from audited open datasets.
+- **Acceptance Evidence**: Documented inter-annotator agreement (Fleiss' Kappa >= 0.85) when/if unblocked.
+
 
 ---
 
@@ -109,10 +118,10 @@ Status: Active Work Tracker
 
 #### [P4-02] Devanagari Hindi Vocabulary & Tokenization Enhancement
 - **Priority**: P1
-- **Status**: **Proposed**
-- **Prerequisites**: [P2-04]
-- **Description**: Expand Devanagari Hindi coverage using reviewed, consented non-synthetic corpora to address current 14–45% scam recall deficit.
-- **Acceptance Evidence**: Demonstrable recall increase on held-out development Hindi split.
+- **Status**: **Proposed (Research Track)**
+- **Prerequisites**: [P3-01]
+- **Description**: Expand Devanagari Hindi coverage using reviewed open/permissive corpora to address current 14–45% scam recall deficit on development data.
+- **Acceptance Evidence**: Demonstrable recall increase on held-out development Hindi split without tuning on the frozen challenge.
 
 ---
 
@@ -120,32 +129,36 @@ Status: Active Work Tracker
 
 #### [P5-01] Threshold Calibration on Development Split Only
 - **Priority**: P0
-- **Status**: **Queued**
+- **Status**: **Queued (Research Track)**
 - **Prerequisites**: [P4-01], [P4-02]
 - **Description**: Calibrate candidate operating threshold strictly on development ham to meet <= 0.5% / <= 1.0% target FPR. Calculate Wilson 95% confidence intervals and calibration curves (Brier/ECE).
 - **Acceptance Evidence**: Frozen threshold recorded with validation report; zero evaluation on blind acceptance set.
 
 #### [P5-02] Blind Acceptance Gate Evaluation
 - **Priority**: P0
-- **Status**: **Blocked**
+- **Status**: **Infeasible for now (Blind Acceptance Set Unavailable)**
 - **Prerequisites**: [P2-04], [P5-01]
 - **Description**: Execute a single, un-tuned evaluation of the frozen candidate against the locked blind acceptance set upon explicit owner approval.
-- **Acceptance Evidence**: Candidate meets all Phase 1 numerical criteria or is formally rejected without re-tuning.
+- **Infeasibility Note**: Owner confirmed independent human-labeled acceptance set is unavailable. Production certification is infeasible. Evaluation is strictly confined to development splits labeled as diagnostic evidence.
+- **Acceptance Evidence**: Formal acceptance evaluation report when/if independent set becomes available.
+
 
 ---
 
 ### Phase 6: Android Suitability and Safe Integration
 
 #### [P6-01] Reference Hardware Latency and Memory Profiling
-- **Priority**: P0
-- **Status**: **Queued**
-- **Prerequisites**: [P5-02]
-- **Description**: Measure P50/P95 latency and peak heap allocation of candidate model on physical Android reference devices (e.g. Android Go / budget tier).
-- **Acceptance Evidence**: P95 <= 25 ms, heap delta <= 8 MB, zero JNI/native crashes.
+- **Priority**: P1
+- **Status**: **Queued (Research Track)**
+- **Prerequisites**: [P3-02]
+- **Description**: Measure P50/P95 latency and peak heap allocation of candidate model on physical Android reference devices (e.g. Android Go / budget tier) to verify resource ceilings.
+- **Acceptance Evidence**: P95 <= 25 ms, heap delta <= 8 MB, zero JNI/native crashes on test hardware.
 
-#### [P6-02] Deterministic Protection & AI Safety Gate Audit
+#### [P6-02] Deterministic Protection & AI Safety Gate Invariant
 - **Priority**: P0
-- **Status**: **Complete (Audit Verified)**
-- **Artifact**: `protection-engine/src/main/kotlin/com/messages/protection/AiScorer.kt`
-- **Description**: Verify that `AI_LAYER_ENABLED = false` by default, `readsAsProtected` prevents any OTP/transaction modification, and routing effect is strictly `INBOX -> REVIEW`.
+- **Status**: **Enforced (Default-Off Verified)**
+- **Artifact**: `protection-engine/src/main/kotlin/com/messages/protection/AiScorer.kt`, `core-messaging/src/main/kotlin/com/messages/core/MessageRepository.kt`
+- **Description**: Verify that `AI_LAYER_ENABLED = false` by default, `advanced_message_filtering` setting defaults to `false`, `readsAsProtected` prevents any OTP/transaction modification, and routing effect is strictly `INBOX -> REVIEW`.
+- **Release Invariant**: AI filtering remains permanently disabled in the shipping app until independent human-labeled acceptance criteria pass. No research candidate may be enabled for user routing.
 - **Acceptance Evidence**: Verified in codebase; passes all unit and integration tests.
+

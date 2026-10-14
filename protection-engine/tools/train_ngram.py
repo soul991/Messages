@@ -41,6 +41,10 @@ FRAGILE = os.path.join(ROOT, "protection-engine", "training",
 OUT_MODEL = os.path.join(ROOT, "protection-engine", "src", "main", "resources",
                          "ngram_model.json")
 OUT_REPORT = os.path.join(ROOT, "docs", "ml", "ngram-training-report.txt")
+OUT_FIXTURE_TRAINING = os.path.join(ROOT, "protection-engine", "training",
+                                    "score_fixture.json")
+OUT_FIXTURE_TEST = os.path.join(ROOT, "protection-engine", "src", "test",
+                                "resources", "score_fixture.json")
 
 NGRAM_MIN, NGRAM_MAX = 2, 5
 MIN_DF = 3            # a gram seen in fewer documents than this is memorisation
@@ -272,12 +276,14 @@ def main():
         # Char.isWhitespace. If that ever changes, this row diverges first.
         "claim your refund now at this link",
     ]
-    with open(os.path.join(ROOT, "protection-engine", "training",
-                           "score_fixture.json"),
-              "w", encoding="utf-8") as f:
-        json.dump([{"text": t, "score": score(rounded, t)} for t in sample],
-                  f, ensure_ascii=False, indent=1)
+    fixture_payload = [{"text": t, "score": score(rounded, t)} for t in sample]
+    for fixture_path in (OUT_FIXTURE_TRAINING, OUT_FIXTURE_TEST):
+        os.makedirs(os.path.dirname(fixture_path), exist_ok=True)
+        with open(fixture_path, "w", encoding="utf-8") as f:
+            json.dump(fixture_payload, f, ensure_ascii=False, indent=1)
+            f.write("\n")
     p("   %s" % os.path.relpath(OUT_MODEL, ROOT).replace("\\", "/"))
+
     p("   %d grams, %d bytes (%.2f MiB). Budget in the brief: 2 MiB. %s"
       % (len(llr), size, size / 1048576.0,
          "PASS" if size <= 2 * 1048576 else "FAIL"))

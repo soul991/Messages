@@ -268,8 +268,11 @@ class IndicClassificationAndAiTest {
 
     @Test
     fun kotlin_scorer_agrees_with_python_trainer_on_fixture() {
-        val stream = javaClass.getResourceAsStream("/score_fixture.json") ?: return
+        val stream = checkNotNull(javaClass.getResourceAsStream("/score_fixture.json")) {
+            "score_fixture.json test resource missing from test classpath"
+        }
         val jsonText = stream.bufferedReader().readText()
+
         val fixture = json.decodeFromString<List<ScoreFixtureEntry>>(jsonText)
         assertTrue("Fixture must contain test messages", fixture.isNotEmpty())
         for (item in fixture) {

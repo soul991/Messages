@@ -28,9 +28,9 @@ def key(text):
     return hashlib.sha256(" ".join(text.casefold().split()).encode("utf-8")).hexdigest()
 
 
-def row(text, label, lang, source, group=""):
+def row(text, label, lang, source, group="", subtype=""):
     return {"text": text.strip(), "label": label, "lang": lang,
-            "src": source, "group": group, "idx": -1, "fragile": False}
+            "src": source, "group": group, "subtype": subtype, "idx": -1, "fragile": False}
 
 
 def read_jsonl(path, split):
@@ -49,8 +49,9 @@ def read_jsonl(path, split):
                     continue
                 lang = "hinglish" if language == "hinglish" else "hi" if language == "hindi" else "en"
                 source = str(item.get("source_dataset", "unknown"))
+                subtype = "scam" if label == "1" else f"scamshield_{source}"
                 out.append(row(text, "scam" if label == "1" else "ham", lang,
-                               "scamshield:" + source, str(item.get("split_group", ""))))
+                               "scamshield:" + source, str(item.get("split_group", "")), subtype=subtype))
             except (json.JSONDecodeError, TypeError, ValueError):
                 bad += 1
     return out, bad
@@ -68,8 +69,9 @@ def read_bengali(path):
             continue
         variety = str(item.get("source", "unknown"))
         lang = "en" if variety == "English" else "bn"
+        subtype = "promo" if label == "promo" else "normal" if label == "normal" else "smish"
         rows.append(row(str(item["text"]), "scam" if label == "smish" else "ham",
-                        lang, "bengali:" + variety, variety))
+                        lang, "bengali:" + variety, variety, subtype=subtype))
     return rows
 
 
@@ -85,7 +87,7 @@ def read_india_csv(path):
             # language field is supplied, so this supplemental slice is only
             # included in the English/unknown pool, never Hindi evaluation.
             rows.append(row(text, "scam" if label == "spam" else "ham",
-                            "en", "india_telecom_csv"))
+                            "en", "india_telecom_csv", subtype=f"telecom_{label}"))
     return rows
 
 
@@ -102,8 +104,10 @@ def read_bolewara(path):
         label = str(item.get("label", ""))
         if not text.strip() or label not in ("0", "1"):
             continue
-        rows.append(row(text, "scam" if label == "1" else "ham", "en", "bolewara_hinglish_ccby"))
+        sub = "bolewara_scam" if label == "1" else "bolewara_ham"
+        rows.append(row(text, "scam" if label == "1" else "ham", "en", "bolewara_hinglish_ccby", subtype=sub))
     return rows
+
 
 
 def unique(rows):
@@ -216,24 +220,65 @@ def threshold_for_language(weights, validation, min_words, target_fp=0.01):
     return max(limits, default=0.0)
 
 
+def wilson_interval(k, n, z=1.95996):
+    """Wilson score confidence interval for binomial proportion."""
+    if n <= 0:
+        return [0.0, 0.0]
+    p = k / n
+    denom = 1.0 + (z * z) / n
+    center = (p + (z * z) / (2.0 * n)) / denom
+    margin = (z * math.sqrt((p * (1.0 - p) + (z * z) / (4.0 * n)) / n)) / denom
+    return [round(max(0.0, center - margin), 4), round(min(1.0, center + margin), 4)]
+
+
 def metrics(weights, threshold, rows, min_words):
-    buckets = defaultdict(lambda: Counter(gold=0, tp=0, fp=0, fn=0, tn=0))
-    sources = defaultdict(lambda: Counter(gold=0, tp=0, fp=0, fn=0, tn=0))
+    buckets = defaultdict(lambda: Counter(gold=0, gold_scam=0, gold_ham=0, tp=0, fp=0, fn=0, tn=0))
+    sources = defaultdict(lambda: Counter(gold=0, gold_scam=0, gold_ham=0, tp=0, fp=0, fn=0, tn=0))
+    subtypes = defaultdict(lambda: Counter(gold=0, gold_scam=0, gold_ham=0, tp=0, fp=0, fn=0, tn=0))
     for r in rows:
         pred = score(weights, r["text"], min_words) > threshold
-        for bucket in (buckets[r["lang"]], sources[r["src"]]):
+        st = r.get("subtype") or f"{r['src']}_{r['label']}"
+        is_scam = (r["label"] == "scam")
+        res = "tp" if is_scam and pred else ("fn" if is_scam else ("fp" if pred else "tn"))
+        for bucket in (buckets[r["lang"]], sources[r["src"]], subtypes[st]):
             bucket["gold"] += 1
-            bucket["tp" if r["label"] == "scam" and pred else
-                   "fn" if r["label"] == "scam" else
-                   "fp" if pred else "tn"] += 1
+            if is_scam:
+                bucket["gold_scam"] += 1
+            else:
+                bucket["gold_ham"] += 1
+            bucket[res] += 1
+
     def finish(bucket):
-        p = bucket["tp"] / max(1, bucket["tp"] + bucket["fp"])
-        rec = bucket["tp"] / max(1, bucket["tp"] + bucket["fn"])
-        return {**bucket, "precision": round(p, 4), "recall": round(rec, 4),
-                "f1": round(2*p*rec/max(1e-12,p+rec), 4),
-                "fpr": round(bucket["fp"] / max(1, bucket["fp"] + bucket["tn"]), 4)}
-    return {"byLanguage": {k: finish(v) for k, v in sorted(buckets.items())},
-            "bySource": {k: finish(v) for k, v in sorted(sources.items())}}
+        n = bucket["gold"]
+        scam = bucket["gold_scam"]
+        ham = bucket["gold_ham"]
+        tp, fp, fn, tn = bucket["tp"], bucket["fp"], bucket["fn"], bucket["tn"]
+        p = tp / max(1, tp + fp)
+        rec = tp / max(1, tp + fn)
+        fpr = fp / max(1, fp + tn)
+        f1 = 2 * p * rec / max(1e-12, p + rec)
+        # Mark small sample inconclusive: N < 100 or fewer than 20 scam/ham when both present
+        inconclusive = (n < 100) or (scam < 20 and n > 0 and ham > 0) or (ham < 20 and n > 0 and scam > 0)
+        return {
+            "gold": n,
+            "gold_scam": scam,
+            "gold_ham": ham,
+            "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+            "precision": round(p, 4),
+            "recall": round(rec, 4),
+            "f1": round(f1, 4),
+            "fpr": round(fpr, 4),
+            "recall_ci95": wilson_interval(tp, tp + fn) if (tp + fn) > 0 else [0.0, 0.0],
+            "fpr_ci95": wilson_interval(fp, fp + tn) if (fp + tn) > 0 else [0.0, 0.0],
+            "precision_ci95": wilson_interval(tp, tp + fp) if (tp + fp) > 0 else [0.0, 0.0],
+            "inconclusive": inconclusive
+        }
+
+    return {
+        "byLanguage": {k: finish(v) for k, v in sorted(buckets.items())},
+        "bySource": {k: finish(v) for k, v in sorted(sources.items())},
+        "byBenignSubtype": {k: finish(v) for k, v in sorted(subtypes.items()) if v["gold_ham"] > 0}
+    }
 
 
 def main():
@@ -378,6 +423,10 @@ def main():
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":")); f.write("\n")
 
     report = {
+        "evidenceType": "DEVELOPMENT_DIAGNOSTIC_ONLY",
+        "independentValidation": False,
+        "releaseReady": False,
+        "releaseCertificationStatus": "INFEASIBLE_WITHOUT_INDEPENDENT_HUMAN_DATA",
         "dataFiles": os.path.basename(d), "malformedScamShieldRowsSkipped": {"train": train_bad, "validation": val_bad, "test": test_bad},
         "rows": {"scamshield_train_valid": len(train), "scamshield_validation_valid": len(val), "scamshield_test_valid": len(test),
                  "bengali_train": len(bn_train), "bengali_validation": len(bn_val), "bengali_test": len(bn_test),
@@ -404,11 +453,16 @@ def main():
         "existingAppAuthoredHoldoutCurrentModelValidationCalibrated": metrics(baseline, baseline_calibrated_threshold, app_held, int(app_model["minWords"])),
         "existingAppAuthoredHoldout": metrics(weights, threshold, app_held, min_words),
         "candidateModelPath": os.path.abspath(args.output),
-        "caveats": ["ScamShield published test rows have been inspected in prior experimentation; test metrics are not pristine blind evidence.",
-                    "ScamShield includes synthetic training data and source families whose collection methods differ.",
-                    "India CSV is broad spam/ham and heavily overlaps ScamShield; exact overlaps are deduplicated.",
-                    "Hindi evaluation is small and does not establish robust field accuracy.",
-                    "This candidate is not integrated into the Android app."]
+        "caveats": [
+            "DEVELOPMENT EVIDENCE ONLY: No independent human-labeled acceptance set was used.",
+            "Annotator recruitment and blind human acceptance are marked infeasible; this model is NOT release-ready.",
+            "AI filtering in Android Messages remains default-off; this research candidate is NOT integrated into the app bundle.",
+            "ScamShield published test rows have been inspected in prior experimentation; test metrics are not pristine blind evidence.",
+            "ScamShield includes synthetic training data and source families whose collection methods differ.",
+            "India CSV is broad spam/ham and heavily overlaps ScamShield; exact overlaps are deduplicated.",
+            "Hindi evaluation is small and does not establish robust field accuracy.",
+            "This candidate is strictly for development diagnostics and research comparison."
+        ]
     }
     os.makedirs(os.path.dirname(os.path.abspath(args.report)), exist_ok=True)
     with open(args.report, "w", encoding="utf-8") as f:

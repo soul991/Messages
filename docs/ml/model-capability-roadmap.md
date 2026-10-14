@@ -15,6 +15,8 @@ Build the strongest SMS protection model that can be supported by representative
 - The available authored challenge has only 159 rows and is not a representative independent population. It is useful for detecting obvious distribution failures, but not for certifying safety or estimating production rates precisely.
 - The private 5,358-message remark corpus has message-type/redaction remarks, not adjudicated scam/ham labels. Do not convert its remarks into classifier labels. The mT5 remark model remains a private research checkpoint because it invents sender/brand details.
 - Keep deterministic protection authoritative and the AI gate off. No candidate currently clears the evidence gate for app integration.
+- **Owner Constraint & Infeasibility Notice (2026-10-15)**: The repository owner has confirmed that recruiting qualified annotators and constructing an independent human-labeled acceptance set are unavailable for now. Consequently, **release certification is infeasible**. All candidate work is strictly confined to an **honest research-only path**. The classifier must not be claimed as release-ready, and AI filtering must remain disabled in the Android application.
+
 
 ## Ordered work plan
 
@@ -79,14 +81,34 @@ Only after all gates pass, implement the model behind a default-off feature flag
 - [ ] Protected-message, zero unsafe-routing, Android parity, size, latency, and memory checks pass.
 - [ ] Human review, rollback path, feature-flag default, and monitoring plan are documented.
 
+## Honest Research-Only Path (When Human Acceptance Data is Unavailable)
+
+Given that independent human annotators and a blind human-labeled acceptance set cannot currently be recruited or constructed, the project operates under a strict **research-only charter**:
+
+1. **Strict Production Prohibition**:
+   - Do **not** claim the scam/fraud classifier is production-ready or release-ready.
+   - Do **not** enable automated AI filtering in Android Messages (`advanced_message_filtering` remains default `false`).
+   - Do **not** replace the bundled app asset based solely on research results or public benchmark splits.
+   - Deterministic rule protections and protected-message immunity remain authoritative.
+2. **What Feasible Research CAN Accomplish**:
+   - Audit public dataset licenses, label conventions, language variety, and cross-split duplicate leakage.
+   - Evaluate model architectures (character n-grams, compact character CNNs, student-teacher distillations) on development splits to understand parameter efficiency.
+   - Diagnose failure mechanisms (e.g., false-positive vulnerability on bank security advisories, recall drop on Devanagari Hindi).
+   - Verify Android runtime parity against Python training artifacts using deterministic fixtures.
+   - Maintain reproducible, aggregate-only experiment reports with per-language breakdowns, sample counts, and uncertainty intervals.
+3. **What Remains Impossible Without Human-Labeled Independent Data**:
+   - Unbiased estimation of real-world population false-positive and recall rates.
+   - Certifying safety against unseen adversarial campaigns and domestic message varieties.
+   - Clearing Phase 5 blind acceptance release gates for product deployment.
+
 ## Immediate next actions
 
-1. Keep all current classifier candidates offline and leave AI filtering disabled.
-2. Agree on supported language coverage, threat categories, protected-message policy, and numerical release thresholds.
-3. Design the consented human-labeling protocol and recruit native-language reviewers before collecting or labeling more examples.
-4. Create the private split manifest and blind acceptance set; keep it separate from training and development tooling.
-5. Reproduce the current baselines from pinned inputs, then use the new human review to target the largest evidenced gaps.
-6. Reassess compact model options only after the data and evaluation gates are in place.
+1. Maintain all experimental candidates offline and leave app AI filtering disabled.
+2. Maintain the cross-language Python/Kotlin parity test gate to guarantee runtime math alignment.
+3. Conduct source and leakage audits across public corpora to prevent benchmark contamination.
+4. Investigate development-only error mitigations (e.g. negative n-gram weights or context rules for benign bank advisories) without tuning on the already-used frozen challenge.
+5. Record all experimental results as development evidence only, never as release certification.
+
 
 ## Data and publication boundary
 

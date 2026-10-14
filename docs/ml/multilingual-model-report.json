@@ -1,4 +1,8 @@
 {
+  "evidenceType": "DEVELOPMENT_DIAGNOSTIC_ONLY",
+  "independentValidation": false,
+  "releaseReady": false,
+  "releaseCertificationStatus": "INFEASIBLE_WITHOUT_INDEPENDENT_HUMAN_DATA",
   "dataFiles": "Datasets",
   "malformedScamShieldRowsSkipped": {
     "train": 0,
@@ -28,7 +32,7 @@
   "languageBalancedTraining": true,
   "threshold": 0.1342,
   "featureCount": 20000,
-  "candidateBytes": 326396,
+  "candidateBytes": 326397,
   "validationSweep": [
     {
       "modelFamily": "naive_bayes",
@@ -39,6 +43,8 @@
       "macroValidationF1": 0.6446,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 50,
         "fp": 10,
         "fn": 29,
@@ -46,7 +52,20 @@
         "precision": 0.8333,
         "recall": 0.6329,
         "f1": 0.7194,
-        "fpr": 0.1695
+        "fpr": 0.1695,
+        "recall_ci95": [
+          0.5228,
+          0.7307
+        ],
+        "fpr_ci95": [
+          0.0948,
+          0.2846
+        ],
+        "precision_ci95": [
+          0.7197,
+          0.9069
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -58,6 +77,8 @@
       "macroValidationF1": 0.6331,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 49,
         "fp": 7,
         "fn": 30,
@@ -65,7 +86,20 @@
         "precision": 0.875,
         "recall": 0.6203,
         "f1": 0.7259,
-        "fpr": 0.1186
+        "fpr": 0.1186,
+        "recall_ci95": [
+          0.51,
+          0.7193
+        ],
+        "fpr_ci95": [
+          0.0587,
+          0.2252
+        ],
+        "precision_ci95": [
+          0.7637,
+          0.9381
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -77,6 +111,8 @@
       "macroValidationF1": 0.6272,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 49,
         "fp": 6,
         "fn": 30,
@@ -84,7 +120,20 @@
         "precision": 0.8909,
         "recall": 0.6203,
         "f1": 0.7313,
-        "fpr": 0.1017
+        "fpr": 0.1017,
+        "recall_ci95": [
+          0.51,
+          0.7193
+        ],
+        "fpr_ci95": [
+          0.0474,
+          0.2046
+        ],
+        "precision_ci95": [
+          0.7817,
+          0.949
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -96,6 +145,8 @@
       "macroValidationF1": 0.627,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 49,
         "fp": 6,
         "fn": 30,
@@ -103,7 +154,20 @@
         "precision": 0.8909,
         "recall": 0.6203,
         "f1": 0.7313,
-        "fpr": 0.1017
+        "fpr": 0.1017,
+        "recall_ci95": [
+          0.51,
+          0.7193
+        ],
+        "fpr_ci95": [
+          0.0474,
+          0.2046
+        ],
+        "precision_ci95": [
+          0.7817,
+          0.949
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -115,6 +179,8 @@
       "macroValidationF1": 0.6231,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 55,
         "fp": 3,
         "fn": 24,
@@ -122,7 +188,20 @@
         "precision": 0.9483,
         "recall": 0.6962,
         "f1": 0.8029,
-        "fpr": 0.0508
+        "fpr": 0.0508,
+        "recall_ci95": [
+          0.5877,
+          0.7866
+        ],
+        "fpr_ci95": [
+          0.0174,
+          0.1392
+        ],
+        "precision_ci95": [
+          0.8586,
+          0.9823
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -134,6 +213,8 @@
       "macroValidationF1": 0.6214,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 46,
         "fp": 4,
         "fn": 33,
@@ -141,7 +222,20 @@
         "precision": 0.92,
         "recall": 0.5823,
         "f1": 0.7132,
-        "fpr": 0.0678
+        "fpr": 0.0678,
+        "recall_ci95": [
+          0.4722,
+          0.6847
+        ],
+        "fpr_ci95": [
+          0.0267,
+          0.1618
+        ],
+        "precision_ci95": [
+          0.8116,
+          0.9685
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -153,6 +247,8 @@
       "macroValidationF1": 0.6102,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 50,
         "fp": 0,
         "fn": 29,
@@ -160,7 +256,20 @@
         "precision": 1.0,
         "recall": 0.6329,
         "f1": 0.7752,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.5228,
+          0.7307
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.9287,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -172,6 +281,8 @@
       "macroValidationF1": 0.6064,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 50,
         "fp": 0,
         "fn": 29,
@@ -179,7 +290,20 @@
         "precision": 1.0,
         "recall": 0.6329,
         "f1": 0.7752,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.5228,
+          0.7307
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.9287,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -191,6 +315,8 @@
       "macroValidationF1": 0.6031,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 49,
         "fp": 0,
         "fn": 30,
@@ -198,7 +324,20 @@
         "precision": 1.0,
         "recall": 0.6203,
         "f1": 0.7656,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.51,
+          0.7193
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.9273,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -210,6 +349,8 @@
       "macroValidationF1": 0.6005,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 57,
         "fp": 2,
         "fn": 22,
@@ -217,7 +358,20 @@
         "precision": 0.9661,
         "recall": 0.7215,
         "f1": 0.8261,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.6142,
+          0.8083
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.8846,
+          0.9907
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -229,6 +383,8 @@
       "macroValidationF1": 0.5917,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 47,
         "fp": 0,
         "fn": 32,
@@ -236,7 +392,20 @@
         "precision": 1.0,
         "recall": 0.5949,
         "f1": 0.746,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.4847,
+          0.6963
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.9244,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -248,6 +417,8 @@
       "macroValidationF1": 0.5896,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 39,
         "fp": 1,
         "fn": 40,
@@ -255,7 +426,20 @@
         "precision": 0.975,
         "recall": 0.4937,
         "f1": 0.6555,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3863,
+          0.6016
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8712,
+          0.9956
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -267,6 +451,8 @@
       "macroValidationF1": 0.5896,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 39,
         "fp": 1,
         "fn": 40,
@@ -274,7 +460,20 @@
         "precision": 0.975,
         "recall": 0.4937,
         "f1": 0.6555,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3863,
+          0.6016
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8712,
+          0.9956
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -286,6 +485,8 @@
       "macroValidationF1": 0.5896,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 39,
         "fp": 1,
         "fn": 40,
@@ -293,7 +494,20 @@
         "precision": 0.975,
         "recall": 0.4937,
         "f1": 0.6555,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3863,
+          0.6016
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8712,
+          0.9956
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -305,6 +519,8 @@
       "macroValidationF1": 0.5895,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 39,
         "fp": 1,
         "fn": 40,
@@ -312,7 +528,20 @@
         "precision": 0.975,
         "recall": 0.4937,
         "f1": 0.6555,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3863,
+          0.6016
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8712,
+          0.9956
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -324,6 +553,8 @@
       "macroValidationF1": 0.5888,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 39,
         "fp": 1,
         "fn": 40,
@@ -331,7 +562,20 @@
         "precision": 0.975,
         "recall": 0.4937,
         "f1": 0.6555,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3863,
+          0.6016
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8712,
+          0.9956
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -343,6 +587,8 @@
       "macroValidationF1": 0.5846,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 54,
         "fp": 0,
         "fn": 25,
@@ -350,7 +596,20 @@
         "precision": 1.0,
         "recall": 0.6835,
         "f1": 0.812,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.5745,
+          0.7755
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.9336,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -362,6 +621,8 @@
       "macroValidationF1": 0.5796,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 53,
         "fp": 0,
         "fn": 26,
@@ -369,7 +630,20 @@
         "precision": 1.0,
         "recall": 0.6709,
         "f1": 0.803,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.5615,
+          0.7645
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.9324,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -381,6 +655,8 @@
       "macroValidationF1": 0.5766,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 51,
         "fp": 0,
         "fn": 28,
@@ -388,7 +664,20 @@
         "precision": 1.0,
         "recall": 0.6456,
         "f1": 0.7846,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.5356,
+          0.742
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.93,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -400,6 +689,8 @@
       "macroValidationF1": 0.5628,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 47,
         "fp": 0,
         "fn": 32,
@@ -407,7 +698,20 @@
         "precision": 1.0,
         "recall": 0.5949,
         "f1": 0.746,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.4847,
+          0.6963
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.9244,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -419,6 +723,8 @@
       "macroValidationF1": 0.5625,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 18,
         "fp": 2,
         "fn": 61,
@@ -426,7 +732,20 @@
         "precision": 0.9,
         "recall": 0.2278,
         "f1": 0.3636,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.1493,
+          0.3317
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.699,
+          0.9721
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -438,6 +757,8 @@
       "macroValidationF1": 0.5625,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 18,
         "fp": 2,
         "fn": 61,
@@ -445,7 +766,20 @@
         "precision": 0.9,
         "recall": 0.2278,
         "f1": 0.3636,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.1493,
+          0.3317
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.699,
+          0.9721
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -457,6 +791,8 @@
       "macroValidationF1": 0.5625,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 18,
         "fp": 2,
         "fn": 61,
@@ -464,7 +800,20 @@
         "precision": 0.9,
         "recall": 0.2278,
         "f1": 0.3636,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.1493,
+          0.3317
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.699,
+          0.9721
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -476,6 +825,8 @@
       "macroValidationF1": 0.5625,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 18,
         "fp": 2,
         "fn": 61,
@@ -483,7 +834,20 @@
         "precision": 0.9,
         "recall": 0.2278,
         "f1": 0.3636,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.1493,
+          0.3317
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.699,
+          0.9721
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -495,6 +859,8 @@
       "macroValidationF1": 0.5619,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 18,
         "fp": 2,
         "fn": 61,
@@ -502,7 +868,20 @@
         "precision": 0.9,
         "recall": 0.2278,
         "f1": 0.3636,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.1493,
+          0.3317
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.699,
+          0.9721
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -514,6 +893,8 @@
       "macroValidationF1": 0.5516,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 51,
         "fp": 1,
         "fn": 28,
@@ -521,7 +902,20 @@
         "precision": 0.9808,
         "recall": 0.6456,
         "f1": 0.7786,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.5356,
+          0.742
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8988,
+          0.9966
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -533,6 +927,8 @@
       "macroValidationF1": 0.5515,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 51,
         "fp": 1,
         "fn": 28,
@@ -540,7 +936,20 @@
         "precision": 0.9808,
         "recall": 0.6456,
         "f1": 0.7786,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.5356,
+          0.742
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8988,
+          0.9966
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -552,6 +961,8 @@
       "macroValidationF1": 0.5515,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 51,
         "fp": 1,
         "fn": 28,
@@ -559,7 +970,20 @@
         "precision": 0.9808,
         "recall": 0.6456,
         "f1": 0.7786,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.5356,
+          0.742
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8988,
+          0.9966
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -571,6 +995,8 @@
       "macroValidationF1": 0.5515,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 51,
         "fp": 1,
         "fn": 28,
@@ -578,7 +1004,20 @@
         "precision": 0.9808,
         "recall": 0.6456,
         "f1": 0.7786,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.5356,
+          0.742
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8988,
+          0.9966
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -590,6 +1029,8 @@
       "macroValidationF1": 0.5366,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 49,
         "fp": 1,
         "fn": 30,
@@ -597,7 +1038,20 @@
         "precision": 0.98,
         "recall": 0.6203,
         "f1": 0.7597,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.51,
+          0.7193
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.895,
+          0.9965
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -609,6 +1063,8 @@
       "macroValidationF1": 0.5303,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 55,
         "fp": 1,
         "fn": 24,
@@ -616,7 +1072,20 @@
         "precision": 0.9821,
         "recall": 0.6962,
         "f1": 0.8148,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.5877,
+          0.7866
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.9055,
+          0.9968
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -628,6 +1097,8 @@
       "macroValidationF1": 0.5252,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 54,
         "fp": 1,
         "fn": 25,
@@ -635,7 +1106,20 @@
         "precision": 0.9818,
         "recall": 0.6835,
         "f1": 0.806,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.5745,
+          0.7755
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.9039,
+          0.9968
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -647,6 +1131,8 @@
       "macroValidationF1": 0.525,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 54,
         "fp": 1,
         "fn": 25,
@@ -654,7 +1140,20 @@
         "precision": 0.9818,
         "recall": 0.6835,
         "f1": 0.806,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.5745,
+          0.7755
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.9039,
+          0.9968
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -666,6 +1165,8 @@
       "macroValidationF1": 0.5227,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 52,
         "fp": 1,
         "fn": 27,
@@ -673,7 +1174,20 @@
         "precision": 0.9811,
         "recall": 0.6582,
         "f1": 0.7879,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.5485,
+          0.7533
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.9006,
+          0.9967
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -685,6 +1199,8 @@
       "macroValidationF1": 0.5164,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 49,
         "fp": 1,
         "fn": 30,
@@ -692,7 +1208,20 @@
         "precision": 0.98,
         "recall": 0.6203,
         "f1": 0.7597,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.51,
+          0.7193
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.895,
+          0.9965
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -704,6 +1233,8 @@
       "macroValidationF1": 0.43,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 50,
         "fp": 1,
         "fn": 29,
@@ -711,7 +1242,20 @@
         "precision": 0.9804,
         "recall": 0.6329,
         "f1": 0.7692,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.5228,
+          0.7307
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.897,
+          0.9965
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -723,6 +1267,8 @@
       "macroValidationF1": 0.4043,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 44,
         "fp": 1,
         "fn": 35,
@@ -730,7 +1276,20 @@
         "precision": 0.9778,
         "recall": 0.557,
         "f1": 0.7097,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.4473,
+          0.6613
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8843,
+          0.9961
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -742,6 +1301,8 @@
       "macroValidationF1": 0.3828,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 4,
         "fp": 0,
         "fn": 75,
@@ -749,7 +1310,20 @@
         "precision": 1.0,
         "recall": 0.0506,
         "f1": 0.0964,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0199,
+          0.1231
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.5101,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -761,6 +1335,8 @@
       "macroValidationF1": 0.3827,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 4,
         "fp": 0,
         "fn": 75,
@@ -768,7 +1344,20 @@
         "precision": 1.0,
         "recall": 0.0506,
         "f1": 0.0964,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0199,
+          0.1231
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.5101,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -780,6 +1369,8 @@
       "macroValidationF1": 0.3827,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 4,
         "fp": 0,
         "fn": 75,
@@ -787,7 +1378,20 @@
         "precision": 1.0,
         "recall": 0.0506,
         "f1": 0.0964,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0199,
+          0.1231
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.5101,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -799,6 +1403,8 @@
       "macroValidationF1": 0.3826,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 4,
         "fp": 0,
         "fn": 75,
@@ -806,7 +1412,20 @@
         "precision": 1.0,
         "recall": 0.0506,
         "f1": 0.0964,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0199,
+          0.1231
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.5101,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -818,6 +1437,8 @@
       "macroValidationF1": 0.3826,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 4,
         "fp": 0,
         "fn": 75,
@@ -825,7 +1446,20 @@
         "precision": 1.0,
         "recall": 0.0506,
         "f1": 0.0964,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0199,
+          0.1231
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.5101,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -837,6 +1471,8 @@
       "macroValidationF1": 0.3786,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 7,
         "fp": 0,
         "fn": 72,
@@ -844,7 +1480,20 @@
         "precision": 1.0,
         "recall": 0.0886,
         "f1": 0.1628,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0436,
+          0.1718
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.6457,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -856,6 +1505,8 @@
       "macroValidationF1": 0.3786,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 7,
         "fp": 0,
         "fn": 72,
@@ -863,7 +1514,20 @@
         "precision": 1.0,
         "recall": 0.0886,
         "f1": 0.1628,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0436,
+          0.1718
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.6457,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -875,6 +1539,8 @@
       "macroValidationF1": 0.3786,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 7,
         "fp": 0,
         "fn": 72,
@@ -882,7 +1548,20 @@
         "precision": 1.0,
         "recall": 0.0886,
         "f1": 0.1628,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0436,
+          0.1718
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.6457,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -894,6 +1573,8 @@
       "macroValidationF1": 0.3785,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 7,
         "fp": 0,
         "fn": 72,
@@ -901,7 +1582,20 @@
         "precision": 1.0,
         "recall": 0.0886,
         "f1": 0.1628,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0436,
+          0.1718
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.6457,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -913,6 +1607,8 @@
       "macroValidationF1": 0.3785,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 7,
         "fp": 0,
         "fn": 72,
@@ -920,7 +1616,20 @@
         "precision": 1.0,
         "recall": 0.0886,
         "f1": 0.1628,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0436,
+          0.1718
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.6457,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -932,6 +1641,8 @@
       "macroValidationF1": 0.3784,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 37,
         "fp": 1,
         "fn": 42,
@@ -939,7 +1650,20 @@
         "precision": 0.9737,
         "recall": 0.4684,
         "f1": 0.6325,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3624,
+          0.5773
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8651,
+          0.9953
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -951,6 +1675,8 @@
       "macroValidationF1": 0.3783,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 37,
         "fp": 1,
         "fn": 42,
@@ -958,7 +1684,20 @@
         "precision": 0.9737,
         "recall": 0.4684,
         "f1": 0.6325,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3624,
+          0.5773
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8651,
+          0.9953
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -970,6 +1709,8 @@
       "macroValidationF1": 0.3783,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 37,
         "fp": 1,
         "fn": 42,
@@ -977,7 +1718,20 @@
         "precision": 0.9737,
         "recall": 0.4684,
         "f1": 0.6325,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3624,
+          0.5773
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8651,
+          0.9953
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -989,6 +1743,8 @@
       "macroValidationF1": 0.3782,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 37,
         "fp": 1,
         "fn": 42,
@@ -996,7 +1752,20 @@
         "precision": 0.9737,
         "recall": 0.4684,
         "f1": 0.6325,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3624,
+          0.5773
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8651,
+          0.9953
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1008,6 +1777,8 @@
       "macroValidationF1": 0.368,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 9,
         "fp": 0,
         "fn": 70,
@@ -1015,7 +1786,20 @@
         "precision": 1.0,
         "recall": 0.1139,
         "f1": 0.2045,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0611,
+          0.2025
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7009,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1027,6 +1811,8 @@
       "macroValidationF1": 0.368,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 9,
         "fp": 0,
         "fn": 70,
@@ -1034,7 +1820,20 @@
         "precision": 1.0,
         "recall": 0.1139,
         "f1": 0.2045,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0611,
+          0.2025
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7009,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1046,6 +1845,8 @@
       "macroValidationF1": 0.3679,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 9,
         "fp": 0,
         "fn": 70,
@@ -1053,7 +1854,20 @@
         "precision": 1.0,
         "recall": 0.1139,
         "f1": 0.2045,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0611,
+          0.2025
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7009,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1065,6 +1879,8 @@
       "macroValidationF1": 0.3679,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 9,
         "fp": 0,
         "fn": 70,
@@ -1072,7 +1888,20 @@
         "precision": 1.0,
         "recall": 0.1139,
         "f1": 0.2045,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0611,
+          0.2025
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7009,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1084,6 +1913,8 @@
       "macroValidationF1": 0.3679,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 9,
         "fp": 0,
         "fn": 70,
@@ -1091,7 +1922,20 @@
         "precision": 1.0,
         "recall": 0.1139,
         "f1": 0.2045,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0611,
+          0.2025
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7009,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1103,6 +1947,8 @@
       "macroValidationF1": 0.3522,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 12,
         "fp": 0,
         "fn": 67,
@@ -1110,7 +1956,20 @@
         "precision": 1.0,
         "recall": 0.1519,
         "f1": 0.2637,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0891,
+          0.247
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7575,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1122,6 +1981,8 @@
       "macroValidationF1": 0.3522,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 12,
         "fp": 0,
         "fn": 67,
@@ -1129,7 +1990,20 @@
         "precision": 1.0,
         "recall": 0.1519,
         "f1": 0.2637,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0891,
+          0.247
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7575,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1141,6 +2015,8 @@
       "macroValidationF1": 0.3521,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 12,
         "fp": 0,
         "fn": 67,
@@ -1148,7 +2024,20 @@
         "precision": 1.0,
         "recall": 0.1519,
         "f1": 0.2637,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0891,
+          0.247
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7575,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1160,6 +2049,8 @@
       "macroValidationF1": 0.3521,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 12,
         "fp": 0,
         "fn": 67,
@@ -1167,7 +2058,20 @@
         "precision": 1.0,
         "recall": 0.1519,
         "f1": 0.2637,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0891,
+          0.247
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7575,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1179,6 +2083,8 @@
       "macroValidationF1": 0.352,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 12,
         "fp": 0,
         "fn": 67,
@@ -1186,7 +2092,20 @@
         "precision": 1.0,
         "recall": 0.1519,
         "f1": 0.2637,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0891,
+          0.247
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.7575,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1198,6 +2117,8 @@
       "macroValidationF1": 0.3497,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 32,
         "fp": 1,
         "fn": 47,
@@ -1205,7 +2126,20 @@
         "precision": 0.9697,
         "recall": 0.4051,
         "f1": 0.5714,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3037,
+          0.5153
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8468,
+          0.9946
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1217,6 +2151,8 @@
       "macroValidationF1": 0.3497,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 32,
         "fp": 1,
         "fn": 47,
@@ -1224,7 +2160,20 @@
         "precision": 0.9697,
         "recall": 0.4051,
         "f1": 0.5714,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3037,
+          0.5153
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8468,
+          0.9946
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1236,6 +2185,8 @@
       "macroValidationF1": 0.3496,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 32,
         "fp": 1,
         "fn": 47,
@@ -1243,7 +2194,20 @@
         "precision": 0.9697,
         "recall": 0.4051,
         "f1": 0.5714,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3037,
+          0.5153
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8468,
+          0.9946
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1255,6 +2219,8 @@
       "macroValidationF1": 0.3495,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 32,
         "fp": 1,
         "fn": 47,
@@ -1262,7 +2228,20 @@
         "precision": 0.9697,
         "recall": 0.4051,
         "f1": 0.5714,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.3037,
+          0.5153
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8468,
+          0.9946
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1274,6 +2253,8 @@
       "macroValidationF1": 0.3171,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 30,
         "fp": 0,
         "fn": 49,
@@ -1281,7 +2262,20 @@
         "precision": 1.0,
         "recall": 0.3797,
         "f1": 0.5505,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2807,
+          0.49
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8865,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1293,6 +2287,8 @@
       "macroValidationF1": 0.317,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 30,
         "fp": 0,
         "fn": 49,
@@ -1300,7 +2296,20 @@
         "precision": 1.0,
         "recall": 0.3797,
         "f1": 0.5505,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2807,
+          0.49
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8865,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1312,6 +2321,8 @@
       "macroValidationF1": 0.317,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 30,
         "fp": 0,
         "fn": 49,
@@ -1319,7 +2330,20 @@
         "precision": 1.0,
         "recall": 0.3797,
         "f1": 0.5505,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2807,
+          0.49
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8865,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1331,6 +2355,8 @@
       "macroValidationF1": 0.317,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 30,
         "fp": 0,
         "fn": 49,
@@ -1338,7 +2364,20 @@
         "precision": 1.0,
         "recall": 0.3797,
         "f1": 0.5505,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2807,
+          0.49
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8865,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1350,6 +2389,8 @@
       "macroValidationF1": 0.317,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 30,
         "fp": 0,
         "fn": 49,
@@ -1357,7 +2398,20 @@
         "precision": 1.0,
         "recall": 0.3797,
         "f1": 0.5505,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2807,
+          0.49
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8865,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1369,6 +2423,8 @@
       "macroValidationF1": 0.3138,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 17,
         "fp": 0,
         "fn": 62,
@@ -1376,7 +2432,20 @@
         "precision": 1.0,
         "recall": 0.2152,
         "f1": 0.3542,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.1389,
+          0.3179
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8157,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1388,6 +2457,8 @@
       "macroValidationF1": 0.3116,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1395,7 +2466,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1407,6 +2491,8 @@
       "macroValidationF1": 0.3116,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1414,7 +2500,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1426,6 +2525,8 @@
       "macroValidationF1": 0.3116,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1433,7 +2534,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1445,6 +2559,8 @@
       "macroValidationF1": 0.3115,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1452,7 +2568,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1464,6 +2593,8 @@
       "macroValidationF1": 0.3115,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1471,7 +2602,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1483,6 +2627,8 @@
       "macroValidationF1": 0.3048,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 21,
         "fp": 1,
         "fn": 58,
@@ -1490,7 +2636,20 @@
         "precision": 0.9545,
         "recall": 0.2658,
         "f1": 0.4158,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.1809,
+          0.3724
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.782,
+          0.9919
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1502,6 +2661,8 @@
       "macroValidationF1": 0.3047,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 21,
         "fp": 1,
         "fn": 58,
@@ -1509,7 +2670,20 @@
         "precision": 0.9545,
         "recall": 0.2658,
         "f1": 0.4158,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.1809,
+          0.3724
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.782,
+          0.9919
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1521,6 +2695,8 @@
       "macroValidationF1": 0.3047,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 21,
         "fp": 1,
         "fn": 58,
@@ -1528,7 +2704,20 @@
         "precision": 0.9545,
         "recall": 0.2658,
         "f1": 0.4158,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.1809,
+          0.3724
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.782,
+          0.9919
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1540,6 +2729,8 @@
       "macroValidationF1": 0.3046,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 21,
         "fp": 1,
         "fn": 58,
@@ -1547,7 +2738,20 @@
         "precision": 0.9545,
         "recall": 0.2658,
         "f1": 0.4158,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.1809,
+          0.3724
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.782,
+          0.9919
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1559,6 +2763,8 @@
       "macroValidationF1": 0.3046,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 21,
         "fp": 1,
         "fn": 58,
@@ -1566,7 +2772,20 @@
         "precision": 0.9545,
         "recall": 0.2658,
         "f1": 0.4158,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.1809,
+          0.3724
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.782,
+          0.9919
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1578,6 +2797,8 @@
       "macroValidationF1": 0.2947,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 41,
         "fp": 1,
         "fn": 38,
@@ -1585,7 +2806,20 @@
         "precision": 0.9762,
         "recall": 0.519,
         "f1": 0.6777,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.4105,
+          0.6257
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8768,
+          0.9958
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1597,6 +2831,8 @@
       "macroValidationF1": 0.2852,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 16,
         "fp": 0,
         "fn": 63,
@@ -1604,7 +2840,20 @@
         "precision": 1.0,
         "recall": 0.2025,
         "f1": 0.3368,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.1287,
+          0.304
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8064,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1616,6 +2865,8 @@
       "macroValidationF1": 0.2851,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 16,
         "fp": 0,
         "fn": 63,
@@ -1623,7 +2874,20 @@
         "precision": 1.0,
         "recall": 0.2025,
         "f1": 0.3368,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.1287,
+          0.304
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8064,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1635,6 +2899,8 @@
       "macroValidationF1": 0.2849,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 16,
         "fp": 0,
         "fn": 63,
@@ -1642,7 +2908,20 @@
         "precision": 1.0,
         "recall": 0.2025,
         "f1": 0.3368,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.1287,
+          0.304
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8064,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1654,6 +2933,8 @@
       "macroValidationF1": 0.2849,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 16,
         "fp": 0,
         "fn": 63,
@@ -1661,7 +2942,20 @@
         "precision": 1.0,
         "recall": 0.2025,
         "f1": 0.3368,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.1287,
+          0.304
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8064,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1673,6 +2967,8 @@
       "macroValidationF1": 0.2617,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 13,
         "fp": 2,
         "fn": 66,
@@ -1680,7 +2976,20 @@
         "precision": 0.8667,
         "recall": 0.1646,
         "f1": 0.2766,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.0988,
+          0.2615
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.6212,
+          0.9626
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1692,6 +3001,8 @@
       "macroValidationF1": 0.2616,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 13,
         "fp": 2,
         "fn": 66,
@@ -1699,7 +3010,20 @@
         "precision": 0.8667,
         "recall": 0.1646,
         "f1": 0.2766,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.0988,
+          0.2615
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.6212,
+          0.9626
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1711,6 +3035,8 @@
       "macroValidationF1": 0.2616,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 13,
         "fp": 2,
         "fn": 66,
@@ -1718,7 +3044,20 @@
         "precision": 0.8667,
         "recall": 0.1646,
         "f1": 0.2766,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.0988,
+          0.2615
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.6212,
+          0.9626
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1730,6 +3069,8 @@
       "macroValidationF1": 0.2615,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 13,
         "fp": 2,
         "fn": 66,
@@ -1737,7 +3078,20 @@
         "precision": 0.8667,
         "recall": 0.1646,
         "f1": 0.2766,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.0988,
+          0.2615
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.6212,
+          0.9626
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1749,6 +3103,8 @@
       "macroValidationF1": 0.2615,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 13,
         "fp": 2,
         "fn": 66,
@@ -1756,7 +3112,20 @@
         "precision": 0.8667,
         "recall": 0.1646,
         "f1": 0.2766,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.0988,
+          0.2615
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.6212,
+          0.9626
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1768,6 +3137,8 @@
       "macroValidationF1": 0.239,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 24,
         "fp": 1,
         "fn": 55,
@@ -1775,7 +3146,20 @@
         "precision": 0.96,
         "recall": 0.3038,
         "f1": 0.4615,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.2134,
+          0.4123
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8046,
+          0.9929
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1787,6 +3171,8 @@
       "macroValidationF1": 0.2389,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 24,
         "fp": 1,
         "fn": 55,
@@ -1794,7 +3180,20 @@
         "precision": 0.96,
         "recall": 0.3038,
         "f1": 0.4615,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.2134,
+          0.4123
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8046,
+          0.9929
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1806,6 +3205,8 @@
       "macroValidationF1": 0.2388,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 24,
         "fp": 1,
         "fn": 55,
@@ -1813,7 +3214,20 @@
         "precision": 0.96,
         "recall": 0.3038,
         "f1": 0.4615,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.2134,
+          0.4123
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8046,
+          0.9929
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1825,6 +3239,8 @@
       "macroValidationF1": 0.2387,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 24,
         "fp": 1,
         "fn": 55,
@@ -1832,7 +3248,20 @@
         "precision": 0.96,
         "recall": 0.3038,
         "f1": 0.4615,
-        "fpr": 0.0169
+        "fpr": 0.0169,
+        "recall_ci95": [
+          0.2134,
+          0.4123
+        ],
+        "fpr_ci95": [
+          0.003,
+          0.09
+        ],
+        "precision_ci95": [
+          0.8046,
+          0.9929
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1844,6 +3273,8 @@
       "macroValidationF1": 0.2199,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1851,7 +3282,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1863,6 +3307,8 @@
       "macroValidationF1": 0.2199,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1870,7 +3316,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1882,6 +3341,8 @@
       "macroValidationF1": 0.2198,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1889,7 +3350,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1901,6 +3375,8 @@
       "macroValidationF1": 0.2198,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1908,7 +3384,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     {
@@ -1920,6 +3409,8 @@
       "macroValidationF1": 0.2196,
       "appAuthoredHoldoutDiagnostic": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 25,
         "fp": 0,
         "fn": 54,
@@ -1927,7 +3418,20 @@
         "precision": 1.0,
         "recall": 0.3165,
         "f1": 0.4808,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.2245,
+          0.4255
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.8668,
+          1.0
+        ],
+        "inconclusive": false
       }
     }
   ],
@@ -1935,6 +3439,8 @@
     "byLanguage": {
       "bn": {
         "gold": 527,
+        "gold_scam": 211,
+        "gold_ham": 316,
         "tp": 188,
         "fp": 2,
         "fn": 23,
@@ -1942,10 +3448,25 @@
         "precision": 0.9895,
         "recall": 0.891,
         "f1": 0.9377,
-        "fpr": 0.0063
+        "fpr": 0.0063,
+        "recall_ci95": [
+          0.8417,
+          0.9263
+        ],
+        "fpr_ci95": [
+          0.0017,
+          0.0228
+        ],
+        "precision_ci95": [
+          0.9624,
+          0.9971
+        ],
+        "inconclusive": false
       },
       "en": {
         "gold": 7804,
+        "gold_scam": 2972,
+        "gold_ham": 4832,
         "tp": 1533,
         "fp": 48,
         "fn": 1439,
@@ -1953,10 +3474,25 @@
         "precision": 0.9696,
         "recall": 0.5158,
         "f1": 0.6734,
-        "fpr": 0.0099
+        "fpr": 0.0099,
+        "recall_ci95": [
+          0.4978,
+          0.5337
+        ],
+        "fpr_ci95": [
+          0.0075,
+          0.0131
+        ],
+        "precision_ci95": [
+          0.96,
+          0.977
+        ],
+        "inconclusive": false
       },
       "hi": {
         "gold": 456,
+        "gold_scam": 9,
+        "gold_ham": 447,
         "tp": 0,
         "fp": 0,
         "fn": 9,
@@ -1964,10 +3500,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.2991
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0085
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       },
       "hinglish": {
         "gold": 105,
+        "gold_scam": 95,
+        "gold_ham": 10,
         "tp": 89,
         "fp": 0,
         "fn": 6,
@@ -1975,12 +3526,27 @@
         "precision": 1.0,
         "recall": 0.9368,
         "f1": 0.9674,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.869,
+          0.9707
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2775
+        ],
+        "precision_ci95": [
+          0.9586,
+          1.0
+        ],
+        "inconclusive": true
       }
     },
     "bySource": {
       "bengali:Banglish": {
         "gold": 180,
+        "gold_scam": 71,
+        "gold_ham": 109,
         "tp": 59,
         "fp": 0,
         "fn": 12,
@@ -1988,10 +3554,25 @@
         "precision": 1.0,
         "recall": 0.831,
         "f1": 0.9077,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.7274,
+          0.9006
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.034
+        ],
+        "precision_ci95": [
+          0.9389,
+          1.0
+        ],
+        "inconclusive": false
       },
       "bengali:Bengali": {
         "gold": 179,
+        "gold_scam": 71,
+        "gold_ham": 108,
         "tp": 66,
         "fp": 2,
         "fn": 5,
@@ -1999,10 +3580,25 @@
         "precision": 0.9706,
         "recall": 0.9296,
         "f1": 0.9496,
-        "fpr": 0.0185
+        "fpr": 0.0185,
+        "recall_ci95": [
+          0.8455,
+          0.9695
+        ],
+        "fpr_ci95": [
+          0.0051,
+          0.065
+        ],
+        "precision_ci95": [
+          0.899,
+          0.9919
+        ],
+        "inconclusive": false
       },
       "bengali:CodeMix": {
         "gold": 168,
+        "gold_scam": 69,
+        "gold_ham": 99,
         "tp": 63,
         "fp": 0,
         "fn": 6,
@@ -2010,10 +3606,25 @@
         "precision": 1.0,
         "recall": 0.913,
         "f1": 0.9545,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.823,
+          0.9595
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0374
+        ],
+        "precision_ci95": [
+          0.9425,
+          1.0
+        ],
+        "inconclusive": false
       },
       "bengali:English": {
         "gold": 174,
+        "gold_scam": 71,
+        "gold_ham": 103,
         "tp": 61,
         "fp": 1,
         "fn": 10,
@@ -2021,10 +3632,25 @@
         "precision": 0.9839,
         "recall": 0.8592,
         "f1": 0.9173,
-        "fpr": 0.0097
+        "fpr": 0.0097,
+        "recall_ci95": [
+          0.7598,
+          0.9217
+        ],
+        "fpr_ci95": [
+          0.0017,
+          0.053
+        ],
+        "precision_ci95": [
+          0.9141,
+          0.9971
+        ],
+        "inconclusive": false
       },
       "scamshield:Benchmark_Ground_Truth": {
         "gold": 3,
+        "gold_scam": 1,
+        "gold_ham": 2,
         "tp": 0,
         "fp": 0,
         "fn": 1,
@@ -2032,10 +3658,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.7935
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.6576
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       },
       "scamshield:Indian_Telecom_SMS": {
         "gold": 189,
+        "gold_scam": 64,
+        "gold_ham": 125,
         "tp": 39,
         "fp": 3,
         "fn": 25,
@@ -2043,10 +3684,25 @@
         "precision": 0.9286,
         "recall": 0.6094,
         "f1": 0.7358,
-        "fpr": 0.024
+        "fpr": 0.024,
+        "recall_ci95": [
+          0.4869,
+          0.7194
+        ],
+        "fpr_ci95": [
+          0.0082,
+          0.0682
+        ],
+        "precision_ci95": [
+          0.8099,
+          0.9754
+        ],
+        "inconclusive": false
       },
       "scamshield:Kaggle_Hindi_Merged": {
         "gold": 455,
+        "gold_scam": 8,
+        "gold_ham": 447,
         "tp": 0,
         "fp": 0,
         "fn": 8,
@@ -2054,10 +3710,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.3244
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0085
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       },
       "scamshield:Smishing_Dataset": {
         "gold": 6954,
+        "gold_scam": 2809,
+        "gold_ham": 4145,
         "tp": 1437,
         "fp": 40,
         "fn": 1372,
@@ -2065,10 +3736,25 @@
         "precision": 0.9729,
         "recall": 0.5116,
         "f1": 0.6706,
-        "fpr": 0.0097
+        "fpr": 0.0097,
+        "recall_ci95": [
+          0.4931,
+          0.53
+        ],
+        "fpr_ci95": [
+          0.0071,
+          0.0131
+        ],
+        "precision_ci95": [
+          0.9633,
+          0.98
+        ],
+        "inconclusive": false
       },
       "scamshield:UCI_SMS_Spam": {
         "gold": 514,
+        "gold_scam": 58,
+        "gold_ham": 456,
         "tp": 20,
         "fp": 4,
         "fn": 38,
@@ -2076,10 +3762,25 @@
         "precision": 0.8333,
         "recall": 0.3448,
         "f1": 0.4878,
-        "fpr": 0.0088
+        "fpr": 0.0088,
+        "recall_ci95": [
+          0.2356,
+          0.4733
+        ],
+        "fpr_ci95": [
+          0.0034,
+          0.0223
+        ],
+        "precision_ci95": [
+          0.6415,
+          0.9332
+        ],
+        "inconclusive": false
       },
       "scamshield:ysangam/Indian_Cyber_Scam_Hinglish": {
         "gold": 76,
+        "gold_scam": 65,
+        "gold_ham": 11,
         "tp": 65,
         "fp": 0,
         "fn": 0,
@@ -2087,7 +3788,230 @@
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.9442,
+          1.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2588
+        ],
+        "precision_ci95": [
+          0.9442,
+          1.0
+        ],
+        "inconclusive": true
+      }
+    },
+    "byBenignSubtype": {
+      "normal": {
+        "gold": 248,
+        "gold_scam": 0,
+        "gold_ham": 248,
+        "tp": 0,
+        "fp": 1,
+        "fn": 0,
+        "tn": 247,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.004,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0007,
+          0.0225
+        ],
+        "precision_ci95": [
+          0.0,
+          0.7935
+        ],
+        "inconclusive": true
+      },
+      "promo": {
+        "gold": 171,
+        "gold_scam": 0,
+        "gold_ham": 171,
+        "tp": 0,
+        "fp": 2,
+        "fn": 0,
+        "tn": 169,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0117,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0032,
+          0.0416
+        ],
+        "precision_ci95": [
+          0.0,
+          0.6576
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Benchmark_Ground_Truth": {
+        "gold": 2,
+        "gold_scam": 0,
+        "gold_ham": 2,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.6576
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Indian_Telecom_SMS": {
+        "gold": 125,
+        "gold_scam": 0,
+        "gold_ham": 125,
+        "tp": 0,
+        "fp": 3,
+        "fn": 0,
+        "tn": 122,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.024,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0082,
+          0.0682
+        ],
+        "precision_ci95": [
+          0.0,
+          0.5615
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Kaggle_Hindi_Merged": {
+        "gold": 447,
+        "gold_scam": 0,
+        "gold_ham": 447,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 447,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0085
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Smishing_Dataset": {
+        "gold": 4145,
+        "gold_scam": 0,
+        "gold_ham": 4145,
+        "tp": 0,
+        "fp": 40,
+        "fn": 0,
+        "tn": 4105,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0097,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0071,
+          0.0131
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0876
+        ],
+        "inconclusive": true
+      },
+      "scamshield_UCI_SMS_Spam": {
+        "gold": 456,
+        "gold_scam": 0,
+        "gold_ham": 456,
+        "tp": 0,
+        "fp": 4,
+        "fn": 0,
+        "tn": 452,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0088,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0034,
+          0.0223
+        ],
+        "precision_ci95": [
+          0.0,
+          0.4899
+        ],
+        "inconclusive": true
+      },
+      "scamshield_ysangam/Indian_Cyber_Scam_Hinglish": {
+        "gold": 11,
+        "gold_scam": 0,
+        "gold_ham": 11,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 11,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2588
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       }
     }
   },
@@ -2105,6 +4029,8 @@
         "byLanguage": {
           "bengali": {
             "gold": 343,
+            "gold_scam": 140,
+            "gold_ham": 203,
             "tp": 137,
             "fp": 2,
             "fn": 3,
@@ -2112,12 +4038,27 @@
             "precision": 0.9856,
             "recall": 0.9786,
             "f1": 0.9821,
-            "fpr": 0.0099
+            "fpr": 0.0099,
+            "recall_ci95": [
+              0.9389,
+              0.9927
+            ],
+            "fpr_ci95": [
+              0.0027,
+              0.0352
+            ],
+            "precision_ci95": [
+              0.9491,
+              0.996
+            ],
+            "inconclusive": false
           }
         },
         "bySource": {
           "bengali:Bengali": {
             "gold": 179,
+            "gold_scam": 71,
+            "gold_ham": 108,
             "tp": 69,
             "fp": 1,
             "fn": 2,
@@ -2125,10 +4066,25 @@
             "precision": 0.9857,
             "recall": 0.9718,
             "f1": 0.9787,
-            "fpr": 0.0093
+            "fpr": 0.0093,
+            "recall_ci95": [
+              0.903,
+              0.9922
+            ],
+            "fpr_ci95": [
+              0.0016,
+              0.0506
+            ],
+            "precision_ci95": [
+              0.9234,
+              0.9975
+            ],
+            "inconclusive": false
           },
           "bengali:CodeMix": {
             "gold": 164,
+            "gold_scam": 69,
+            "gold_ham": 95,
             "tp": 68,
             "fp": 1,
             "fn": 1,
@@ -2136,7 +4092,74 @@
             "precision": 0.9855,
             "recall": 0.9855,
             "f1": 0.9855,
-            "fpr": 0.0105
+            "fpr": 0.0105,
+            "recall_ci95": [
+              0.9224,
+              0.9974
+            ],
+            "fpr_ci95": [
+              0.0019,
+              0.0572
+            ],
+            "precision_ci95": [
+              0.9224,
+              0.9974
+            ],
+            "inconclusive": false
+          }
+        },
+        "byBenignSubtype": {
+          "normal": {
+            "gold": 120,
+            "gold_scam": 0,
+            "gold_ham": 120,
+            "tp": 0,
+            "fp": 2,
+            "fn": 0,
+            "tn": 118,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0167,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0046,
+              0.0587
+            ],
+            "precision_ci95": [
+              0.0,
+              0.6576
+            ],
+            "inconclusive": true
+          },
+          "promo": {
+            "gold": 83,
+            "gold_scam": 0,
+            "gold_ham": 83,
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 83,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.0442
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0
+            ],
+            "inconclusive": true
           }
         }
       },
@@ -2144,6 +4167,8 @@
         "byLanguage": {
           "bengali": {
             "gold": 689,
+            "gold_scam": 277,
+            "gold_ham": 412,
             "tp": 265,
             "fp": 6,
             "fn": 12,
@@ -2151,12 +4176,27 @@
             "precision": 0.9779,
             "recall": 0.9567,
             "f1": 0.9672,
-            "fpr": 0.0146
+            "fpr": 0.0146,
+            "recall_ci95": [
+              0.9258,
+              0.975
+            ],
+            "fpr_ci95": [
+              0.0067,
+              0.0314
+            ],
+            "precision_ci95": [
+              0.9525,
+              0.9898
+            ],
+            "inconclusive": false
           }
         },
         "bySource": {
           "bengali:Bengali": {
             "gold": 357,
+            "gold_scam": 141,
+            "gold_ham": 216,
             "tp": 135,
             "fp": 0,
             "fn": 6,
@@ -2164,10 +4204,25 @@
             "precision": 1.0,
             "recall": 0.9574,
             "f1": 0.9783,
-            "fpr": 0.0
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.9103,
+              0.9804
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.0175
+            ],
+            "precision_ci95": [
+              0.9723,
+              1.0
+            ],
+            "inconclusive": false
           },
           "bengali:CodeMix": {
             "gold": 332,
+            "gold_scam": 136,
+            "gold_ham": 196,
             "tp": 130,
             "fp": 6,
             "fn": 6,
@@ -2175,13 +4230,81 @@
             "precision": 0.9559,
             "recall": 0.9559,
             "f1": 0.9559,
-            "fpr": 0.0306
+            "fpr": 0.0306,
+            "recall_ci95": [
+              0.9071,
+              0.9796
+            ],
+            "fpr_ci95": [
+              0.0141,
+              0.0652
+            ],
+            "precision_ci95": [
+              0.9071,
+              0.9796
+            ],
+            "inconclusive": false
+          }
+        },
+        "byBenignSubtype": {
+          "normal": {
+            "gold": 247,
+            "gold_scam": 0,
+            "gold_ham": 247,
+            "tp": 0,
+            "fp": 3,
+            "fn": 0,
+            "tn": 244,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0121,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0041,
+              0.0351
+            ],
+            "precision_ci95": [
+              0.0,
+              0.5615
+            ],
+            "inconclusive": true
+          },
+          "promo": {
+            "gold": 165,
+            "gold_scam": 0,
+            "gold_ham": 165,
+            "tp": 0,
+            "fp": 3,
+            "fn": 0,
+            "tn": 162,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0182,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0062,
+              0.0521
+            ],
+            "precision_ci95": [
+              0.0,
+              0.5615
+            ],
+            "inconclusive": true
           }
         }
       },
       "existingAppAuthoredHoldout": {
         "byLanguage": {},
-        "bySource": {}
+        "bySource": {},
+        "byBenignSubtype": {}
       }
     },
     "hindi": {
@@ -2197,6 +4320,8 @@
         "byLanguage": {
           "hindi": {
             "gold": 458,
+            "gold_scam": 10,
+            "gold_ham": 448,
             "tp": 9,
             "fp": 1,
             "fn": 1,
@@ -2204,12 +4329,27 @@
             "precision": 0.9,
             "recall": 0.9,
             "f1": 0.9,
-            "fpr": 0.0022
+            "fpr": 0.0022,
+            "recall_ci95": [
+              0.5959,
+              0.9821
+            ],
+            "fpr_ci95": [
+              0.0004,
+              0.0125
+            ],
+            "precision_ci95": [
+              0.5959,
+              0.9821
+            ],
+            "inconclusive": true
           }
         },
         "bySource": {
           "bengali:Banglish": {
             "gold": 1,
+            "gold_scam": 1,
+            "gold_ham": 0,
             "tp": 1,
             "fp": 0,
             "fn": 0,
@@ -2217,10 +4357,25 @@
             "precision": 1.0,
             "recall": 1.0,
             "f1": 1.0,
-            "fpr": 0.0
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.2065,
+              1.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.0
+            ],
+            "precision_ci95": [
+              0.2065,
+              1.0
+            ],
+            "inconclusive": true
           },
           "bengali:CodeMix": {
             "gold": 1,
+            "gold_scam": 0,
+            "gold_ham": 1,
             "tp": 0,
             "fp": 1,
             "fn": 0,
@@ -2228,10 +4383,25 @@
             "precision": 0.0,
             "recall": 0.0,
             "f1": 0.0,
-            "fpr": 1.0
+            "fpr": 1.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.2065,
+              1.0
+            ],
+            "precision_ci95": [
+              0.0,
+              0.7935
+            ],
+            "inconclusive": true
           },
           "scamshield:Benchmark_Ground_Truth": {
             "gold": 1,
+            "gold_scam": 1,
+            "gold_ham": 0,
             "tp": 1,
             "fp": 0,
             "fn": 0,
@@ -2239,10 +4409,25 @@
             "precision": 1.0,
             "recall": 1.0,
             "f1": 1.0,
-            "fpr": 0.0
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.2065,
+              1.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.0
+            ],
+            "precision_ci95": [
+              0.2065,
+              1.0
+            ],
+            "inconclusive": true
           },
           "scamshield:Kaggle_Hindi_Merged": {
             "gold": 455,
+            "gold_scam": 8,
+            "gold_ham": 447,
             "tp": 7,
             "fp": 0,
             "fn": 1,
@@ -2250,27 +4435,27 @@
             "precision": 1.0,
             "recall": 0.875,
             "f1": 0.9333,
-            "fpr": 0.0
-          }
-        }
-      },
-      "test": {
-        "byLanguage": {
-          "hindi": {
-            "gold": 461,
-            "tp": 5,
-            "fp": 3,
-            "fn": 6,
-            "tn": 447,
-            "precision": 0.625,
-            "recall": 0.4545,
-            "f1": 0.5263,
-            "fpr": 0.0067
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.5291,
+              0.9776
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.0085
+            ],
+            "precision_ci95": [
+              0.6457,
+              1.0
+            ],
+            "inconclusive": true
           }
         },
-        "bySource": {
-          "bengali:Banglish": {
+        "byBenignSubtype": {
+          "normal": {
             "gold": 1,
+            "gold_scam": 0,
+            "gold_ham": 1,
             "tp": 0,
             "fp": 1,
             "fn": 0,
@@ -2278,10 +4463,109 @@
             "precision": 0.0,
             "recall": 0.0,
             "f1": 0.0,
-            "fpr": 1.0
+            "fpr": 1.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.2065,
+              1.0
+            ],
+            "precision_ci95": [
+              0.0,
+              0.7935
+            ],
+            "inconclusive": true
+          },
+          "scamshield_Kaggle_Hindi_Merged": {
+            "gold": 447,
+            "gold_scam": 0,
+            "gold_ham": 447,
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 447,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.0085
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0
+            ],
+            "inconclusive": true
+          }
+        }
+      },
+      "test": {
+        "byLanguage": {
+          "hindi": {
+            "gold": 461,
+            "gold_scam": 11,
+            "gold_ham": 450,
+            "tp": 5,
+            "fp": 3,
+            "fn": 6,
+            "tn": 447,
+            "precision": 0.625,
+            "recall": 0.4545,
+            "f1": 0.5263,
+            "fpr": 0.0067,
+            "recall_ci95": [
+              0.2127,
+              0.7199
+            ],
+            "fpr_ci95": [
+              0.0023,
+              0.0194
+            ],
+            "precision_ci95": [
+              0.3057,
+              0.8632
+            ],
+            "inconclusive": true
+          }
+        },
+        "bySource": {
+          "bengali:Banglish": {
+            "gold": 1,
+            "gold_scam": 0,
+            "gold_ham": 1,
+            "tp": 0,
+            "fp": 1,
+            "fn": 0,
+            "tn": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 1.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.2065,
+              1.0
+            ],
+            "precision_ci95": [
+              0.0,
+              0.7935
+            ],
+            "inconclusive": true
           },
           "scamshield:Kaggle_Hindi_Merged": {
             "gold": 460,
+            "gold_scam": 11,
+            "gold_ham": 449,
             "tp": 5,
             "fp": 2,
             "fn": 6,
@@ -2289,13 +4573,81 @@
             "precision": 0.7143,
             "recall": 0.4545,
             "f1": 0.5556,
-            "fpr": 0.0045
+            "fpr": 0.0045,
+            "recall_ci95": [
+              0.2127,
+              0.7199
+            ],
+            "fpr_ci95": [
+              0.0012,
+              0.0161
+            ],
+            "precision_ci95": [
+              0.3589,
+              0.9178
+            ],
+            "inconclusive": true
+          }
+        },
+        "byBenignSubtype": {
+          "normal": {
+            "gold": 1,
+            "gold_scam": 0,
+            "gold_ham": 1,
+            "tp": 0,
+            "fp": 1,
+            "fn": 0,
+            "tn": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 1.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.2065,
+              1.0
+            ],
+            "precision_ci95": [
+              0.0,
+              0.7935
+            ],
+            "inconclusive": true
+          },
+          "scamshield_Kaggle_Hindi_Merged": {
+            "gold": 449,
+            "gold_scam": 0,
+            "gold_ham": 449,
+            "tp": 0,
+            "fp": 2,
+            "fn": 0,
+            "tn": 447,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0045,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0012,
+              0.0161
+            ],
+            "precision_ci95": [
+              0.0,
+              0.6576
+            ],
+            "inconclusive": true
           }
         }
       },
       "existingAppAuthoredHoldout": {
         "byLanguage": {},
-        "bySource": {}
+        "bySource": {},
+        "byBenignSubtype": {}
       }
     },
     "latin": {
@@ -2311,6 +4663,8 @@
         "byLanguage": {
           "latin": {
             "gold": 8091,
+            "gold_scam": 3137,
+            "gold_ham": 4954,
             "tp": 2589,
             "fp": 49,
             "fn": 548,
@@ -2318,12 +4672,27 @@
             "precision": 0.9814,
             "recall": 0.8253,
             "f1": 0.8966,
-            "fpr": 0.0099
+            "fpr": 0.0099,
+            "recall_ci95": [
+              0.8116,
+              0.8382
+            ],
+            "fpr_ci95": [
+              0.0075,
+              0.0131
+            ],
+            "precision_ci95": [
+              0.9755,
+              0.9859
+            ],
+            "inconclusive": false
           }
         },
         "bySource": {
           "bengali:Banglish": {
             "gold": 179,
+            "gold_scam": 70,
+            "gold_ham": 109,
             "tp": 54,
             "fp": 3,
             "fn": 16,
@@ -2331,10 +4700,25 @@
             "precision": 0.9474,
             "recall": 0.7714,
             "f1": 0.8504,
-            "fpr": 0.0275
+            "fpr": 0.0275,
+            "recall_ci95": [
+              0.6605,
+              0.8541
+            ],
+            "fpr_ci95": [
+              0.0094,
+              0.0778
+            ],
+            "precision_ci95": [
+              0.8563,
+              0.9819
+            ],
+            "inconclusive": false
           },
           "bengali:CodeMix": {
             "gold": 3,
+            "gold_scam": 0,
+            "gold_ham": 3,
             "tp": 0,
             "fp": 0,
             "fn": 0,
@@ -2342,10 +4726,25 @@
             "precision": 0.0,
             "recall": 0.0,
             "f1": 0.0,
-            "fpr": 0.0
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.5615
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0
+            ],
+            "inconclusive": true
           },
           "bengali:English": {
             "gold": 174,
+            "gold_scam": 71,
+            "gold_ham": 103,
             "tp": 59,
             "fp": 8,
             "fn": 12,
@@ -2353,10 +4752,25 @@
             "precision": 0.8806,
             "recall": 0.831,
             "f1": 0.8551,
-            "fpr": 0.0777
+            "fpr": 0.0777,
+            "recall_ci95": [
+              0.7274,
+              0.9006
+            ],
+            "fpr_ci95": [
+              0.0399,
+              0.1458
+            ],
+            "precision_ci95": [
+              0.7817,
+              0.9382
+            ],
+            "inconclusive": false
           },
           "scamshield:Benchmark_Ground_Truth": {
             "gold": 2,
+            "gold_scam": 0,
+            "gold_ham": 2,
             "tp": 0,
             "fp": 0,
             "fn": 0,
@@ -2364,10 +4778,25 @@
             "precision": 0.0,
             "recall": 0.0,
             "f1": 0.0,
-            "fpr": 0.0
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.6576
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0
+            ],
+            "inconclusive": true
           },
           "scamshield:Indian_Telecom_SMS": {
             "gold": 189,
+            "gold_scam": 64,
+            "gold_ham": 125,
             "tp": 58,
             "fp": 0,
             "fn": 6,
@@ -2375,10 +4804,25 @@
             "precision": 1.0,
             "recall": 0.9062,
             "f1": 0.9508,
-            "fpr": 0.0
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.8102,
+              0.9563
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.0298
+            ],
+            "precision_ci95": [
+              0.9379,
+              1.0
+            ],
+            "inconclusive": false
           },
           "scamshield:Smishing_Dataset": {
             "gold": 6954,
+            "gold_scam": 2809,
+            "gold_ham": 4145,
             "tp": 2314,
             "fp": 37,
             "fn": 495,
@@ -2386,10 +4830,25 @@
             "precision": 0.9843,
             "recall": 0.8238,
             "f1": 0.8969,
-            "fpr": 0.0089
+            "fpr": 0.0089,
+            "recall_ci95": [
+              0.8093,
+              0.8374
+            ],
+            "fpr_ci95": [
+              0.0065,
+              0.0123
+            ],
+            "precision_ci95": [
+              0.9784,
+              0.9886
+            ],
+            "inconclusive": false
           },
           "scamshield:UCI_SMS_Spam": {
             "gold": 514,
+            "gold_scam": 58,
+            "gold_ham": 456,
             "tp": 46,
             "fp": 1,
             "fn": 12,
@@ -2397,10 +4856,25 @@
             "precision": 0.9787,
             "recall": 0.7931,
             "f1": 0.8762,
-            "fpr": 0.0022
+            "fpr": 0.0022,
+            "recall_ci95": [
+              0.6723,
+              0.8775
+            ],
+            "fpr_ci95": [
+              0.0004,
+              0.0123
+            ],
+            "precision_ci95": [
+              0.8889,
+              0.9962
+            ],
+            "inconclusive": false
           },
           "scamshield:ysangam/Indian_Cyber_Scam_Hinglish": {
             "gold": 76,
+            "gold_scam": 65,
+            "gold_ham": 11,
             "tp": 58,
             "fp": 0,
             "fn": 7,
@@ -2408,7 +4882,204 @@
             "precision": 1.0,
             "recall": 0.8923,
             "f1": 0.9431,
-            "fpr": 0.0
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.794,
+              0.9468
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.2588
+            ],
+            "precision_ci95": [
+              0.9379,
+              1.0
+            ],
+            "inconclusive": true
+          }
+        },
+        "byBenignSubtype": {
+          "normal": {
+            "gold": 127,
+            "gold_scam": 0,
+            "gold_ham": 127,
+            "tp": 0,
+            "fp": 1,
+            "fn": 0,
+            "tn": 126,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0079,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0014,
+              0.0433
+            ],
+            "precision_ci95": [
+              0.0,
+              0.7935
+            ],
+            "inconclusive": true
+          },
+          "promo": {
+            "gold": 88,
+            "gold_scam": 0,
+            "gold_ham": 88,
+            "tp": 0,
+            "fp": 10,
+            "fn": 0,
+            "tn": 78,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.1136,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0629,
+              0.1967
+            ],
+            "precision_ci95": [
+              0.0,
+              0.2775
+            ],
+            "inconclusive": true
+          },
+          "scamshield_Benchmark_Ground_Truth": {
+            "gold": 2,
+            "gold_scam": 0,
+            "gold_ham": 2,
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 2,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.6576
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0
+            ],
+            "inconclusive": true
+          },
+          "scamshield_Indian_Telecom_SMS": {
+            "gold": 125,
+            "gold_scam": 0,
+            "gold_ham": 125,
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 125,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.0298
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0
+            ],
+            "inconclusive": true
+          },
+          "scamshield_Smishing_Dataset": {
+            "gold": 4145,
+            "gold_scam": 0,
+            "gold_ham": 4145,
+            "tp": 0,
+            "fp": 37,
+            "fn": 0,
+            "tn": 4108,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0089,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0065,
+              0.0123
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0941
+            ],
+            "inconclusive": true
+          },
+          "scamshield_UCI_SMS_Spam": {
+            "gold": 456,
+            "gold_scam": 0,
+            "gold_ham": 456,
+            "tp": 0,
+            "fp": 1,
+            "fn": 0,
+            "tn": 455,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0022,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0004,
+              0.0123
+            ],
+            "precision_ci95": [
+              0.0,
+              0.7935
+            ],
+            "inconclusive": true
+          },
+          "scamshield_ysangam/Indian_Cyber_Scam_Hinglish": {
+            "gold": 11,
+            "gold_scam": 0,
+            "gold_ham": 11,
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 11,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.2588
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0
+            ],
+            "inconclusive": true
           }
         }
       },
@@ -2416,19 +5087,36 @@
         "byLanguage": {
           "latin": {
             "gold": 8450,
+            "gold_scam": 3282,
+            "gold_ham": 5168,
             "tp": 2674,
-            "fp": 71,
+            "fp": 72,
             "fn": 608,
-            "tn": 5097,
-            "precision": 0.9741,
+            "tn": 5096,
+            "precision": 0.9738,
             "recall": 0.8147,
-            "f1": 0.8873,
-            "fpr": 0.0137
+            "f1": 0.8872,
+            "fpr": 0.0139,
+            "recall_ci95": [
+              0.8011,
+              0.8277
+            ],
+            "fpr_ci95": [
+              0.0111,
+              0.0175
+            ],
+            "precision_ci95": [
+              0.9671,
+              0.9791
+            ],
+            "inconclusive": false
           }
         },
         "bySource": {
           "bengali:Banglish": {
             "gold": 359,
+            "gold_scam": 141,
+            "gold_ham": 218,
             "tp": 103,
             "fp": 6,
             "fn": 38,
@@ -2436,10 +5124,25 @@
             "precision": 0.945,
             "recall": 0.7305,
             "f1": 0.824,
-            "fpr": 0.0275
+            "fpr": 0.0275,
+            "recall_ci95": [
+              0.6519,
+              0.7969
+            ],
+            "fpr_ci95": [
+              0.0127,
+              0.0587
+            ],
+            "precision_ci95": [
+              0.8851,
+              0.9745
+            ],
+            "inconclusive": false
           },
           "bengali:Bengali": {
             "gold": 1,
+            "gold_scam": 0,
+            "gold_ham": 1,
             "tp": 0,
             "fp": 1,
             "fn": 0,
@@ -2447,10 +5150,25 @@
             "precision": 0.0,
             "recall": 0.0,
             "f1": 0.0,
-            "fpr": 1.0
+            "fpr": 1.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.2065,
+              1.0
+            ],
+            "precision_ci95": [
+              0.0,
+              0.7935
+            ],
+            "inconclusive": true
           },
           "bengali:CodeMix": {
             "gold": 4,
+            "gold_scam": 2,
+            "gold_ham": 2,
             "tp": 1,
             "fp": 0,
             "fn": 1,
@@ -2458,10 +5176,25 @@
             "precision": 1.0,
             "recall": 0.5,
             "f1": 0.6667,
-            "fpr": 0.0
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0945,
+              0.9055
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.6576
+            ],
+            "precision_ci95": [
+              0.2065,
+              1.0
+            ],
+            "inconclusive": true
           },
           "bengali:English": {
             "gold": 347,
+            "gold_scam": 141,
+            "gold_ham": 206,
             "tp": 116,
             "fp": 8,
             "fn": 25,
@@ -2469,10 +5202,25 @@
             "precision": 0.9355,
             "recall": 0.8227,
             "f1": 0.8755,
-            "fpr": 0.0388
+            "fpr": 0.0388,
+            "recall_ci95": [
+              0.7514,
+              0.8769
+            ],
+            "fpr_ci95": [
+              0.0198,
+              0.0747
+            ],
+            "precision_ci95": [
+              0.8778,
+              0.9669
+            ],
+            "inconclusive": false
           },
           "scamshield:Benchmark_Ground_Truth": {
             "gold": 2,
+            "gold_scam": 0,
+            "gold_ham": 2,
             "tp": 0,
             "fp": 1,
             "fn": 0,
@@ -2480,10 +5228,25 @@
             "precision": 0.0,
             "recall": 0.0,
             "f1": 0.0,
-            "fpr": 0.5
+            "fpr": 0.5,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0945,
+              0.9055
+            ],
+            "precision_ci95": [
+              0.0,
+              0.7935
+            ],
+            "inconclusive": true
           },
           "scamshield:Indian_Telecom_SMS": {
             "gold": 217,
+            "gold_scam": 83,
+            "gold_ham": 134,
             "tp": 75,
             "fp": 2,
             "fn": 8,
@@ -2491,10 +5254,25 @@
             "precision": 0.974,
             "recall": 0.9036,
             "f1": 0.9375,
-            "fpr": 0.0149
+            "fpr": 0.0149,
+            "recall_ci95": [
+              0.8212,
+              0.9503
+            ],
+            "fpr_ci95": [
+              0.0041,
+              0.0528
+            ],
+            "precision_ci95": [
+              0.9102,
+              0.9928
+            ],
+            "inconclusive": false
           },
           "scamshield:Smishing_Dataset": {
             "gold": 6986,
+            "gold_scam": 2792,
+            "gold_ham": 4194,
             "tp": 2294,
             "fp": 51,
             "fn": 498,
@@ -2502,21 +5280,51 @@
             "precision": 0.9783,
             "recall": 0.8216,
             "f1": 0.8931,
-            "fpr": 0.0122
+            "fpr": 0.0122,
+            "recall_ci95": [
+              0.807,
+              0.8354
+            ],
+            "fpr_ci95": [
+              0.0093,
+              0.016
+            ],
+            "precision_ci95": [
+              0.9715,
+              0.9834
+            ],
+            "inconclusive": false
           },
           "scamshield:UCI_SMS_Spam": {
             "gold": 464,
+            "gold_scam": 62,
+            "gold_ham": 402,
             "tp": 35,
-            "fp": 2,
+            "fp": 3,
             "fn": 27,
-            "tn": 400,
-            "precision": 0.9459,
+            "tn": 399,
+            "precision": 0.9211,
             "recall": 0.5645,
-            "f1": 0.7071,
-            "fpr": 0.005
+            "f1": 0.7,
+            "fpr": 0.0075,
+            "recall_ci95": [
+              0.4409,
+              0.6806
+            ],
+            "fpr_ci95": [
+              0.0025,
+              0.0217
+            ],
+            "precision_ci95": [
+              0.792,
+              0.9728
+            ],
+            "inconclusive": false
           },
           "scamshield:ysangam/Indian_Cyber_Scam_Hinglish": {
             "gold": 70,
+            "gold_scam": 61,
+            "gold_ham": 9,
             "tp": 50,
             "fp": 0,
             "fn": 11,
@@ -2524,7 +5332,204 @@
             "precision": 1.0,
             "recall": 0.8197,
             "f1": 0.9009,
-            "fpr": 0.0
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.7053,
+              0.8962
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.2991
+            ],
+            "precision_ci95": [
+              0.9287,
+              1.0
+            ],
+            "inconclusive": true
+          }
+        },
+        "byBenignSubtype": {
+          "normal": {
+            "gold": 250,
+            "gold_scam": 0,
+            "gold_ham": 250,
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 250,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.0151
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0
+            ],
+            "inconclusive": true
+          },
+          "promo": {
+            "gold": 177,
+            "gold_scam": 0,
+            "gold_ham": 177,
+            "tp": 0,
+            "fp": 15,
+            "fn": 0,
+            "tn": 162,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0847,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.052,
+              0.1351
+            ],
+            "precision_ci95": [
+              0.0,
+              0.2039
+            ],
+            "inconclusive": true
+          },
+          "scamshield_Benchmark_Ground_Truth": {
+            "gold": 2,
+            "gold_scam": 0,
+            "gold_ham": 2,
+            "tp": 0,
+            "fp": 1,
+            "fn": 0,
+            "tn": 1,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.5,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0945,
+              0.9055
+            ],
+            "precision_ci95": [
+              0.0,
+              0.7935
+            ],
+            "inconclusive": true
+          },
+          "scamshield_Indian_Telecom_SMS": {
+            "gold": 134,
+            "gold_scam": 0,
+            "gold_ham": 134,
+            "tp": 0,
+            "fp": 2,
+            "fn": 0,
+            "tn": 132,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0149,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0041,
+              0.0528
+            ],
+            "precision_ci95": [
+              0.0,
+              0.6576
+            ],
+            "inconclusive": true
+          },
+          "scamshield_Smishing_Dataset": {
+            "gold": 4194,
+            "gold_scam": 0,
+            "gold_ham": 4194,
+            "tp": 0,
+            "fp": 51,
+            "fn": 0,
+            "tn": 4143,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0122,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0093,
+              0.016
+            ],
+            "precision_ci95": [
+              0.0,
+              0.07
+            ],
+            "inconclusive": true
+          },
+          "scamshield_UCI_SMS_Spam": {
+            "gold": 402,
+            "gold_scam": 0,
+            "gold_ham": 402,
+            "tp": 0,
+            "fp": 3,
+            "fn": 0,
+            "tn": 399,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0075,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0025,
+              0.0217
+            ],
+            "precision_ci95": [
+              0.0,
+              0.5615
+            ],
+            "inconclusive": true
+          },
+          "scamshield_ysangam/Indian_Cyber_Scam_Hinglish": {
+            "gold": 9,
+            "gold_scam": 0,
+            "gold_ham": 9,
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 9,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0,
+              0.2991
+            ],
+            "precision_ci95": [
+              0.0,
+              0.0
+            ],
+            "inconclusive": true
           }
         }
       },
@@ -2532,6 +5537,8 @@
         "byLanguage": {
           "latin": {
             "gold": 138,
+            "gold_scam": 79,
+            "gold_ham": 59,
             "tp": 49,
             "fp": 6,
             "fn": 30,
@@ -2539,12 +5546,27 @@
             "precision": 0.8909,
             "recall": 0.6203,
             "f1": 0.7313,
-            "fpr": 0.1017
+            "fpr": 0.1017,
+            "recall_ci95": [
+              0.51,
+              0.7193
+            ],
+            "fpr_ci95": [
+              0.0474,
+              0.2046
+            ],
+            "precision_ci95": [
+              0.7817,
+              0.949
+            ],
+            "inconclusive": false
           }
         },
         "bySource": {
           "corpus": {
             "gold": 138,
+            "gold_scam": 79,
+            "gold_ham": 59,
             "tp": 49,
             "fp": 6,
             "fn": 30,
@@ -2552,18 +5574,61 @@
             "precision": 0.8909,
             "recall": 0.6203,
             "f1": 0.7313,
-            "fpr": 0.1017
+            "fpr": 0.1017,
+            "recall_ci95": [
+              0.51,
+              0.7193
+            ],
+            "fpr_ci95": [
+              0.0474,
+              0.2046
+            ],
+            "precision_ci95": [
+              0.7817,
+              0.949
+            ],
+            "inconclusive": false
+          }
+        },
+        "byBenignSubtype": {
+          "corpus_ham": {
+            "gold": 59,
+            "gold_scam": 0,
+            "gold_ham": 59,
+            "tp": 0,
+            "fp": 6,
+            "fn": 0,
+            "tn": 53,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.1017,
+            "recall_ci95": [
+              0.0,
+              0.0
+            ],
+            "fpr_ci95": [
+              0.0474,
+              0.2046
+            ],
+            "precision_ci95": [
+              0.0,
+              0.3903
+            ],
+            "inconclusive": true
           }
         }
       }
     }
   },
-  "scriptRoutedExpertBundlePath": "/Users/istakahamed06/Desktop/Messages App/01_active_codebase/messages/protection-engine/training/ngram_language_experts_candidate.json",
-  "scriptRoutedExpertBundleBytes": 918320,
+  "scriptRoutedExpertBundlePath": "D:\\Istak\\Messages\\Messages App\\01_active_codebase\\messages\\protection-engine\\training\\ngram_language_experts_candidate.json",
+  "scriptRoutedExpertBundleBytes": 918351,
   "testCandidate": {
     "byLanguage": {
       "bn": {
         "gold": 1054,
+        "gold_scam": 420,
+        "gold_ham": 634,
         "tp": 371,
         "fp": 8,
         "fn": 49,
@@ -2571,10 +5636,25 @@
         "precision": 0.9789,
         "recall": 0.8833,
         "f1": 0.9287,
-        "fpr": 0.0126
+        "fpr": 0.0126,
+        "recall_ci95": [
+          0.8491,
+          0.9106
+        ],
+        "fpr_ci95": [
+          0.0064,
+          0.0247
+        ],
+        "precision_ci95": [
+          0.9589,
+          0.9893
+        ],
+        "inconclusive": false
       },
       "en": {
         "gold": 7978,
+        "gold_scam": 3043,
+        "gold_ham": 4935,
         "tp": 1560,
         "fp": 61,
         "fn": 1483,
@@ -2582,10 +5662,25 @@
         "precision": 0.9624,
         "recall": 0.5127,
         "f1": 0.669,
-        "fpr": 0.0124
+        "fpr": 0.0124,
+        "recall_ci95": [
+          0.4949,
+          0.5304
+        ],
+        "fpr_ci95": [
+          0.0096,
+          0.0158
+        ],
+        "precision_ci95": [
+          0.952,
+          0.9706
+        ],
+        "inconclusive": false
       },
       "hi": {
         "gold": 460,
+        "gold_scam": 11,
+        "gold_ham": 449,
         "tp": 0,
         "fp": 0,
         "fn": 11,
@@ -2593,10 +5688,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.2588
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0085
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       },
       "hinglish": {
         "gold": 108,
+        "gold_scam": 96,
+        "gold_ham": 12,
         "tp": 85,
         "fp": 0,
         "fn": 11,
@@ -2604,12 +5714,27 @@
         "precision": 1.0,
         "recall": 0.8854,
         "f1": 0.9392,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.8064,
+          0.9348
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2425
+        ],
+        "precision_ci95": [
+          0.9568,
+          1.0
+        ],
+        "inconclusive": true
       }
     },
     "bySource": {
       "bengali:Banglish": {
         "gold": 360,
+        "gold_scam": 141,
+        "gold_ham": 219,
         "tp": 119,
         "fp": 2,
         "fn": 22,
@@ -2617,10 +5742,25 @@
         "precision": 0.9835,
         "recall": 0.844,
         "f1": 0.9084,
-        "fpr": 0.0091
+        "fpr": 0.0091,
+        "recall_ci95": [
+          0.7751,
+          0.8946
+        ],
+        "fpr_ci95": [
+          0.0025,
+          0.0327
+        ],
+        "precision_ci95": [
+          0.9417,
+          0.9955
+        ],
+        "inconclusive": false
       },
       "bengali:Bengali": {
         "gold": 358,
+        "gold_scam": 141,
+        "gold_ham": 217,
         "tp": 135,
         "fp": 3,
         "fn": 6,
@@ -2628,10 +5768,25 @@
         "precision": 0.9783,
         "recall": 0.9574,
         "f1": 0.9677,
-        "fpr": 0.0138
+        "fpr": 0.0138,
+        "recall_ci95": [
+          0.9103,
+          0.9804
+        ],
+        "fpr_ci95": [
+          0.0047,
+          0.0399
+        ],
+        "precision_ci95": [
+          0.938,
+          0.9926
+        ],
+        "inconclusive": false
       },
       "bengali:CodeMix": {
         "gold": 336,
+        "gold_scam": 138,
+        "gold_ham": 198,
         "tp": 117,
         "fp": 3,
         "fn": 21,
@@ -2639,10 +5794,25 @@
         "precision": 0.975,
         "recall": 0.8478,
         "f1": 0.907,
-        "fpr": 0.0152
+        "fpr": 0.0152,
+        "recall_ci95": [
+          0.7785,
+          0.8983
+        ],
+        "fpr_ci95": [
+          0.0052,
+          0.0436
+        ],
+        "precision_ci95": [
+          0.9291,
+          0.9915
+        ],
+        "inconclusive": false
       },
       "bengali:English": {
         "gold": 347,
+        "gold_scam": 141,
+        "gold_ham": 206,
         "tp": 121,
         "fp": 5,
         "fn": 20,
@@ -2650,10 +5820,25 @@
         "precision": 0.9603,
         "recall": 0.8582,
         "f1": 0.9064,
-        "fpr": 0.0243
+        "fpr": 0.0243,
+        "recall_ci95": [
+          0.7911,
+          0.9063
+        ],
+        "fpr_ci95": [
+          0.0104,
+          0.0556
+        ],
+        "precision_ci95": [
+          0.9105,
+          0.9829
+        ],
+        "inconclusive": false
       },
       "scamshield:Benchmark_Ground_Truth": {
         "gold": 2,
+        "gold_scam": 0,
+        "gold_ham": 2,
         "tp": 0,
         "fp": 1,
         "fn": 0,
@@ -2661,10 +5846,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.5
+        "fpr": 0.5,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0945,
+          0.9055
+        ],
+        "precision_ci95": [
+          0.0,
+          0.7935
+        ],
+        "inconclusive": true
       },
       "scamshield:Indian_Telecom_SMS": {
         "gold": 217,
+        "gold_scam": 83,
+        "gold_ham": 134,
         "tp": 46,
         "fp": 1,
         "fn": 37,
@@ -2672,10 +5872,25 @@
         "precision": 0.9787,
         "recall": 0.5542,
         "f1": 0.7077,
-        "fpr": 0.0075
+        "fpr": 0.0075,
+        "recall_ci95": [
+          0.4473,
+          0.6564
+        ],
+        "fpr_ci95": [
+          0.0013,
+          0.0411
+        ],
+        "precision_ci95": [
+          0.8889,
+          0.9962
+        ],
+        "inconclusive": false
       },
       "scamshield:Kaggle_Hindi_Merged": {
         "gold": 460,
+        "gold_scam": 11,
+        "gold_ham": 449,
         "tp": 0,
         "fp": 0,
         "fn": 11,
@@ -2683,10 +5898,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.2588
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0085
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       },
       "scamshield:Smishing_Dataset": {
         "gold": 6986,
+        "gold_scam": 2792,
+        "gold_ham": 4194,
         "tp": 1401,
         "fp": 51,
         "fn": 1391,
@@ -2694,10 +5924,25 @@
         "precision": 0.9649,
         "recall": 0.5018,
         "f1": 0.6602,
-        "fpr": 0.0122
+        "fpr": 0.0122,
+        "recall_ci95": [
+          0.4833,
+          0.5203
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.016
+        ],
+        "precision_ci95": [
+          0.9541,
+          0.9732
+        ],
+        "inconclusive": false
       },
       "scamshield:UCI_SMS_Spam": {
         "gold": 464,
+        "gold_scam": 62,
+        "gold_ham": 402,
         "tp": 16,
         "fp": 3,
         "fn": 46,
@@ -2705,10 +5950,25 @@
         "precision": 0.8421,
         "recall": 0.2581,
         "f1": 0.3951,
-        "fpr": 0.0075
+        "fpr": 0.0075,
+        "recall_ci95": [
+          0.1655,
+          0.3788
+        ],
+        "fpr_ci95": [
+          0.0025,
+          0.0217
+        ],
+        "precision_ci95": [
+          0.6243,
+          0.9448
+        ],
+        "inconclusive": false
       },
       "scamshield:ysangam/Indian_Cyber_Scam_Hinglish": {
         "gold": 70,
+        "gold_scam": 61,
+        "gold_ham": 9,
         "tp": 61,
         "fp": 0,
         "fn": 0,
@@ -2716,104 +5976,79 @@
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0,
-        "fpr": 0.0
-      }
-    }
-  },
-  "testCurrentAppModel": {
-    "byLanguage": {
-      "bn": {
-        "gold": 1054,
-        "tp": 362,
-        "fp": 251,
-        "fn": 58,
-        "tn": 383,
-        "precision": 0.5905,
-        "recall": 0.8619,
-        "f1": 0.7009,
-        "fpr": 0.3959
-      },
-      "en": {
-        "gold": 7978,
-        "tp": 1154,
-        "fp": 923,
-        "fn": 1889,
-        "tn": 4012,
-        "precision": 0.5556,
-        "recall": 0.3792,
-        "f1": 0.4508,
-        "fpr": 0.187
-      },
-      "hi": {
-        "gold": 460,
-        "tp": 9,
-        "fp": 300,
-        "fn": 2,
-        "tn": 149,
-        "precision": 0.0291,
-        "recall": 0.8182,
-        "f1": 0.0563,
-        "fpr": 0.6682
-      },
-      "hinglish": {
-        "gold": 108,
-        "tp": 49,
-        "fp": 6,
-        "fn": 47,
-        "tn": 6,
-        "precision": 0.8909,
-        "recall": 0.5104,
-        "f1": 0.649,
-        "fpr": 0.5
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.9408,
+          1.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2991
+        ],
+        "precision_ci95": [
+          0.9408,
+          1.0
+        ],
+        "inconclusive": true
       }
     },
-    "bySource": {
-      "bengali:Banglish": {
-        "gold": 360,
-        "tp": 115,
-        "fp": 53,
-        "fn": 26,
-        "tn": 166,
-        "precision": 0.6845,
-        "recall": 0.8156,
-        "f1": 0.7443,
-        "fpr": 0.242
+    "byBenignSubtype": {
+      "normal": {
+        "gold": 498,
+        "gold_scam": 0,
+        "gold_ham": 498,
+        "tp": 0,
+        "fp": 3,
+        "fn": 0,
+        "tn": 495,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.006,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0021,
+          0.0176
+        ],
+        "precision_ci95": [
+          0.0,
+          0.5615
+        ],
+        "inconclusive": true
       },
-      "bengali:Bengali": {
-        "gold": 358,
-        "tp": 125,
-        "fp": 116,
-        "fn": 16,
-        "tn": 101,
-        "precision": 0.5187,
-        "recall": 0.8865,
-        "f1": 0.6545,
-        "fpr": 0.5346
+      "promo": {
+        "gold": 342,
+        "gold_scam": 0,
+        "gold_ham": 342,
+        "tp": 0,
+        "fp": 10,
+        "fn": 0,
+        "tn": 332,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0292,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.016,
+          0.053
+        ],
+        "precision_ci95": [
+          0.0,
+          0.2775
+        ],
+        "inconclusive": true
       },
-      "bengali:CodeMix": {
-        "gold": 336,
-        "tp": 122,
-        "fp": 82,
-        "fn": 16,
-        "tn": 116,
-        "precision": 0.598,
-        "recall": 0.8841,
-        "f1": 0.7135,
-        "fpr": 0.4141
-      },
-      "bengali:English": {
-        "gold": 347,
-        "tp": 116,
-        "fp": 62,
-        "fn": 25,
-        "tn": 144,
-        "precision": 0.6517,
-        "recall": 0.8227,
-        "f1": 0.7273,
-        "fpr": 0.301
-      },
-      "scamshield:Benchmark_Ground_Truth": {
+      "scamshield_Benchmark_Ground_Truth": {
         "gold": 2,
+        "gold_scam": 0,
+        "gold_ham": 2,
         "tp": 0,
         "fp": 1,
         "fn": 0,
@@ -2821,21 +6056,211 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.5
+        "fpr": 0.5,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0945,
+          0.9055
+        ],
+        "precision_ci95": [
+          0.0,
+          0.7935
+        ],
+        "inconclusive": true
       },
-      "scamshield:Indian_Telecom_SMS": {
-        "gold": 217,
-        "tp": 29,
-        "fp": 29,
-        "fn": 54,
-        "tn": 105,
-        "precision": 0.5,
-        "recall": 0.3494,
-        "f1": 0.4113,
-        "fpr": 0.2164
+      "scamshield_Indian_Telecom_SMS": {
+        "gold": 134,
+        "gold_scam": 0,
+        "gold_ham": 134,
+        "tp": 0,
+        "fp": 1,
+        "fn": 0,
+        "tn": 133,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0075,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0013,
+          0.0411
+        ],
+        "precision_ci95": [
+          0.0,
+          0.7935
+        ],
+        "inconclusive": true
       },
-      "scamshield:Kaggle_Hindi_Merged": {
+      "scamshield_Kaggle_Hindi_Merged": {
+        "gold": 449,
+        "gold_scam": 0,
+        "gold_ham": 449,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 449,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0085
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Smishing_Dataset": {
+        "gold": 4194,
+        "gold_scam": 0,
+        "gold_ham": 4194,
+        "tp": 0,
+        "fp": 51,
+        "fn": 0,
+        "tn": 4143,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0122,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.016
+        ],
+        "precision_ci95": [
+          0.0,
+          0.07
+        ],
+        "inconclusive": true
+      },
+      "scamshield_UCI_SMS_Spam": {
+        "gold": 402,
+        "gold_scam": 0,
+        "gold_ham": 402,
+        "tp": 0,
+        "fp": 3,
+        "fn": 0,
+        "tn": 399,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0075,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0025,
+          0.0217
+        ],
+        "precision_ci95": [
+          0.0,
+          0.5615
+        ],
+        "inconclusive": true
+      },
+      "scamshield_ysangam/Indian_Cyber_Scam_Hinglish": {
+        "gold": 9,
+        "gold_scam": 0,
+        "gold_ham": 9,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 9,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2991
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
+      }
+    }
+  },
+  "testCurrentAppModel": {
+    "byLanguage": {
+      "bn": {
+        "gold": 1054,
+        "gold_scam": 420,
+        "gold_ham": 634,
+        "tp": 362,
+        "fp": 251,
+        "fn": 58,
+        "tn": 383,
+        "precision": 0.5905,
+        "recall": 0.8619,
+        "f1": 0.7009,
+        "fpr": 0.3959,
+        "recall_ci95": [
+          0.8256,
+          0.8916
+        ],
+        "fpr_ci95": [
+          0.3586,
+          0.4345
+        ],
+        "precision_ci95": [
+          0.5512,
+          0.6288
+        ],
+        "inconclusive": false
+      },
+      "en": {
+        "gold": 7978,
+        "gold_scam": 3043,
+        "gold_ham": 4935,
+        "tp": 1154,
+        "fp": 923,
+        "fn": 1889,
+        "tn": 4012,
+        "precision": 0.5556,
+        "recall": 0.3792,
+        "f1": 0.4508,
+        "fpr": 0.187,
+        "recall_ci95": [
+          0.3622,
+          0.3966
+        ],
+        "fpr_ci95": [
+          0.1764,
+          0.1982
+        ],
+        "precision_ci95": [
+          0.5342,
+          0.5769
+        ],
+        "inconclusive": false
+      },
+      "hi": {
         "gold": 460,
+        "gold_scam": 11,
+        "gold_ham": 449,
         "tp": 9,
         "fp": 300,
         "fn": 2,
@@ -2843,10 +6268,235 @@
         "precision": 0.0291,
         "recall": 0.8182,
         "f1": 0.0563,
-        "fpr": 0.6682
+        "fpr": 0.6682,
+        "recall_ci95": [
+          0.523,
+          0.9486
+        ],
+        "fpr_ci95": [
+          0.6233,
+          0.7101
+        ],
+        "precision_ci95": [
+          0.0154,
+          0.0544
+        ],
+        "inconclusive": true
+      },
+      "hinglish": {
+        "gold": 108,
+        "gold_scam": 96,
+        "gold_ham": 12,
+        "tp": 49,
+        "fp": 6,
+        "fn": 47,
+        "tn": 6,
+        "precision": 0.8909,
+        "recall": 0.5104,
+        "f1": 0.649,
+        "fpr": 0.5,
+        "recall_ci95": [
+          0.412,
+          0.6081
+        ],
+        "fpr_ci95": [
+          0.2538,
+          0.7462
+        ],
+        "precision_ci95": [
+          0.7817,
+          0.949
+        ],
+        "inconclusive": true
+      }
+    },
+    "bySource": {
+      "bengali:Banglish": {
+        "gold": 360,
+        "gold_scam": 141,
+        "gold_ham": 219,
+        "tp": 115,
+        "fp": 53,
+        "fn": 26,
+        "tn": 166,
+        "precision": 0.6845,
+        "recall": 0.8156,
+        "f1": 0.7443,
+        "fpr": 0.242,
+        "recall_ci95": [
+          0.7435,
+          0.8709
+        ],
+        "fpr_ci95": [
+          0.19,
+          0.3029
+        ],
+        "precision_ci95": [
+          0.6108,
+          0.75
+        ],
+        "inconclusive": false
+      },
+      "bengali:Bengali": {
+        "gold": 358,
+        "gold_scam": 141,
+        "gold_ham": 217,
+        "tp": 125,
+        "fp": 116,
+        "fn": 16,
+        "tn": 101,
+        "precision": 0.5187,
+        "recall": 0.8865,
+        "f1": 0.6545,
+        "fpr": 0.5346,
+        "recall_ci95": [
+          0.8236,
+          0.9289
+        ],
+        "fpr_ci95": [
+          0.4682,
+          0.5998
+        ],
+        "precision_ci95": [
+          0.4558,
+          0.581
+        ],
+        "inconclusive": false
+      },
+      "bengali:CodeMix": {
+        "gold": 336,
+        "gold_scam": 138,
+        "gold_ham": 198,
+        "tp": 122,
+        "fp": 82,
+        "fn": 16,
+        "tn": 116,
+        "precision": 0.598,
+        "recall": 0.8841,
+        "f1": 0.7135,
+        "fpr": 0.4141,
+        "recall_ci95": [
+          0.82,
+          0.9274
+        ],
+        "fpr_ci95": [
+          0.3478,
+          0.4837
+        ],
+        "precision_ci95": [
+          0.5295,
+          0.6629
+        ],
+        "inconclusive": false
+      },
+      "bengali:English": {
+        "gold": 347,
+        "gold_scam": 141,
+        "gold_ham": 206,
+        "tp": 116,
+        "fp": 62,
+        "fn": 25,
+        "tn": 144,
+        "precision": 0.6517,
+        "recall": 0.8227,
+        "f1": 0.7273,
+        "fpr": 0.301,
+        "recall_ci95": [
+          0.7514,
+          0.8769
+        ],
+        "fpr_ci95": [
+          0.2424,
+          0.3668
+        ],
+        "precision_ci95": [
+          0.5792,
+          0.7178
+        ],
+        "inconclusive": false
+      },
+      "scamshield:Benchmark_Ground_Truth": {
+        "gold": 2,
+        "gold_scam": 0,
+        "gold_ham": 2,
+        "tp": 0,
+        "fp": 1,
+        "fn": 0,
+        "tn": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.5,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0945,
+          0.9055
+        ],
+        "precision_ci95": [
+          0.0,
+          0.7935
+        ],
+        "inconclusive": true
+      },
+      "scamshield:Indian_Telecom_SMS": {
+        "gold": 217,
+        "gold_scam": 83,
+        "gold_ham": 134,
+        "tp": 29,
+        "fp": 29,
+        "fn": 54,
+        "tn": 105,
+        "precision": 0.5,
+        "recall": 0.3494,
+        "f1": 0.4113,
+        "fpr": 0.2164,
+        "recall_ci95": [
+          0.2556,
+          0.4566
+        ],
+        "fpr_ci95": [
+          0.1551,
+          0.2935
+        ],
+        "precision_ci95": [
+          0.3754,
+          0.6246
+        ],
+        "inconclusive": false
+      },
+      "scamshield:Kaggle_Hindi_Merged": {
+        "gold": 460,
+        "gold_scam": 11,
+        "gold_ham": 449,
+        "tp": 9,
+        "fp": 300,
+        "fn": 2,
+        "tn": 149,
+        "precision": 0.0291,
+        "recall": 0.8182,
+        "f1": 0.0563,
+        "fpr": 0.6682,
+        "recall_ci95": [
+          0.523,
+          0.9486
+        ],
+        "fpr_ci95": [
+          0.6233,
+          0.7101
+        ],
+        "precision_ci95": [
+          0.0154,
+          0.0544
+        ],
+        "inconclusive": true
       },
       "scamshield:Smishing_Dataset": {
         "gold": 6986,
+        "gold_scam": 2792,
+        "gold_ham": 4194,
         "tp": 1004,
         "fp": 753,
         "fn": 1788,
@@ -2854,10 +6504,25 @@
         "precision": 0.5714,
         "recall": 0.3596,
         "f1": 0.4414,
-        "fpr": 0.1795
+        "fpr": 0.1795,
+        "recall_ci95": [
+          0.342,
+          0.3776
+        ],
+        "fpr_ci95": [
+          0.1682,
+          0.1914
+        ],
+        "precision_ci95": [
+          0.5482,
+          0.5944
+        ],
+        "inconclusive": false
       },
       "scamshield:UCI_SMS_Spam": {
         "gold": 464,
+        "gold_scam": 62,
+        "gold_ham": 402,
         "tp": 16,
         "fp": 84,
         "fn": 46,
@@ -2865,10 +6530,25 @@
         "precision": 0.16,
         "recall": 0.2581,
         "f1": 0.1975,
-        "fpr": 0.209
+        "fpr": 0.209,
+        "recall_ci95": [
+          0.1655,
+          0.3788
+        ],
+        "fpr_ci95": [
+          0.1721,
+          0.2514
+        ],
+        "precision_ci95": [
+          0.101,
+          0.2442
+        ],
+        "inconclusive": false
       },
       "scamshield:ysangam/Indian_Cyber_Scam_Hinglish": {
         "gold": 70,
+        "gold_scam": 61,
+        "gold_ham": 9,
         "tp": 38,
         "fp": 0,
         "fn": 23,
@@ -2876,7 +6556,230 @@
         "precision": 1.0,
         "recall": 0.623,
         "f1": 0.7677,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.4975,
+          0.7339
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2991
+        ],
+        "precision_ci95": [
+          0.9082,
+          1.0
+        ],
+        "inconclusive": true
+      }
+    },
+    "byBenignSubtype": {
+      "normal": {
+        "gold": 498,
+        "gold_scam": 0,
+        "gold_ham": 498,
+        "tp": 0,
+        "fp": 158,
+        "fn": 0,
+        "tn": 340,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.3173,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.2779,
+          0.3594
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0237
+        ],
+        "inconclusive": true
+      },
+      "promo": {
+        "gold": 342,
+        "gold_scam": 0,
+        "gold_ham": 342,
+        "tp": 0,
+        "fp": 155,
+        "fn": 0,
+        "tn": 187,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.4532,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.4013,
+          0.5062
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0242
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Benchmark_Ground_Truth": {
+        "gold": 2,
+        "gold_scam": 0,
+        "gold_ham": 2,
+        "tp": 0,
+        "fp": 1,
+        "fn": 0,
+        "tn": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.5,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0945,
+          0.9055
+        ],
+        "precision_ci95": [
+          0.0,
+          0.7935
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Indian_Telecom_SMS": {
+        "gold": 134,
+        "gold_scam": 0,
+        "gold_ham": 134,
+        "tp": 0,
+        "fp": 29,
+        "fn": 0,
+        "tn": 105,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.2164,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.1551,
+          0.2935
+        ],
+        "precision_ci95": [
+          0.0,
+          0.117
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Kaggle_Hindi_Merged": {
+        "gold": 449,
+        "gold_scam": 0,
+        "gold_ham": 449,
+        "tp": 0,
+        "fp": 300,
+        "fn": 0,
+        "tn": 149,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.6682,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.6233,
+          0.7101
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0126
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Smishing_Dataset": {
+        "gold": 4194,
+        "gold_scam": 0,
+        "gold_ham": 4194,
+        "tp": 0,
+        "fp": 753,
+        "fn": 0,
+        "tn": 3441,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.1795,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.1682,
+          0.1914
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0051
+        ],
+        "inconclusive": true
+      },
+      "scamshield_UCI_SMS_Spam": {
+        "gold": 402,
+        "gold_scam": 0,
+        "gold_ham": 402,
+        "tp": 0,
+        "fp": 84,
+        "fn": 0,
+        "tn": 318,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.209,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.1721,
+          0.2514
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0437
+        ],
+        "inconclusive": true
+      },
+      "scamshield_ysangam/Indian_Cyber_Scam_Hinglish": {
+        "gold": 9,
+        "gold_scam": 0,
+        "gold_ham": 9,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 9,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2991
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       }
     }
   },
@@ -2885,6 +6788,8 @@
     "byLanguage": {
       "bn": {
         "gold": 1054,
+        "gold_scam": 420,
+        "gold_ham": 634,
         "tp": 5,
         "fp": 1,
         "fn": 415,
@@ -2892,10 +6797,25 @@
         "precision": 0.8333,
         "recall": 0.0119,
         "f1": 0.0235,
-        "fpr": 0.0016
+        "fpr": 0.0016,
+        "recall_ci95": [
+          0.0051,
+          0.0276
+        ],
+        "fpr_ci95": [
+          0.0003,
+          0.0089
+        ],
+        "precision_ci95": [
+          0.4365,
+          0.9699
+        ],
+        "inconclusive": false
       },
       "en": {
         "gold": 7978,
+        "gold_scam": 3043,
+        "gold_ham": 4935,
         "tp": 22,
         "fp": 1,
         "fn": 3021,
@@ -2903,10 +6823,25 @@
         "precision": 0.9565,
         "recall": 0.0072,
         "f1": 0.0144,
-        "fpr": 0.0002
+        "fpr": 0.0002,
+        "recall_ci95": [
+          0.0048,
+          0.0109
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0011
+        ],
+        "precision_ci95": [
+          0.7901,
+          0.9923
+        ],
+        "inconclusive": false
       },
       "hi": {
         "gold": 460,
+        "gold_scam": 11,
+        "gold_ham": 449,
         "tp": 0,
         "fp": 2,
         "fn": 11,
@@ -2914,10 +6849,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0045
+        "fpr": 0.0045,
+        "recall_ci95": [
+          0.0,
+          0.2588
+        ],
+        "fpr_ci95": [
+          0.0012,
+          0.0161
+        ],
+        "precision_ci95": [
+          0.0,
+          0.6576
+        ],
+        "inconclusive": true
       },
       "hinglish": {
         "gold": 108,
+        "gold_scam": 96,
+        "gold_ham": 12,
         "tp": 0,
         "fp": 0,
         "fn": 96,
@@ -2925,12 +6875,27 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0385
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2425
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       }
     },
     "bySource": {
       "bengali:Banglish": {
         "gold": 360,
+        "gold_scam": 141,
+        "gold_ham": 219,
         "tp": 0,
         "fp": 0,
         "fn": 141,
@@ -2938,10 +6903,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0265
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0172
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": false
       },
       "bengali:Bengali": {
         "gold": 358,
+        "gold_scam": 141,
+        "gold_ham": 217,
         "tp": 1,
         "fp": 0,
         "fn": 140,
@@ -2949,10 +6929,25 @@
         "precision": 1.0,
         "recall": 0.0071,
         "f1": 0.0141,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0013,
+          0.0391
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0174
+        ],
+        "precision_ci95": [
+          0.2065,
+          1.0
+        ],
+        "inconclusive": false
       },
       "bengali:CodeMix": {
         "gold": 336,
+        "gold_scam": 138,
+        "gold_ham": 198,
         "tp": 4,
         "fp": 1,
         "fn": 134,
@@ -2960,10 +6955,25 @@
         "precision": 0.8,
         "recall": 0.029,
         "f1": 0.0559,
-        "fpr": 0.0051
+        "fpr": 0.0051,
+        "recall_ci95": [
+          0.0113,
+          0.0722
+        ],
+        "fpr_ci95": [
+          0.0009,
+          0.028
+        ],
+        "precision_ci95": [
+          0.3755,
+          0.9638
+        ],
+        "inconclusive": false
       },
       "bengali:English": {
         "gold": 347,
+        "gold_scam": 141,
+        "gold_ham": 206,
         "tp": 8,
         "fp": 0,
         "fn": 133,
@@ -2971,10 +6981,25 @@
         "precision": 1.0,
         "recall": 0.0567,
         "f1": 0.1074,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.029,
+          0.108
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0183
+        ],
+        "precision_ci95": [
+          0.6756,
+          1.0
+        ],
+        "inconclusive": false
       },
       "scamshield:Benchmark_Ground_Truth": {
         "gold": 2,
+        "gold_scam": 0,
+        "gold_ham": 2,
         "tp": 0,
         "fp": 0,
         "fn": 0,
@@ -2982,10 +7007,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.6576
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       },
       "scamshield:Indian_Telecom_SMS": {
         "gold": 217,
+        "gold_scam": 83,
+        "gold_ham": 134,
         "tp": 0,
         "fp": 1,
         "fn": 83,
@@ -2993,10 +7033,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0075
+        "fpr": 0.0075,
+        "recall_ci95": [
+          0.0,
+          0.0442
+        ],
+        "fpr_ci95": [
+          0.0013,
+          0.0411
+        ],
+        "precision_ci95": [
+          0.0,
+          0.7935
+        ],
+        "inconclusive": false
       },
       "scamshield:Kaggle_Hindi_Merged": {
         "gold": 460,
+        "gold_scam": 11,
+        "gold_ham": 449,
         "tp": 0,
         "fp": 2,
         "fn": 11,
@@ -3004,10 +7059,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0045
+        "fpr": 0.0045,
+        "recall_ci95": [
+          0.0,
+          0.2588
+        ],
+        "fpr_ci95": [
+          0.0012,
+          0.0161
+        ],
+        "precision_ci95": [
+          0.0,
+          0.6576
+        ],
+        "inconclusive": true
       },
       "scamshield:Smishing_Dataset": {
         "gold": 6986,
+        "gold_scam": 2792,
+        "gold_ham": 4194,
         "tp": 14,
         "fp": 0,
         "fn": 2778,
@@ -3015,10 +7085,25 @@
         "precision": 1.0,
         "recall": 0.005,
         "f1": 0.01,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.003,
+          0.0084
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0009
+        ],
+        "precision_ci95": [
+          0.7847,
+          1.0
+        ],
+        "inconclusive": false
       },
       "scamshield:UCI_SMS_Spam": {
         "gold": 464,
+        "gold_scam": 62,
+        "gold_ham": 402,
         "tp": 0,
         "fp": 0,
         "fn": 62,
@@ -3026,10 +7111,25 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0583
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0095
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": false
       },
       "scamshield:ysangam/Indian_Cyber_Scam_Hinglish": {
         "gold": 70,
+        "gold_scam": 61,
+        "gold_ham": 9,
         "tp": 0,
         "fp": 0,
         "fn": 61,
@@ -3037,7 +7137,230 @@
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0592
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2991
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
+      }
+    },
+    "byBenignSubtype": {
+      "normal": {
+        "gold": 498,
+        "gold_scam": 0,
+        "gold_ham": 498,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 498,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0077
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
+      },
+      "promo": {
+        "gold": 342,
+        "gold_scam": 0,
+        "gold_ham": 342,
+        "tp": 0,
+        "fp": 1,
+        "fn": 0,
+        "tn": 341,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0029,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0005,
+          0.0164
+        ],
+        "precision_ci95": [
+          0.0,
+          0.7935
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Benchmark_Ground_Truth": {
+        "gold": 2,
+        "gold_scam": 0,
+        "gold_ham": 2,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.6576
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Indian_Telecom_SMS": {
+        "gold": 134,
+        "gold_scam": 0,
+        "gold_ham": 134,
+        "tp": 0,
+        "fp": 1,
+        "fn": 0,
+        "tn": 133,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0075,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0013,
+          0.0411
+        ],
+        "precision_ci95": [
+          0.0,
+          0.7935
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Kaggle_Hindi_Merged": {
+        "gold": 449,
+        "gold_scam": 0,
+        "gold_ham": 449,
+        "tp": 0,
+        "fp": 2,
+        "fn": 0,
+        "tn": 447,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0045,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0012,
+          0.0161
+        ],
+        "precision_ci95": [
+          0.0,
+          0.6576
+        ],
+        "inconclusive": true
+      },
+      "scamshield_Smishing_Dataset": {
+        "gold": 4194,
+        "gold_scam": 0,
+        "gold_ham": 4194,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 4194,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0009
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
+      },
+      "scamshield_UCI_SMS_Spam": {
+        "gold": 402,
+        "gold_scam": 0,
+        "gold_ham": 402,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 402,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0095
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
+      },
+      "scamshield_ysangam/Indian_Cyber_Scam_Hinglish": {
+        "gold": 9,
+        "gold_scam": 0,
+        "gold_ham": 9,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 9,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.2991
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       }
     }
   },
@@ -3045,6 +7368,8 @@
     "byLanguage": {
       "en": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 68,
         "fp": 2,
         "fn": 11,
@@ -3052,12 +7377,27 @@
         "precision": 0.9714,
         "recall": 0.8608,
         "f1": 0.9128,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.7676,
+          0.9204
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.9017,
+          0.9921
+        ],
+        "inconclusive": false
       }
     },
     "bySource": {
       "corpus": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 68,
         "fp": 2,
         "fn": 11,
@@ -3065,7 +7405,48 @@
         "precision": 0.9714,
         "recall": 0.8608,
         "f1": 0.9128,
-        "fpr": 0.0339
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.7676,
+          0.9204
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.9017,
+          0.9921
+        ],
+        "inconclusive": false
+      }
+    },
+    "byBenignSubtype": {
+      "corpus_ham": {
+        "gold": 59,
+        "gold_scam": 0,
+        "gold_ham": 59,
+        "tp": 0,
+        "fp": 2,
+        "fn": 0,
+        "tn": 57,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0339,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0093,
+          0.1154
+        ],
+        "precision_ci95": [
+          0.0,
+          0.6576
+        ],
+        "inconclusive": true
       }
     }
   },
@@ -3073,6 +7454,8 @@
     "byLanguage": {
       "en": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 4,
         "fp": 0,
         "fn": 75,
@@ -3080,12 +7463,27 @@
         "precision": 1.0,
         "recall": 0.0506,
         "f1": 0.0964,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0199,
+          0.1231
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.5101,
+          1.0
+        ],
+        "inconclusive": false
       }
     },
     "bySource": {
       "corpus": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 4,
         "fp": 0,
         "fn": 75,
@@ -3093,7 +7491,48 @@
         "precision": 1.0,
         "recall": 0.0506,
         "f1": 0.0964,
-        "fpr": 0.0
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0199,
+          0.1231
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.5101,
+          1.0
+        ],
+        "inconclusive": false
+      }
+    },
+    "byBenignSubtype": {
+      "corpus_ham": {
+        "gold": 59,
+        "gold_scam": 0,
+        "gold_ham": 59,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 59,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0,
+          0.0611
+        ],
+        "precision_ci95": [
+          0.0,
+          0.0
+        ],
+        "inconclusive": true
       }
     }
   },
@@ -3101,6 +7540,8 @@
     "byLanguage": {
       "en": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 50,
         "fp": 10,
         "fn": 29,
@@ -3108,12 +7549,27 @@
         "precision": 0.8333,
         "recall": 0.6329,
         "f1": 0.7194,
-        "fpr": 0.1695
+        "fpr": 0.1695,
+        "recall_ci95": [
+          0.5228,
+          0.7307
+        ],
+        "fpr_ci95": [
+          0.0948,
+          0.2846
+        ],
+        "precision_ci95": [
+          0.7197,
+          0.9069
+        ],
+        "inconclusive": false
       }
     },
     "bySource": {
       "corpus": {
         "gold": 138,
+        "gold_scam": 79,
+        "gold_ham": 59,
         "tp": 50,
         "fp": 10,
         "fn": 29,
@@ -3121,16 +7577,60 @@
         "precision": 0.8333,
         "recall": 0.6329,
         "f1": 0.7194,
-        "fpr": 0.1695
+        "fpr": 0.1695,
+        "recall_ci95": [
+          0.5228,
+          0.7307
+        ],
+        "fpr_ci95": [
+          0.0948,
+          0.2846
+        ],
+        "precision_ci95": [
+          0.7197,
+          0.9069
+        ],
+        "inconclusive": false
+      }
+    },
+    "byBenignSubtype": {
+      "corpus_ham": {
+        "gold": 59,
+        "gold_scam": 0,
+        "gold_ham": 59,
+        "tp": 0,
+        "fp": 10,
+        "fn": 0,
+        "tn": 49,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.1695,
+        "recall_ci95": [
+          0.0,
+          0.0
+        ],
+        "fpr_ci95": [
+          0.0948,
+          0.2846
+        ],
+        "precision_ci95": [
+          0.0,
+          0.2775
+        ],
+        "inconclusive": true
       }
     }
   },
-  "candidateModelPath": "/Users/istakahamed06/Desktop/Messages App/01_active_codebase/messages/protection-engine/training/ngram_multilingual_candidate.json",
+  "candidateModelPath": "D:\\Istak\\Messages\\Messages App\\01_active_codebase\\messages\\protection-engine\\training\\ngram_multilingual_candidate.json",
   "caveats": [
+    "DEVELOPMENT EVIDENCE ONLY: No independent human-labeled acceptance set was used.",
+    "Annotator recruitment and blind human acceptance are marked infeasible; this model is NOT release-ready.",
+    "AI filtering in Android Messages remains default-off; this research candidate is NOT integrated into the app bundle.",
     "ScamShield published test rows have been inspected in prior experimentation; test metrics are not pristine blind evidence.",
     "ScamShield includes synthetic training data and source families whose collection methods differ.",
     "India CSV is broad spam/ham and heavily overlaps ScamShield; exact overlaps are deduplicated.",
     "Hindi evaluation is small and does not establish robust field accuracy.",
-    "This candidate is not integrated into the Android app."
+    "This candidate is strictly for development diagnostics and research comparison."
   ]
 }
