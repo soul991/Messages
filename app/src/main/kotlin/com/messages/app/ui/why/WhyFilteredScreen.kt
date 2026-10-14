@@ -3,7 +3,9 @@ package com.messages.app.ui.why
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,9 +14,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.messages.designsystem.groupCard
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -139,7 +144,13 @@ fun WhyFilteredScreen(
             }
             ExplanationList(msg)
             if (msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED")) {
-                Button(onClick = vm::moveToInbox, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = vm::moveToInbox,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(26.dp),
+                ) {
                     Text(stringResource(R.string.why_not_spam_action))
                 }
                 Text(
@@ -170,32 +181,44 @@ private fun VerdictHeader(msg: MessageEntity) {
         else -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer,
             stringResource(R.string.category_inbox))
     }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(container)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = container.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.35f)),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Icon(
-            when {
-                msg.dangerous || msg.fraudWarning -> Icons.Filled.Warning
-                msg.category in listOf("INBOX", "TRANSACTIONS") -> Icons.Filled.CheckCircle
-                else -> Icons.Filled.Info
-            },
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(28.dp),
-        )
-        Spacer(Modifier.width(12.dp))
-        Column {
-            Text(label, style = MaterialTheme.typography.titleMedium, color = color)
-            Text(
-                stringResource(R.string.why_verdict_score, msg.score, msg.address),
-                style = MaterialTheme.typography.bodySmall,
-                color = color,
-            )
+        Row(
+            Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    when {
+                        msg.dangerous || msg.fraudWarning -> Icons.Filled.Warning
+                        msg.category in listOf("INBOX", "TRANSACTIONS") -> Icons.Filled.CheckCircle
+                        else -> Icons.Filled.Info
+                    },
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    stringResource(R.string.why_verdict_score, msg.score, msg.address),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = color.copy(alpha = 0.9f),
+                )
+            }
         }
     }
 }
@@ -220,6 +243,7 @@ private fun DangerousLinksSection(msg: MessageEntity) {
         Text(
             stringResource(R.string.why_links_title),
             style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
         )
         Text(
             stringResource(R.string.why_links_body),
@@ -228,12 +252,13 @@ private fun DangerousLinksSection(msg: MessageEntity) {
         )
         urls.forEach { url ->
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = CategoryColors.FraudContainer,
+                shape = RoundedCornerShape(16.dp),
+                color = CategoryColors.FraudContainer.copy(alpha = 0.4f),
+                border = BorderStroke(1.dp, CategoryColors.Fraud.copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
-                    Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (url in revealed) {
@@ -264,17 +289,20 @@ private fun DangerousLinksSection(msg: MessageEntity) {
 }
 
 @Composable
-private fun MessageCard(msg: MessageEntity) {    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+private fun MessageCard(msg: MessageEntity) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.groupCard,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(
-            msg.body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(14.dp),
-        )
+        Column(Modifier.padding(18.dp)) {
+            Text(
+                msg.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 
@@ -284,42 +312,66 @@ private fun ExplanationList(msg: MessageEntity) {
     val patternIds = msg.matchedPatternIds.split(',').filter { it.isNotBlank() }
     val comboIds = msg.matchedComboIds.split(',').filter { it.isNotBlank() }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            stringResource(R.string.why_matched_rules),
-            style = MaterialTheme.typography.titleSmall,
-        )
-        if (explanations.isEmpty() && patternIds.isEmpty() && comboIds.isEmpty()) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.groupCard,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Text(
-                stringResource(R.string.why_no_patterns),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
+                stringResource(R.string.why_matched_rules),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
             )
-            return@Column
-        }
-        explanations.forEach { line ->
-            Row(verticalAlignment = Alignment.Top) {
-                Text("•", color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(8.dp))
-                Text(line, style = MaterialTheme.typography.bodyMedium)
+            if (explanations.isEmpty() && patternIds.isEmpty() && comboIds.isEmpty()) {
+                Text(
+                    stringResource(R.string.why_no_patterns),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            } else {
+                explanations.forEach { line ->
+                    Row(verticalAlignment = Alignment.Top) {
+                        Box(
+                            Modifier
+                                .padding(top = 7.dp)
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            line,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                if (patternIds.isNotEmpty() || comboIds.isNotEmpty()) {
+                    HorizontalDivider(
+                        Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.why_pattern_ids,
+                            (patternIds + comboIds).joinToString(", "),
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
             }
-        }
-        if (patternIds.isNotEmpty() || comboIds.isNotEmpty()) {
-            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
-                stringResource(
-                    R.string.why_pattern_ids,
-                    (patternIds + comboIds).joinToString(", "),
-                ),
-                style = MaterialTheme.typography.labelSmall,
+                stringResource(R.string.why_deterministic),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
             )
         }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(R.string.why_deterministic),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
-        )
     }
 }

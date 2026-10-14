@@ -16,16 +16,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Outbox
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import com.messages.designsystem.groupCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -369,39 +377,92 @@ private fun OutboxCard(
     val failed = message.sendStatus == "FAILED"
     val busy = inFlight(message.sendStatus)
 
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+    val containerColor = when {
+        failed -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+        scheduled -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+        else -> MaterialTheme.colorScheme.groupCard
+    }
+    val borderColor = when {
+        failed -> MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+        scheduled -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(26.dp),
+        color = containerColor,
+        border = BorderStroke(1.dp, borderColor),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                message.address,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(4.dp))
+        Column(Modifier.padding(18.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    message.address,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                val (badgeBg, badgeFg, badgeIcon) = when {
+                    failed -> Triple(MaterialTheme.colorScheme.error.copy(alpha = 0.15f), MaterialTheme.colorScheme.error, Icons.Outlined.ErrorOutline)
+                    scheduled -> Triple(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary, Icons.Outlined.Schedule)
+                    busy -> Triple(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f), MaterialTheme.colorScheme.secondary, Icons.Outlined.Sync)
+                    else -> Triple(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant, Icons.Outlined.Outbox)
+                }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = badgeBg,
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            badgeIcon,
+                            contentDescription = null,
+                            tint = badgeFg,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            when {
+                                scheduled -> stringResource(R.string.outbox_chip_scheduled)
+                                failed -> stringResource(R.string.outbox_chip_failed)
+                                busy -> stringResource(R.string.outbox_chip_sending)
+                                else -> message.sendStatus
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = badgeFg,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
             Text(
                 message.body,
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 statusLine(message),
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
                 color = if (failed) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.onSurfaceVariant,
             )
             retryLine(message)?.let {
                 Text(
                     it,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
                 )
@@ -409,23 +470,24 @@ private fun OutboxCard(
             if (busy) {
                 Text(
                     stringResource(R.string.outbox_in_flight),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             Spacer(Modifier.height(4.dp))
-            // Actions. Laid out in a flow so a narrow screen wraps instead of
-            // hiding a control behind an overflow the user has to discover.
+            // Actions
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (scheduled) {
                     TextButton(onClick = onSendNow) {
-                        Text(stringResource(R.string.outbox_action_send_now))
+                        Text(stringResource(R.string.outbox_action_send_now), fontWeight = FontWeight.SemiBold)
                     }
                 }
                 if (failed) {
                     TextButton(onClick = onResend) {
-                        Text(stringResource(R.string.outbox_action_resend))
+                        Text(stringResource(R.string.outbox_action_resend), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 if (!busy) {

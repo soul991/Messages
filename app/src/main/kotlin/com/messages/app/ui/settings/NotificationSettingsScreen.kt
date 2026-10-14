@@ -39,8 +39,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -52,6 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.MessagesApp
 import com.messages.app.R
 import com.messages.designsystem.LocalDarkTheme
+import com.messages.designsystem.groupCard
 
 /**
  * Per-folder notification behavior (Phase 4 item 3, PRD §4 "per-folder
@@ -224,36 +225,17 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
  */
 @Composable
 private fun NotificationPreviewCard() {
-    val isDark = LocalDarkTheme.current
-    val cardBg = if (isDark) Color(0xF0181A22) else Color(0xFFFFFFFF)
     val emerald = Color(0xFF10B981)
 
-    Box(
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.groupCard,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .shadow(
-                elevation = 6.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = emerald.copy(alpha = 0.2f),
-                spotColor = emerald.copy(alpha = 0.25f),
-            )
-            .clip(RoundedCornerShape(20.dp))
-            .background(cardBg)
-            .border(
-                1.dp,
-                Brush.linearGradient(
-                    listOf(
-                        emerald.copy(alpha = 0.6f),
-                        emerald.copy(alpha = 0.2f),
-                        Color.Transparent,
-                    )
-                ),
-                RoundedCornerShape(20.dp)
-            )
-            .padding(14.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Column {
+        Column(Modifier.padding(16.dp)) {
             // Notification Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -261,7 +243,7 @@ private fun NotificationPreviewCard() {
             ) {
                 Box(
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(18.dp)
                         .clip(CircleShape)
                         .background(emerald),
                     contentAlignment = Alignment.Center,
@@ -270,10 +252,10 @@ private fun NotificationPreviewCard() {
                         Icons.Outlined.Receipt,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(10.dp),
+                        modifier = Modifier.size(11.dp),
                     )
                 }
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
                     text = "Messages • TRANSACTIONS",
                     style = MaterialTheme.typography.labelSmall,
@@ -290,27 +272,19 @@ private fun NotificationPreviewCard() {
                 )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
 
             // Notification Body with Avatar & Hero Text
             Row(
                 verticalAlignment = Alignment.Top,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                // Branded Circular Avatar
+                // Branded Solid Circular Avatar
                 Box(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    Color(0xFF10B981),
-                                    Color(0xFF047857),
-                                )
-                            )
-                        )
-                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape),
+                        .background(emerald),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -340,42 +314,46 @@ private fun NotificationPreviewCard() {
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
             // Action Buttons
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(emerald.copy(alpha = 0.12f))
-                        .border(0.75.dp, emerald.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    contentAlignment = Alignment.Center,
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = emerald.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, emerald.copy(alpha = 0.35f)),
                 ) {
-                    Text(
-                        text = "Mark as read",
-                        color = emerald,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
+                    Box(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Mark as read",
+                            color = emerald,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    contentAlignment = Alignment.Center,
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ) {
-                    Text(
-                        text = "Reply",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    Box(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Reply",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
             }
         }

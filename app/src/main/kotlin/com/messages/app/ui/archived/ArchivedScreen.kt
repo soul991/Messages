@@ -1,6 +1,8 @@
 package com.messages.app.ui.archived
 
 import android.app.Application
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
+import com.messages.designsystem.groupCard
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Archive
@@ -104,17 +111,30 @@ fun ArchivedScreen(
                 Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Outlined.Archive, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(48.dp),
-                    )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Archive, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
                     Text(
                         stringResource(R.string.archived_empty_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 12.dp),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                     )
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         stringResource(R.string.archived_empty_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
@@ -127,62 +147,70 @@ fun ArchivedScreen(
         }
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             items(conversations, key = { it.threadId }) { conv ->
-                Row(
-                    Modifier
+                // V2-36: read in composition, used from the coroutine.
+                val unarchived = stringResource(R.string.archived_unarchived_snackbar)
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.groupCard,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onOpenThread(conv.threadId) }
-                        .padding(horizontal = 16.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clickable { onOpenThread(conv.threadId) },
                 ) {
-                    ContactAvatar(
-                        conv.contactName ?: conv.address,
-                        conv.category,
-                        size = ROW_AVATAR,
-                        photoUri = if (conv.locked) null
-                        else com.messages.app.ui.common.rememberContactPhoto(conv.address),
-                    )
-                    Spacer(Modifier.width(ROW_GAP))
-                    Column(Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ContactAvatar(
+                            conv.contactName ?: conv.address,
+                            conv.category,
+                            size = ROW_AVATAR,
+                            photoUri = if (conv.locked) null
+                            else com.messages.app.ui.common.rememberContactPhoto(conv.address),
+                        )
+                        Spacer(Modifier.width(ROW_GAP))
+                        Column(Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    conv.contactName ?: conv.address,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    formatTime(conv.lastTimestamp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Spacer(Modifier.height(3.dp))
                             Text(
-                                conv.contactName ?: conv.address,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium,
+                                if (conv.locked) stringResource(R.string.conversation_locked_preview) else conv.lastMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                formatTime(conv.lastTimestamp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            if (conv.locked) stringResource(R.string.conversation_locked_preview) else conv.lastMessage,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    // V2-36: read in composition, used from the coroutine.
-                    // `stringResource` is @Composable and onClick is not, so the
-                    // lookup has to happen out here.
-                    val unarchived = stringResource(R.string.archived_unarchived_snackbar)
-                    IconButton(onClick = {
-                        vm.unarchive(conv.threadId)
-                        scope.launch {
-                            snackbarHostState.showSnackbar(unarchived)
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(onClick = {
+                            vm.unarchive(conv.threadId)
+                            scope.launch {
+                                snackbarHostState.showSnackbar(unarchived)
+                            }
+                        }) {
+                            Icon(
+                                Icons.Outlined.Unarchive,
+                                contentDescription = stringResource(R.string.archived_unarchive),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
                         }
-                    }) {
-                        Icon(
-                            Icons.Outlined.Unarchive,
-                            contentDescription = stringResource(R.string.archived_unarchive),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
                     }
                 }
             }

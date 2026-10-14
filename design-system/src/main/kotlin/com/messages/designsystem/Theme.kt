@@ -184,6 +184,16 @@ private val LightBase = lightColorScheme(
     surface = Color(0xFFFAF7F2),
     surfaceVariant = Color(0xFFE8E2D6),
     background = Color(0xFFFAF7F2),
+    // Redesign (Oct 2026): warm neutral container ladder used by grouped
+    // cards, search pills, chips and the floating dock.
+    onSurface = Color(0xFF1E1B24),
+    onSurfaceVariant = Color(0xFF655F6D),
+    outlineVariant = Color(0xFFE4DED8),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF7F3EE),
+    surfaceContainer = Color(0xFFF2EEE9),
+    surfaceContainerHigh = Color(0xFFE9E4DE),
+    surfaceContainerHighest = Color(0xFFE4DED8),
 )
 
 private val DarkBase = darkColorScheme(
@@ -198,6 +208,14 @@ private val DarkBase = darkColorScheme(
     surface = Color(0xFF17151F),
     surfaceVariant = Color(0xFF4A4450),
     background = Color(0xFF17151F),
+    onSurface = Color(0xFFEAE6F0),
+    onSurfaceVariant = Color(0xFFB0A9BA),
+    outlineVariant = Color(0xFF35313D),
+    surfaceContainerLowest = Color(0xFF110F17),
+    surfaceContainerLow = Color(0xFF1E1B24),
+    surfaceContainer = Color(0xFF26232D),
+    surfaceContainerHigh = Color(0xFF302C38),
+    surfaceContainerHighest = Color(0xFF3A3644),
 )
 
 // The pre-accent static schemes were the BLUE seed's values; BLUE reproduces
@@ -230,6 +248,13 @@ private val MessagesTypography = Typography().let { base ->
     )
 }
 
+/**
+ * Fill for grouped list cards (conversation groups, settings groups) that sit
+ * on the canvas: pure white in light, the first container step in dark.
+ */
+val ColorScheme.groupCard: Color
+    @Composable get() = if (LocalDarkTheme.current) surfaceContainerLow else surfaceContainerLowest
+
 enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 
 @Composable
@@ -254,7 +279,16 @@ fun MessagesTheme(
     // AMOLED tier (deliberate differentiator — refs' dark is #1C1C1E, ours is
     // true black) overlays every accent path identically.
     val scheme = if (mode == ThemeMode.AMOLED) {
-        base.copy(surface = Color.Black, background = Color.Black)
+        base.copy(
+            surface = Color.Black,
+            background = Color.Black,
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color(0xFF0E0C15),
+            surfaceContainer = Color(0xFF161320),
+            surfaceContainerHigh = Color(0xFF1E1B29),
+            surfaceContainerHighest = Color(0xFF282436),
+            outlineVariant = Color(0xFF2B2638),
+        )
     } else base
     CompositionLocalProvider(
         LocalDarkTheme provides darkTheme,

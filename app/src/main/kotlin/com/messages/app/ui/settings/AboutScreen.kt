@@ -72,12 +72,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Surface
 import com.messages.app.BuildConfig
 import com.messages.app.R
 import com.messages.app.update.AppUpdateManager
 import com.messages.app.update.UpdateCheck
-import com.messages.designsystem.GlassDepth
-import com.messages.designsystem.LiquidGlassSurface
+import com.messages.designsystem.groupCard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -142,14 +143,15 @@ fun AboutScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
         ) {
-            AppIdentityGlassCard()
+            AppIdentityCard()
 
             Spacer(Modifier.height(16.dp))
 
             // ================= Updates Section =================
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(20.dp),
-                depth = GlassDepth.LOW,
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Row(
@@ -381,9 +383,10 @@ fun AboutScreen(
             Spacer(Modifier.height(16.dp))
 
             // ================= Legal Section =================
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(20.dp),
-                depth = GlassDepth.LOW,
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     AboutGlassRow(
@@ -404,9 +407,10 @@ fun AboutScreen(
             Spacer(Modifier.height(16.dp))
 
             // ================= Source & Licenses =================
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(20.dp),
-                depth = GlassDepth.LOW,
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     AboutGlassRow(
@@ -438,12 +442,13 @@ fun AboutScreen(
     }
 }
 
-/** Liquid Glass App Identity Card */
+/** Modern Material 3 Expressive App Identity Card */
 @Composable
-private fun AppIdentityGlassCard() {
-    LiquidGlassSurface(
-        shape = RoundedCornerShape(24.dp),
-        depth = GlassDepth.MEDIUM,
+private fun AppIdentityCard() {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.groupCard,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
     ) {
         Column(
             Modifier

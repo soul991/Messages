@@ -49,6 +49,16 @@ object Motion {
     fun <T> gentle(): FiniteAnimationSpec<T> =
         if (animationsEnabled()) spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
         else snap()
+
+    /** Fluid spatial spring for expanding cards and container morphs. */
+    fun <T> fluidSpring(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 0.86f, stiffness = 380f)
+        else snap()
+
+    /** Micro-bounce spring for popping badges, counter ticks, and tactile pills. */
+    fun <T> bouncySpring(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 0.72f, stiffness = 520f)
+        else snap()
 }
 
 /** Haptics on key actions (§9) — thin wrappers over view feedback constants. */

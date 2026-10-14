@@ -560,12 +560,33 @@ fun SettingsScreen(
         )
     }
 
+    // Hub + sub-pages: `page` null shows the hub; otherwise only that slice
+    // of the (unchanged) settings content is composed.
+    var page by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    androidx.activity.compose.BackHandler(enabled = page != null) { page = null }
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
+                title = {
+                    Text(
+                        stringResource(
+                            when (page) {
+                                SettingsPage.APPEARANCE -> R.string.settings_section_appearance
+                                SettingsPage.NOTIFICATIONS -> R.string.settings_section_notifications
+                                SettingsPage.CONVERSATIONS -> R.string.settings_section_conversations
+                                SettingsPage.PROTECTION -> R.string.settings_hub_protection
+                                SettingsPage.PRIVACY -> R.string.settings_section_privacy
+                                SettingsPage.BACKUP -> R.string.settings_hub_backup
+                                SettingsPage.STORAGE -> R.string.settings_hub_storage
+                                else -> R.string.settings_title
+                            },
+                        ),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { if (page != null) page = null else onBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
@@ -573,9 +594,16 @@ fun SettingsScreen(
         },
     ) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {
+            // Hub: shown until a section is picked.
+            if (page == null) {
+                item {
+                    SettingsHub(onPick = { picked -> if (picked == null) onOpenAbout() else page = picked })
+                }
+            }
 
             // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
-            item {
+            if (page == SettingsPage.APPEARANCE) {
+                item {
                 SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
                 SettingsDropdownRow(
                     icon = Icons.Outlined.DarkMode,
@@ -588,9 +616,11 @@ fun SettingsScreen(
                 AccentPickerRow(selected = accent, onSelect = onAccentChange)
                 MessageTextSizeRow()
             }
+            }
 
             // ---- In-app brightness ----
-            item {
+            if (page == SettingsPage.APPEARANCE) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_brightness))
                 InAppBrightnessSection(
@@ -600,9 +630,11 @@ fun SettingsScreen(
                     onBrightnessChange = onBrightnessLevelChange,
                 )
             }
+            }
 
             // ---- Protection sensitivity (§3 Stage 5) ----
-            item {
+            if (page == SettingsPage.PROTECTION) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
                 SettingsSwitchRow(
@@ -644,9 +676,11 @@ fun SettingsScreen(
                     )
                 }
             }
+            }
 
             // ---- Rules (§3 Stage 1) ----
-            item {
+            if (page == SettingsPage.PROTECTION) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_rules))
                 Text(
@@ -656,21 +690,35 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
-            item { RuleGroupHeader(stringResource(R.string.settings_rules_always_allow), "ALLOW", onAdd = { addRuleKind = "ALLOW" }) }
-            items(rules.filter { it.kind == "ALLOW" }, key = { it.id }) { rule ->
+            }
+            if (page == SettingsPage.PROTECTION) {
+                item { RuleGroupHeader(stringResource(R.string.settings_rules_always_allow), "ALLOW", onAdd = { addRuleKind = "ALLOW" }) }
+            }
+            if (page == SettingsPage.PROTECTION) {
+                items(rules.filter { it.kind == "ALLOW" }, key = { it.id }) { rule ->
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
             }
-            item { RuleGroupHeader(stringResource(R.string.settings_rules_always_block), "BLOCK", onAdd = { addRuleKind = "BLOCK" }) }
-            items(rules.filter { it.kind == "BLOCK" }, key = { it.id }) { rule ->
+            }
+            if (page == SettingsPage.PROTECTION) {
+                item { RuleGroupHeader(stringResource(R.string.settings_rules_always_block), "BLOCK", onAdd = { addRuleKind = "BLOCK" }) }
+            }
+            if (page == SettingsPage.PROTECTION) {
+                items(rules.filter { it.kind == "BLOCK" }, key = { it.id }) { rule ->
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
             }
-            item { RuleGroupHeader(stringResource(R.string.settings_rules_custom), "CUSTOM", onAdd = { addRuleKind = "CUSTOM" }) }
-            items(rules.filter { it.kind == "CUSTOM" }, key = { it.id }) { rule ->
+            }
+            if (page == SettingsPage.PROTECTION) {
+                item { RuleGroupHeader(stringResource(R.string.settings_rules_custom), "CUSTOM", onAdd = { addRuleKind = "CUSTOM" }) }
+            }
+            if (page == SettingsPage.PROTECTION) {
+                items(rules.filter { it.kind == "CUSTOM" }, key = { it.id }) { rule ->
                 RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+            }
             }
 
             // ---- Notifications (Phase 4 item 3: full per-folder screen) ----
-            item {
+            if (page == SettingsPage.NOTIFICATIONS) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_notifications))
                 SettingsNavRow(
@@ -680,9 +728,11 @@ fun SettingsScreen(
                     onClick = onOpenNotificationSettings,
                 )
             }
+            }
 
             // ---- Privacy & security (§8.2) ----
-            item {
+            if (page == SettingsPage.PRIVACY) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_privacy))
                 // The biometric prompt is raised from onChange, which is not a
@@ -773,9 +823,11 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                 )
             }
+            }
 
             // ---- Conversations (§8.1/§8.2): swipe actions + delivery reports ----
-            item {
+            if (page == SettingsPage.CONVERSATIONS) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_conversations))
                 val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -850,9 +902,11 @@ fun SettingsScreen(
                 // Quick-reply templates (Phase 4 item 8).
                 QuickRepliesEditor(ctx)
             }
+            }
 
             // ---- Auto-clean features ----
-            item {
+            if (page == SettingsPage.STORAGE) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_auto_clean))
                 SettingsSwitchRow(
@@ -895,9 +949,11 @@ fun SettingsScreen(
                     )
                 }
             }
+            }
 
             // ---- Pattern library (§7.5) ----
-            item {
+            if (page == SettingsPage.PROTECTION) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_pattern_library))
                 Column(Modifier.padding(horizontal = 20.dp)) {
@@ -930,9 +986,11 @@ fun SettingsScreen(
                     }
                 }
             }
+            }
 
             // ---- Backup & restore (§8.2) ----
-            item {
+            if (page == SettingsPage.BACKUP) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_backup))
                 Column(Modifier.padding(horizontal = 20.dp)) {
@@ -969,9 +1027,11 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(24.dp))
             }
+            }
 
             // ---- Message import (BUG-1 safety net: §10 backfill re-run) ----
-            item {
+            if (page == SettingsPage.BACKUP) {
+                item {
                 SettingsSectionDivider()
                 SettingsSectionHeader(stringResource(R.string.settings_section_import))
                 Column(Modifier.padding(horizontal = 20.dp)) {
@@ -1011,9 +1071,11 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(24.dp))
             }
+            }
 
             // ---- Trash (§6.4) ----
-            item {
+            if (page == SettingsPage.STORAGE) {
+                item {
                 SettingsSectionDivider()
                 val trashCount by vm.trashCount.collectAsStateWithLifecycle(initialValue = 0)
                 SettingsNavRow(
@@ -1027,6 +1089,7 @@ fun SettingsScreen(
                     onClick = onOpenTrash,
                 )
                 Spacer(Modifier.height(24.dp))
+            }
             }
 
             // ---- About: version, legal, updates, source ----

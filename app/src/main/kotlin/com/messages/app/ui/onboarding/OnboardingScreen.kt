@@ -52,8 +52,9 @@ import androidx.compose.ui.unit.dp
 import androidx.work.WorkInfo
 import com.messages.core.backfill.Backfill
 import com.messages.core.backfill.BackfillWorker
-import com.messages.designsystem.GlassDepth
-import com.messages.designsystem.LiquidGlassSurface
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Surface
+import com.messages.designsystem.groupCard
 import com.messages.designsystem.Motion
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
@@ -165,9 +166,10 @@ private fun IntroPage() {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
-        LiquidGlassSurface(
-            shape = RoundedCornerShape(20.dp),
-            depth = GlassDepth.LOW,
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.groupCard,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -244,9 +246,10 @@ private fun DefaultAppPage(
 
         if (isRestricted) {
             Spacer(Modifier.height(16.dp))
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(16.dp),
-                depth = GlassDepth.LOW,
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(16.dp)) {

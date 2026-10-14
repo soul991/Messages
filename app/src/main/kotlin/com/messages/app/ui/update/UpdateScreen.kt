@@ -75,12 +75,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Surface
+import com.messages.designsystem.groupCard
 import com.messages.app.BuildConfig
 import com.messages.app.R
 import com.messages.app.update.AppUpdateManager
 import com.messages.app.update.UpdateCheck
-import com.messages.designsystem.GlassDepth
-import com.messages.designsystem.LiquidGlassSurface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -340,9 +341,10 @@ private fun AvailableSection(
         Spacer(Modifier.height(16.dp))
 
         // Release metadata
-        LiquidGlassSurface(
-            shape = RoundedCornerShape(20.dp),
-            depth = GlassDepth.LOW,
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.groupCard,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         ) {
             Column(
                 Modifier
@@ -414,9 +416,9 @@ private fun AvailableSection(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Progress percentage pill
-                LiquidGlassSurface(
-                    shape = RoundedCornerShape(12.dp),
-                    depth = GlassDepth.LOW,
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
                     Box(
                         Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -426,7 +428,7 @@ private fun AvailableSection(
                             stringResource(R.string.update_downloading, progress),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
                 }
@@ -448,9 +450,10 @@ private fun AvailableSection(
         // Failed state
         AnimatedVisibility(visible = isFailed) {
             val errorMsg = (downloadState as? AppUpdateManager.DownloadState.Failed)?.error ?: ""
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(16.dp),
-                depth = GlassDepth.LOW,
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
             ) {
                 Row(
                     Modifier.padding(16.dp),

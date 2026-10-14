@@ -1,0 +1,181 @@
+package com.messages.app.ui.settings
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.messages.app.R
+import com.messages.designsystem.categoryPalette
+import com.messages.designsystem.groupCard
+
+/** Page keys shared by the hub and [SettingsScreen]'s section gating. */
+internal object SettingsPage {
+    const val APPEARANCE = "appearance"
+    const val NOTIFICATIONS = "notifications"
+    const val CONVERSATIONS = "conversations"
+    const val PROTECTION = "protection"
+    const val PRIVACY = "privacy"
+    const val BACKUP = "backup"
+    const val STORAGE = "storage"
+}
+
+private enum class Tone { PRIMARY, PROMO, REVIEW, PROTECTED }
+
+private data class HubEntry(
+    val icon: ImageVector,
+    val tone: Tone,
+    val title: Int,
+    val subtitle: Int,
+    val page: String?, // null = leaves Settings (About)
+)
+
+/**
+ * Settings hub: grouped, icon-tiled entry points. Each entry opens one slice
+ * of the existing settings content (same state, same rows) instead of
+ * scrolling a single 14-section list.
+ */
+@Composable
+internal fun SettingsHub(onPick: (String?) -> Unit) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        HubGroup(
+            R.string.settings_hub_personalize,
+            listOf(
+                HubEntry(Icons.Outlined.Palette, Tone.PRIMARY, R.string.settings_section_appearance, R.string.settings_hub_appearance_sub, SettingsPage.APPEARANCE),
+                HubEntry(Icons.Outlined.Notifications, Tone.PROMO, R.string.settings_section_notifications, R.string.settings_hub_notifications_sub, SettingsPage.NOTIFICATIONS),
+                HubEntry(Icons.Outlined.Chat, Tone.REVIEW, R.string.settings_section_conversations, R.string.settings_hub_conversations_sub, SettingsPage.CONVERSATIONS),
+            ),
+            onPick,
+        )
+        HubGroup(
+            R.string.settings_hub_protect,
+            listOf(
+                HubEntry(Icons.Outlined.Shield, Tone.PROTECTED, R.string.settings_hub_protection, R.string.settings_hub_protection_sub, SettingsPage.PROTECTION),
+                HubEntry(Icons.Outlined.Lock, Tone.PRIMARY, R.string.settings_section_privacy, R.string.settings_hub_privacy_sub, SettingsPage.PRIVACY),
+            ),
+            onPick,
+        )
+        HubGroup(
+            R.string.settings_hub_data,
+            listOf(
+                HubEntry(Icons.Outlined.Cloud, Tone.REVIEW, R.string.settings_hub_backup, R.string.settings_hub_backup_sub, SettingsPage.BACKUP),
+                HubEntry(Icons.Outlined.DeleteSweep, Tone.PROMO, R.string.settings_hub_storage, R.string.settings_hub_storage_sub, SettingsPage.STORAGE),
+            ),
+            onPick,
+        )
+        HubGroup(
+            R.string.settings_hub_about_group,
+            listOf(
+                HubEntry(Icons.Outlined.Info, Tone.PRIMARY, R.string.settings_about, R.string.settings_about_subtitle, null),
+            ),
+            onPick,
+        )
+    }
+}
+
+@Composable
+private fun HubGroup(label: Int, entries: List<HubEntry>, onPick: (String?) -> Unit) {
+    Text(
+        stringResource(label),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 8.dp),
+    )
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.groupCard,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column {
+            entries.forEachIndexed { i, e ->
+                HubRow(e, onClick = { onPick(e.page) })
+                if (i < entries.lastIndex) {
+                    HorizontalDivider(
+                        Modifier.padding(start = 74.dp, end = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HubRow(e: HubEntry, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val (bg: Color, fg: Color) = when (e.tone) {
+        Tone.PRIMARY -> cs.primaryContainer to cs.onPrimaryContainer
+        Tone.PROMO -> categoryPalette("PROMOTIONS")?.let { it.container to it.onContainer }
+            ?: (cs.tertiaryContainer to cs.onTertiaryContainer)
+        Tone.REVIEW -> categoryPalette("REVIEW")?.let { it.container to it.onContainer }
+            ?: (cs.secondaryContainer to cs.onSecondaryContainer)
+        Tone.PROTECTED -> categoryPalette("TRANSACTIONS")?.let { it.container to it.onContainer }
+            ?: (cs.primaryContainer to cs.onPrimaryContainer)
+    }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(bg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(e.icon, contentDescription = null, tint = fg, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(e.title),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                stringResource(e.subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = cs.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = cs.onSurfaceVariant,
+        )
+    }
+}

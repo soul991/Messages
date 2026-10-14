@@ -24,6 +24,9 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Payment
 import androidx.compose.material.icons.outlined.Summarize
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Surface
+import com.messages.designsystem.groupCard
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -59,7 +62,7 @@ import com.messages.protection.CardExtractor
 
 private data class CardThemeColors(
     val background: Color,
-    val border: Brush,
+    val borderColor: Color,
     val tint: Color,
     val badgeText: String?,
     val badgeBg: Color,
@@ -85,100 +88,47 @@ fun SummaryCard(
     val isDark = LocalDarkTheme.current
     val direction = card.direction
 
-    // Direction-aware colors and styling
+    // Direction-aware solid colors and crisp hairline styling
     val themeColors = when (direction) {
         CardExtractor.Direction.CREDIT -> {
-            val bg = if (isDark) Color(0xDE052E1B) else Color(0xF2F0FDF4)
-            val border = if (isDark) {
-                Brush.linearGradient(
-                    listOf(
-                        Color(0x8034D399),
-                        Color(0x3310B981),
-                        Color(0x10059669),
-                    )
-                )
-            } else {
-                Brush.linearGradient(
-                    listOf(
-                        Color(0xB386EFAC),
-                        Color(0x804ADE80),
-                        Color(0x3316A34A),
-                    )
-                )
-            }
+            val bg = if (isDark) Color(0xFF0C2419) else Color(0xFFF0FDF4)
+            val border = if (isDark) Color(0xFF34D399).copy(alpha = 0.35f) else Color(0xFF10B981).copy(alpha = 0.4f)
             val tint = if (isDark) Color(0xFF34D399) else Color(0xFF15803D)
             val badge = stringResource(R.string.summary_badge_credited)
-            val bBg = if (isDark) Color(0x4010B981) else Color(0x3334D399)
-            val bText = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
+            val bBg = if (isDark) Color(0x3310B981) else Color(0x2210B981)
+            val bText = tint
             CardThemeColors(bg, border, tint, badge, bBg, bText)
         }
         CardExtractor.Direction.DEBIT -> {
-            val bg = if (isDark) Color(0xDE2B0B0E) else Color(0xF2FFF1F2)
-            val border = if (isDark) {
-                Brush.linearGradient(
-                    listOf(
-                        Color(0x80F43F5E),
-                        Color(0x33E11D48),
-                        Color(0x10BE123C),
-                    )
-                )
-            } else {
-                Brush.linearGradient(
-                    listOf(
-                        Color(0xB3FDA4AF),
-                        Color(0x80FB7185),
-                        Color(0x33E11D48),
-                    )
-                )
-            }
+            val bg = if (isDark) Color(0xFF261016) else Color(0xFFFFF1F2)
+            val border = if (isDark) Color(0xFFFB7185).copy(alpha = 0.35f) else Color(0xFFE11D48).copy(alpha = 0.4f)
             val tint = if (isDark) Color(0xFFFB7185) else Color(0xFFBE123C)
             val badge = stringResource(R.string.summary_badge_debited)
-            val bBg = if (isDark) Color(0x40EF4444) else Color(0x33F87171)
-            val bText = if (isDark) Color(0xFFFDA4AF) else Color(0xFF9F1239)
+            val bBg = if (isDark) Color(0x33F43F5E) else Color(0x22F43F5E)
+            val bText = tint
             CardThemeColors(bg, border, tint, badge, bBg, bText)
         }
         CardExtractor.Direction.NEUTRAL -> {
-            val bg = if (isDark) Color(0xDE1A1D26) else Color(0xF0F8FAFC)
-            val border = if (isDark) {
-                Brush.linearGradient(
-                    listOf(
-                        Color(0x40FFFFFF),
-                        Color(0x0AFFFFFF),
-                    )
-                )
-            } else {
-                Brush.linearGradient(
-                    listOf(
-                        Color(0xB3FFFFFF),
-                        Color(0x1A000000),
-                    )
-                )
-            }
+            val bg = MaterialTheme.colorScheme.groupCard
+            val border = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             val tint = MaterialTheme.colorScheme.primary
             CardThemeColors(bg, border, tint, null, Color.Transparent, Color.Transparent)
         }
     }
 
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(22.dp)
 
-    Box(
+    Surface(
         modifier = modifier
             .widthIn(max = maxWidth)
             .padding(top = 4.dp)
-            .shadow(
-                elevation = 6.dp,
-                shape = shape,
-                clip = false,
-                ambientColor = themeColors.tint.copy(alpha = 0.15f),
-                spotColor = themeColors.tint.copy(alpha = 0.2f),
-            )
-            .clip(shape)
-            .background(themeColors.background, shape)
-            .border(1.25.dp, themeColors.border, shape)
             .animateContentSize(animationSpec = Motion.spatialDefault()),
+        shape = shape,
+        color = themeColors.background,
+        border = BorderStroke(1.dp, themeColors.borderColor),
     ) {
         Column(
-            Modifier.padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 10.dp),
+            Modifier.padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 12.dp),
         ) {
             // Header Row
             Row(
@@ -353,9 +303,10 @@ private fun SummaryFieldRow(
                 Modifier
                     .fillMaxWidth()
                     .padding(top = 6.dp, bottom = 4.dp, start = 8.dp, end = 4.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                    .padding(8.dp),
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
+                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)), RoundedCornerShape(12.dp))
+                    .padding(10.dp),
             ) {
                 Text(
                     field.explanation,

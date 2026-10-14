@@ -61,6 +61,10 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Add
+import com.messages.designsystem.groupCard
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DatePicker
@@ -1015,13 +1019,21 @@ fun ChatScreen(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
-                IconButton(onClick = { showAttachSheet = true }) {
+                // Redesign: attach lives in a tonal round "+" like the field it sits beside.
+                FilledTonalIconButton(
+                    onClick = { showAttachSheet = true },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
+                    modifier = Modifier.size(48.dp),
+                ) {
                     Icon(
-                        Icons.Filled.Attachment,
+                        Icons.Filled.Add,
                         contentDescription = stringResource(R.string.chat_attach),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
+                Spacer(Modifier.width(8.dp))
                 // Refs' pill anatomy (plan §2): 40dp rx-18 field with the ⚡
                 // quick-replies button living inside the pill's right edge.
                 ComposerField(
@@ -1380,7 +1392,7 @@ private fun ComposerField(
     onQuickReplies: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(24.dp)
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -1394,9 +1406,9 @@ private fun ComposerField(
             Row(
                 Modifier
                     .clip(shape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .heightIn(min = 40.dp)
-                    .padding(start = 14.dp, end = 2.dp),
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .heightIn(min = 48.dp)
+                    .padding(start = 18.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.weight(1f).padding(vertical = 8.dp)) {
@@ -1769,17 +1781,9 @@ private fun MessageBubble(
         val bubbleBorder = if (selected) {
             androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
         } else if (!isOut) {
-            androidx.compose.ui.graphics.Brush.linearGradient(
-                0.0f to Color.White.copy(alpha = 0.25f),
-                0.5f to Color.White.copy(alpha = 0.08f),
-                1.0f to Color.Transparent,
-            )
+            androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.outlineVariant)
         } else {
-            androidx.compose.ui.graphics.Brush.linearGradient(
-                0.0f to Color.White.copy(alpha = 0.35f),
-                0.4f to Color.White.copy(alpha = 0.10f),
-                1.0f to Color.Transparent,
-            )
+            androidx.compose.ui.graphics.SolidColor(Color.Transparent)
         }
 
         Box(
@@ -1788,19 +1792,11 @@ private fun MessageBubble(
                 .clip(bubbleShape)
                 .background(
                     if (isOut) {
-                        androidx.compose.ui.graphics.Brush.linearGradient(
-                            listOf(
-                                outBubbleColors.first,
-                                outBubbleColors.first.copy(alpha = 0.92f),
-                            )
-                        )
+                        androidx.compose.ui.graphics.SolidColor(outBubbleColors.first)
                     } else {
-                        androidx.compose.ui.graphics.Brush.linearGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.surfaceContainerHigh,
-                                MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
-                            )
-                        )
+                        // Redesign: incoming bubbles are solid card surfaces
+                        // with a hairline, not a tinted gradient.
+                        androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.groupCard)
                     }
                 )
                 .border(

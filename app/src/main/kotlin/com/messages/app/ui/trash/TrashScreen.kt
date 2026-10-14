@@ -13,9 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
+import com.messages.designsystem.groupCard
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -253,14 +260,35 @@ fun TrashScreen(
                     value = query,
                     onValueChange = { query = it },
                     placeholder = { Text(stringResource(R.string.trash_search_placeholder)) },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = stringResource(R.string.action_clear),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    },
                     singleLine = true,
-                    shape = CircleShape,
+                    shape = RoundedCornerShape(26.dp),
                     colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                     ),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
                 )
             }
             if (trashed.isEmpty()) {
@@ -394,80 +422,111 @@ private fun TrashRow(
         fontWeight = FontWeight.Bold,
         background = MaterialTheme.colorScheme.primaryContainer,
     )
-    Row(
-        Modifier
+    val cardColor = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        else MaterialTheme.colorScheme.groupCard
+    val borderColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = cardColor,
+        border = BorderStroke(1.dp, borderColor),
+        modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .combinedClickable(
                 onClick = { if (selectionActive) onToggleSelect() },
                 onLongClick = onToggleSelect,
                 onLongClickLabel = stringResource(R.string.trash_select_all),
-            )
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            ),
     ) {
-        if (selectionActive) {
-            Checkbox(
-                checked = selected,
-                onCheckedChange = { onToggleSelect() },
-                modifier = Modifier.padding(end = 12.dp),
-            )
-        }
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (selectionActive) {
+                Checkbox(
+                    checked = selected,
+                    onCheckedChange = { onToggleSelect() },
+                    modifier = Modifier.padding(end = 12.dp),
+                )
+            }
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        // V2-36: formatted whole rather than glued together — a
+                        // recipient marker is not a prefix in every language.
+                        SearchHighlight.annotate(
+                            if (msg.isOutgoing) {
+                                stringResource(R.string.trash_row_outgoing_to, msg.address)
+                            } else {
+                                msg.address
+                            },
+                            terms,
+                            highlight,
+                        ),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Spacer(Modifier.padding(horizontal = 4.dp))
+                    Text(
+                        AppDateFormat.dayMonthYearClock(msg.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    // V2-36: formatted whole rather than glued together — a
-                    // recipient marker is not a prefix in every language.
-                    SearchHighlight.annotate(
-                        if (msg.isOutgoing) {
-                            stringResource(R.string.trash_row_outgoing_to, msg.address)
-                        } else {
-                            msg.address
-                        },
-                        terms,
-                        highlight,
-                    ),
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
+                    if (msg.body.isBlank()) androidx.compose.ui.text.AnnotatedString("(media message)")
+                    else SearchHighlight.annotate(SearchHighlight.snippet(msg.body, terms), terms, highlight),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
                 )
-                Spacer(Modifier.padding(horizontal = 4.dp))
-                Text(
-                    AppDateFormat.dayMonthYearClock(msg.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (daysLeft > 0) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                                else MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            if (daysLeft > 0) {
+                                pluralStringResource(R.plurals.trash_purge_countdown, daysLeft, daysLeft)
+                            } else {
+                                stringResource(R.string.trash_purge_imminent)
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
             }
-            Text(
-                if (msg.body.isBlank()) androidx.compose.ui.text.AnnotatedString("(media message)")
-                else SearchHighlight.annotate(SearchHighlight.snippet(msg.body, terms), terms, highlight),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                if (daysLeft > 0) {
-                    pluralStringResource(R.plurals.trash_purge_countdown, daysLeft, daysLeft)
-                } else {
-                    stringResource(R.string.trash_purge_imminent)
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
-        if (!selectionActive) {
-            IconButton(onClick = onRestore) {
-                Icon(
-                    Icons.Filled.RestoreFromTrash, contentDescription = stringResource(R.string.trash_restore),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            IconButton(onClick = onDeleteForever) {
-                Icon(
-                    Icons.Filled.DeleteForever, contentDescription = stringResource(R.string.trash_delete_forever_action),
-                    tint = MaterialTheme.colorScheme.error,
-                )
+            if (!selectionActive) {
+                Spacer(Modifier.width(8.dp))
+                IconButton(onClick = onRestore) {
+                    Icon(
+                        Icons.Filled.RestoreFromTrash, contentDescription = stringResource(R.string.trash_restore),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                IconButton(onClick = onDeleteForever) {
+                    Icon(
+                        Icons.Filled.DeleteForever, contentDescription = stringResource(R.string.trash_delete_forever_action),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
     }

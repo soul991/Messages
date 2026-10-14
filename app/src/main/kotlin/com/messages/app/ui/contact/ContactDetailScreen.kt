@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -39,9 +40,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import com.messages.designsystem.groupCard
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -316,95 +319,118 @@ fun ContactDetailScreen(
             }
             Spacer(Modifier.height(24.dp))
 
-            // ---- Feature rows (REFS §6b: colored-icon rows) ----
-            DetailRow(
-                icon = Icons.Outlined.StarOutline,
-                title = stringResource(R.string.starred_title),
-                subtitle = stringResource(R.string.contact_starred_subtitle),
-                onClick = onOpenStarred,
-            )
-            DetailRow(
-                icon = Icons.Outlined.Search,
-                title = stringResource(R.string.contact_search_title),
-                subtitle = stringResource(R.string.contact_search_subtitle),
-                onClick = onSearchInChat,
-            )
+            Spacer(Modifier.height(24.dp))
 
-            SectionGap()
-
-            DetailRow(
-                icon = Icons.Outlined.NotificationsOff,
-                title = stringResource(R.string.contact_mute_title),
-                subtitle = stringResource(R.string.contact_mute_subtitle),
-                onClick = { vm.setMuted(!muted) },
-                trailing = { Switch(checked = muted, onCheckedChange = { vm.setMuted(it) }) },
-            )
-            // The old per-chat biometric lock toggle is gone — locking now
-            // means the secret locked space ("Lock chat" in the chat's ⋮
-            // menu). This row only points there; legacy locked=1 rows keep
-            // their auth gate until the first secret-space setup migrates them.
-            DetailRow(
-                icon = Icons.Outlined.Lock,
-                title = stringResource(R.string.contact_lock_title),
-                subtitle = stringResource(R.string.contact_lock_subtitle),
-                onClick = {},
-            )
-
-            // Per-conversation tone (Phase 4 item 4): a dedicated notification
-            // channel, customized through the system sheet. Locked chats can't
-            // have one — the channel name would surface in system settings.
-            if (!locked) {
-                DetailRow(
-                    icon = Icons.Outlined.MusicNote,
-                    title = stringResource(R.string.contact_tone_title),
-                    subtitle = if (hasCustomChannel) {
-                        stringResource(R.string.contact_tone_subtitle_custom)
-                    } else {
-                        stringResource(R.string.contact_tone_subtitle_default)
-                    },
-                    onClick = {
-                        val channelId = vm.ensureCustomChannel()
-                        runCatching {
-                            context.startActivity(
-                                Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
-                                    putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                    putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
-                                }
-                            )
-                        }
-                    },
-                )
-                if (hasCustomChannel) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { vm.removeCustomChannel() }
-                            // Aligns with row titles: 20 + 40dp slot + 16 gap.
-                            .padding(start = 76.dp, end = 20.dp, top = 2.dp, bottom = 10.dp),
-                    ) {
-                        Text(
-                            stringResource(R.string.contact_tone_reset),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+            // ---- Grouped Interaction Card ----
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                Column {
+                    DetailRow(
+                        icon = Icons.Outlined.StarOutline,
+                        title = stringResource(R.string.starred_title),
+                        subtitle = stringResource(R.string.contact_starred_subtitle),
+                        onClick = onOpenStarred,
+                    )
+                    HorizontalDivider(
+                        Modifier.padding(start = 76.dp, end = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                    DetailRow(
+                        icon = Icons.Outlined.Search,
+                        title = stringResource(R.string.contact_search_title),
+                        subtitle = stringResource(R.string.contact_search_subtitle),
+                        onClick = onSearchInChat,
+                    )
                 }
             }
 
-            SectionGap()
+            Spacer(Modifier.height(16.dp))
 
-            DetailRow(
-                icon = Icons.Outlined.Block,
-                title = if (blocked) stringResource(R.string.contact_unblock_title)
-                else stringResource(R.string.contact_block_title),
-                subtitle = if (blocked) stringResource(R.string.contact_unblock_subtitle)
-                else stringResource(R.string.contact_block_subtitle),
-                onClick = { vm.setBlocked(!blocked) },
-                iconContainer = MaterialTheme.colorScheme.errorContainer,
-                iconTint = MaterialTheme.colorScheme.onErrorContainer,
-                titleColor = MaterialTheme.colorScheme.error,
-            )
-            Spacer(Modifier.height(24.dp))
+            // ---- Grouped Privacy & Controls Card ----
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                Column {
+                    DetailRow(
+                        icon = Icons.Outlined.NotificationsOff,
+                        title = stringResource(R.string.contact_mute_title),
+                        subtitle = stringResource(R.string.contact_mute_subtitle),
+                        onClick = { vm.setMuted(!muted) },
+                        trailing = { Switch(checked = muted, onCheckedChange = { vm.setMuted(it) }) },
+                    )
+                    HorizontalDivider(
+                        Modifier.padding(start = 76.dp, end = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                    DetailRow(
+                        icon = Icons.Outlined.Lock,
+                        title = stringResource(R.string.contact_lock_title),
+                        subtitle = stringResource(R.string.contact_lock_subtitle),
+                        onClick = {},
+                    )
+                    if (!locked) {
+                        HorizontalDivider(
+                            Modifier.padding(start = 76.dp, end = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                        DetailRow(
+                            icon = Icons.Outlined.MusicNote,
+                            title = stringResource(R.string.contact_tone_title),
+                            subtitle = if (hasCustomChannel) {
+                                stringResource(R.string.contact_tone_subtitle_custom)
+                            } else {
+                                stringResource(R.string.contact_tone_subtitle_default)
+                            },
+                            onClick = {
+                                val channelId = vm.ensureCustomChannel()
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                                            putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                            putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
+                                        }
+                                    )
+                                }
+                            },
+                        )
+                        if (hasCustomChannel) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { vm.removeCustomChannel() }
+                                    .padding(start = 76.dp, end = 20.dp, top = 2.dp, bottom = 10.dp),
+                            ) {
+                                Text(
+                                    stringResource(R.string.contact_tone_reset),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider(
+                        Modifier.padding(start = 76.dp, end = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                    DetailRow(
+                        icon = Icons.Outlined.Block,
+                        title = if (blocked) stringResource(R.string.contact_unblock_title)
+                        else stringResource(R.string.contact_block_title),
+                        subtitle = if (blocked) stringResource(R.string.contact_unblock_subtitle)
+                        else stringResource(R.string.contact_block_subtitle),
+                        onClick = { vm.setBlocked(!blocked) },
+                        iconContainer = MaterialTheme.colorScheme.errorContainer,
+                        iconTint = MaterialTheme.colorScheme.onErrorContainer,
+                        titleColor = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
@@ -417,8 +443,14 @@ private fun HeroAction(
     onClick: () -> Unit,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        FilledTonalIconButton(onClick = onClick, modifier = Modifier.size(60.dp)) {
-            Icon(icon, contentDescription = label, modifier = Modifier.size(26.dp))
+        FilledTonalIconButton(
+            onClick = onClick,
+            modifier = Modifier.size(60.dp),
+            colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
+        ) {
+            Icon(icon, contentDescription = label, modifier = Modifier.size(26.dp), tint = MaterialTheme.colorScheme.onSurface)
         }
         Spacer(Modifier.height(6.dp))
         Text(

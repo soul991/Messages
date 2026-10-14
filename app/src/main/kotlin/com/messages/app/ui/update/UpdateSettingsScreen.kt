@@ -49,12 +49,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Surface
+import com.messages.designsystem.groupCard
 import com.messages.app.BuildConfig
 import com.messages.app.R
 import com.messages.app.update.AppUpdateManager
 import com.messages.app.update.UpdateCheck
-import com.messages.designsystem.GlassDepth
-import com.messages.designsystem.LiquidGlassSurface
 
 private const val COMMITS_URL = "https://github.com/soul991/Messages/commits/main"
 
@@ -116,9 +117,10 @@ fun UpdateSettingsScreen(
             Spacer(Modifier.height(8.dp))
 
             // 1. System Update Card
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(20.dp),
-                depth = GlassDepth.LOW,
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     UpdateSettingsNavRow(
@@ -133,9 +135,10 @@ fun UpdateSettingsScreen(
             Spacer(Modifier.height(16.dp))
 
             // 2. Automated Preferences Card
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(20.dp),
-                depth = GlassDepth.LOW,
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     // Auto-check toggle
@@ -169,9 +172,10 @@ fun UpdateSettingsScreen(
             Spacer(Modifier.height(16.dp))
 
             // 3. Maintenance & Storage Card
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(20.dp),
-                depth = GlassDepth.LOW,
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     val cacheSubtitle = if (cachedCount > 0) {
@@ -213,9 +217,10 @@ fun UpdateSettingsScreen(
             Spacer(Modifier.height(16.dp))
 
             // 4. Commits Card
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(20.dp),
-                depth = GlassDepth.LOW,
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     UpdateSettingsNavRow(

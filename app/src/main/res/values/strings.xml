@@ -530,6 +530,20 @@
     <string name="settings_restore_confirm_body">Messages, rules, and settings from the backup will be added. Nothing on this device is deleted or overwritten; duplicates are skipped.</string>
     <string name="settings_choose_file">Choose file</string>
     <string name="settings_title">Settings</string>
+    <string name="settings_hub_personalize">PERSONALIZE</string>
+    <string name="settings_hub_protect">PROTECT</string>
+    <string name="settings_hub_data">DATA</string>
+    <string name="settings_hub_about_group">ABOUT</string>
+    <string name="settings_hub_protection">Protection</string>
+    <string name="settings_hub_backup">Backup &amp; restore</string>
+    <string name="settings_hub_storage">Storage &amp; cleanup</string>
+    <string name="settings_hub_appearance_sub">Theme, accent color, text size, brightness</string>
+    <string name="settings_hub_notifications_sub">Alerts, sounds and reminders</string>
+    <string name="settings_hub_conversations_sub">Swipe actions, delivery reports, link previews</string>
+    <string name="settings_hub_protection_sub">Sensitivity, custom rules, pattern library</string>
+    <string name="settings_hub_privacy_sub">App lock, hidden previews, locked chats</string>
+    <string name="settings_hub_backup_sub">Backup, import and restore</string>
+    <string name="settings_hub_storage_sub">Auto-clean and Trash</string>
     <string name="app_lock_title">Messages is locked</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_theme">Theme</string>
@@ -793,6 +807,9 @@
     <string name="home_mute">Mute</string>
     <string name="home_unmute">Unmute</string>
     <string name="home_protection_dashboard">Protection dashboard</string>
+    <string name="home_protection_on">Protection is on</string>
+    <string name="home_protection_review_waiting">%d waiting for review</string>
+    <string name="home_protection_open">See what was filtered</string>
     <string name="home_starred_messages">Starred messages</string>
     <string name="home_mark_all_as_read">Mark all as read</string>
     <string name="home_folder_marked_read">Folder marked as read</string>
@@ -1492,6 +1509,9 @@
     <string name="outbox_title">Outbox</string>
     <!-- %1$d is how many messages are waiting. -->
     <string name="outbox_title_count">Outbox (%1$d)</string>
+    <string name="outbox_chip_scheduled">Scheduled</string>
+    <string name="outbox_chip_failed">Failed</string>
+    <string name="outbox_chip_sending">Sending</string>
     <string name="outbox_empty_title">Nothing waiting</string>
     <string name="outbox_empty_subtitle">Messages that are scheduled, still sending, or didn\'t go through will wait here.</string>
     <!-- %1$s is a date and time. -->

@@ -27,9 +27,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -290,13 +292,14 @@ fun LiquidGlassBottomDock(
 ) {
     val shape = RoundedCornerShape(32.dp)
 
-    LiquidGlassSurface(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp)
             .height(68.dp),
         shape = shape,
-        depth = GlassDepth.MEDIUM,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
     ) {
         Row(
             modifier = Modifier
@@ -309,7 +312,7 @@ fun LiquidGlassBottomDock(
                 val selected = item.key == selectedKey
                 val animatedScale by animateFloatAsState(
                     targetValue = if (selected) 1.05f else 0.95f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                    animationSpec = spring(dampingRatio = 0.86f, stiffness = 380f),
                     label = "dock-scale",
                 )
 
@@ -321,17 +324,12 @@ fun LiquidGlassBottomDock(
                 )
 
                 val pillBackground by animateColorAsState(
-                    targetValue = if (selected) targetAccent.copy(alpha = 0.28f) else Color.Transparent,
+                    targetValue = if (selected) targetAccent.copy(alpha = 0.16f) else Color.Transparent,
                     label = "dock-pill-bg",
                 )
 
                 val pillBorder = if (selected) {
-                    androidx.compose.ui.graphics.Brush.linearGradient(
-                        listOf(
-                            targetAccent.copy(alpha = 0.45f),
-                            targetAccent.copy(alpha = 0.12f),
-                        )
-                    )
+                    androidx.compose.ui.graphics.SolidColor(targetAccent.copy(alpha = 0.35f))
                 } else {
                     androidx.compose.ui.graphics.SolidColor(Color.Transparent)
                 }

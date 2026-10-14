@@ -12,8 +12,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Surface
+import com.messages.designsystem.groupCard
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Shield
@@ -134,51 +146,84 @@ fun DashboardScreen(
     ) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {
 
-            // Hero counter — "N spam messages silenced"
+            // Hero counter — "N spam messages silenced" with animated rolling odometer
             item {
-                Column(
-                    Modifier
+                Surface(
+                    shape = RoundedCornerShape(32.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
                 ) {
-                    Icon(
-                        Icons.Filled.Shield, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "%,d".format(stats.totalSilenced),
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    Text(
-                        stringResource(R.string.dashboard_silenced_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Filled.Shield,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        AnimatedContent(
+                            targetState = stats.totalSilenced,
+                            transitionSpec = {
+                                if (targetState > initialState) {
+                                    (slideInVertically { height -> height } + fadeIn()) togetherWith
+                                        (slideOutVertically { height -> -height } + fadeOut())
+                                } else {
+                                    (slideInVertically { height -> -height } + fadeIn()) togetherWith
+                                        (slideOutVertically { height -> height } + fadeOut())
+                                }
+                            },
+                            label = "totalSilencedCounter",
+                        ) { count ->
+                            Text(
+                                "%,d".format(count),
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            stringResource(R.string.dashboard_silenced_subtitle),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                        )
+                    }
                 }
             }
 
             // Period selector
             item {
                 Row(
-                    Modifier.padding(horizontal = 20.dp),
+                    Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     FilterChip(
                         selected = period == "WEEK",
                         onClick = { vm.setPeriod("WEEK") },
                         label = { Text(stringResource(R.string.dashboard_period_week)) },
+                        shape = RoundedCornerShape(20.dp),
                     )
                     FilterChip(
                         selected = period == "MONTH",
                         onClick = { vm.setPeriod("MONTH") },
                         label = { Text(stringResource(R.string.dashboard_period_month)) },
+                        shape = RoundedCornerShape(20.dp),
                     )
                 }
             }
@@ -186,60 +231,95 @@ fun DashboardScreen(
             // Category counters
             item {
                 Row(
-                    Modifier.fillMaxWidth().padding(20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     StatCard(stringResource(R.string.category_spam), stats.byCategory["SPAM"] ?: 0, CategoryColors.Fraud, Modifier.weight(1f))
                     StatCard(stringResource(R.string.dashboard_stat_promos), stats.byCategory["PROMOTIONS"] ?: 0, CategoryColors.Promo, Modifier.weight(1f))
                     StatCard(stringResource(R.string.dashboard_stat_blocked), stats.byCategory["BLOCKED"] ?: 0, MaterialTheme.colorScheme.outline, Modifier.weight(1f))
                 }
                 if (stats.dangerous > 0) {
-                    Text(
-                        pluralStringResource(
-                            R.plurals.dashboard_dangerous_stopped,
-                            stats.dangerous,
-                            stats.dangerous,
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = CategoryColors.Fraud,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = CategoryColors.Fraud.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, CategoryColors.Fraud.copy(alpha = 0.35f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 6.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Filled.Warning,
+                                contentDescription = null,
+                                tint = CategoryColors.Fraud,
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.dashboard_dangerous_stopped,
+                                    stats.dangerous,
+                                    stats.dangerous,
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CategoryColors.Fraud,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
                 }
             }
 
             // By family
             if (stats.byFamily.isNotEmpty()) {
                 item {
-                    HorizontalDivider(Modifier.padding(vertical = 16.dp))
-                    Text(
-                        stringResource(R.string.dashboard_what_was_caught),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    val max = stats.byFamily.maxOf { it.second }.coerceAtLeast(1)
-                    Column(Modifier.padding(horizontal = 20.dp)) {
-                        stats.byFamily.forEach { (family, count) ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    family,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.width(150.dp),
-                                )
-                                LinearProgressIndicator(
-                                    progress = { count.toFloat() / max },
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "$count",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
+                    Surface(
+                        shape = RoundedCornerShape(28.dp),
+                        color = MaterialTheme.colorScheme.groupCard,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
+                        Column(Modifier.padding(20.dp)) {
+                            Text(
+                                stringResource(R.string.dashboard_what_was_caught),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            val max = stats.byFamily.maxOf { it.second }.coerceAtLeast(1)
+                            stats.byFamily.forEachIndexed { index, (family, count) ->
+                                if (index > 0) {
+                                    Spacer(Modifier.height(12.dp))
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        family,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.width(140.dp),
+                                    )
+                                    LinearProgressIndicator(
+                                        progress = { count.toFloat() / max },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(8.dp)
+                                            .clip(RoundedCornerShape(4.dp)),
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        "$count",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
                             }
-                            Spacer(Modifier.height(10.dp))
                         }
                     }
                 }
@@ -248,51 +328,65 @@ fun DashboardScreen(
             // Top filtered senders
             if (stats.topSenders.isNotEmpty()) {
                 item {
-                    HorizontalDivider(Modifier.padding(vertical = 16.dp))
-                    Text(
-                        stringResource(R.string.dashboard_top_senders),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Column(Modifier.padding(horizontal = 20.dp)) {
-                        stats.topSenders.forEach { (address, count) ->
-                            Row(
-                                Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(
-                                    Modifier
-                                        .width(36.dp)
-                                        .height(36.dp)
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .background(CategoryColors.FraudContainer),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        address.take(1).uppercase(),
-                                        color = CategoryColors.Fraud,
-                                        fontWeight = FontWeight.Bold,
+                    Surface(
+                        shape = RoundedCornerShape(28.dp),
+                        color = MaterialTheme.colorScheme.groupCard,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
+                        Column(Modifier.padding(20.dp)) {
+                            Text(
+                                stringResource(R.string.dashboard_top_senders),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            stats.topSenders.forEachIndexed { index, (address, count) ->
+                                if (index > 0) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(vertical = 10.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                                     )
                                 }
-                                Spacer(Modifier.width(12.dp))
-                                Text(
-                                    address,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(
-                                    pluralStringResource(
-                                        R.plurals.dashboard_sender_filtered, count, count,
-                                    ),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(CategoryColors.FraudContainer),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            address.take(1).uppercase(),
+                                            color = CategoryColors.Fraud,
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.titleSmall,
+                                        )
+                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(
+                                        address,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Text(
+                                        pluralStringResource(
+                                            R.plurals.dashboard_sender_filtered, count, count,
+                                        ),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
                             }
                         }
                     }
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(16.dp))
                 }
             }
 
@@ -327,19 +421,28 @@ private fun StatCard(
     tint: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.groupCard,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = modifier,
     ) {
-        Text(
-            "%,d".format(count),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = tint,
-        )
-        Text(label, style = MaterialTheme.typography.labelMedium)
+        Column(
+            modifier = Modifier.padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                "%,d".format(count),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = tint,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }

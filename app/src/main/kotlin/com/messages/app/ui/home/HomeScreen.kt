@@ -2,10 +2,10 @@ package com.messages.app.ui.home
 
 import androidx.activity.compose.BackHandler
 import com.messages.app.MainActivity
-import com.messages.designsystem.GlassDepth
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Surface
 import com.messages.designsystem.GlassDockItem
 import com.messages.designsystem.LiquidGlassBottomDock
-import com.messages.designsystem.LiquidGlassSurface
 import com.messages.designsystem.LocalDarkTheme
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -27,6 +27,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -83,6 +84,11 @@ import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Badge
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import com.messages.designsystem.groupCard
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -375,6 +381,8 @@ fun HomeScreen(
                         )
                         Text(
                             stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.SemiBold,
                             modifier = Modifier
                                 .pointerInput(Unit) {
                                     awaitEachGesture {
@@ -408,14 +416,21 @@ fun HomeScreen(
                         )
                     },
                     actions = {
-                        IconButton(onClick = onDashboard) {
-                            Icon(Icons.Filled.Shield, contentDescription = stringResource(R.string.home_protection_dashboard))
-                        }
-                        IconButton(onClick = onSettings) {
+                        FilledTonalIconButton(
+                            onClick = onSettings,
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            ),
+                        ) {
                             Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
                         }
                         Box {
-                            IconButton(onClick = { showHomeMenu = true }) {
+                            FilledTonalIconButton(
+                                onClick = { showHomeMenu = true },
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                ),
+                            ) {
                                 Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more_options))
                             }
                             DropdownMenu(
@@ -557,14 +572,21 @@ fun HomeScreen(
             }
 
             // Search bar — Liquid Glass integrated search bar (§8.5)
+            if (!searchActive) {
+                val reviewFlow = remember(vm) { vm.folderUnread("REVIEW") }
+                val reviewWaiting by reviewFlow.collectAsStateWithLifecycle(initialValue = 0)
+                ProtectionStatusCard(reviewWaiting = reviewWaiting, onClick = onDashboard)
+            }
             Box(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp),
             ) {
-                LiquidGlassSurface(
+                // Redesign: flat warm pill instead of glass — glass stays on
+                // the floating dock, where it earns its depth.
+                androidx.compose.material3.Surface(
                     shape = RoundedCornerShape(26.dp),
-                    depth = GlassDepth.LOW,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     TextField(
@@ -601,7 +623,7 @@ fun HomeScreen(
                                     Icon(
                                         Icons.Filled.Search,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -715,7 +737,7 @@ private fun FolderPane(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             FilterChip(
@@ -785,6 +807,7 @@ private fun FolderPane(
                 ListRender.CONTENT -> {
                     val listState = rememberLazyListState()
                     val listScope = rememberCoroutineScope()
+                    val shownList = if (pinnedList.isNotEmpty() && !unreadOnly) regularList else conversations
                     Box(Modifier.fillMaxSize()) {
                     LazyColumn(
                         state = listState,
@@ -801,7 +824,7 @@ private fun FolderPane(
                         }
 
                         itemsIndexed(
-                            if (pinnedList.isNotEmpty() && !unreadOnly) regularList else conversations,
+                            shownList,
                             key = { _, it -> it.threadId },
                         ) { index, conv ->
                             val meta = badgeMeta[conv.threadId]
@@ -813,6 +836,26 @@ private fun FolderPane(
                                     protectedLabel = meta?.protectedLabel,
                                 )
                             }
+                            // Redesign: rows are grouped into one rounded card
+                            // (first/last rows carry the outer corners).
+                            val cardShape = when {
+                                shownList.size == 1 -> RoundedCornerShape(28.dp)
+                                index == 0 -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                                index == shownList.lastIndex ->
+                                    RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
+                                else -> RectangleShape
+                            }
+                            Column(
+                                Modifier
+                                    .animateItem(
+                                        fadeInSpec = Motion.effectsDefault(),
+                                        placementSpec = Motion.spatialDefault(),
+                                        fadeOutSpec = Motion.effectsFast(),
+                                    )
+                                    .padding(horizontal = 16.dp)
+                                    .clip(cardShape)
+                                    .background(MaterialTheme.colorScheme.groupCard),
+                            ) {
                             SwipeableConversationRow(
                                 conv = conv,
                                 draft = drafts[conv.threadId],
@@ -824,11 +867,6 @@ private fun FolderPane(
                                     if (selectionActive) vm.toggleSelected(conv.threadId)
                                     else onOpenThread(conv.threadId)
                                 },
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = Motion.effectsDefault(),
-                                    placementSpec = Motion.spatialDefault(),
-                                    fadeOutSpec = Motion.effectsFast(),
-                                ),
                                 badge = badge,
                                 onBadgeTap = { badgeSheet = it },
                                 selectionActive = selectionActive,
@@ -841,7 +879,7 @@ private fun FolderPane(
                             // Inset divider starting at the text column (plan
                             // §1 prototype) — never after the last row.
                             if (INSET_DIVIDERS &&
-                                index < conversations.lastIndex
+                                index < shownList.lastIndex
                             ) {
                                 HorizontalDivider(
                                     modifier = Modifier
@@ -849,6 +887,7 @@ private fun FolderPane(
                                     color = MaterialTheme.colorScheme.outlineVariant
                                         .copy(alpha = 0.5f),
                                 )
+                            }
                             }
                         }
                     }
@@ -882,6 +921,70 @@ private fun FolderPane(
     }
     badgeSheet?.let { b ->
         com.messages.app.ui.common.SenderBadgeSheet(b, onDismiss = { badgeSheet = null })
+    }
+}
+
+/** Always-visible protection status; opens the dashboard (replaces the toolbar shield). */
+@Composable
+private fun ProtectionStatusCard(
+    reviewWaiting: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    androidx.compose.material3.Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(22.dp),
+        color = cs.primaryContainer,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(cs.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Shield,
+                    contentDescription = null,
+                    tint = cs.onPrimary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.home_protection_on),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = cs.onPrimaryContainer,
+                )
+                androidx.compose.animation.AnimatedContent(
+                    targetState = reviewWaiting,
+                    transitionSpec = {
+                        (androidx.compose.animation.slideInVertically { it } + androidx.compose.animation.fadeIn()) togetherWith
+                            (androidx.compose.animation.slideOutVertically { -it } + androidx.compose.animation.fadeOut())
+                    },
+                    label = "protection_counter",
+                ) { count ->
+                    Text(
+                        if (count > 0) stringResource(R.string.home_protection_review_waiting, count)
+                        else stringResource(R.string.home_protection_open),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = cs.onPrimaryContainer.copy(alpha = 0.8f),
+                    )
+                }
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = stringResource(R.string.home_protection_dashboard),
+                tint = cs.onPrimaryContainer,
+            )
+        }
     }
 }
 
@@ -1361,9 +1464,10 @@ private fun DefaultSmsGate(
             Spacer(Modifier.height(20.dp))
 
             if (isRestricted) {
-                LiquidGlassSurface(
-                    shape = RoundedCornerShape(16.dp),
-                    depth = GlassDepth.LOW,
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.groupCard,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 ) {
                     Column(Modifier.padding(16.dp)) {
