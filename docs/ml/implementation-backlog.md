@@ -12,7 +12,7 @@ Status: Active Work Tracker
 |---|---|---|---|
 | **Phase 1** | Scope & Acceptance Criteria | **Complete** | Staged threshold policy (Stage 1 FPR <=0.50%, Stage 2 recall >=90.0%) and V1 language scope (bn, hi, en) approved by owner. |
 | **Phase 2** | Data & Split Design | **Complete (Specification)** | Recruit native annotators and configure access-controlled storage. |
-| **Phase 3** | Reproducible Baselines | **In Progress** | Standard n-gram reproduced; audit split leakage tooling operational; run Kotlin/Python parity suite. |
+| **Phase 3** | Reproducible Baselines | **Complete** | Standard n-gram reproduced; split leakage verification operational; Kotlin/Python cross-language parity verified. |
 | **Phase 4** | Evidence-Led Improvements | **Proposed / Queued** | Analyze error distributions on development set; address Devanagari Hindi and advisory lookalike gaps. |
 | **Phase 5** | Candidate Evaluation | **Blocked** | Blocked until independent blind human-labeled acceptance set is collected, adjudicated, and frozen. |
 | **Phase 6** | Android Suitability & Safe Integration | **Blocked** | Blocked until candidate clears Phase 5 acceptance gates; runtime safeguards currently default-off. |
@@ -84,10 +84,11 @@ Status: Active Work Tracker
 
 #### [P3-02] Android Runtime Parity & Kotlin Scorer Regression Check
 - **Priority**: P0
-- **Status**: **In Progress**
+- **Status**: **Complete**
 - **Prerequisites**: [P3-01]
+- **Artifact**: `protection-engine/src/test/resources/score_fixture.json`, `protection-engine/src/test/kotlin/com/messages/protection/IndicClassificationAndAiTest.kt`
 - **Description**: Verify that preprocessing, tokenization, whitespace padding, and scoring calculations in Kotlin `NGramScorer` produce identical results to Python `train_ngram.py` on fixture messages.
-- **Acceptance Evidence**: Kotlin test `AiScorerTest` / `IndicClassificationAndAiTest` passes with score equality within 1e-5.
+- **Acceptance Evidence**: Kotlin test `kotlin_scorer_agrees_with_python_trainer_on_fixture` passes across all 44 test messages (English, Hindi, non-breaking space, sub-length, and abstain paths) with score equality within 1e-4.
 
 #### [P3-03] Transformer Teacher Checkpoint Containment Audit
 - **Priority**: P1

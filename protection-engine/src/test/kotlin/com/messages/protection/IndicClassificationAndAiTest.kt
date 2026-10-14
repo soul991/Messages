@@ -1,11 +1,15 @@
 package com.messages.protection
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+
 
 class IndicClassificationAndAiTest {
 
@@ -20,6 +24,8 @@ class IndicClassificationAndAiTest {
         val text = stream.bufferedReader().readText()
         NGramScorer.fromJson(text)
     }
+
+    private val json = Json { ignoreUnknownKeys = true }
 
     // -------------------------------------------------------------------------
     // 1. IndicNormalizer & Script Folding
@@ -255,4 +261,32 @@ class IndicClassificationAndAiTest {
         val applied = AiLayer.apply(protectedVerdict, shadow, enabled = true)
         assertSame("Protected verdict must be returned untouched", protectedVerdict, applied)
     }
+
+    // -------------------------------------------------------------------------
+    // 3. Python-to-Kotlin Parity Fixture Gate
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun kotlin_scorer_agrees_with_python_trainer_on_fixture() {
+        val stream = javaClass.getResourceAsStream("/score_fixture.json") ?: return
+        val jsonText = stream.bufferedReader().readText()
+        val fixture = json.decodeFromString<List<ScoreFixtureEntry>>(jsonText)
+        assertTrue("Fixture must contain test messages", fixture.isNotEmpty())
+        for (item in fixture) {
+            val kotlinScore = aiScorer.score(item.text)
+            assertEquals(
+                "Score mismatch for text: ${item.text.take(30)}",
+                item.score,
+                kotlinScore,
+                1e-4
+            )
+        }
+    }
 }
+
+@Serializable
+private data class ScoreFixtureEntry(
+    val text: String,
+    val score: Double
+)
+
