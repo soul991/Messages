@@ -10,7 +10,7 @@ Status: Active Work Tracker
 
 | Phase | Description | Current State | Immediate Next Steps |
 |---|---|---|---|
-| **Phase 1** | Scope & Acceptance Criteria | **Complete (Proposed)** | Awaiting repository owner confirmation on proposed numeric targets. |
+| **Phase 1** | Scope & Acceptance Criteria | **Complete** | Staged threshold policy (Stage 1 FPR <=0.50%, Stage 2 recall >=90.0%) and V1 language scope (bn, hi, en) approved by owner. |
 | **Phase 2** | Data & Split Design | **Complete (Specification)** | Recruit native annotators and configure access-controlled storage. |
 | **Phase 3** | Reproducible Baselines | **In Progress** | Standard n-gram reproduced; audit split leakage tooling operational; run Kotlin/Python parity suite. |
 | **Phase 4** | Evidence-Led Improvements | **Proposed / Queued** | Analyze error distributions on development set; address Devanagari Hindi and advisory lookalike gaps. |
@@ -32,11 +32,12 @@ Status: Active Work Tracker
 
 #### [P1-02] Numerical Acceptance Targets and Operating Envelope Specification
 - **Priority**: P0
-- **Status**: **Complete (Proposed)**
+- **Status**: **Complete**
 - **Prerequisites**: [P1-01]
 - **Artifact**: [`docs/ml/scope-and-acceptance-criteria.md`](scope-and-acceptance-criteria.md)
-- **Description**: Establish target recall (>=85%), false-positive budget (<=0.5% overall, <=1.0% per language), 0.00% protected message FP, model size (<=2.0 MB), latency (p95 <=25 ms), and calibration (Brier <=0.10).
-- **Acceptance Evidence**: Target criteria drafted with owner decision points explicitly marked.
+- **Description**: Establish target recall, false-positive budget, 0.00% protected message FP, model size (<=2.0 MB), latency (p95 <=25 ms), and calibration (Brier <=0.10).
+- **Acceptance Evidence**: Owner approved staged threshold policy (Stage 1: FPR <=0.50%, recall >=80%; Stage 2: FPR <=1.00%, recall >=90%) and V1 focus on Bengali, Hindi, and English.
+
 
 ---
 

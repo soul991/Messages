@@ -86,17 +86,19 @@ Target deployment hardware spans budget Android devices sold in the Indian marke
 
 ## 5. Numerical Acceptance Criteria Table
 
-All proposed targets are subject to formal signoff by the repository owner.
+Owner Decision Status: **Approved Staged Threshold Policy** (2026-10-15).  
+- **Stage 1 (Conservative Gate)**: Target Ham FPR <= 0.50% with Scam recall >= 80.0%.
+- **Stage 2 (Enhanced Catch)**: Target Ham FPR <= 1.00% with Scam recall >= 90.0%.
 
-| Dimension | Target Metric | Evaluation Split & Condition | Status / Owner Decision |
+| Dimension | Target Metric (Stage 1 / Stage 2) | Evaluation Split & Condition | Status & Owner Decision |
 |---|---|---|---|
-| **Overall Scam Recall** | **>= 85.0%** | Independent Blind Acceptance Set (at operating threshold) | **[PROPOSED]** *Owner choice: 80% vs 85% vs 90%* |
-| **Per-Language Scam Recall** | **>= 80.0%** each for English, Devanagari Hindi, Hinglish, Bengali, Banglish | Independent Blind Acceptance Set (subgroups with N >= 100) | **[PROPOSED]** *Owner choice: 75% vs 80%* |
-| **Ham False Positive Rate (FPR)** | **<= 0.50%** overall (<= 1 per 200 legitimate SMS) | Representative Ham Acceptance Set | **[PROPOSED]** *Owner choice: 0.5% vs 1.0%* |
-| **Per-Language Ham FPR** | **<= 1.00%** per supported language group | Representative Ham Acceptance Set (subgroups with N >= 100) | **[PROPOSED]** *Standard industry safety ceiling* |
+| **Overall Scam Recall** | Stage 1: **>= 80.0%**; Stage 2: **>= 90.0%** | Independent Blind Acceptance Set | **[DECIDED]** *Owner approved staged policy (1 then 2)* |
+| **Per-Language Scam Recall** | Stage 1: **>= 75.0%**; Stage 2: **>= 85.0%** for Bengali, Hindi, English | Independent Blind Acceptance Set (subgroups with N >= 100) | **[DECIDED]** *V1 focused on Bengali, Hindi, English* |
+| **Ham False Positive Rate (FPR)** | Stage 1: **<= 0.50%**; Stage 2: **<= 1.00%** | Representative Ham Acceptance Set | **[DECIDED]** *Stage 1 prioritizes minimal inbox disruption* |
+| **Per-Language Ham FPR** | **<= 1.00%** per supported language group | Representative Ham Acceptance Set (subgroups with N >= 100) | **[ACCEPTED]** *Standard safety ceiling* |
 | **Protected Message FPR** | **0.00%** (Zero false positives allowed) | Transaction / OTP / Emergency holdout suites | **[MANDATORY HARD GATE]** *Non-negotiable* |
-| **Benign Advisory FPR** | **<= 2.00%** | Bank fraud awareness & security advisory holdout | **[PROPOSED]** *Prevents overflagging legitimate safety warnings* |
-| **Probability Calibration** | Brier score <= 0.10; ECE <= 0.08 | Development Validation Set | **[PROPOSED]** *Ensures score reflects true confidence* |
+| **Benign Advisory FPR** | **<= 2.00%** | Bank fraud awareness & security advisory holdout | **[ACCEPTED]** *Prevents overflagging legitimate safety warnings* |
+| **Probability Calibration** | Brier score <= 0.10; ECE <= 0.08 | Development Validation Set | **[ACCEPTED]** *Ensures score reflects true confidence* |
 | **Statistical Uncertainty** | 95% Wilson score confidence interval reported for all metrics | Any subgroup with N < 100 marked **Inconclusive** | **[MANDATORY]** *Standard reporting requirement* |
 | **Latency Budget** | P95 <= 25.0 ms on reference hardware | Kotlin runtime on JVM / ART | **[MANDATORY HARD GATE]** *Existing `LATENCY_BUDGET_MS`* |
 | **App Asset Footprint** | <= 2.0 MiB uncompressed | In-APK asset footprint | **[MANDATORY HARD GATE]** *Existing budget requirement* |
@@ -104,12 +106,12 @@ All proposed targets are subject to formal signoff by the repository owner.
 
 ---
 
-## 6. Open Decisions for Repository Owner
+## 6. Decided Owner Choices (Recorded 2026-10-15)
 
 1. **Operating Threshold Policy**:
-   - *Option A (High Safety - Recommended)*: Prioritize low false-positive rate (ham FPR <= 0.50%), accepting lower scam recall (>= 80.0%).
-   - *Option B (Aggressive Catch)*: Prioritize scam recall (>= 90.0%), accepting ham FPR up to 1.00%.
-2. **Scope of Regional Languages in V1**:
-   - Confirm whether Punjabi (`pa`) should remain formally out-of-scope until dedicated Gurmukhi training corpora and clean script routing are established.
+   - **Decision**: Staged adoption ("first 1 then 2"). The candidate must first clear Stage 1 (ham FPR <= 0.50%, recall >= 80.0%) to verify safety. Only after Stage 1 stability is demonstrated in internal shadow evaluation will Stage 2 tuning (ham FPR <= 1.00%, recall >= 90.0%) be evaluated.
+2. **Language Scope for Version 1**:
+   - **Decision**: Focus training and certification strictly on **Bengali, Hindi, and English** (including romanized Hinglish and Banglish). Punjabi (Gurmukhi) is explicitly deferred past V1 until dedicated, clean Gurmukhi training corpora and clean script routing are established.
 3. **Acceptance Threshold for Subgroups**:
-   - Confirm the minimum subgroup size (proposed: N >= 100) below which an evaluation result must be certified as inconclusive rather than a release decision.
+   - **Decision**: Subgroups with N < 100 examples are marked inconclusive and cannot be used as primary release evidence.
+
