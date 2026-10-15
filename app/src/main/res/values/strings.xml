@@ -530,6 +530,8 @@
     <string name="settings_restore_confirm_body">Messages, rules, and settings from the backup will be added. Nothing on this device is deleted or overwritten; duplicates are skipped.</string>
     <string name="settings_choose_file">Choose file</string>
     <string name="settings_title">Settings</string>
+    <string name="settings_default_sms_on">Messages is your default SMS app</string>
+    <string name="settings_default_sms_on_sub">Protection and all features are active</string>
     <string name="settings_hub_personalize">PERSONALIZE</string>
     <string name="settings_hub_protect">PROTECT</string>
     <string name="settings_hub_data">DATA</string>
