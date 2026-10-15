@@ -18,7 +18,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.ui.draw.clip
@@ -481,8 +480,9 @@ private fun TrashRow(
                     )
                 }
                 Spacer(Modifier.height(2.dp))
+                val mediaPlaceholder = stringResource(R.string.media_message)
                 Text(
-                    if (msg.body.isBlank()) androidx.compose.ui.text.AnnotatedString("(media message)")
+                    if (msg.body.isBlank()) androidx.compose.ui.text.AnnotatedString(mediaPlaceholder)
                     else SearchHighlight.annotate(SearchHighlight.snippet(msg.body, terms), terms, highlight),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

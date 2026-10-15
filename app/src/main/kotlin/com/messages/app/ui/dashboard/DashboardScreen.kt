@@ -1,6 +1,13 @@
 package com.messages.app.ui.dashboard
 
 import android.app.Application
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,24 +18,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.size
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Surface
-import com.messages.designsystem.groupCard
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -37,27 +35,30 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
-import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.R
 import com.messages.core.MessageRepository
-import com.messages.designsystem.CategoryColors
+import com.messages.designsystem.categoryPalette
+import com.messages.designsystem.groupCard
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.pluralStringResource
-import com.messages.app.R
 
 /** Protection dashboard (§8.2): satisfying counters, families, top senders. */
 class DashboardViewModel(app: Application) : AndroidViewModel(app) {
@@ -131,6 +132,8 @@ fun DashboardScreen(
 ) {
     val period by vm.period.collectAsStateWithLifecycle()
     val stats by vm.stats.collectAsStateWithLifecycle()
+    val spamPalette = categoryPalette("SPAM")
+    val promoPalette = categoryPalette("PROMOTIONS")
 
     Scaffold(
         topBar = {
@@ -230,21 +233,24 @@ fun DashboardScreen(
 
             // Category counters
             item {
+                val spamTint = spamPalette?.tint ?: MaterialTheme.colorScheme.error
+                val promoTint = promoPalette?.tint ?: MaterialTheme.colorScheme.tertiary
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    StatCard(stringResource(R.string.category_spam), stats.byCategory["SPAM"] ?: 0, CategoryColors.Fraud, Modifier.weight(1f))
-                    StatCard(stringResource(R.string.dashboard_stat_promos), stats.byCategory["PROMOTIONS"] ?: 0, CategoryColors.Promo, Modifier.weight(1f))
+                    StatCard(stringResource(R.string.category_spam), stats.byCategory["SPAM"] ?: 0, spamTint, Modifier.weight(1f))
+                    StatCard(stringResource(R.string.dashboard_stat_promos), stats.byCategory["PROMOTIONS"] ?: 0, promoTint, Modifier.weight(1f))
                     StatCard(stringResource(R.string.dashboard_stat_blocked), stats.byCategory["BLOCKED"] ?: 0, MaterialTheme.colorScheme.outline, Modifier.weight(1f))
                 }
                 if (stats.dangerous > 0) {
+                    val dangerContainer = spamPalette?.container ?: MaterialTheme.colorScheme.errorContainer
                     Surface(
                         shape = RoundedCornerShape(22.dp),
-                        color = CategoryColors.Fraud.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, CategoryColors.Fraud.copy(alpha = 0.35f)),
+                        color = dangerContainer.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, spamTint.copy(alpha = 0.35f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 6.dp),
@@ -256,7 +262,7 @@ fun DashboardScreen(
                             Icon(
                                 Icons.Filled.Warning,
                                 contentDescription = null,
-                                tint = CategoryColors.Fraud,
+                                tint = spamTint,
                                 modifier = Modifier.size(24.dp),
                             )
                             Spacer(Modifier.width(12.dp))
@@ -267,7 +273,7 @@ fun DashboardScreen(
                                     stats.dangerous,
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = CategoryColors.Fraud,
+                                color = spamTint,
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
@@ -358,12 +364,12 @@ fun DashboardScreen(
                                         Modifier
                                             .size(40.dp)
                                             .clip(CircleShape)
-                                            .background(CategoryColors.FraudContainer),
+                                            .background(spamPalette?.container ?: MaterialTheme.colorScheme.errorContainer),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
                                             address.take(1).uppercase(),
-                                            color = CategoryColors.Fraud,
+                                            color = spamPalette?.onContainer ?: MaterialTheme.colorScheme.onErrorContainer,
                                             fontWeight = FontWeight.Bold,
                                             style = MaterialTheme.typography.titleSmall,
                                         )
@@ -418,7 +424,7 @@ fun DashboardScreen(
 private fun StatCard(
     label: String,
     count: Int,
-    tint: androidx.compose.ui.graphics.Color,
+    tint: Color,
     modifier: Modifier = Modifier,
 ) {
     Surface(

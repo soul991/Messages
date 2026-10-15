@@ -2,6 +2,7 @@ package com.messages.app.ui.settings
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,8 +41,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -51,7 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.MessagesApp
 import com.messages.app.R
-import com.messages.designsystem.LocalDarkTheme
+import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.groupCard
 
 /**
@@ -101,7 +101,7 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            SettingsSectionHeader("NOTIFICATION PREVIEW & THEME")
+            SettingsSectionHeader(stringResource(R.string.notification_preview_header))
             NotificationPreviewCard()
             Spacer(Modifier.height(12.dp))
 
@@ -225,7 +225,7 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
  */
 @Composable
 private fun NotificationPreviewCard() {
-    val emerald = Color(0xFF10B981)
+    val emerald = categoryPalette("TRANSACTIONS")?.tint ?: MaterialTheme.colorScheme.primary
 
     Surface(
         shape = RoundedCornerShape(24.dp),

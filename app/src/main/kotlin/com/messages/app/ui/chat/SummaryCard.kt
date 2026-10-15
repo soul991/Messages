@@ -43,8 +43,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -178,7 +176,6 @@ fun SummaryCard(
 
                 IconButton(
                     onClick = { menuOpen = true },
-                    modifier = Modifier.size(28.dp),
                 ) {
                     Icon(
                         Icons.Filled.MoreVert,

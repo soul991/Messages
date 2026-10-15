@@ -27,15 +27,12 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -161,6 +158,7 @@ import com.messages.app.ui.search.SearchHighlight
 import com.messages.core.db.ConversationEntity
 import com.messages.designsystem.Haptics
 import com.messages.designsystem.Motion
+import com.messages.designsystem.categoryPalette
 import kotlinx.coroutines.launch
 import androidx.annotation.StringRes
 import androidx.compose.ui.platform.LocalContext
@@ -171,9 +169,6 @@ import com.messages.app.R
 // Phase 5 §1 row grid (REFS §1): 54dp avatar + 16dp gap ≈ 76dp rows.
 private val ROW_AVATAR = 54.dp
 private val ROW_GAP = 16.dp
-// Divider prototype toggle (plan §1): true = inset dividers starting at the
-// text column; false = divider-free Telegram-style spacing.
-private const val INSET_DIVIDERS = false
 
 // V2-36. The left half of each pair is the stored folder/label id and never
 // changes; the right half is a resource, because the tab is the first thing a
@@ -506,7 +501,12 @@ fun HomeScreen(
                 val reviewUnread by vm.folderUnread("REVIEW").collectAsStateWithLifecycle(0)
                 val spamUnread by vm.folderUnread("SPAM").collectAsStateWithLifecycle(0)
 
-                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread) {
+                val txnPalette = categoryPalette("TRANSACTIONS")
+                val promoPalette = categoryPalette("PROMOTIONS")
+                val reviewPalette = categoryPalette("REVIEW")
+                val spamPalette = categoryPalette("SPAM")
+
+                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread, txnPalette, promoPalette, reviewPalette, spamPalette) {
                     listOf(
                         GlassDockItem(
                             key = "INBOX",
@@ -519,28 +519,28 @@ fun HomeScreen(
                             title = resources.getString(R.string.nav_bank),
                             icon = Icons.Outlined.ReceiptLong,
                             unreadCount = txnUnread,
-                            accentColor = Color(0xFF16A34A),
+                            accentColor = txnPalette?.tint ?: Color(0xFF16A34A),
                         ),
                         GlassDockItem(
                             key = "PROMOTIONS",
                             title = resources.getString(R.string.nav_offers),
                             icon = Icons.Outlined.LocalOffer,
                             unreadCount = promoUnread,
-                            accentColor = Color(0xFFD97706),
+                            accentColor = promoPalette?.tint ?: Color(0xFFD97706),
                         ),
                         GlassDockItem(
                             key = "REVIEW",
                             title = resources.getString(R.string.nav_review),
                             icon = Icons.Outlined.RateReview,
                             unreadCount = reviewUnread,
-                            accentColor = Color(0xFF2563EB),
+                            accentColor = reviewPalette?.tint ?: Color(0xFF2563EB),
                         ),
                         GlassDockItem(
                             key = "SPAM",
                             title = resources.getString(R.string.nav_spam),
                             icon = Icons.Outlined.Shield,
                             unreadCount = spamUnread,
-                            accentColor = Color(0xFFDC2626),
+                            accentColor = spamPalette?.tint ?: Color(0xFFDC2626),
                         ),
                     )
                 }
@@ -876,18 +876,6 @@ private fun FolderPane(
                                     vm.toggleSelected(conv.threadId)
                                 },
                             )
-                            // Inset divider starting at the text column (plan
-                            // §1 prototype) — never after the last row.
-                            if (INSET_DIVIDERS &&
-                                index < shownList.lastIndex
-                            ) {
-                                HorizontalDivider(
-                                    modifier = Modifier
-                                        .padding(start = 16.dp + ROW_AVATAR + ROW_GAP),
-                                    color = MaterialTheme.colorScheme.outlineVariant
-                                        .copy(alpha = 0.5f),
-                                )
-                            }
                             }
                         }
                     }

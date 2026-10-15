@@ -1,10 +1,7 @@
 package com.messages.app.ui.update
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -19,6 +16,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,11 +46,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,7 +60,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -75,8 +72,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.material3.Surface
 import com.messages.designsystem.groupCard
 import com.messages.app.BuildConfig
 import com.messages.app.R
@@ -686,24 +681,16 @@ private fun PulsingPolygon(
             }
             path.close()
 
-            // Gradient fill
+            // Solid tonal container fill
             drawPath(
                 path,
-                brush = Brush.linearGradient(
-                    colors = listOf(primary.copy(alpha = 0.3f), secondary.copy(alpha = 0.15f)),
-                    start = Offset(cx - radius, cy - radius),
-                    end = Offset(cx + radius, cy + radius),
-                ),
+                color = primary.copy(alpha = 0.16f),
                 style = Fill,
             )
             // Stroke
             drawPath(
                 path,
-                brush = Brush.linearGradient(
-                    colors = listOf(primary, secondary),
-                    start = Offset(cx - radius, cy - radius),
-                    end = Offset(cx + radius, cy + radius),
-                ),
+                color = primary,
                 style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round),
             )
         }

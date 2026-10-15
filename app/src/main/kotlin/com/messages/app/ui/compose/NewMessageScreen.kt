@@ -328,7 +328,7 @@ fun NewMessageScreen(
                         IconButton(onClick = { vm.query.value = "" }) {
                             Icon(
                                 Icons.Filled.Close,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.action_clear),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp),
                             )
@@ -532,13 +532,13 @@ private fun NoticeCard(content: @Composable androidx.compose.foundation.layout.C
 @Composable
 private fun StartGroupRow(onClick: () -> Unit) {
     Surface(
+        onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.groupCard,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -570,13 +570,13 @@ private fun StartGroupRow(onClick: () -> Unit) {
 @Composable
 private fun SendToNumberRow(number: String, onClick: () -> Unit) {
     Surface(
+        onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.groupCard,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),

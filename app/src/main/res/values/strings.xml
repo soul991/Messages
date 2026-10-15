@@ -1704,4 +1704,17 @@ This application is provided as-is for personal use. By using it you accept that
     <string name="update_cleared_toast">Cleared %1$d downloaded update(s)</string>
     <string name="update_no_cached_toast">No downloaded APKs to clear</string>
 
+    <!-- Starred, Trash & Chat media / sender labels -->
+    <string name="media_message">(media message)</string>
+    <string name="sender_you"> · You</string>
+    <string name="chat_banner_dangerous">Dangerous — likely fraud. Links are disabled.</string>
+    <string name="chat_banner_fraud">Caution: suspicious link from unverified sender</string>
+    <string name="chat_action_not_spam">Not spam</string>
+    <string name="chat_action_why">Why?</string>
+    <string name="chat_action_report">Report</string>
+    <string name="chat_conversation_exported">Conversation exported</string>
+    <string name="chat_export_failed">Export failed</string>
+    <string name="accessibility_opens_in_browser">Opens in web browser</string>
+    <string name="notification_preview_header">NOTIFICATION PREVIEW &amp; THEME</string>
+
 </resources>

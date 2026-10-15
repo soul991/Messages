@@ -56,7 +56,6 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SwipeLeft
 import androidx.compose.material.icons.outlined.SwipeRight
-import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -97,7 +96,6 @@ import com.messages.app.ui.common.categoryLabelRes
 import com.messages.app.ui.secret.SecretEntryAccess
 import com.messages.core.MessageRepository
 import com.messages.core.backup.BackupCrypto
-import com.messages.core.backup.BackupManager
 import com.messages.core.backup.LocalArchive
 import com.messages.core.secret.SecretStrength
 import com.messages.core.cleanup.OtpCleanup
@@ -1091,18 +1089,6 @@ fun SettingsScreen(
                 Spacer(Modifier.height(24.dp))
             }
             }
-
-            // ---- About: version, legal, updates, source ----
-            item {
-                SettingsSectionDivider()
-                SettingsNavRow(
-                    icon = Icons.Outlined.Info,
-                    title = stringResource(R.string.settings_about),
-                    subtitle = stringResource(R.string.settings_about_subtitle),
-                    onClick = onOpenAbout,
-                )
-                Spacer(Modifier.height(24.dp))
-            }
         }
     }
 }
@@ -1345,7 +1331,8 @@ private fun InAppBrightnessSection(
     }
 }
 
-/** Quick-reply template manager (Phase 4 item 8): list + add + delete. */@Composable
+/** Quick-reply template manager (Phase 4 item 8): list + add + delete. */
+@Composable
 private fun QuickRepliesEditor(ctx: android.content.Context) {
     val templates by com.messages.app.ui.chat.QuickReplies.templates.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { com.messages.app.ui.chat.QuickReplies.load(ctx) }
@@ -1528,7 +1515,9 @@ private fun AddRuleDialog(
                     Text(stringResource(R.string.settings_rule_move_to), style = MaterialTheme.typography.labelMedium)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
                     ) {
                         CUSTOM_CATEGORIES.forEach { cat ->
                             FilterChip(

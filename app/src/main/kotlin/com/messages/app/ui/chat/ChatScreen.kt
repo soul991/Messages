@@ -301,6 +301,8 @@ fun ChatScreen(
     val movedToInboxMessage = stringResource(R.string.chat_moved_to_inbox)
     val movedToSpamMessage = stringResource(R.string.chat_moved_to_spam)
     val lockedChatCreatedMessage = stringResource(R.string.chat_lock_new_snackbar)
+    val exportedMessage = stringResource(R.string.chat_conversation_exported)
+    val exportFailedMessage = stringResource(R.string.chat_export_failed)
 
     val items = remember(messages) { buildChatItems(messages) }
 
@@ -349,7 +351,7 @@ fun ChatScreen(
         if (uri != null) vm.exportConversation(uri) { ok ->
             scope.launch {
                 snackbarHostState.showSnackbar(
-                    if (ok) "Conversation exported" else "Export failed"
+                    if (ok) exportedMessage else exportFailedMessage
                 )
             }
         }
@@ -1769,8 +1771,8 @@ private fun MessageBubble(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (msg.dangerous) "Dangerous — likely fraud. Links are disabled."
-                    else "Caution: suspicious link from unverified sender",
+                    if (msg.dangerous) stringResource(R.string.chat_banner_dangerous)
+                    else stringResource(R.string.chat_banner_fraud),
                     style = MaterialTheme.typography.labelMedium,
                     color = fraudPalette?.onContainer ?: MaterialTheme.colorScheme.onErrorContainer,
                 )
@@ -2116,11 +2118,11 @@ private fun MessageBubble(
             // spam" and "Report". 8 dp is the smallest gap that reads as
             // separate targets without wrapping the row on a narrow screen.
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactAction("Not spam", onNotSpam)
-                CompactAction("Why?", onWhy)
+                CompactAction(stringResource(R.string.chat_action_not_spam), onNotSpam)
+                CompactAction(stringResource(R.string.chat_action_why), onWhy)
                 // Carrier spam reporting (Phase 4 item 17): incoming spam only.
                 if (msg.category == "SPAM" && !isOut) {
-                    CompactAction("Report") { showReportDialog = true }
+                    CompactAction(stringResource(R.string.chat_action_report)) { showReportDialog = true }
                 }
             }
         }

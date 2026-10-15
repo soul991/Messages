@@ -201,9 +201,10 @@ fun StarredScreen(
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                val youSuffix = stringResource(R.string.sender_you)
                                 Text(
                                     (row.displayName ?: m.address) +
-                                        if (m.isOutgoing) " · You" else "",
+                                        if (m.isOutgoing) youSuffix else "",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
@@ -218,8 +219,9 @@ fun StarredScreen(
                                 )
                             }
                             Spacer(Modifier.height(4.dp))
+                            val mediaPlaceholder = stringResource(R.string.media_message)
                             Text(
-                                m.body.ifBlank { "[media message]" },
+                                m.body.ifBlank { mediaPlaceholder },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 2,
@@ -229,7 +231,6 @@ fun StarredScreen(
                         Spacer(Modifier.width(8.dp))
                         IconButton(
                             onClick = { vm.unstar(m.id) },
-                            modifier = Modifier.size(40.dp),
                         ) {
                             Icon(
                                 Icons.Filled.Star,

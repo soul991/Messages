@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
@@ -60,6 +63,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.messages.app.R
 import com.messages.app.ui.common.ContactAvatar
 import com.messages.app.ui.common.rememberContactPhoto
 import com.messages.core.MessageRepository
@@ -68,12 +72,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.ui.res.stringResource
-import com.messages.app.R
 
 class ContactDetailViewModel(
     app: Application,
@@ -319,12 +320,11 @@ fun ContactDetailScreen(
             }
             Spacer(Modifier.height(24.dp))
 
-            Spacer(Modifier.height(24.dp))
-
             // ---- Grouped Interaction Card ----
             Surface(
                 shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             ) {
                 Column {
@@ -353,6 +353,7 @@ fun ContactDetailScreen(
             Surface(
                 shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.groupCard,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             ) {
                 Column {
@@ -361,7 +362,8 @@ fun ContactDetailScreen(
                         title = stringResource(R.string.contact_mute_title),
                         subtitle = stringResource(R.string.contact_mute_subtitle),
                         onClick = { vm.setMuted(!muted) },
-                        trailing = { Switch(checked = muted, onCheckedChange = { vm.setMuted(it) }) },
+                        role = Role.Switch,
+                        trailing = { Switch(checked = muted, onCheckedChange = null) },
                     )
                     HorizontalDivider(
                         Modifier.padding(start = 76.dp, end = 16.dp),
@@ -371,7 +373,9 @@ fun ContactDetailScreen(
                         icon = Icons.Outlined.Lock,
                         title = stringResource(R.string.contact_lock_title),
                         subtitle = stringResource(R.string.contact_lock_subtitle),
-                        onClick = {},
+                        onClick = { vm.setLocked(!locked) },
+                        role = Role.Switch,
+                        trailing = { Switch(checked = locked, onCheckedChange = null) },
                     )
                     if (!locked) {
                         HorizontalDivider(
@@ -402,7 +406,7 @@ fun ContactDetailScreen(
                             Row(
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable { vm.removeCustomChannel() }
+                                    .clickable(role = Role.Button) { vm.removeCustomChannel() }
                                     .padding(start = 76.dp, end = 20.dp, top = 2.dp, bottom = 10.dp),
                             ) {
                                 Text(
@@ -461,14 +465,6 @@ private fun HeroAction(
     }
 }
 
-@Composable
-private fun SectionGap() {
-    HorizontalDivider(
-        Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-        color = MaterialTheme.colorScheme.outlineVariant,
-    )
-}
-
 /** Detail row: 40dp tonal icon container + title/subtitle + optional trailing. */
 @Composable
 private fun DetailRow(
@@ -477,6 +473,7 @@ private fun DetailRow(
     subtitle: String,
     onClick: () -> Unit,
     trailing: (@Composable () -> Unit)? = null,
+    role: Role = Role.Button,
     iconContainer: Color = MaterialTheme.colorScheme.secondaryContainer,
     iconTint: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
@@ -484,7 +481,7 @@ private fun DetailRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(role = role, onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
