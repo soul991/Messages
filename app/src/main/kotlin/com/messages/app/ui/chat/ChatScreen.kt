@@ -1769,8 +1769,8 @@ private fun MessageBubble(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (msg.dangerous) "Dangerous — likely fraud. Links are disabled."
-                    else "Caution: suspicious link from unverified sender",
+                    if (msg.dangerous) stringResource(R.string.chat_banner_dangerous)
+                    else stringResource(R.string.chat_banner_caution),
                     style = MaterialTheme.typography.labelMedium,
                     color = fraudPalette?.onContainer ?: MaterialTheme.colorScheme.onErrorContainer,
                 )

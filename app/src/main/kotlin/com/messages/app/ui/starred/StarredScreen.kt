@@ -229,7 +229,6 @@ fun StarredScreen(
                         Spacer(Modifier.width(8.dp))
                         IconButton(
                             onClick = { vm.unstar(m.id) },
-                            modifier = Modifier.size(40.dp),
                         ) {
                             Icon(
                                 Icons.Filled.Star,

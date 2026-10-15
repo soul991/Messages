@@ -14,6 +14,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -253,7 +254,7 @@ private val MessagesTypography = Typography().let { base ->
  * on the canvas: pure white in light, the first container step in dark.
  */
 val ColorScheme.groupCard: Color
-    @Composable get() = if (LocalDarkTheme.current) surfaceContainerLow else surfaceContainerLowest
+    get() = if (surface.luminance() < 0.5f) surfaceContainerLow else surfaceContainerLowest
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 

@@ -4,8 +4,8 @@ import androidx.activity.compose.BackHandler
 import com.messages.app.MainActivity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Surface
-import com.messages.designsystem.GlassDockItem
-import com.messages.designsystem.LiquidGlassBottomDock
+import com.messages.designsystem.DockItem
+import com.messages.designsystem.BottomDock
 import com.messages.designsystem.LocalDarkTheme
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -88,6 +88,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.groupCard
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
@@ -506,46 +507,51 @@ fun HomeScreen(
                 val reviewUnread by vm.folderUnread("REVIEW").collectAsStateWithLifecycle(0)
                 val spamUnread by vm.folderUnread("SPAM").collectAsStateWithLifecycle(0)
 
-                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread) {
+                // Theme-aware accents (AA in light, dark and AMOLED) instead of fixed hex.
+                val txnAccent = categoryPalette("TRANSACTIONS")?.tint ?: MaterialTheme.colorScheme.primary
+                val promoAccent = categoryPalette("PROMOTIONS")?.tint ?: MaterialTheme.colorScheme.primary
+                val reviewAccent = MaterialTheme.colorScheme.primary
+                val spamAccent = categoryPalette("SPAM")?.tint ?: MaterialTheme.colorScheme.error
+                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread, txnAccent, promoAccent, reviewAccent, spamAccent) {
                     listOf(
-                        GlassDockItem(
+                        DockItem(
                             key = "INBOX",
                             title = resources.getString(R.string.nav_personal),
                             icon = Icons.Outlined.Forum,
                             unreadCount = inboxUnread,
                         ),
-                        GlassDockItem(
+                        DockItem(
                             key = "TRANSACTIONS",
                             title = resources.getString(R.string.nav_bank),
                             icon = Icons.Outlined.ReceiptLong,
                             unreadCount = txnUnread,
-                            accentColor = Color(0xFF16A34A),
+                            accentColor = txnAccent,
                         ),
-                        GlassDockItem(
+                        DockItem(
                             key = "PROMOTIONS",
                             title = resources.getString(R.string.nav_offers),
                             icon = Icons.Outlined.LocalOffer,
                             unreadCount = promoUnread,
-                            accentColor = Color(0xFFD97706),
+                            accentColor = promoAccent,
                         ),
-                        GlassDockItem(
+                        DockItem(
                             key = "REVIEW",
                             title = resources.getString(R.string.nav_review),
                             icon = Icons.Outlined.RateReview,
                             unreadCount = reviewUnread,
-                            accentColor = Color(0xFF2563EB),
+                            accentColor = reviewAccent,
                         ),
-                        GlassDockItem(
+                        DockItem(
                             key = "SPAM",
                             title = resources.getString(R.string.nav_spam),
                             icon = Icons.Outlined.Shield,
                             unreadCount = spamUnread,
-                            accentColor = Color(0xFFDC2626),
+                            accentColor = spamAccent,
                         ),
                     )
                 }
 
-                LiquidGlassBottomDock(
+                BottomDock(
                     items = dockItems,
                     selectedKey = folder,
                     onItemSelected = { key ->

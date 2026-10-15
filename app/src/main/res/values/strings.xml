@@ -807,6 +807,8 @@
     <string name="home_mute">Mute</string>
     <string name="home_unmute">Unmute</string>
     <string name="home_protection_dashboard">Protection dashboard</string>
+    <string name="chat_banner_dangerous">Dangerous — likely fraud. Links are disabled.</string>
+    <string name="chat_banner_caution">Caution: suspicious link from unverified sender</string>
     <string name="home_protection_on">Protection is on</string>
     <string name="home_protection_review_waiting">%d waiting for review</string>
     <string name="home_protection_open">See what was filtered</string>

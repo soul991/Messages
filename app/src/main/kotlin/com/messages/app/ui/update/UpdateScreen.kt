@@ -689,21 +689,13 @@ private fun PulsingPolygon(
             // Gradient fill
             drawPath(
                 path,
-                brush = Brush.linearGradient(
-                    colors = listOf(primary.copy(alpha = 0.3f), secondary.copy(alpha = 0.15f)),
-                    start = Offset(cx - radius, cy - radius),
-                    end = Offset(cx + radius, cy + radius),
-                ),
+                color = primary.copy(alpha = 0.16f),
                 style = Fill,
             )
             // Stroke
             drawPath(
                 path,
-                brush = Brush.linearGradient(
-                    colors = listOf(primary, secondary),
-                    start = Offset(cx - radius, cy - radius),
-                    end = Offset(cx + radius, cy + radius),
-                ),
+                color = primary,
                 style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round),
             )
         }

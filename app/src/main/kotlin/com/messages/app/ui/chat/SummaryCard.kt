@@ -178,7 +178,7 @@ fun SummaryCard(
 
                 IconButton(
                     onClick = { menuOpen = true },
-                    modifier = Modifier.size(28.dp),
+                    // 48dp minimum touch target (the 16dp glyph below stays small).
                 ) {
                     Icon(
                         Icons.Filled.MoreVert,

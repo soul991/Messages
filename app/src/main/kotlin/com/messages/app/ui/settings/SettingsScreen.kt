@@ -1092,17 +1092,7 @@ fun SettingsScreen(
             }
             }
 
-            // ---- About: version, legal, updates, source ----
-            item {
-                SettingsSectionDivider()
-                SettingsNavRow(
-                    icon = Icons.Outlined.Info,
-                    title = stringResource(R.string.settings_about),
-                    subtitle = stringResource(R.string.settings_about_subtitle),
-                    onClick = onOpenAbout,
-                )
-                Spacer(Modifier.height(24.dp))
-            }
+            // About is reached from the hub (SettingsHub), not from sub-pages.
         }
     }
 }
