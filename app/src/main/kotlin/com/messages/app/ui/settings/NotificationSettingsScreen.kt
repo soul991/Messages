@@ -43,6 +43,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.messages.designsystem.categoryPalette
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -225,7 +226,7 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
  */
 @Composable
 private fun NotificationPreviewCard() {
-    val emerald = Color(0xFF10B981)
+    val emerald = categoryPalette("TRANSACTIONS")?.tint ?: MaterialTheme.colorScheme.primary
 
     Surface(
         shape = RoundedCornerShape(28.dp),

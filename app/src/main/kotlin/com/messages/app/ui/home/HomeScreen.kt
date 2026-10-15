@@ -1667,17 +1667,18 @@ private fun SwipeActionBackground(
         }
     }
 
+    val colorScheme = MaterialTheme.colorScheme
     val visuals = when (action) {
         SwipeActions.ARCHIVE -> SwipeVisuals(
             icon = Icons.Outlined.Archive,
-            container = if (isDark) Color(0xFF0F5223) else Color(0xFF1E8E3E), // Google Messages Emerald Green
-            tint = Color.White,
+            container = categoryPalette("TRANSACTIONS")?.container ?: colorScheme.primaryContainer,
+            tint = categoryPalette("TRANSACTIONS")?.onContainer ?: colorScheme.onPrimaryContainer,
             label = stringResource(R.string.home_archive),
         )
         SwipeActions.DELETE -> SwipeVisuals(
             icon = Icons.Outlined.Delete,
-            container = if (isDark) Color(0xFF7F1D1D) else Color(0xFFD93025), // Google Messages Crimson Red
-            tint = Color.White,
+            container = categoryPalette("SPAM")?.container ?: colorScheme.errorContainer,
+            tint = categoryPalette("SPAM")?.onContainer ?: colorScheme.onErrorContainer,
             label = stringResource(R.string.action_delete),
         )
         SwipeActions.PIN -> SwipeVisuals(

@@ -52,7 +52,6 @@ import java.util.Locale
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.core.MessageRepository
-import com.messages.designsystem.CategoryColors
 import com.messages.designsystem.categoryPalette
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -237,15 +236,15 @@ fun DashboardScreen(
                         .padding(horizontal = 20.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    StatCard(stringResource(R.string.category_spam), stats.byCategory["SPAM"] ?: 0, (categoryPalette("SPAM")?.tint ?: CategoryColors.Fraud), Modifier.weight(1f))
-                    StatCard(stringResource(R.string.dashboard_stat_promos), stats.byCategory["PROMOTIONS"] ?: 0, (categoryPalette("PROMOTIONS")?.tint ?: CategoryColors.Promo), Modifier.weight(1f))
+                    StatCard(stringResource(R.string.category_spam), stats.byCategory["SPAM"] ?: 0, (categoryPalette("SPAM")?.tint ?: MaterialTheme.colorScheme.error), Modifier.weight(1f))
+                    StatCard(stringResource(R.string.dashboard_stat_promos), stats.byCategory["PROMOTIONS"] ?: 0, (categoryPalette("PROMOTIONS")?.tint ?: MaterialTheme.colorScheme.tertiary), Modifier.weight(1f))
                     StatCard(stringResource(R.string.dashboard_stat_blocked), stats.byCategory["BLOCKED"] ?: 0, MaterialTheme.colorScheme.outline, Modifier.weight(1f))
                 }
                 if (stats.dangerous > 0) {
                     Surface(
                         shape = RoundedCornerShape(28.dp),
-                        color = (categoryPalette("SPAM")?.container ?: CategoryColors.FraudContainer),
-                        border = BorderStroke(1.dp, (categoryPalette("SPAM")?.tint ?: CategoryColors.Fraud).copy(alpha = 0.35f)),
+                        color = (categoryPalette("SPAM")?.container ?: MaterialTheme.colorScheme.errorContainer),
+                        border = BorderStroke(1.dp, (categoryPalette("SPAM")?.tint ?: MaterialTheme.colorScheme.error).copy(alpha = 0.35f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 6.dp),
@@ -257,7 +256,7 @@ fun DashboardScreen(
                             Icon(
                                 Icons.Filled.Warning,
                                 contentDescription = null,
-                                tint = (categoryPalette("SPAM")?.tint ?: CategoryColors.Fraud),
+                                tint = (categoryPalette("SPAM")?.tint ?: MaterialTheme.colorScheme.error),
                                 modifier = Modifier.size(24.dp),
                             )
                             Spacer(Modifier.width(12.dp))
@@ -268,7 +267,7 @@ fun DashboardScreen(
                                     stats.dangerous,
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = (categoryPalette("SPAM")?.onContainer ?: CategoryColors.Fraud),
+                                color = (categoryPalette("SPAM")?.onContainer ?: MaterialTheme.colorScheme.onErrorContainer),
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
@@ -359,12 +358,12 @@ fun DashboardScreen(
                                         Modifier
                                             .size(40.dp)
                                             .clip(CircleShape)
-                                            .background((categoryPalette("SPAM")?.container ?: CategoryColors.FraudContainer)),
+                                            .background((categoryPalette("SPAM")?.container ?: MaterialTheme.colorScheme.errorContainer)),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
                                             address.take(1).uppercase(),
-                                            color = (categoryPalette("SPAM")?.onContainer ?: CategoryColors.Fraud),
+                                            color = (categoryPalette("SPAM")?.onContainer ?: MaterialTheme.colorScheme.onErrorContainer),
                                             fontWeight = FontWeight.Bold,
                                             style = MaterialTheme.typography.titleSmall,
                                         )

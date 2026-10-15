@@ -53,7 +53,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.core.MessageRepository
 import com.messages.core.db.MessageEntity
 import com.messages.core.secret.LockedContent
-import com.messages.designsystem.CategoryColors
+import com.messages.designsystem.categoryPalette
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -165,21 +165,22 @@ fun WhyFilteredScreen(
 
 @Composable
 private fun VerdictHeader(msg: MessageEntity) {
-    val (color, container, label) = when {
-        msg.dangerous -> Triple(CategoryColors.Fraud, CategoryColors.FraudContainer,
-            stringResource(R.string.category_spam_dangerous))
-        msg.category == "SPAM" -> Triple(CategoryColors.Fraud, CategoryColors.FraudContainer,
-            stringResource(R.string.category_spam))
-        msg.category == "PROMOTIONS" -> Triple(CategoryColors.Promo, CategoryColors.PromoContainer,
-            stringResource(R.string.category_promotions))
-        msg.category == "REVIEW" -> Triple(CategoryColors.Review, CategoryColors.ReviewContainer,
-            stringResource(R.string.category_review))
-        msg.category == "BLOCKED" -> Triple(CategoryColors.Review, CategoryColors.ReviewContainer,
-            stringResource(R.string.category_blocked))
-        msg.category == "TRANSACTIONS" -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer,
-            stringResource(R.string.category_transactions))
-        else -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer,
-            stringResource(R.string.category_inbox))
+    val cat = when {
+        msg.dangerous -> "SPAM"
+        msg.category in listOf("SPAM", "PROMOTIONS", "REVIEW", "BLOCKED", "TRANSACTIONS") -> msg.category
+        else -> "TRANSACTIONS"
+    }
+    val pal = categoryPalette(cat)
+    val color = pal?.tint ?: MaterialTheme.colorScheme.primary
+    val container = pal?.container ?: MaterialTheme.colorScheme.primaryContainer
+    val label = when {
+        msg.dangerous -> stringResource(R.string.category_spam_dangerous)
+        msg.category == "SPAM" -> stringResource(R.string.category_spam)
+        msg.category == "PROMOTIONS" -> stringResource(R.string.category_promotions)
+        msg.category == "REVIEW" -> stringResource(R.string.category_review)
+        msg.category == "BLOCKED" -> stringResource(R.string.category_blocked)
+        msg.category == "TRANSACTIONS" -> stringResource(R.string.category_transactions)
+        else -> stringResource(R.string.category_inbox)
     }
     Surface(
         shape = RoundedCornerShape(28.dp),
@@ -239,6 +240,10 @@ private fun DangerousLinksSection(msg: MessageEntity) {
     var revealed by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(setOf<String>())
     }
+    val fraudPalette = categoryPalette("SPAM")
+    val fraudColor = fraudPalette?.tint ?: MaterialTheme.colorScheme.error
+    val fraudContainer = fraudPalette?.container ?: MaterialTheme.colorScheme.errorContainer
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             stringResource(R.string.why_links_title),
@@ -248,13 +253,13 @@ private fun DangerousLinksSection(msg: MessageEntity) {
         Text(
             stringResource(R.string.why_links_body),
             style = MaterialTheme.typography.bodySmall,
-            color = CategoryColors.Fraud,
+            color = fraudColor,
         )
         urls.forEach { url ->
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = CategoryColors.FraudContainer.copy(alpha = 0.4f),
-                border = BorderStroke(1.dp, CategoryColors.Fraud.copy(alpha = 0.3f)),
+                color = fraudContainer.copy(alpha = 0.4f),
+                border = BorderStroke(1.dp, fraudColor.copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -268,14 +273,14 @@ private fun DangerousLinksSection(msg: MessageEntity) {
                             Text(
                                 url,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = CategoryColors.Fraud,
+                                color = fraudColor,
                             )
                         }
                     } else {
                         Text(
                             stringResource(R.string.why_link_hidden),
                             style = MaterialTheme.typography.bodySmall,
-                            color = CategoryColors.Fraud,
+                            color = fraudColor,
                             modifier = Modifier.weight(1f),
                         )
                         androidx.compose.material3.TextButton(
