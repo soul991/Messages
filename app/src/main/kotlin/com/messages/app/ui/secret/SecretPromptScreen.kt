@@ -1,14 +1,28 @@
 package com.messages.app.ui.secret
 
 import android.content.Context
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -18,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -33,14 +48,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.messages.designsystem.Motion
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
 import com.messages.app.R
@@ -73,6 +93,7 @@ fun SecretPromptScreen(
     val kind = remember { SecretSpace.kind(context) }
     val restoring = remember { SecretSpace.hasPendingRestore(context) && !SecretSpace.isSetUp(context) }
 
+    var activeKind by remember { mutableStateOf(kind) }
     var entry by remember { mutableStateOf("") }
     var patternClear by remember { mutableIntStateOf(0) }
     var errorSignal by remember { mutableIntStateOf(0) } // drives the PIN-dot shake
@@ -144,41 +165,72 @@ fun SecretPromptScreen(
             )
         },
     ) { padding ->
+        val coolingDown = cooldownMs > 0
+        val shakeX = remember { Animatable(0f) }
+        LaunchedEffect(errorSignal) {
+            if (errorSignal == 0) return@LaunchedEffect
+            listOf(-14f, 11f, -7f, 4f, 0f).forEach { target ->
+                shakeX.animateTo(target, Motion.spatialFast())
+            }
+        }
+
         Column(
             Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(horizontal = 32.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(36.dp))
-            VaultLockMark()
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(24.dp))
+
+            // 72dp circle, primaryContainer, lock icon 34dp onPrimaryContainer, centered, 24dp below top bar
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(34.dp),
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Title "Enter your secret code" 24sp SemiBold; subtitle 14sp onSurfaceVariant
             Text(
                 stringResource(
                     if (restoring) R.string.secret_prompt_title_restoring
-                    else R.string.secret_prompt_title,
+                    else R.string.secret_enter_code_title,
                 ),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
                 stringResource(
                     when {
                         restoring -> R.string.secret_prompt_restoring_body
-                        kind == SecretCrypto.KIND_PATTERN -> R.string.secret_prompt_draw_pattern
-                        kind == SecretCrypto.KIND_PASSWORD -> R.string.secret_prompt_enter_password
+                        activeKind == SecretCrypto.KIND_PATTERN -> R.string.secret_prompt_draw_pattern
+                        activeKind == SecretCrypto.KIND_PASSWORD -> R.string.secret_prompt_enter_password
                         else -> R.string.secret_prompt_enter_pin
                     },
                 ),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(32.dp))
 
-            val coolingDown = cooldownMs > 0
+            Spacer(Modifier.height(24.dp))
+
             when {
                 importing -> {
                     CircularProgressIndicator()
@@ -189,80 +241,208 @@ fun SecretPromptScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                kind == SecretCrypto.KIND_PATTERN -> {
+                activeKind == SecretCrypto.KIND_PATTERN -> {
                     PatternGrid(enabled = !coolingDown && !checking, clearSignal = patternClear) { cells ->
                         submit(SecretCrypto.patternToCredential(cells))
                     }
+                    Spacer(Modifier.height(16.dp))
+                    TextButton(
+                        onClick = {
+                            activeKind = SecretCrypto.KIND_PIN
+                            entry = ""
+                            error = null
+                        },
+                    ) {
+                        Text(
+                            stringResource(R.string.secret_use_pin_instead),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
-                kind == SecretCrypto.KIND_PASSWORD -> {
+                activeKind == SecretCrypto.KIND_PASSWORD -> {
                     PinOrPasswordField(
-                        kind = kind, value = entry, onValueChange = { entry = it },
+                        kind = activeKind, value = entry, onValueChange = { entry = it },
                         label = stringResource(R.string.secret_password_label),
                         enabled = !coolingDown && !checking,
-                        isError = false, // feedback is the message below, not a red field
+                        isError = false,
                         onDone = { if (entry.isNotEmpty()) submit(entry.toCharArray()) },
                     )
+                    Spacer(Modifier.height(24.dp))
+                    Button(
+                        onClick = { submit(entry.toCharArray()) },
+                        enabled = entry.isNotEmpty() && !coolingDown && !checking,
+                        colors = ButtonDefaults.buttonColors(
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f),
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.secret_unlock)) }
                 }
                 else -> {
-                    PinDotsEntry(
-                        value = entry,
-                        onValueChange = { entry = it },
-                        enabled = !coolingDown && !checking,
-                        errorSignal = errorSignal,
-                        onDone = { if (entry.isNotEmpty()) submit(entry.toCharArray()) },
+                    // 6 code dots, 14dp, 14dp gap; filled = primary, empty = 2dp onSurfaceVariant ring
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.graphicsLayer { translationX = shakeX.value },
+                    ) {
+                        repeat(6) { index ->
+                            val filled = index < entry.length
+                            if (filled) {
+                                Box(
+                                    Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                )
+                            } else {
+                                Box(
+                                    Modifier
+                                        .size(14.dp)
+                                        .border(
+                                            BorderStroke(2.dp, MaterialTheme.colorScheme.onSurfaceVariant),
+                                            CircleShape,
+                                        ),
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(28.dp))
+
+                    // Keypad 3 columns × 4 rows, key = 76dp circle surfaceContainer, digit 28sp Medium;
+                    // 22dp horizontal gap, 14dp vertical; bottom row = empty, 0, backspace icon (26dp).
+                    val keypadKeys = listOf(
+                        listOf("1", "2", "3"),
+                        listOf("4", "5", "6"),
+                        listOf("7", "8", "9"),
+                        listOf("", "0", "backspace"),
                     )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        keypadKeys.forEach { rowKeys ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(22.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                rowKeys.forEach { key ->
+                                    when (key) {
+                                        "" -> {
+                                            Spacer(Modifier.size(76.dp))
+                                        }
+                                        "backspace" -> {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                                modifier = Modifier
+                                                    .size(76.dp)
+                                                    .clip(CircleShape)
+                                                    .clickable(
+                                                        enabled = !coolingDown && !checking && entry.isNotEmpty(),
+                                                        onClick = {
+                                                            if (entry.isNotEmpty()) {
+                                                                entry = entry.dropLast(1)
+                                                            }
+                                                        },
+                                                    ),
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        Icons.AutoMirrored.Filled.Backspace,
+                                                        contentDescription = stringResource(R.string.secret_backspace),
+                                                        tint = MaterialTheme.colorScheme.onSurface,
+                                                        modifier = Modifier.size(26.dp),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        else -> {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                                modifier = Modifier
+                                                    .size(76.dp)
+                                                    .clip(CircleShape)
+                                                    .clickable(
+                                                        enabled = !coolingDown && !checking && entry.length < 6,
+                                                        onClick = {
+                                                            if (entry.length < 6) {
+                                                                val newEntry = entry + key
+                                                                entry = newEntry
+                                                                if (newEntry.length == 6) {
+                                                                    submit(newEntry.toCharArray())
+                                                                }
+                                                            }
+                                                        },
+                                                    ),
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        text = key,
+                                                        style = MaterialTheme.typography.titleLarge.copy(
+                                                            fontSize = 28.sp,
+                                                            fontWeight = FontWeight.Medium,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // Under keypad: text button "Use pattern instead" in primary
+                    TextButton(
+                        onClick = {
+                            activeKind = SecretCrypto.KIND_PATTERN
+                            entry = ""
+                            error = null
+                        },
+                    ) {
+                        Text(
+                            stringResource(R.string.secret_use_pattern_instead),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
 
-            if (!importing && kind != SecretCrypto.KIND_PATTERN) {
-                Spacer(Modifier.height(24.dp))
-                // Greyed verification state (deliberate): accent at low alpha,
-                // no spinner, no label change — the PBKDF2 delay just reads as
-                // a held button.
-                Button(
-                    onClick = { submit(entry.toCharArray()) },
-                    enabled = entry.isNotEmpty() && !coolingDown && !checking,
-                    colors = ButtonDefaults.buttonColors(
-                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                        disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f),
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.secret_unlock)) }
+            // Wrong-code + cooldown feedback
+            val announce = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }
+            when {
+                coolingDown -> {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        stringResource(
+                            R.string.secret_too_many_attempts,
+                            formatCooldown(context, cooldownMs),
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = announce,
+                    )
+                }
+                error != null -> {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        error!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = announce,
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))
-            // Wrong-code + cooldown feedback stays NEUTRAL — the shake carries
-            // the emphasis; red is reserved for Reset, the single destructive
-            // action in the space.
-            //
-            // V2-38: it is also a live region. The shake and the red-free
-            // wording are both visual, so without this a screen-reader user
-            // submits a wrong code and hears nothing at all — the screen simply
-            // sits there. Assertive because it is blocking: there is no point
-            // entering another code during a cooldown. Neither string contains
-            // any part of the credential.
-            val announce = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }
-            when {
-                coolingDown -> Text(
-                    stringResource(
-                        R.string.secret_too_many_attempts,
-                        formatCooldown(context, cooldownMs),
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = announce,
-                )
-                error != null -> Text(
-                    error!!,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = announce,
-                )
-            }
-
-            Spacer(Modifier.weight(1f))
             // The only path past a forgotten code: destroy, never reveal.
             TextButton(
                 onClick = { showResetDialog = true },
