@@ -114,7 +114,7 @@ fun SummaryCard(
         }
     }
 
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(20.dp)
 
     Surface(
         modifier = modifier
@@ -263,7 +263,7 @@ private fun SummaryFieldRow(
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onToggle)
             .padding(vertical = 3.dp, horizontal = 2.dp),
     ) {

@@ -585,7 +585,7 @@ fun HomeScreen(
                 // Redesign: flat warm pill instead of glass — glass stays on
                 // the floating dock, where it earns its depth.
                 androidx.compose.material3.Surface(
-                    shape = RoundedCornerShape(26.dp),
+                    shape = RoundedCornerShape(28.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -650,7 +650,7 @@ fun HomeScreen(
                         keyboardActions = KeyboardActions(onSearch = {
                             keyboardController?.hide()
                         }),
-                        shape = RoundedCornerShape(26.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = TextFieldDefaults.colors(
                             focusedTextColor = MaterialTheme.colorScheme.onSurface,
                             unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -922,7 +922,7 @@ private fun ProtectionStatusCard(
     val cs = MaterialTheme.colorScheme
     androidx.compose.material3.Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
         color = cs.primaryContainer,
         modifier = modifier
             .fillMaxWidth()
@@ -1022,7 +1022,7 @@ private fun PinnedConversationsRow(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .width(66.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .clickable { onOpenThread(conv.threadId) }
                         .padding(vertical = 4.dp),
                 ) {
@@ -1784,7 +1784,7 @@ private fun ConversationRow(
 ) {
     val unread = conv.unreadCount > 0
     val context = LocalContext.current
-    val rowShape = RoundedCornerShape(16.dp)
+    val rowShape = RoundedCornerShape(20.dp)
     val rowBg = if (selected) {
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
     } else {

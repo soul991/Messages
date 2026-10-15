@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
  *   specified in the 2026 refresh.
  */
 val MessagesShapes = Shapes(
-    extraSmall = RoundedCornerShape(4.dp),
+    extraSmall = RoundedCornerShape(8.dp),
     small = RoundedCornerShape(8.dp),
     medium = RoundedCornerShape(12.dp),
     large = RoundedCornerShape(20.dp),

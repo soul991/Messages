@@ -144,7 +144,7 @@ fun AboutScreen(
 
             // ================= Updates Section =================
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.groupCard,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
@@ -379,7 +379,7 @@ fun AboutScreen(
 
             // ================= Legal Section =================
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.groupCard,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
@@ -403,7 +403,7 @@ fun AboutScreen(
 
             // ================= Source & Licenses =================
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.groupCard,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {

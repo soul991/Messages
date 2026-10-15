@@ -119,7 +119,7 @@ fun UpdateSettingsScreen(
 
             // 1. System Update Card
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.groupCard,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
@@ -137,7 +137,7 @@ fun UpdateSettingsScreen(
 
             // 2. Automated Preferences Card
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.groupCard,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
@@ -174,7 +174,7 @@ fun UpdateSettingsScreen(
 
             // 3. Maintenance & Storage Card
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.groupCard,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
@@ -219,7 +219,7 @@ fun UpdateSettingsScreen(
 
             // 4. Commits Card
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.groupCard,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {

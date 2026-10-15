@@ -148,8 +148,8 @@ fun WhyFilteredScreen(
                     onClick = vm::moveToInbox,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(26.dp),
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
                 ) {
                     Text(stringResource(R.string.why_not_spam_action))
                 }
@@ -252,7 +252,7 @@ private fun DangerousLinksSection(msg: MessageEntity) {
         )
         urls.forEach { url ->
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 color = CategoryColors.FraudContainer.copy(alpha = 0.4f),
                 border = BorderStroke(1.dp, CategoryColors.Fraud.copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth(),
@@ -291,7 +291,7 @@ private fun DangerousLinksSection(msg: MessageEntity) {
 @Composable
 private fun MessageCard(msg: MessageEntity) {
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.groupCard,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth(),

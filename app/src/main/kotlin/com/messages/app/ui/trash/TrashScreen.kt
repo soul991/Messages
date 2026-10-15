@@ -278,7 +278,7 @@ fun TrashScreen(
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(26.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -427,7 +427,7 @@ private fun TrashRow(
         else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
 
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
         color = cardColor,
         border = BorderStroke(1.dp, borderColor),
         modifier = Modifier
