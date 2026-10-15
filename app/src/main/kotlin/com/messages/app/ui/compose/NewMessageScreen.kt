@@ -328,7 +328,7 @@ fun NewMessageScreen(
                         IconButton(onClick = { vm.query.value = "" }) {
                             Icon(
                                 Icons.Filled.Close,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.action_clear),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp),
                             )
