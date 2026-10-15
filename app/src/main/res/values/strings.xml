@@ -1204,6 +1204,10 @@
 
     <!-- Code entry. -->
     <string name="secret_prompt_title">Locked chats</string>
+    <string name="secret_enter_code_title">Enter your secret code</string>
+    <string name="secret_use_pattern_instead">Use pattern instead</string>
+    <string name="secret_use_pin_instead">Use PIN instead</string>
+    <string name="secret_backspace">Backspace</string>
     <string name="secret_prompt_title_restoring">Locked chats present</string>
     <string name="secret_prompt_restoring_body">Your backup contains locked chats. Enter the secret code you set on your previous device to unlock them here.</string>
     <string name="secret_prompt_draw_pattern">Draw your pattern to enter</string>
