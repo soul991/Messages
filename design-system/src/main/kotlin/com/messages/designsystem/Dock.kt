@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.sp
  * Floating Navigation Dock Item.
  */
 @Immutable
-data class GlassDockItem(
+data class DockItem(
     val key: String,
     val title: String,
     val icon: ImageVector,
@@ -53,11 +53,11 @@ data class GlassDockItem(
 )
 
 /**
- * Floating Navigation Dock using Material 3 Expressive container and motion principles.
+ * Floating bottom navigation dock using Material 3 Expressive container and motion principles.
  */
 @Composable
-fun LiquidGlassBottomDock(
-    items: List<GlassDockItem>,
+fun BottomDock(
+    items: List<DockItem>,
     selectedKey: String,
     onItemSelected: (String) -> Unit,
     modifier: Modifier = Modifier,

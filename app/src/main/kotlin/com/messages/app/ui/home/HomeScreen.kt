@@ -4,8 +4,8 @@ import androidx.activity.compose.BackHandler
 import com.messages.app.MainActivity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Surface
-import com.messages.designsystem.GlassDockItem
-import com.messages.designsystem.LiquidGlassBottomDock
+import com.messages.designsystem.DockItem
+import com.messages.designsystem.BottomDock
 import com.messages.designsystem.LocalDarkTheme
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -508,34 +508,34 @@ fun HomeScreen(
 
                 val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread, txnPalette, promoPalette, reviewPalette, spamPalette) {
                     listOf(
-                        GlassDockItem(
+                        DockItem(
                             key = "INBOX",
                             title = resources.getString(R.string.nav_personal),
                             icon = Icons.Outlined.Forum,
                             unreadCount = inboxUnread,
                         ),
-                        GlassDockItem(
+                        DockItem(
                             key = "TRANSACTIONS",
                             title = resources.getString(R.string.nav_bank),
                             icon = Icons.Outlined.ReceiptLong,
                             unreadCount = txnUnread,
                             accentColor = txnPalette?.tint ?: Color(0xFF16A34A),
                         ),
-                        GlassDockItem(
+                        DockItem(
                             key = "PROMOTIONS",
                             title = resources.getString(R.string.nav_offers),
                             icon = Icons.Outlined.LocalOffer,
                             unreadCount = promoUnread,
                             accentColor = promoPalette?.tint ?: Color(0xFFD97706),
                         ),
-                        GlassDockItem(
+                        DockItem(
                             key = "REVIEW",
                             title = resources.getString(R.string.nav_review),
                             icon = Icons.Outlined.RateReview,
                             unreadCount = reviewUnread,
                             accentColor = reviewPalette?.tint ?: Color(0xFF2563EB),
                         ),
-                        GlassDockItem(
+                        DockItem(
                             key = "SPAM",
                             title = resources.getString(R.string.nav_spam),
                             icon = Icons.Outlined.Shield,
@@ -545,7 +545,7 @@ fun HomeScreen(
                     )
                 }
 
-                LiquidGlassBottomDock(
+                BottomDock(
                     items = dockItems,
                     selectedKey = folder,
                     onItemSelected = { key ->
