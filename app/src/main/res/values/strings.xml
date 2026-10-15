@@ -539,6 +539,7 @@
     <string name="settings_title">Settings</string>
     <string name="settings_default_sms_on">Messages is your default SMS app</string>
     <string name="settings_default_sms_on_sub">Protection and all features are active</string>
+    <string name="settings_search_hint">Search settings</string>
     <string name="settings_hub_personalize">PERSONALIZE</string>
     <string name="settings_hub_protect">PROTECT</string>
     <string name="settings_hub_data">DATA</string>
