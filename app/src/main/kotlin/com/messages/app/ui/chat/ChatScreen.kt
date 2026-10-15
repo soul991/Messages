@@ -1187,7 +1187,7 @@ fun ChatScreen(
                         onValueChange = { query = it },
                         placeholder = { Text(stringResource(R.string.chat_forward_search)) },
                         singleLine = true,
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = TextFieldDefaults.colors(
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
@@ -1757,7 +1757,7 @@ private fun MessageBubble(
             Row(
                 Modifier
                     .widthIn(max = maxBubbleWidth)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(fraudPalette?.container ?: MaterialTheme.colorScheme.errorContainer)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,

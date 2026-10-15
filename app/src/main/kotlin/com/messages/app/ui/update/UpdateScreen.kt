@@ -280,7 +280,7 @@ private fun IdleCheckSection(onCheck: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
         ) {
             Text(
                 stringResource(R.string.update_check_button),
@@ -342,7 +342,7 @@ private fun AvailableSection(
 
         // Release metadata
         Surface(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.groupCard,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         ) {
@@ -417,7 +417,7 @@ private fun AvailableSection(
             ) {
                 // Progress percentage pill
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
                     Box(
@@ -440,7 +440,7 @@ private fun AvailableSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
+                        .clip(RoundedCornerShape(8.dp)),
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
                 Spacer(Modifier.height(20.dp))
@@ -485,7 +485,7 @@ private fun AvailableSection(
                 OutlinedButton(
                     onClick = onLater,
                     modifier = Modifier.weight(1f).height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                 ) {
                     Text(
                         stringResource(R.string.update_later),
@@ -495,7 +495,7 @@ private fun AvailableSection(
                 Button(
                     onClick = onInstall,
                     modifier = Modifier.weight(1f).height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                     ),
@@ -515,7 +515,7 @@ private fun AvailableSection(
                 OutlinedButton(
                     onClick = onLater,
                     modifier = Modifier.weight(1f).height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                 ) {
                     Text(
                         stringResource(R.string.update_later),
@@ -525,7 +525,7 @@ private fun AvailableSection(
                 Button(
                     onClick = onDownload,
                     modifier = Modifier.weight(1f).height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -542,7 +542,7 @@ private fun AvailableSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
             ) {
                 Text(
                     stringResource(R.string.update_later),
@@ -616,7 +616,7 @@ private fun ErrorSection(@androidx.annotation.StringRes messageRes: Int, onRetry
         Spacer(Modifier.height(32.dp))
         Button(
             onClick = onRetry,
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
         ) {
             Text(stringResource(R.string.about_action_check))
         }

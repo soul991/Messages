@@ -299,7 +299,7 @@ fun NewMessageScreen(
                                     modifier = Modifier.size(16.dp),
                                 )
                             },
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.padding(end = 6.dp),
                         )
                     }
@@ -336,7 +336,7 @@ fun NewMessageScreen(
                     }
                 },
                 singleLine = true,
-                shape = RoundedCornerShape(26.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -520,7 +520,7 @@ private fun ContactsFailedNotice(reason: String?, onRetry: () -> Unit) {
 @Composable
 private fun NoticeCard(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.groupCard,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),

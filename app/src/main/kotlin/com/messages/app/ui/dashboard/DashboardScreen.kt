@@ -243,7 +243,7 @@ fun DashboardScreen(
                 }
                 if (stats.dangerous > 0) {
                     Surface(
-                        shape = RoundedCornerShape(22.dp),
+                        shape = RoundedCornerShape(28.dp),
                         color = (categoryPalette("SPAM")?.container ?: CategoryColors.FraudContainer),
                         border = BorderStroke(1.dp, (categoryPalette("SPAM")?.tint ?: CategoryColors.Fraud).copy(alpha = 0.35f)),
                         modifier = Modifier
@@ -310,7 +310,7 @@ fun DashboardScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(8.dp)
-                                            .clip(RoundedCornerShape(4.dp)),
+                                            .clip(RoundedCornerShape(8.dp)),
                                     )
                                     Spacer(Modifier.width(10.dp))
                                     Text(
@@ -423,7 +423,7 @@ private fun StatCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.groupCard,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier,

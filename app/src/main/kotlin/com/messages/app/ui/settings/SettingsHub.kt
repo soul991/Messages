@@ -158,7 +158,7 @@ private fun HubRow(e: HubEntry, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(bg),
+            Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(bg),
             contentAlignment = Alignment.Center,
         ) {
             Icon(e.icon, contentDescription = null, tint = fg, modifier = Modifier.size(22.dp))
@@ -199,7 +199,7 @@ private fun DefaultSmsStatusCard() {
     val onContainer = palette?.onContainer ?: MaterialTheme.colorScheme.onPrimaryContainer
     val tint = palette?.tint ?: MaterialTheme.colorScheme.primary
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         color = container,
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
     ) {

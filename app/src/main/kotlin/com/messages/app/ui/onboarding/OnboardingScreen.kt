@@ -170,7 +170,7 @@ private fun IntroPage() {
         )
         Spacer(Modifier.height(24.dp))
         Surface(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.groupCard,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             modifier = Modifier.fillMaxWidth(),
@@ -384,7 +384,7 @@ private fun IntroHero() {
         Modifier
             .fillMaxWidth()
             .height(220.dp)
-            .clip(RoundedCornerShape(40.dp))
+            .clip(RoundedCornerShape(32.dp))
             .background(cs.primaryContainer),
     ) {
         HeroChip(

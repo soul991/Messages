@@ -112,7 +112,7 @@ fun ListSkeleton(
 }
 
 @Composable
-private fun Bar(modifier: Modifier, shape: Shape = RoundedCornerShape(6.dp)) {
+private fun Bar(modifier: Modifier, shape: Shape = RoundedCornerShape(8.dp)) {
     Spacer(
         modifier
             .clip(shape)

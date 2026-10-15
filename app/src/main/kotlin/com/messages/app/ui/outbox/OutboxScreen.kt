@@ -389,7 +389,7 @@ private fun OutboxCard(
     }
 
     Surface(
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(28.dp),
         color = containerColor,
         border = BorderStroke(1.dp, borderColor),
         modifier = Modifier.fillMaxWidth(),

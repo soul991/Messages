@@ -182,7 +182,7 @@ fun StarredScreen(
             items(rows, key = { it.message.id }) { row ->
                 val m = row.message
                 Surface(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(28.dp),
                     color = MaterialTheme.colorScheme.groupCard,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     modifier = Modifier
