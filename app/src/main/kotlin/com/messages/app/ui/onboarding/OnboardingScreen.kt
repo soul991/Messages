@@ -54,6 +54,13 @@ import com.messages.core.backfill.Backfill
 import com.messages.core.backfill.BackfillWorker
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.LocalOffer
+import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.groupCard
 import com.messages.designsystem.Motion
 import kotlinx.coroutines.launch
@@ -152,11 +159,7 @@ private fun IntroPage() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        HeroIcon(
-            Icons.Filled.Shield,
-            tint = MaterialTheme.colorScheme.primary,
-            container = MaterialTheme.colorScheme.primaryContainer,
-        )
+        IntroHero()
         Spacer(Modifier.height(24.dp))
         Text(
             stringResource(R.string.onboarding_hero_title),
@@ -364,6 +367,73 @@ private fun DonePage() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/**
+ * Intro illustration: a violet shield flanked by three tilted message chips
+ * (spam, promo, normal) — "everything is sorted before you see it".
+ * 358x220 container, 40dp corners, shield 120dp.
+ */
+@Composable
+private fun IntroHero() {
+    val cs = MaterialTheme.colorScheme
+    val spam = categoryPalette("SPAM")
+    val promo = categoryPalette("PROMOTIONS")
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .clip(RoundedCornerShape(40.dp))
+            .background(cs.primaryContainer),
+    ) {
+        HeroChip(
+            Icons.Filled.Block,
+            container = spam?.container ?: cs.errorContainer,
+            tint = spam?.tint ?: cs.error,
+            modifier = Modifier.align(Alignment.TopStart).offset(x = 22.dp, y = 28.dp).rotate(-8f),
+        )
+        HeroChip(
+            Icons.Filled.Chat,
+            container = cs.surfaceContainerLowest,
+            tint = cs.primary,
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-22).dp, y = 26.dp).rotate(7f),
+        )
+        HeroChip(
+            Icons.Filled.LocalOffer,
+            container = promo?.container ?: cs.tertiaryContainer,
+            tint = promo?.tint ?: cs.tertiary,
+            modifier = Modifier.align(Alignment.BottomEnd).offset(x = (-20).dp, y = (-22).dp).rotate(-6f),
+        )
+        Box(
+            Modifier
+                .align(Alignment.Center)
+                .size(120.dp)
+                .shadow(12.dp, CircleShape, clip = false)
+                .clip(CircleShape)
+                .background(cs.primary),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Filled.Shield, contentDescription = null, tint = cs.onPrimary, modifier = Modifier.size(58.dp))
+        }
+    }
+}
+
+@Composable
+private fun HeroChip(
+    icon: ImageVector,
+    container: androidx.compose.ui.graphics.Color,
+    tint: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier
+            .size(width = 84.dp, height = 58.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(container),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(26.dp))
     }
 }
 
