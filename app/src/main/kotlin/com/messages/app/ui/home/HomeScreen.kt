@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import com.messages.app.MainActivity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Surface
+import com.messages.app.ui.common.DateSkeletons
 import com.messages.designsystem.DockItem
 import com.messages.designsystem.BottomDock
 import com.messages.designsystem.LocalDarkTheme
@@ -718,6 +719,11 @@ fun HomeScreen(
     }
 }
 
+private sealed interface HomeRow {
+    data class Header(val labelRes: Int) : HomeRow
+    data class Item(val conv: ConversationEntity, val indexInGroup: Int, val groupSize: Int) : HomeRow
+}
+
 /** Folder chips + the conversation list, with a directional animated switch (§9). */
 @Composable
 private fun FolderPane(
@@ -814,6 +820,47 @@ private fun FolderPane(
                     val listState = rememberLazyListState()
                     val listScope = rememberCoroutineScope()
                     val shownList = if (pinnedList.isNotEmpty() && !unreadOnly) regularList else conversations
+                    val rows = remember(shownList) {
+                        if (shownList.isEmpty()) {
+                            emptyList()
+                        } else {
+                            val now = System.currentTimeMillis()
+                            val zone = java.util.TimeZone.getDefault()
+                            val nowDay = DateSkeletons.localDayOf(now, zone)
+
+                            val todayList = mutableListOf<ConversationEntity>()
+                            val yesterdayList = mutableListOf<ConversationEntity>()
+                            val thisWeekList = mutableListOf<ConversationEntity>()
+                            val earlierList = mutableListOf<ConversationEntity>()
+
+                            for (conv in shownList) {
+                                val msgDay = DateSkeletons.localDayOf(conv.lastTimestamp, zone)
+                                val diff = nowDay - msgDay
+                                when {
+                                    diff <= 0L -> todayList.add(conv)
+                                    diff == 1L -> yesterdayList.add(conv)
+                                    diff in 2L..6L -> thisWeekList.add(conv)
+                                    else -> earlierList.add(conv)
+                                }
+                            }
+
+                            buildList {
+                                fun addGroup(labelRes: Int, list: List<ConversationEntity>) {
+                                    if (list.isNotEmpty()) {
+                                        add(HomeRow.Header(labelRes))
+                                        val size = list.size
+                                        list.forEachIndexed { index, conv ->
+                                            add(HomeRow.Item(conv, index, size))
+                                        }
+                                    }
+                                }
+                                addGroup(R.string.home_group_today, todayList)
+                                addGroup(R.string.home_group_yesterday, yesterdayList)
+                                addGroup(R.string.home_group_this_week, thisWeekList)
+                                addGroup(R.string.home_group_earlier, earlierList)
+                            }
+                        }
+                    }
                     Box(Modifier.fillMaxSize()) {
                     LazyColumn(
                         state = listState,
@@ -829,71 +876,91 @@ private fun FolderPane(
                             }
                         }
 
-                        itemsIndexed(
-                            shownList,
-                            key = { _, it -> it.threadId },
-                        ) { index, conv ->
-                            val meta = badgeMeta[conv.threadId]
-                            val badge = remember(conv.address, conv.contactName, meta) {
-                                com.messages.protection.SenderBadges.badgeFor(
-                                    address = conv.address,
-                                    isContact = conv.contactName != null,
-                                    dangerous = meta?.dangerous == true || meta?.fraudWarning == true,
-                                    protectedLabel = meta?.protectedLabel,
-                                )
-                            }
-                            // Redesign: rows are grouped into one rounded card
-                            // (first/last rows carry the outer corners).
-                            val cardShape = when {
-                                shownList.size == 1 -> RoundedCornerShape(28.dp)
-                                index == 0 -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                                index == shownList.lastIndex ->
-                                    RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
-                                else -> RectangleShape
-                            }
-                            Column(
-                                Modifier
-                                    .animateItem(
-                                        fadeInSpec = Motion.effectsDefault(),
-                                        placementSpec = Motion.spatialDefault(),
-                                        fadeOutSpec = Motion.effectsFast(),
+                        items(
+                            items = rows,
+                            key = { if (it is HomeRow.Header) "h_${it.labelRes}" else (it as HomeRow.Item).conv.threadId },
+                        ) { row ->
+                            when (row) {
+                                is HomeRow.Header -> {
+                                    Text(
+                                        text = stringResource(row.labelRes),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .animateItem(
+                                                fadeInSpec = Motion.effectsDefault(),
+                                                placementSpec = Motion.spatialDefault(),
+                                                fadeOutSpec = Motion.effectsFast(),
+                                            )
+                                            .padding(start = 24.dp, top = 12.dp, bottom = 6.dp),
                                     )
-                                    .padding(horizontal = 16.dp)
-                                    .clip(cardShape)
-                                    .background(MaterialTheme.colorScheme.groupCard),
-                            ) {
-                            SwipeableConversationRow(
-                                conv = conv,
-                                draft = drafts[conv.threadId],
-                                rightAction = rightAction,
-                                leftAction = leftAction,
-                                onAction = onSwipeAction,
-                                accessibilityActionsEnabled = !selectionActive,
-                                onClick = {
-                                    if (selectionActive) vm.toggleSelected(conv.threadId)
-                                    else onOpenThread(conv.threadId)
-                                },
-                                badge = badge,
-                                onBadgeTap = { badgeSheet = it },
-                                selectionActive = selectionActive,
-                                selected = conv.threadId in selectedThreads,
-                                onLongClick = {
-                                    Haptics.longPress(rowView)
-                                    vm.toggleSelected(conv.threadId)
-                                },
-                            )
-                            // Inset divider starting at the text column (plan
-                            // §1 prototype) — never after the last row.
-                            if (INSET_DIVIDERS &&
-                                index < shownList.lastIndex
-                            ) {
-                                HorizontalDivider(
-                                    modifier = Modifier
-                                        .padding(start = 16.dp + ROW_AVATAR + ROW_GAP),
-                                    color = MaterialTheme.colorScheme.outlineVariant
-                                        .copy(alpha = 0.5f),
-                                )
-                            }
+                                }
+                                is HomeRow.Item -> {
+                                    val conv = row.conv
+                                    val meta = badgeMeta[conv.threadId]
+                                    val badge = remember(conv.address, conv.contactName, meta) {
+                                        com.messages.protection.SenderBadges.badgeFor(
+                                            address = conv.address,
+                                            isContact = conv.contactName != null,
+                                            dangerous = meta?.dangerous == true || meta?.fraudWarning == true,
+                                            protectedLabel = meta?.protectedLabel,
+                                        )
+                                    }
+                                    // Redesign: rows are grouped into one rounded card
+                                    // (first/last rows carry the outer corners).
+                                    val cardShape = when {
+                                        row.groupSize == 1 -> RoundedCornerShape(28.dp)
+                                        row.indexInGroup == 0 -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                                        row.indexInGroup == row.groupSize - 1 ->
+                                            RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
+                                        else -> RectangleShape
+                                    }
+                                    Column(
+                                        Modifier
+                                            .animateItem(
+                                                fadeInSpec = Motion.effectsDefault(),
+                                                placementSpec = Motion.spatialDefault(),
+                                                fadeOutSpec = Motion.effectsFast(),
+                                            )
+                                            .padding(horizontal = 16.dp)
+                                            .clip(cardShape)
+                                            .background(MaterialTheme.colorScheme.groupCard),
+                                    ) {
+                                    SwipeableConversationRow(
+                                        conv = conv,
+                                        draft = drafts[conv.threadId],
+                                        rightAction = rightAction,
+                                        leftAction = leftAction,
+                                        onAction = onSwipeAction,
+                                        accessibilityActionsEnabled = !selectionActive,
+                                        onClick = {
+                                            if (selectionActive) vm.toggleSelected(conv.threadId)
+                                            else onOpenThread(conv.threadId)
+                                        },
+                                        badge = badge,
+                                        onBadgeTap = { badgeSheet = it },
+                                        selectionActive = selectionActive,
+                                        selected = conv.threadId in selectedThreads,
+                                        onLongClick = {
+                                            Haptics.longPress(rowView)
+                                            vm.toggleSelected(conv.threadId)
+                                        },
+                                    )
+                                    // Inset divider starting at the text column (plan
+                                    // §1 prototype) — never after the last row.
+                                    if (INSET_DIVIDERS &&
+                                        row.indexInGroup < row.groupSize - 1
+                                    ) {
+                                        HorizontalDivider(
+                                            modifier = Modifier
+                                                .padding(start = 16.dp + ROW_AVATAR + ROW_GAP),
+                                            color = MaterialTheme.colorScheme.outlineVariant
+                                                .copy(alpha = 0.5f),
+                                        )
+                                    }
+                                    }
+                                }
                             }
                         }
                     }

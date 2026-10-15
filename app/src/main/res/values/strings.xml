@@ -853,6 +853,10 @@
     <string name="home_select_conversation">Select conversation</string>
     <string name="home_muted">Muted</string>
     <string name="home_pinned">Pinned</string>
+    <string name="home_group_today">Today</string>
+    <string name="home_group_yesterday">Yesterday</string>
+    <string name="home_group_this_week">This week</string>
+    <string name="home_group_earlier">Earlier</string>
     <!--
       Search-sheet label chips. These name the kind of message, not the sender:
       an "OTP" is a one-time passcode, "Bank" covers balance and transaction
