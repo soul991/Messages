@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.messages.app.R
-import com.messages.designsystem.LocalDarkTheme
+import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.Motion
 import com.messages.protection.CardExtractor
 
@@ -83,26 +83,28 @@ fun SummaryCard(
 ) {
     var expanded by remember { mutableStateOf<CardExtractor.FieldKind?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
-    val isDark = LocalDarkTheme.current
+    val cs = MaterialTheme.colorScheme
     val direction = card.direction
 
     // Direction-aware solid colors and crisp hairline styling
     val themeColors = when (direction) {
         CardExtractor.Direction.CREDIT -> {
-            val bg = if (isDark) Color(0xFF0C2419) else Color(0xFFF0FDF4)
-            val border = if (isDark) Color(0xFF34D399).copy(alpha = 0.35f) else Color(0xFF10B981).copy(alpha = 0.4f)
-            val tint = if (isDark) Color(0xFF34D399) else Color(0xFF15803D)
+            val p = categoryPalette("TRANSACTIONS")
+            val bg = p?.container ?: cs.primaryContainer
+            val border = (p?.tint ?: cs.primary).copy(alpha = 0.35f)
+            val tint = p?.tint ?: cs.primary
             val badge = stringResource(R.string.summary_badge_credited)
-            val bBg = if (isDark) Color(0x3310B981) else Color(0x2210B981)
+            val bBg = (p?.tint ?: cs.primary).copy(alpha = 0.15f)
             val bText = tint
             CardThemeColors(bg, border, tint, badge, bBg, bText)
         }
         CardExtractor.Direction.DEBIT -> {
-            val bg = if (isDark) Color(0xFF261016) else Color(0xFFFFF1F2)
-            val border = if (isDark) Color(0xFFFB7185).copy(alpha = 0.35f) else Color(0xFFE11D48).copy(alpha = 0.4f)
-            val tint = if (isDark) Color(0xFFFB7185) else Color(0xFFBE123C)
+            val p = categoryPalette("SPAM")
+            val bg = p?.container ?: cs.errorContainer
+            val border = (p?.tint ?: cs.error).copy(alpha = 0.35f)
+            val tint = p?.tint ?: cs.error
             val badge = stringResource(R.string.summary_badge_debited)
-            val bBg = if (isDark) Color(0x33F43F5E) else Color(0x22F43F5E)
+            val bBg = (p?.tint ?: cs.error).copy(alpha = 0.15f)
             val bText = tint
             CardThemeColors(bg, border, tint, badge, bBg, bText)
         }
@@ -236,7 +238,6 @@ private fun SummaryFieldRow(
     onToggle: () -> Unit,
     onWrong: () -> Unit,
 ) {
-    val isDark = LocalDarkTheme.current
     val label = when (field.kind) {
         CardExtractor.FieldKind.AMOUNT -> when (field.direction) {
             CardExtractor.Direction.CREDIT -> stringResource(R.string.summary_field_credited)
@@ -248,10 +249,11 @@ private fun SummaryFieldRow(
 
     val value = displayValue(field)
     val isAmount = field.kind == CardExtractor.FieldKind.AMOUNT
+    val cs = MaterialTheme.colorScheme
     val amountColor = when (field.direction) {
-        CardExtractor.Direction.CREDIT -> if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
-        CardExtractor.Direction.DEBIT -> if (isDark) Color(0xFFFDA4AF) else Color(0xFF9F1239)
-        CardExtractor.Direction.NEUTRAL -> MaterialTheme.colorScheme.onSurface
+        CardExtractor.Direction.CREDIT -> categoryPalette("TRANSACTIONS")?.tint ?: cs.primary
+        CardExtractor.Direction.DEBIT -> categoryPalette("SPAM")?.tint ?: cs.error
+        CardExtractor.Direction.NEUTRAL -> cs.onSurface
     }
 
     val rotation by animateFloatAsState(

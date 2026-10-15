@@ -506,7 +506,8 @@ fun HomeScreen(
                 val reviewPalette = categoryPalette("REVIEW")
                 val spamPalette = categoryPalette("SPAM")
 
-                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread, txnPalette, promoPalette, reviewPalette, spamPalette) {
+                val primaryColor = MaterialTheme.colorScheme.primary
+                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread, txnPalette, promoPalette, reviewPalette, spamPalette, primaryColor) {
                     listOf(
                         DockItem(
                             key = "INBOX",
@@ -519,28 +520,28 @@ fun HomeScreen(
                             title = resources.getString(R.string.nav_bank),
                             icon = Icons.Outlined.ReceiptLong,
                             unreadCount = txnUnread,
-                            accentColor = txnPalette?.tint ?: Color(0xFF16A34A),
+                            accentColor = txnPalette?.tint ?: primaryColor,
                         ),
                         DockItem(
                             key = "PROMOTIONS",
                             title = resources.getString(R.string.nav_offers),
                             icon = Icons.Outlined.LocalOffer,
                             unreadCount = promoUnread,
-                            accentColor = promoPalette?.tint ?: Color(0xFFD97706),
+                            accentColor = promoPalette?.tint ?: primaryColor,
                         ),
                         DockItem(
                             key = "REVIEW",
                             title = resources.getString(R.string.nav_review),
                             icon = Icons.Outlined.RateReview,
                             unreadCount = reviewUnread,
-                            accentColor = reviewPalette?.tint ?: Color(0xFF2563EB),
+                            accentColor = reviewPalette?.tint ?: primaryColor,
                         ),
                         DockItem(
                             key = "SPAM",
                             title = resources.getString(R.string.nav_spam),
                             icon = Icons.Outlined.Shield,
                             unreadCount = spamUnread,
-                            accentColor = spamPalette?.tint ?: Color(0xFFDC2626),
+                            accentColor = spamPalette?.tint ?: primaryColor,
                         ),
                     )
                 }
@@ -1639,8 +1640,8 @@ private fun SwipeActionBackground(
     progress: Float,
     willDismiss: Boolean,
 ) {
-    val isDark = LocalDarkTheme.current
     val view = LocalView.current
+    val colorScheme = MaterialTheme.colorScheme
 
     // Trigger subtle tactile tick when passing the dismiss confirmation threshold
     LaunchedEffect(willDismiss) {
@@ -1652,14 +1653,14 @@ private fun SwipeActionBackground(
     val visuals = when (action) {
         SwipeActions.ARCHIVE -> SwipeVisuals(
             icon = Icons.Outlined.Archive,
-            container = if (isDark) Color(0xFF0F5223) else Color(0xFF1E8E3E), // Google Messages Emerald Green
-            tint = Color.White,
+            container = categoryPalette("TRANSACTIONS")?.container ?: colorScheme.primaryContainer,
+            tint = categoryPalette("TRANSACTIONS")?.onContainer ?: colorScheme.onPrimaryContainer,
             label = stringResource(R.string.home_archive),
         )
         SwipeActions.DELETE -> SwipeVisuals(
             icon = Icons.Outlined.Delete,
-            container = if (isDark) Color(0xFF7F1D1D) else Color(0xFFD93025), // Google Messages Crimson Red
-            tint = Color.White,
+            container = categoryPalette("SPAM")?.container ?: colorScheme.errorContainer,
+            tint = categoryPalette("SPAM")?.onContainer ?: colorScheme.onErrorContainer,
             label = stringResource(R.string.action_delete),
         )
         SwipeActions.PIN -> SwipeVisuals(
