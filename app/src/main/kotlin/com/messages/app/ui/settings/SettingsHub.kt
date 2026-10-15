@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Chat
@@ -71,6 +74,7 @@ private data class HubEntry(
 @Composable
 internal fun SettingsHub(onPick: (String?) -> Unit) {
     Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        DefaultSmsStatusCard()
         HubGroup(
             R.string.settings_hub_personalize,
             listOf(
@@ -180,5 +184,55 @@ private fun HubRow(e: HubEntry, onClick: () -> Unit) {
             contentDescription = null,
             tint = cs.onSurfaceVariant,
         )
+    }
+}
+
+/** Green status card shown while Messages is the default SMS app (hidden otherwise). */
+@Composable
+private fun DefaultSmsStatusCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val isDefault = remember(context) {
+        android.provider.Telephony.Sms.getDefaultSmsPackage(context) == context.packageName
+    }
+    if (!isDefault) return
+    val palette = categoryPalette("TRANSACTIONS")
+    val container = palette?.container ?: MaterialTheme.colorScheme.primaryContainer
+    val onContainer = palette?.onContainer ?: MaterialTheme.colorScheme.onPrimaryContainer
+    val tint = palette?.tint ?: MaterialTheme.colorScheme.primary
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = container,
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(tint),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = container,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.settings_default_sms_on),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = onContainer,
+                )
+                Text(
+                    stringResource(R.string.settings_default_sms_on_sub),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = onContainer.copy(alpha = 0.85f),
+                )
+            }
+        }
     }
 }
