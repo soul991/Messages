@@ -580,13 +580,12 @@ fun ChatScreen(
                             Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.action_share))
                         }
                         IconButton(onClick = {
-                            selectedMsgIds.forEach { vm.delete(it) }
                             val n = selectedMsgIds.size
+                            selectedMsgIds.forEach { vm.delete(it) }
                             selectedMsgIds = emptySet()
+                            val msg = context.resources.getQuantityString(R.plurals.chat_moved_to_trash, n, n)
                             scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    "$n message${if (n == 1) "" else "s"} moved to Trash"
-                                )
+                                snackbarHostState.showSnackbar(msg)
                             }
                         }) {
                             Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))

@@ -133,6 +133,8 @@
     <!-- "Star" here names the action in the message long-press menu. -->
     <string name="starred_empty_subtitle">Long-press a message and tap Star to keep it here.</string>
     <string name="starred_unstar">Unstar</string>
+    <string name="starred_you_suffix"> · You</string>
+    <string name="starred_media_message">[media message]</string>
 
     <!-- ============================= Trash ============================= -->
 
@@ -180,6 +182,7 @@
         <item quantity="one">The %1$d selected message will be permanently deleted. This cannot be undone.</item>
         <item quantity="other">The %1$d selected messages will be permanently deleted. This cannot be undone.</item>
     </plurals>
+    <string name="trash_media_message">(media message)</string>
 
     <!-- ========================== New message ========================== -->
 
@@ -409,6 +412,10 @@
     <plurals name="chat_selected_count">
         <item quantity="one">%1$d selected</item>
         <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="chat_moved_to_trash">
+        <item quantity="one">Moved %d message to Trash</item>
+        <item quantity="other">Moved %d messages to Trash</item>
     </plurals>
     <!--
       Position within the pinned messages of one conversation: %1$d is the one-based

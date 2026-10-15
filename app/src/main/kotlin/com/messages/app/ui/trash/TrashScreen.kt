@@ -482,7 +482,7 @@ private fun TrashRow(
                 }
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    if (msg.body.isBlank()) androidx.compose.ui.text.AnnotatedString("(media message)")
+                    if (msg.body.isBlank()) androidx.compose.ui.text.AnnotatedString(stringResource(R.string.trash_media_message))
                     else SearchHighlight.annotate(SearchHighlight.snippet(msg.body, terms), terms, highlight),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

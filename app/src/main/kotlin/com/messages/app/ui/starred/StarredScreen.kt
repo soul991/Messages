@@ -203,7 +203,7 @@ fun StarredScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     (row.displayName ?: m.address) +
-                                        if (m.isOutgoing) " · You" else "",
+                                        if (m.isOutgoing) stringResource(R.string.starred_you_suffix) else "",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
@@ -219,7 +219,7 @@ fun StarredScreen(
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                m.body.ifBlank { "[media message]" },
+                                m.body.ifBlank { stringResource(R.string.starred_media_message) },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 2,
