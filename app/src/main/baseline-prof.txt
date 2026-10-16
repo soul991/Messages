@@ -63,12 +63,15 @@ Lcom/messages/core/search/MessageSearch;
 # 5. Conversation / Chat Screen & Animated Headers
 # ---------------------------------------------------------------------------
 HSPLcom/messages/app/ui/chat/ChatScreenKt;->ChatScreen(**)**
-HSPLcom/messages/app/ui/chat/ChatScreenKt;->MessageCardsKt;->**(**)**
-HSPLcom/messages/app/ui/chat/ChatScreenKt;->SmartTextKt;->**(**)**
-HSPLcom/messages/app/ui/chat/ChatScreenKt;->SummaryCardKt;->**(**)**
+HSPLcom/messages/app/ui/chat/MessageCardsKt;->**(**)**
+HSPLcom/messages/app/ui/chat/SmartTextKt;->**(**)**
+HSPLcom/messages/app/ui/chat/SummaryCardKt;->**(**)**
 HSPLcom/messages/app/ui/chat/ChatViewModel;->**(**)**
 Lcom/messages/app/ui/chat/ChatScreenKt;
 Lcom/messages/app/ui/chat/ChatViewModel;
+Lcom/messages/app/ui/chat/MessageCardsKt;
+Lcom/messages/app/ui/chat/SmartTextKt;
+Lcom/messages/app/ui/chat/SummaryCardKt;
 
 # ---------------------------------------------------------------------------
 # 6. Protection Dashboard & Rolling Odometer Counters
