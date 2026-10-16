@@ -4,12 +4,14 @@ import android.app.Application
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -202,6 +204,12 @@ private fun buildChatItems(messages: List<MessageEntity>): List<ChatItem> {
         )
     }
     return out
+}
+
+private enum class ChatTopBarMode {
+    NORMAL,
+    SEARCH,
+    SELECTION,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -527,283 +535,298 @@ fun ChatScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (msgSelectionActive) {
-                // Message multi-select bar (Phase 4 item 14).
-                TopAppBar(
-                    title = {
-                        Text(
-                            pluralStringResource(
-                                R.plurals.chat_selected_count,
-                                selectedMsgIds.size,
-                                selectedMsgIds.size,
-                            )
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { selectedMsgIds = emptySet() }) {
-                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.chat_clear_selection))
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            val text = selectedTexts()
-                            if (text.isNotBlank()) {
-                                clipboardManager.setText(AnnotatedString(text))
-                            }
-                            selectedMsgIds = emptySet()
-                        }) {
-                            Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.action_copy))
-                        }
-                        IconButton(onClick = {
-                            selectedMsgIds.forEach { vm.star(it, true) }
-                            selectedMsgIds = emptySet()
-                        }) {
-                            Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.chat_star))
-                        }
-                        IconButton(
-                            onClick = { showForwardPicker = true },
-                            enabled = selectedTexts().isNotBlank(),
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = stringResource(R.string.chat_forward))
-                        }
-                        IconButton(onClick = {
-                            val text = selectedTexts()
-                            if (text.isNotBlank()) {
-                                runCatching {
-                                    context.startActivity(
-                                        android.content.Intent.createChooser(
-                                            android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                                type = "text/plain"
-                                                putExtra(android.content.Intent.EXTRA_TEXT, text)
-                                            },
-                                            shareChooserTitle,
-                                        )
-                                    )
-                                }
-                            }
-                            selectedMsgIds = emptySet()
-                        }) {
-                            Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.action_share))
-                        }
-                        IconButton(onClick = {
-                            val n = selectedMsgIds.size
-                            selectedMsgIds.forEach { vm.delete(it) }
-                            selectedMsgIds = emptySet()
-                            val msg = context.resources.getQuantityString(R.plurals.chat_moved_to_trash, n, n)
-                            scope.launch {
-                                snackbarHostState.showSnackbar(msg)
-                            }
-                        }) {
-                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
-                        }
-                    },
-                )
-            } else if (chatSearchActive) {
-                // In-conversation search bar (§8.5.3): live query, match count,
-                // next/previous arrows.
-                TopAppBar(
-                    title = {
-                        TextField(
-                            value = chatSearchQuery,
-                            onValueChange = { chatSearchQuery = it; currentMatch = 0 },
-                            placeholder = { Text(stringResource(R.string.chat_search_in_conversation)) },
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            chatSearchActive = false
-                            chatSearchQuery = ""
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.chat_close_search))
-                        }
-                    },
-                    actions = {
-                        if (searchTerms.isNotEmpty()) {
-                            Text(
-                                if (matchIndices.isEmpty()) "0/0"
-                                else "${currentMatch + 1}/${matchIndices.size}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.semantics {
-                                    contentDescription = if (matchIndices.isEmpty()) {
-                                        context.getString(R.string.chat_search_no_matches_a11y)
-                                    } else {
-                                        context.getString(
-                                            R.string.chat_search_match_count_a11y,
-                                            currentMatch + 1,
-                                            matchIndices.size,
-                                        )
-                                    }
-                                },
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                if (matchIndices.isNotEmpty()) {
-                                    currentMatch = (currentMatch - 1 + matchIndices.size) % matchIndices.size
-                                }
-                            },
-                            enabled = matchIndices.isNotEmpty(),
-                        ) {
-                            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.chat_previous_match))
-                        }
-                        IconButton(
-                            onClick = {
-                                if (matchIndices.isNotEmpty()) {
-                                    currentMatch = (currentMatch + 1) % matchIndices.size
-                                }
-                            },
-                            enabled = matchIndices.isNotEmpty(),
-                        ) {
-                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.chat_next_match))
-                        }
-                    },
-                )
-            } else {
-            // One-time "tap for contact info" hint (plan §2, WA affordance):
-            // shown as the subtitle until the header is tapped once, ever.
             val hintPrefs = remember {
                 context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
             }
             var contactHintDone by remember {
                 mutableStateOf(hintPrefs.getBoolean("contact_info_hint_done", false))
             }
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        // Google-Messages-style: header tap opens contact detail.
-                        modifier = Modifier.clickable {
-                            if (!contactHintDone) {
-                                contactHintDone = true
-                                hintPrefs.edit().putBoolean("contact_info_hint_done", true).apply()
-                            }
-                            onOpenContact()
-                        },
-                    ) {
-                        // Shared element with the list row's avatar (§9).
-                        ContactAvatar(
-                            contactName ?: address,
-                            category,
-                            size = 38.dp,
-                            textStyle = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.sharedThreadAvatar(threadId),
-                            photoUri = com.messages.app.ui.common.rememberContactPhoto(address.ifBlank { null }),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f, fill = false)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // Single line + ellipsis so the badge never
-                                // wraps the header (queued Phase 2 cosmetic).
+            val topBarMode = when {
+                msgSelectionActive -> ChatTopBarMode.SELECTION
+                chatSearchActive -> ChatTopBarMode.SEARCH
+                else -> ChatTopBarMode.NORMAL
+            }
+            AnimatedContent(
+                targetState = topBarMode,
+                transitionSpec = {
+                    fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
+                },
+                label = "chat-top-bar",
+            ) { mode ->
+                when (mode) {
+                    ChatTopBarMode.SELECTION -> {
+                        // Message multi-select bar (Phase 4 item 14).
+                        TopAppBar(
+                            title = {
                                 Text(
-                                    contactName ?: address,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false),
+                                    pluralStringResource(
+                                        R.plurals.chat_selected_count,
+                                        selectedMsgIds.size,
+                                        selectedMsgIds.size,
+                                    )
                                 )
-                                if (senderBadge != null && senderBadge != com.messages.protection.SenderBadges.Badge.VERIFIED) {
-                                    Spacer(Modifier.width(4.dp))
-                                    com.messages.app.ui.common.SenderBadgeIcon(
-                                        senderBadge,
-                                        onClick = { showBadgeSheet = true },
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = { selectedMsgIds = emptySet() }) {
+                                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.chat_clear_selection))
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = {
+                                    val text = selectedTexts()
+                                    if (text.isNotBlank()) {
+                                        clipboardManager.setText(AnnotatedString(text))
+                                    }
+                                    selectedMsgIds = emptySet()
+                                }) {
+                                    Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.action_copy))
+                                }
+                                IconButton(onClick = {
+                                    selectedMsgIds.forEach { vm.star(it, true) }
+                                    selectedMsgIds = emptySet()
+                                }) {
+                                    Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.chat_star))
+                                }
+                                IconButton(
+                                    onClick = { showForwardPicker = true },
+                                    enabled = selectedTexts().isNotBlank(),
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = stringResource(R.string.chat_forward))
+                                }
+                                IconButton(onClick = {
+                                    val text = selectedTexts()
+                                    if (text.isNotBlank()) {
+                                        runCatching {
+                                            context.startActivity(
+                                                android.content.Intent.createChooser(
+                                                    android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                        type = "text/plain"
+                                                        putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                                    },
+                                                    shareChooserTitle,
+                                                )
+                                            )
+                                        }
+                                    }
+                                    selectedMsgIds = emptySet()
+                                }) {
+                                    Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.action_share))
+                                }
+                                IconButton(onClick = {
+                                    val n = selectedMsgIds.size
+                                    selectedMsgIds.forEach { vm.delete(it) }
+                                    selectedMsgIds = emptySet()
+                                    val msg = context.resources.getQuantityString(R.plurals.chat_moved_to_trash, n, n)
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(msg)
+                                    }
+                                }) {
+                                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
+                                }
+                            },
+                        )
+                    }
+                    ChatTopBarMode.SEARCH -> {
+                        // In-conversation search bar (§8.5.3): live query, match count,
+                        // next/previous arrows.
+                        TopAppBar(
+                            title = {
+                                TextField(
+                                    value = chatSearchQuery,
+                                    onValueChange = { chatSearchQuery = it; currentMatch = 0 },
+                                    placeholder = { Text(stringResource(R.string.chat_search_in_conversation)) },
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        focusedIndicatorColor = Color.Transparent,
+                                        unfocusedIndicatorColor = Color.Transparent,
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                    ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = {
+                                    chatSearchActive = false
+                                    chatSearchQuery = ""
+                                }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.chat_close_search))
+                                }
+                            },
+                            actions = {
+                                if (searchTerms.isNotEmpty()) {
+                                    Text(
+                                        if (matchIndices.isEmpty()) "0/0"
+                                        else "${currentMatch + 1}/${matchIndices.size}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.semantics {
+                                            contentDescription = if (matchIndices.isEmpty()) {
+                                                context.getString(R.string.chat_search_no_matches_a11y)
+                                            } else {
+                                                context.getString(
+                                                    R.string.chat_search_match_count_a11y,
+                                                    currentMatch + 1,
+                                                    matchIndices.size,
+                                                )
+                                            }
+                                        },
                                     )
                                 }
-                            }
-                            when {
-                                !contactHintDone -> Text(
-                                    stringResource(R.string.chat_tap_for_contact_info),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                contactName != null -> Text(
-                                    address, style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { chatSearchActive = true }) {
-                        Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.chat_search_in_conversation))
-                    }
-                    if (locked) {
-                        Icon(
-                            Icons.Filled.Lock, contentDescription = stringResource(R.string.chat_locked_conversation),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.width(18.dp),
+                                IconButton(
+                                    onClick = {
+                                        if (matchIndices.isNotEmpty()) {
+                                            currentMatch = (currentMatch - 1 + matchIndices.size) % matchIndices.size
+                                        }
+                                    },
+                                    enabled = matchIndices.isNotEmpty(),
+                                ) {
+                                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.chat_previous_match))
+                                }
+                                IconButton(
+                                    onClick = {
+                                        if (matchIndices.isNotEmpty()) {
+                                            currentMatch = (currentMatch + 1) % matchIndices.size
+                                        }
+                                    },
+                                    enabled = matchIndices.isNotEmpty(),
+                                ) {
+                                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.chat_next_match))
+                                }
+                            },
                         )
                     }
-                    Box {
-                        IconButton(onClick = { showChatMenu = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more_options))
-                        }
-                        DropdownMenu(
-                            expanded = showChatMenu,
-                            onDismissRequest = { showChatMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.chat_customize_chat)) },
-                                onClick = {
-                                    showChatMenu = false
-                                    showCustomizeSheet = true
-                                },
-                            )
-                            // Secret space: "Lock chat" opens the two-option
-                            // sheet (normal space); inside the locked space
-                            // the action is "Unlock chat" (move back).
-                            if (!inLockedSpace) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.chat_lock_chat)) },
-                                    onClick = {
-                                        showChatMenu = false
-                                        showLockSheet = true
+                    ChatTopBarMode.NORMAL -> {
+                        TopAppBar(
+                            title = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    // Google-Messages-style: header tap opens contact detail.
+                                    modifier = Modifier.clickable {
+                                        if (!contactHintDone) {
+                                            contactHintDone = true
+                                            hintPrefs.edit().putBoolean("contact_info_hint_done", true).apply()
+                                        }
+                                        onOpenContact()
                                     },
-                                )
-                            } else {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.chat_unlock_chat)) },
-                                    onClick = {
-                                        showChatMenu = false
-                                        vm.unlockChat(onDone = onBack)
-                                    },
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.chat_export_conversation)) },
-                                onClick = {
-                                    showChatMenu = false
-                                    val safeName = (contactName ?: address).replace(
-                                        Regex("""[^A-Za-z0-9+_-]"""), "_",
-                                    ).take(40)
-                                    exportLauncher.launch("Messages-$safeName.txt")
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.chat_delete_conversation)) },
-                                onClick = {
-                                    showChatMenu = false
-                                    showDeleteThreadConfirm = true
-                                },
-                            )
-                        }
+                                ) {
+                                    // Shared element with the list row's avatar (§9).
+                                    ContactAvatar(
+                                        contactName ?: address,
+                                        category,
+                                        size = 38.dp,
+                                        textStyle = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.sharedThreadAvatar(threadId),
+                                        photoUri = com.messages.app.ui.common.rememberContactPhoto(address.ifBlank { null }),
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(Modifier.weight(1f, fill = false)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            // Single line + ellipsis so the badge never
+                                            // wraps the header (queued Phase 2 cosmetic).
+                                            Text(
+                                                contactName ?: address,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false),
+                                            )
+                                            if (senderBadge != null && senderBadge != com.messages.protection.SenderBadges.Badge.VERIFIED) {
+                                                Spacer(Modifier.width(4.dp))
+                                                com.messages.app.ui.common.SenderBadgeIcon(
+                                                    senderBadge,
+                                                    onClick = { showBadgeSheet = true },
+                                                )
+                                            }
+                                        }
+                                        when {
+                                            !contactHintDone -> Text(
+                                                stringResource(R.string.chat_tap_for_contact_info),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                            contactName != null -> Text(
+                                                address, style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = onBack) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = { chatSearchActive = true }) {
+                                    Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.chat_search_in_conversation))
+                                }
+                                if (locked) {
+                                    Icon(
+                                        Icons.Filled.Lock, contentDescription = stringResource(R.string.chat_locked_conversation),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.width(18.dp),
+                                    )
+                                }
+                                Box {
+                                    IconButton(onClick = { showChatMenu = true }) {
+                                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more_options))
+                                    }
+                                    DropdownMenu(
+                                        expanded = showChatMenu,
+                                        onDismissRequest = { showChatMenu = false },
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.chat_customize_chat)) },
+                                            onClick = {
+                                                showChatMenu = false
+                                                showCustomizeSheet = true
+                                            },
+                                        )
+                                        // Secret space: "Lock chat" opens the two-option
+                                        // sheet (normal space); inside the locked space
+                                        // the action is "Unlock chat" (move back).
+                                        if (!inLockedSpace) {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.chat_lock_chat)) },
+                                                onClick = {
+                                                    showChatMenu = false
+                                                    showLockSheet = true
+                                                },
+                                            )
+                                        } else {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.chat_unlock_chat)) },
+                                                onClick = {
+                                                    showChatMenu = false
+                                                    vm.unlockChat(onDone = onBack)
+                                                },
+                                            )
+                                        }
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.chat_export_conversation)) },
+                                            onClick = {
+                                                showChatMenu = false
+                                                val safeName = (contactName ?: address).replace(
+                                                    Regex("""[^A-Za-z0-9+_-]"""), "_",
+                                                ).take(40)
+                                                exportLauncher.launch("Messages-$safeName.txt")
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.chat_delete_conversation)) },
+                                            onClick = {
+                                                showChatMenu = false
+                                                showDeleteThreadConfirm = true
+                                            },
+                                        )
+                                    }
+                                }
+                            },
+                        )
                     }
-                },
-            )
+                }
             }
         },
     ) { padding ->

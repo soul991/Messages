@@ -20,8 +20,14 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.border
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -299,11 +305,19 @@ fun HomeScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            // Multi-select contextual bar (Phase 4 item 14).
-            if (selectionActive) {
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                // Multi-select contextual bar vs Standard Header (fluid crossfade)
+                AnimatedContent(
+                    targetState = selectionActive,
+                    transitionSpec = {
+                        fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
+                    },
+                    label = "home-topbar-mode",
+                ) { isSelecting ->
+                    if (isSelecting) {
                 TopAppBar(
                     title = {
                         Text(pluralStringResource(
@@ -353,13 +367,8 @@ fun HomeScreen(
                         }
                     },
                 )
-            } else {
-            AnimatedVisibility(
-                visible = !searchActive,
-                enter = expandVertically(Motion.spatialDefault()) + fadeIn(Motion.effectsDefault()),
-                exit = shrinkVertically(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
-            ) {
-                TopAppBar(
+                    } else {
+                        TopAppBar(
                     // Secret space entry: press and hold the title for 1.5s —
                     // standard long-press feel, still deliberate. pointerInput
                     // + a timed press (not combinedClickable — its long-press
@@ -484,12 +493,16 @@ fun HomeScreen(
                         }
                     },
                 )
-            }
-            }
-        },
+                    }
+                }
+            },
         floatingActionButton = {
-            // §8.4: no messaging features until the default-SMS role is granted.
-            if (!searchActive && isDefaultSmsApp) {
+            // Smooth spring scale transition so FAB doesn't pop or collide with search/selection
+            AnimatedVisibility(
+                visible = !searchActive && !selectionActive && isDefaultSmsApp,
+                enter = scaleIn(Motion.butterSpring()) + fadeIn(Motion.effectsDefault()),
+                exit = scaleOut(Motion.butterSpring()) + fadeOut(Motion.effectsFast()),
+            ) {
                 val fabInteractionSource = remember { MutableInteractionSource() }
                 val fabPressed by fabInteractionSource.collectIsPressedAsState()
                 val fabScale by animateFloatAsState(
@@ -514,7 +527,12 @@ fun HomeScreen(
             }
         },
         bottomBar = {
-            if (!searchActive && !selectionActive && isDefaultSmsApp) {
+            // Smooth spring slide transition so Dock doesn't pop or thrash Scaffold padding
+            AnimatedVisibility(
+                visible = !searchActive && !selectionActive && isDefaultSmsApp,
+                enter = slideInVertically(Motion.butterSpring()) { it } + fadeIn(Motion.effectsDefault()),
+                exit = slideOutVertically(Motion.butterSpring()) { it } + fadeOut(Motion.effectsFast()),
+            ) {
                 val inboxUnread by vm.folderUnread("INBOX").collectAsStateWithLifecycle(0)
                 val txnUnread by vm.folderUnread("TRANSACTIONS").collectAsStateWithLifecycle(0)
                 val promoUnread by vm.folderUnread("PROMOTIONS").collectAsStateWithLifecycle(0)
@@ -592,65 +610,130 @@ fun HomeScreen(
                 return@Column
             }
 
-            // Search bar — Liquid Glass integrated search bar (§8.5)
-            if (!searchActive) {
-                val reviewFlow = remember(vm) { vm.folderUnread("REVIEW") }
-                val reviewWaiting by reviewFlow.collectAsStateWithLifecycle(initialValue = 0)
-                ProtectionStatusCard(reviewWaiting = reviewWaiting, onClick = onDashboard)
-            }
+            val reviewFlow = remember(vm) { vm.folderUnread("REVIEW") }
+            val reviewWaiting by reviewFlow.collectAsStateWithLifecycle(initialValue = 0)
+            ProtectionStatusCard(reviewWaiting = reviewWaiting, onClick = onDashboard)
+
+            // Resting search pill — calm, stable, tactile touch feedback
+            val searchPillInteractionSource = remember { MutableInteractionSource() }
+            val searchPillPressed by searchPillInteractionSource.collectIsPressedAsState()
+            val searchPillScale by animateFloatAsState(
+                targetValue = if (searchPillPressed) 0.98f else 1f,
+                animationSpec = Motion.butterSpring(),
+                label = "search-pill-scale",
+            )
             Box(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp),
             ) {
-                // Redesign: flat warm pill instead of glass — glass stays on
-                // the floating dock, where it earns its depth.
                 androidx.compose.material3.Surface(
+                    onClick = { searchActive = true },
                     shape = RoundedCornerShape(28.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier.fillMaxWidth(),
+                    interactionSource = searchPillInteractionSource,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .graphicsLayer {
+                            scaleX = searchPillScale
+                            scaleY = searchPillScale
+                        },
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = stringResource(R.string.home_search_placeholder),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            stringResource(R.string.home_search_placeholder),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            // Contacts access banner
+            ContactsPermissionBanner()
+
+            // Folder conversation list
+            FolderPane(
+                vm = vm,
+                folder = folder,
+                listState = listState,
+                onSelectFolder = { key ->
+                    if (key != folder) Haptics.tick(view)
+                    vm.setFolder(key)
+                },
+                onOpenThread = onOpenThread,
+                onSwipeAction = ::onSwipeAction,
+            )
+        }
+    }
+
+    // Dedicated Full-Screen Liquid Search Surface
+    AnimatedVisibility(
+        visible = searchActive,
+        enter = fadeIn(Motion.effectsDefault()) + slideInVertically(Motion.butterSpring()) { -it / 6 },
+        exit = fadeOut(Motion.effectsFast()) + slideOutVertically(Motion.butterSpring()) { -it / 6 },
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding(),
+            ) {
+                val searchFocusRequester = remember { FocusRequester() }
+                LaunchedEffect(searchActive) {
+                    if (searchActive) {
+                        searchFocusRequester.requestFocus()
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(52.dp),
                 ) {
                     TextField(
                         value = typing,
-                        onValueChange = {
-                            vm.setTyping(it)
-                            if (!searchActive) searchActive = true
-                        },
+                        onValueChange = { vm.setTyping(it) },
                         placeholder = {
                             Text(
-                                if (chips.isEmpty()) stringResource(R.string.home_search_placeholder) else stringResource(R.string.home_search_add_keyword),
+                                if (chips.isEmpty()) stringResource(R.string.home_search_placeholder)
+                                else stringResource(R.string.home_search_add_keyword),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                             )
                         },
                         leadingIcon = {
-                            AnimatedContent(
-                                targetState = searchActive,
-                                transitionSpec = {
-                                    fadeIn(Motion.effectsFast()) togetherWith fadeOut(Motion.effectsFast())
-                                },
-                                label = "search-leading-icon",
-                            ) { active ->
-                                if (active) {
-                                    IconButton(onClick = { exitSearch() }) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = stringResource(R.string.chat_close_search),
-                                            tint = MaterialTheme.colorScheme.onSurface,
-                                        )
-                                    }
-                                } else {
-                                    Icon(
-                                        Icons.Filled.Search,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
+                            IconButton(onClick = { exitSearch() }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(R.string.chat_close_search),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                )
                             }
                         },
                         trailingIcon = {
-                            if (searchActive && (typing.isNotEmpty() || chips.isNotEmpty())) {
+                            if (typing.isNotEmpty() || chips.isNotEmpty()) {
                                 IconButton(onClick = {
                                     if (typing.isNotEmpty()) {
                                         vm.setTyping("")
@@ -684,54 +767,26 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
-                            .onFocusChanged { if (it.isFocused) searchActive = true },
+                            .focusRequester(searchFocusRequester),
                     )
                 }
-            }
 
-            // Contacts access banner: without READ_CONTACTS every thread shows
-            // raw numbers. Dismissible; graceful denial (re-triggerable, falls
-            // back to app settings when permanently denied).
-            if (!searchActive) ContactsPermissionBanner()
-
-            AnimatedContent(
-                targetState = searchActive,
-                transitionSpec = {
-                    fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
-                },
-                label = "search-mode",
-            ) { inSearch ->
-                if (inSearch) {
-                    Column(Modifier.fillMaxSize()) {
-                        SearchPane(
-                            vm = vm,
-                            chips = chips,
-                            typing = typing,
-                            labelFilter = labelFilter,
-                            state = searchState,
-                            onOpenResult = { msg ->
-                                vm.recordSearchUse()
-                                onOpenSearchResult(msg.threadId, msg.id, searchState.activeKeywords)
-                            },
-                            onOpenThread = onOpenThread,
-                        )
-                    }
-                } else {
-                    FolderPane(
-                        vm = vm,
-                        folder = folder,
-                        listState = listState,
-                        onSelectFolder = { key ->
-                            if (key != folder) Haptics.tick(view)
-                            vm.setFolder(key)
-                        },
-                        onOpenThread = onOpenThread,
-                        onSwipeAction = ::onSwipeAction,
-                    )
-                }
+                SearchPane(
+                    vm = vm,
+                    chips = chips,
+                    typing = typing,
+                    labelFilter = labelFilter,
+                    state = searchState,
+                    onOpenResult = { msg ->
+                        vm.recordSearchUse()
+                        onOpenSearchResult(msg.threadId, msg.id, searchState.activeKeywords)
+                    },
+                    onOpenThread = onOpenThread,
+                )
             }
         }
     }
+}
 }
 
 private sealed interface HomeRow {

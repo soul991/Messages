@@ -17,6 +17,8 @@ Following user directives, all previous redesign commits on `fix/redesign-round2
 | :--- | :--- | :--- | :--- |
 | **Motion Physics** | Standard cubic-bezier & default spatial curves | Custom `butterSpring()` (`dampingRatio = 0.85f, stiffness = 320f`) with physical inertia decay | **Flagship Grade** |
 | **Tactile Press Feedback** | Flat clicks without spatial compression | Physics-based spring press scaling (`pressScale`) on Dock (`0.88f`), Compose FAB (`0.92f`), Cards (`0.97f`), and List Rows (`0.98f`) | **Fluid & Tactile** |
+| **Search Transition** | Collapsing column + instant sibling removal + IME conflict | Dedicated full-screen liquid search surface with `butterSpring()` slide/fade + `imePadding()` | **Zero Flicker / Fluid** |
+| **Header State Transitions** | 0ms abrupt snap between search, selection, and normal in Chat | Silky-smooth `AnimatedContent` crossfade (`effectsDefault` togetherWith `effectsFast`) | **Liquid Crossfade** |
 | **Folder & Tab Transitions** | Linear slide transition | Paired directional slide + scale morph (`0.96f` initial/target) via `butterSpring()` | **Liquid Morph** |
 | **Onboarding Visuals** | Window background bleed-through; low contrast text; static dots | Wrapped in root theme `Surface`; dynamic `8.dp` -> `24.dp` liquid expanding pill with `bouncySpring()` | **Pixel-Perfect** |
 | **Frame Consistency** | Potential scroll hitch due to static FAB recomposition | Hoisted `LazyListState` with `derivedStateOf` threshold; 60/120fps lock | **Zero Jank** |
@@ -56,6 +58,24 @@ Following user directives, all previous redesign commits on `fix/redesign-round2
 ### Flaw 3: Static FAB State Obstructing List Content
 - **Discovery**: In `HomeScreen.kt`, `val fabExpanded = true` was hardcoded. As the user scrolled down through long conversation histories, the large extended FAB remained fully expanded, obscuring message previews and timestamps on the right edge.
 - **Fix**: Hoisted `LazyListState` and derived `fabExpanded` dynamically using `derivedStateOf { listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 60 }`. When scrolling begins, the FAB smoothly collapses to its icon-only pill, and re-expands when the user returns to the top.
+
+### Flaw 4: Home Search Bar Flicker, Layout Snapping & IME Collision
+- **Discovery**: Tapping the search bar on `HomeScreen` caused severe visual flicker, an abrupt vertical snapping of the search bar, and layout thrashing as the software keyboard opened.
+- **Root Cause**:
+  1. *Instant Removal of Sibling Elements*: `ProtectionStatusCard` and `ContactsPermissionBanner` were wrapped in raw `if (!searchActive)` directly above the search bar. Tapping search removed ~80dp of content in 0ms, snapping the search bar violently upward.
+  2. *Scaffold Layout Thrashing*: `Scaffold.topBar` used `AnimatedVisibility(exit = shrinkVertically())`, recalculating `paddingValues.topPadding` every frame while `Scaffold.bottomBar` and `floatingActionButton` vanished in 0ms (dropping `bottomPadding` by ~90dp instantly).
+  3. *IME Inset Conflict*: As the software keyboard pushed up window insets, the collapsing top padding and disappearing bottom dock caused Compose to re-measure and re-layout the entire list 60fps, creating severe flicker.
+  4. *Leading Icon Text Shifting*: `AnimatedContent` toggled between 24dp `Icon` and 48dp `IconButton`, causing horizontal placeholder text jumps.
+- **Fix**:
+  - **Calm, Anchored Home Layout**: `ProtectionStatusCard`, `ContactsPermissionBanner`, and the conversation list remain completely calm and statically anchored. The search bar on Home is now a resting tactile pill (`0.98f` press scale) that triggers `searchActive = true`.
+  - **Dedicated Full-Screen Liquid Search Surface**: Replaced the collapsing Column mechanism with a dedicated `AnimatedVisibility` overlay (`fadeIn(butterSpring()) + slideInVertically(butterSpring()) { -it / 6 }`) featuring `statusBarsPadding()`, `imePadding()`, anchored top search bar with auto-requesting `FocusRequester()`, Back navigation icon, and `SearchPane`.
+  - **Fluid Dock & FAB Transitions**: Wrapped `FloatingDock` in `slideInVertically(butterSpring()) { it } + fadeIn()` / `slideOutVertically() + fadeOut()`, and `ExtendedFloatingActionButton` in `scaleIn(butterSpring())` / `scaleOut()`.
+  - **Selection Mode Crossfade**: Replaced raw `if (selectionActive)` in `HomeScreen.topBar` with `AnimatedContent` crossfade (`fadeIn() togetherWith fadeOut()`).
+
+### Flaw 5: ChatScreen In-Conversation Search & Multi-Select Header Popping
+- **Discovery**: In `ChatScreen.kt`, toggling in-conversation search or long-pressing messages for multi-selection abruptly snapped the top bar in 0ms without any animation.
+- **Root Cause**: Lines 529–670 used raw `if (msgSelectionActive) ... else if (chatSearchActive) ... else ...` inside `topBar`.
+- **Fix**: Wrapped the three states (`NORMAL`, `SEARCH`, `SELECTION`) in `AnimatedContent` with `fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())`. Transitioning between reading, in-conversation search, and multi-select is now a silky-smooth crossfade.
 
 ---
 
@@ -114,11 +134,14 @@ All key user journeys were tested and visually captured on `emulator-5554`:
    - Verified Protection Status pill card with shield icon, live counter, and tactile scale compression on tap.
    - Verified grouped 28dp conversation cards with 20dp internal rows and hairline inset dividers.
    - Verified dynamic Compose FAB auto-collapsing and expanding based on list scroll position.
+   - **Search Bar Transition (Zero Flicker & Zero Popping)**: Tapped resting search pill. Verified fluid expansion into dedicated full-screen liquid search surface with focused cursor and instant keyboard slide-in via `imePadding()`. Zero layout thrashing, zero sibling snapping, zero text jumps. Back navigation returns seamlessly to the undisturbed home screen.
 2. **Conversation / Chat**:
    - Verified message bubbles with rounded 20dp corners and contextual color tints.
    - Verified inline action chips ("Copy OTP 492018") with `0.94f` spring press feedback.
    - Live OTP click test: Tapped OTP chip, immediately verified system clipboard toast with copied `492018` code without UI freezing or jank.
    - Verified composer bar with pill text field, attachment launcher, and quick actions.
+   - **In-Conversation Search**: Verified header transitions seamlessly via `AnimatedContent` crossfade into query input with previous/next match controls.
+   - **Message Multi-Selection Mode**: Verified long-press context menu and "Select messages" crossfades top bar into selection mode (`x 1 selected` with copy, star, forward, share, delete actions) with zero layout jump. Clear selection crossfades cleanly back to normal header.
 3. **Protection Dashboard**:
    - Verified 28dp hero card with centered shield badge and animated counter.
    - Verified period selector ("This week" / "This month") toggle.
