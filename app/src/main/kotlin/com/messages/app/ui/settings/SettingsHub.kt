@@ -1,8 +1,15 @@
 package com.messages.app.ui.settings
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
+import com.messages.designsystem.Motion
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -142,6 +149,13 @@ private fun HubGroup(label: Int, entries: List<HubEntry>, onPick: (String?) -> U
 @Composable
 private fun HubRow(e: HubEntry, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val rowScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = Motion.butterSpring(),
+        label = "hub-row-scale",
+    )
     val (bg: Color, fg: Color) = when (e.tone) {
         Tone.PRIMARY -> cs.primaryContainer to cs.onPrimaryContainer
         Tone.PROMO -> categoryPalette("PROMOTIONS")?.let { it.container to it.onContainer }
@@ -154,7 +168,16 @@ private fun HubRow(e: HubEntry, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
+            .graphicsLayer {
+                scaleX = rowScale
+                scaleY = rowScale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
+                role = Role.Button,
+                onClick = onClick,
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -199,10 +222,23 @@ private fun DefaultSmsStatusCard() {
     val container = palette?.container ?: MaterialTheme.colorScheme.primaryContainer
     val onContainer = palette?.onContainer ?: MaterialTheme.colorScheme.onPrimaryContainer
     val tint = palette?.tint ?: MaterialTheme.colorScheme.primary
+    val cardInteractionSource = remember { MutableInteractionSource() }
+    val isPressed by cardInteractionSource.collectIsPressedAsState()
+    val cardScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = Motion.butterSpring(),
+        label = "default-sms-scale",
+    )
     Surface(
         shape = RoundedCornerShape(28.dp),
         color = container,
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+            },
     ) {
         Row(
             Modifier.padding(horizontal = 16.dp, vertical = 14.dp),

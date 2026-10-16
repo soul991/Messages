@@ -56,6 +56,7 @@ import com.messages.app.R
 import com.messages.core.MessageRepository
 import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.groupCard
+import com.messages.designsystem.Motion
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -184,11 +185,11 @@ fun DashboardScreen(
                             targetState = stats.totalSilenced,
                             transitionSpec = {
                                 if (targetState > initialState) {
-                                    (slideInVertically { height -> height } + fadeIn()) togetherWith
-                                        (slideOutVertically { height -> -height } + fadeOut())
+                                    (slideInVertically(Motion.butterSpring()) { height -> height } + fadeIn(Motion.effectsDefault())) togetherWith
+                                        (slideOutVertically(Motion.butterSpring()) { height -> -height } + fadeOut(Motion.effectsFast()))
                                 } else {
-                                    (slideInVertically { height -> -height } + fadeIn()) togetherWith
-                                        (slideOutVertically { height -> height } + fadeOut())
+                                    (slideInVertically(Motion.butterSpring()) { height -> -height } + fadeIn(Motion.effectsDefault())) togetherWith
+                                        (slideOutVertically(Motion.butterSpring()) { height -> height } + fadeOut(Motion.effectsFast()))
                                 }
                             },
                             label = "totalSilencedCounter",
@@ -437,12 +438,21 @@ private fun StatCard(
             modifier = Modifier.padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                "%,d".format(count),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = tint,
-            )
+            AnimatedContent(
+                targetState = count,
+                transitionSpec = {
+                    (slideInVertically(Motion.butterSpring()) { height -> height } + fadeIn(Motion.effectsDefault())) togetherWith
+                        (slideOutVertically(Motion.butterSpring()) { height -> -height } + fadeOut(Motion.effectsFast()))
+                },
+                label = "statCardCount",
+            ) { targetCount ->
+                Text(
+                    "%,d".format(targetCount),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = tint,
+                )
+            }
             Spacer(Modifier.height(4.dp))
             Text(
                 label,

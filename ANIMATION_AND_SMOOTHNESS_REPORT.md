@@ -83,6 +83,10 @@ Implemented interactive spring press scaling across all primary touch surfaces:
   - Compresses to `0.97f` on tap with `butterSpring()`.
 - **Conversation Rows** (`HomeScreen.kt`):
   - Compresses to `0.98f` with `butterSpring()` accompanied by bounded M3 ripple.
+- **Chat Compact Action Chips** (`ChatScreen.kt`):
+  - Compresses to `0.94f` with `butterSpring()` for inline OTP copy chips and quick actions, providing satisfying haptic/visual confirmation.
+- **Settings Hub Rows & Cards** (`SettingsHub.kt`):
+  - Compresses to `0.98f` with `butterSpring()` across all category navigation tiles and the default SMS status banner.
 
 ### 3. Directional Folder Switch Morphing
 Upgraded `FolderPane`'s `AnimatedContent`:
@@ -95,6 +99,10 @@ Upgraded `OnboardingScreen` page indicators:
 - Active page dot dynamically expands from an `8.dp` circle to a `24.dp` pill using `animateDpAsState` with `Motion.bouncySpring()`.
 - Dot color smoothly interpolates from inactive outline (`alpha = 0.2f`) to primary lavender container.
 
+### 5. Odometer Number Transitions & Rolling Counters (`DashboardScreen.kt`)
+- Hero odometer counter upgraded to animate with `butterSpring()` physical decay.
+- Secondary stat card metrics ("Spam", "Promos", "Blocked") wrapped in `AnimatedContent` with directional slide + fade transition (`slideInVertically(butterSpring()) + fadeIn()` together with `slideOutVertically(butterSpring()) + fadeOut()`), eliminating abrupt number snaps when alternating between weekly and monthly timeframes.
+
 ---
 
 ## 5. Live Artemis UI Verification Log
@@ -102,25 +110,26 @@ Upgraded `OnboardingScreen` page indicators:
 All key user journeys were tested and visually captured on `emulator-5554`:
 
 1. **Home Screen**:
-   - Verified 4-folder bottom dock ("Personal", "Bank", "Offers", "Review", "Spam").
-   - Verified Protection Status pill card with shield icon and live counter.
+   - Verified 4-folder bottom dock ("Personal", "Bank", "Offers", "Review", "Spam") with spring bouncing and `-2.dp` active lift.
+   - Verified Protection Status pill card with shield icon, live counter, and tactile scale compression on tap.
    - Verified grouped 28dp conversation cards with 20dp internal rows and hairline inset dividers.
-   - Verified dynamic Compose FAB positioning.
+   - Verified dynamic Compose FAB auto-collapsing and expanding based on list scroll position.
 2. **Conversation / Chat**:
    - Verified message bubbles with rounded 20dp corners and contextual color tints.
-   - Verified inline action chips ("Copy OTP 492018").
+   - Verified inline action chips ("Copy OTP 492018") with `0.94f` spring press feedback.
+   - Live OTP click test: Tapped OTP chip, immediately verified system clipboard toast with copied `492018` code without UI freezing or jank.
    - Verified composer bar with pill text field, attachment launcher, and quick actions.
 3. **Protection Dashboard**:
    - Verified 28dp hero card with centered shield badge and animated counter.
-   - Verified period selector ("This week" / "This month") switch.
-   - Verified stat tiles ("Spam", "Promos", "Blocked") with dark surface cards.
+   - Verified period selector ("This week" / "This month") toggle.
+   - Verified stat tiles ("Spam", "Promos", "Blocked") with rolling odometer number transitions on period switch.
 4. **Settings Hub & Sub-pages**:
-   - Verified categorized 28dp grouped cards (Personalize, Protect, Data, About).
+   - Verified categorized 28dp grouped cards (Personalize, Protect, Data, About) with `0.98f` tactile spring press scaling.
    - Verified 44dp tinted container icon tiles.
    - Verified Appearance customizer: Theme selector, accent color chips, and segmented text size buttons.
 5. **Onboarding Flow**:
-   - Verified 3-page interactive onboarding with liquid expanding dot indicators.
-   - Verified high-contrast dark theme rendering across all 3 pages.
+   - Verified 3-page interactive onboarding with liquid expanding dot indicators (`8.dp` to `24.dp`).
+   - Verified high-contrast dark theme rendering across all 3 pages with fixed root `Surface`.
    - Verified smooth transition from onboarding completion into main messaging experience.
 6. **Secret / Locked Space**:
    - Verified 1.5s long-press gesture on "Messages" title triggers secure setup/prompt.
