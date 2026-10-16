@@ -59,6 +59,11 @@ object Motion {
     fun <T> bouncySpring(): FiniteAnimationSpec<T> =
         if (animationsEnabled()) spring(dampingRatio = 0.72f, stiffness = 520f)
         else snap()
+
+    /** Ultra-smooth butter spring with low bounce and natural physical decay. */
+    fun <T> butterSpring(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 0.85f, stiffness = 320f)
+        else snap()
 }
 
 /** Haptics on key actions (§9) — thin wrappers over view feedback constants. */

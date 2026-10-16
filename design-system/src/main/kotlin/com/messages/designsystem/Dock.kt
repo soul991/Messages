@@ -1,12 +1,14 @@
 package com.messages.designsystem
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,21 +84,37 @@ fun BottomDock(
         ) {
             items.forEach { item ->
                 val selected = item.key == selectedKey
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+
+                val targetScale = when {
+                    isPressed -> 0.88f
+                    selected -> 1.04f
+                    else -> 0.94f
+                }
                 val animatedScale by animateFloatAsState(
-                    targetValue = if (selected) 1.05f else 0.95f,
-                    animationSpec = Motion.fluidSpring(),
+                    targetValue = targetScale,
+                    animationSpec = Motion.bouncySpring(),
                     label = "dock-scale",
+                )
+
+                val iconOffsetY by animateDpAsState(
+                    targetValue = if (selected) (-2).dp else 0.dp,
+                    animationSpec = Motion.bouncySpring(),
+                    label = "dock-icon-offset",
                 )
 
                 val primaryColor = MaterialTheme.colorScheme.primary
                 val targetAccent = item.accentColor ?: primaryColor
                 val iconColor by animateColorAsState(
                     targetValue = if (selected) targetAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                    animationSpec = Motion.effectsDefault(),
                     label = "dock-icon-color",
                 )
 
                 val pillBackground by animateColorAsState(
                     targetValue = if (selected) targetAccent.copy(alpha = 0.16f) else Color.Transparent,
+                    animationSpec = Motion.effectsDefault(),
                     label = "dock-pill-bg",
                 )
 
@@ -114,7 +132,7 @@ fun BottomDock(
                         .background(pillBackground)
                         .border(1.dp, pillBorder, RoundedCornerShape(20.dp))
                         .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
+                            interactionSource = interactionSource,
                             indication = ripple(bounded = true, color = targetAccent.copy(alpha = 0.25f)),
                             onClick = { onItemSelected(item.key) },
                         )
@@ -130,12 +148,20 @@ fun BottomDock(
                                 imageVector = item.icon,
                                 contentDescription = item.title,
                                 tint = iconColor,
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .offset(y = iconOffsetY),
                             )
                             if (item.unreadCount > 0) {
+                                val badgeScale by animateFloatAsState(
+                                    targetValue = 1f,
+                                    animationSpec = Motion.bouncySpring(),
+                                    label = "dock-badge-scale",
+                                )
                                 Box(
                                     modifier = Modifier
                                         .offset(x = 6.dp, y = (-4).dp)
+                                        .scale(badgeScale)
                                         .size(if (item.unreadCount > 99) 16.dp else 12.dp)
                                         .clip(CircleShape)
                                         .background(item.accentColor ?: MaterialTheme.colorScheme.error)

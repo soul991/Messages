@@ -46,7 +46,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -243,9 +246,13 @@ fun HomeScreen(
     val selectionActive = selectedThreads.isNotEmpty()
     var showHomeMenu by remember { mutableStateOf(false) }
 
-    // Keep the inbox toolbar compact so the conversation list remains the
-    // visual focus and more rows fit on screen.
-    val fabExpanded = true
+    // Hoist listState to dynamically expand/collapse the compose FAB on scroll
+    val listState = rememberLazyListState()
+    val fabExpanded by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 60
+        }
+    }
 
     fun exitSearch() {
         searchActive = false
@@ -483,14 +490,26 @@ fun HomeScreen(
         floatingActionButton = {
             // §8.4: no messaging features until the default-SMS role is granted.
             if (!searchActive && isDefaultSmsApp) {
+                val fabInteractionSource = remember { MutableInteractionSource() }
+                val fabPressed by fabInteractionSource.collectIsPressedAsState()
+                val fabScale by animateFloatAsState(
+                    targetValue = if (fabPressed) 0.92f else 1f,
+                    animationSpec = Motion.butterSpring(),
+                    label = "fab-scale",
+                )
                 ExtendedFloatingActionButton(
                     onClick = onCompose,
                     expanded = fabExpanded,
+                    interactionSource = fabInteractionSource,
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(20.dp),
                     icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
                     text = { Text(stringResource(R.string.home_new_message)) },
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = fabScale
+                        scaleY = fabScale
+                    },
                 )
             }
         },
@@ -701,6 +720,7 @@ fun HomeScreen(
                     FolderPane(
                         vm = vm,
                         folder = folder,
+                        listState = listState,
                         onSelectFolder = { key ->
                             if (key != folder) Haptics.tick(view)
                             vm.setFolder(key)
@@ -727,6 +747,7 @@ private fun FolderPane(
     onSelectFolder: (String) -> Unit,
     onOpenThread: (Long) -> Unit,
     onSwipeAction: (String, ConversationEntity) -> Unit,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     val rightAction by SwipeActions.right.collectAsStateWithLifecycle()
     val leftAction by SwipeActions.left.collectAsStateWithLifecycle()
@@ -764,17 +785,19 @@ private fun FolderPane(
         }
 
         // Animated folder switch: content slides toward the tapped direction
-        // on expressive spatial springs; fades stay critically damped.
+        // on expressive butter springs; paired with subtle scale morphs.
         AnimatedContent(
             targetState = folder,
             transitionSpec = {
                 val from = FOLDERS.indexOfFirst { it.first == initialState }
                 val to = FOLDERS.indexOfFirst { it.first == targetState }
                 val dir = if (to >= from) 1 else -1
-                (slideInHorizontally(Motion.spatialDefault()) { it / 4 * dir } +
-                    fadeIn(Motion.effectsDefault())) togetherWith
-                    (slideOutHorizontally(Motion.spatialDefault()) { -it / 4 * dir } +
-                        fadeOut(Motion.effectsFast()))
+                (slideInHorizontally(Motion.butterSpring()) { it / 3 * dir } +
+                    fadeIn(Motion.effectsDefault()) +
+                    scaleIn(Motion.butterSpring(), initialScale = 0.96f)) togetherWith
+                    (slideOutHorizontally(Motion.butterSpring()) { -it / 3 * dir } +
+                        fadeOut(Motion.effectsFast()) +
+                        scaleOut(Motion.butterSpring(), targetScale = 0.96f))
             },
             label = "folder-switch",
         ) { targetFolder ->
@@ -812,7 +835,6 @@ private fun FolderPane(
                         }
                     } else EmptyFolderState(targetFolder)
                 ListRender.CONTENT -> {
-                    val listState = rememberLazyListState()
                     val listScope = rememberCoroutineScope()
                     val shownList = if (pinnedList.isNotEmpty() && !unreadOnly) regularList else conversations
                     val rows = remember(shownList) {
@@ -965,8 +987,8 @@ private fun FolderPane(
                     }
                     androidx.compose.animation.AnimatedVisibility(
                         visible = showJumpTop,
-                        enter = scaleIn(Motion.spatialFast()) + fadeIn(Motion.effectsDefault()),
-                        exit = scaleOut(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
+                        enter = scaleIn(Motion.butterSpring()) + fadeIn(Motion.effectsDefault()),
+                        exit = scaleOut(Motion.butterSpring()) + fadeOut(Motion.effectsFast()),
                         modifier = Modifier.align(Alignment.BottomStart).padding(16.dp),
                     ) {
                         SmallFloatingActionButton(
@@ -998,13 +1020,25 @@ private fun ProtectionStatusCard(
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val cardScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = Motion.butterSpring(),
+        label = "protection-card-scale",
+    )
     androidx.compose.material3.Surface(
         onClick = onClick,
+        interactionSource = interactionSource,
         shape = RoundedCornerShape(28.dp),
         color = cs.primaryContainer,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+            },
     ) {
         Row(
             Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -1868,11 +1902,22 @@ private fun ConversationRow(
     } else {
         Color.Transparent
     }
+    val rowInteractionSource = remember { MutableInteractionSource() }
+    val rowPressed by rowInteractionSource.collectIsPressedAsState()
+    val rowScale by animateFloatAsState(
+        targetValue = if (rowPressed) 0.98f else 1f,
+        animationSpec = Motion.butterSpring(),
+        label = "row-press-scale",
+    )
 
     Row(
         modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
+            .graphicsLayer {
+                scaleX = rowScale
+                scaleY = rowScale
+            }
             .clip(rowShape)
             .background(rowBg)
             .then(
@@ -1880,6 +1925,8 @@ private fun ConversationRow(
                 else Modifier
             )
             .combinedClickable(
+                interactionSource = rowInteractionSource,
+                indication = androidx.compose.material3.ripple(),
                 onClick = onClick,
                 onLongClick = onLongClick,
                 onLongClickLabel = if (onLongClick != null) stringResource(R.string.home_select_conversation) else null,

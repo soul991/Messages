@@ -1,6 +1,8 @@
 package com.messages.app.ui.onboarding
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
@@ -99,53 +101,58 @@ fun OnboardingScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().padding(24.dp)) {
-        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
-            when (page) {
-                0 -> IntroPage()
-                1 -> DefaultAppPage(
-                    isDefault = isDefaultSmsApp,
-                    roleRequestFailed = roleRequestFailed,
-                    onOpenAppSettings = onOpenAppSettings,
-                    onOpenDefaultApps = onOpenDefaultApps,
-                )
-                2 -> DonePage()
-            }
-        }
-
-        PageDots(current = pagerState.currentPage)
-        Spacer(Modifier.height(16.dp))
-
-        when (pagerState.currentPage) {
-            0 -> Button(
-                onClick = { scope.launch { goToPage(1) } },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.action_continue)) }
-
-            1 -> Column {
-                val context = LocalContext.current
-                val isRestricted = !isDefaultSmsApp && (roleRequestFailed || com.messages.app.MainActivity.isRestrictedSettingsActive(context))
-                Button(
-                    onClick = { if (isDefaultSmsApp) scope.launch { goToPage(2) } else onRequestDefault() },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(
-                        if (isDefaultSmsApp) stringResource(R.string.action_continue)
-                        else if (isRestricted) stringResource(R.string.restricted_settings_retry)
-                        else stringResource(R.string.onboarding_set_default),
-                    ) }
-                TextButton(
-                    onClick = { scope.launch { goToPage(2) } },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.action_not_now)) }
-            }
-
-            2 -> Column {
-                Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.onboarding_start_messaging))
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+    ) {
+        Column(Modifier.fillMaxSize().padding(24.dp)) {
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+                when (page) {
+                    0 -> IntroPage()
+                    1 -> DefaultAppPage(
+                        isDefault = isDefaultSmsApp,
+                        roleRequestFailed = roleRequestFailed,
+                        onOpenAppSettings = onOpenAppSettings,
+                        onOpenDefaultApps = onOpenDefaultApps,
+                    )
+                    2 -> DonePage()
                 }
-                // Offer restore during onboarding, right after default-app step.
-                TextButton(onClick = onRestoreFromDrive, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.onboarding_restore_from_drive))
+            }
+
+            PageDots(current = pagerState.currentPage)
+            Spacer(Modifier.height(16.dp))
+
+            when (pagerState.currentPage) {
+                0 -> Button(
+                    onClick = { scope.launch { goToPage(1) } },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.action_continue)) }
+
+                1 -> Column {
+                    val context = LocalContext.current
+                    val isRestricted = !isDefaultSmsApp && (roleRequestFailed || com.messages.app.MainActivity.isRestrictedSettingsActive(context))
+                    Button(
+                        onClick = { if (isDefaultSmsApp) scope.launch { goToPage(2) } else onRequestDefault() },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(
+                            if (isDefaultSmsApp) stringResource(R.string.action_continue)
+                            else if (isRestricted) stringResource(R.string.restricted_settings_retry)
+                            else stringResource(R.string.onboarding_set_default),
+                        ) }
+                    TextButton(
+                        onClick = { scope.launch { goToPage(2) } },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.action_not_now)) }
+                }
+
+                2 -> Column {
+                    Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.onboarding_start_messaging))
+                    }
+                    // Offer restore during onboarding, right after default-app step.
+                    TextButton(onClick = onRestoreFromDrive, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.onboarding_restore_from_drive))
+                    }
                 }
             }
         }
@@ -494,18 +501,28 @@ private fun PageDots(current: Int) {
             progressBarRangeInfo = ProgressBarRangeInfo(current + 1f, 1f..3f)
         },
         horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         repeat(3) { i ->
             val active = i == current
+            val dotWidth by animateDpAsState(
+                targetValue = if (active) 24.dp else 8.dp,
+                animationSpec = Motion.bouncySpring(),
+                label = "dot-width-$i",
+            )
+            val dotColor by animateColorAsState(
+                targetValue = if (active) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                animationSpec = Motion.effectsDefault(),
+                label = "dot-color-$i",
+            )
             Box(
                 Modifier
-                    .padding(4.dp)
-                    .size(if (active) 12.dp else 8.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (active) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                    )
+                    .padding(horizontal = 4.dp)
+                    .height(8.dp)
+                    .width(dotWidth)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(dotColor)
             )
         }
     }

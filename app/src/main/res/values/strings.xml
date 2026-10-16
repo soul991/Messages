@@ -410,6 +410,10 @@
         <item quantity="one">%1$d selected</item>
         <item quantity="other">%1$d selected</item>
     </plurals>
+    <plurals name="chat_moved_to_trash">
+        <item quantity="one">Moved %1$d message to Trash</item>
+        <item quantity="other">Moved %1$d messages to Trash</item>
+    </plurals>
     <!--
       Position within the pinned messages of one conversation: %1$d is the one-based
       index of the pinned message on screen, %2$d how many are pinned in total.
