@@ -5,20 +5,26 @@ import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.BySelector
+import androidx.test.uiautomator.Direction
+import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import java.util.regex.Pattern
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Macrobenchmark measuring frame timing across the 6 Phase 6.3 user journeys:
- * 1. Home fling down/up x5 over 500 conversations
- * 2. Home: open search overlay, back x10
- * 3. Home: switch dock Personal -> Bank -> Offers -> Review -> Spam
- * 4. Open 100-message chat, fling up/down; send 5 messages and 3 quick replies
- * 5. Settings -> Conversations -> Quick replies: swipe-delete, Edit mode, add a reply
- * 6. Chat <-> Home open/close x10 (including back gesture)
+ * Macrobenchmark measuring frame timing across the Phase 6.3 user journeys:
+ * a. Home fling down/up x5 over 500 conversations
+ * b. Home: open search overlay, back x10
+ * c. Home: switch dock Personal -> Bank -> Offers -> Review -> Spam
+ * d. Open 100-message chat, fling up/down; send 5 messages and 3 quick replies
+ * e. Settings -> Conversations -> Quick replies: swipe-delete one row, enter Edit mode, add a reply
+ * f. Chat <-> Home open/close x10 (including back gesture)
  *
  * 10 iterations each, evaluated under CompilationMode.Partial and CompilationMode.None.
  */
@@ -27,8 +33,19 @@ class ScrollAndTransitionBenchmark {
     @get:Rule
     val benchmarkRule = MacrobenchmarkRule()
 
+    @Before
+    fun setUp() {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        val output = device.executeShellCommand(
+            "am broadcast -n $TARGET_PACKAGE/com.messages.app.debug.SeedDataReceiver -a com.messages.app.debug.SEED --ez wipe true"
+        )
+        check(output.contains("result=-1")) {
+            "Database seeding failed! Output was: $output"
+        }
+    }
+
     // ------------------------------------------------------------------------
-    // Journey 1: Home fling down/up x5 over the 500 conversations
+    // Journey a: Home fling down/up x5 over the 500 conversations
     // ------------------------------------------------------------------------
     @Test
     fun journey1HomeFlingPartial() = runHomeFling(CompilationMode.Partial())
@@ -45,27 +62,22 @@ class ScrollAndTransitionBenchmark {
         setupBlock = {
             pressHome()
             startActivityAndWait()
-            device.waitForIdle()
+            ensureHomeScreen(device)
         }
     ) {
-        val displayHeight = device.displayHeight
-        val displayWidth = device.displayWidth
-        val startX = displayWidth / 2
-        val startY = (displayHeight * 0.75).toInt()
-        val endY = (displayHeight * 0.25).toInt()
-
+        val list = device.findObject(byTag("home_conversation_list"))
         repeat(5) {
-            device.swipe(startX, startY, startX, endY, 12)
+            list?.fling(Direction.DOWN)
             device.waitForIdle()
         }
         repeat(5) {
-            device.swipe(startX, endY, startX, startY, 12)
+            list?.fling(Direction.UP)
             device.waitForIdle()
         }
     }
 
     // ------------------------------------------------------------------------
-    // Journey 2: Home: open search overlay, back x10
+    // Journey b: Home: open search overlay, back x10
     // ------------------------------------------------------------------------
     @Test
     fun journey2HomeSearchOverlayPartial() = runSearchOverlay(CompilationMode.Partial())
@@ -82,25 +94,22 @@ class ScrollAndTransitionBenchmark {
         setupBlock = {
             pressHome()
             startActivityAndWait()
-            device.waitForIdle()
+            ensureHomeScreen(device)
         }
     ) {
-        val displayWidth = device.displayWidth
-        val searchPillY = (device.displayHeight * 0.12).toInt()
-
         repeat(10) {
-            // Tap resting search pill
-            device.click(displayWidth / 2, searchPillY)
+            val searchPill = device.findObject(byTag("home_search_pill"))
+            searchPill?.click()
             device.waitForIdle()
 
-            // Dismiss via back
             device.pressBack()
+            device.wait(Until.hasObject(byTag("home_search_pill")), 5000)
             device.waitForIdle()
         }
     }
 
     // ------------------------------------------------------------------------
-    // Journey 3: Home: switch dock Personal -> Bank -> Offers -> Review -> Spam
+    // Journey c: Home: switch dock Personal -> Bank -> Offers -> Review -> Spam
     // ------------------------------------------------------------------------
     @Test
     fun journey3DockCategorySwitchPartial() = runDockSwitch(CompilationMode.Partial())
@@ -117,25 +126,27 @@ class ScrollAndTransitionBenchmark {
         setupBlock = {
             pressHome()
             startActivityAndWait()
-            device.waitForIdle()
+            ensureHomeScreen(device)
         }
     ) {
-        val displayWidth = device.displayWidth
-        val dockY = device.displayHeight - 120
-
-        // Tap dock items: Personal (0.1), Bank (0.3), Offers (0.5), Review (0.7), Spam (0.9)
-        val fractions = listOf(0.10f, 0.30f, 0.50f, 0.70f, 0.90f)
-        for (f in fractions) {
-            device.click((displayWidth * f).toInt(), dockY)
+        val dockTags = listOf(
+            "dock_INBOX",
+            "dock_TRANSACTIONS",
+            "dock_PROMOTIONS",
+            "dock_REVIEW",
+            "dock_SPAM",
+        )
+        for (tag in dockTags) {
+            device.findObject(byTag(tag))?.click()
             device.waitForIdle()
         }
         // Return to Personal
-        device.click((displayWidth * 0.10f).toInt(), dockY)
+        device.findObject(byTag("dock_INBOX"))?.click()
         device.waitForIdle()
     }
 
     // ------------------------------------------------------------------------
-    // Journey 4: Open 100-message chat, fling up/down; send 5 messages and 3 quick replies
+    // Journey d: Open 100-message chat, fling up/down; send 5 messages and 3 quick replies
     // ------------------------------------------------------------------------
     @Test
     fun journey4ChatScrollAndSendPartial() = runChatScrollAndSend(CompilationMode.Partial())
@@ -152,38 +163,48 @@ class ScrollAndTransitionBenchmark {
         setupBlock = {
             pressHome()
             startActivityAndWait()
-            device.waitForIdle()
-            // Click first conversation to enter chat
-            device.click(device.displayWidth / 2, (device.displayHeight * 0.35).toInt())
+            ensureHomeScreen(device)
+            val firstConv = device.findObject(By.textContains("Alex Morgan"))
+            firstConv?.click()
+            device.wait(Until.hasObject(byTag("chat_message_list")), 5000)
             device.waitForIdle()
         }
     ) {
-        val displayHeight = device.displayHeight
-        val displayWidth = device.displayWidth
-        val startX = displayWidth / 2
-        val startY = (displayHeight * 0.70).toInt()
-        val endY = (displayHeight * 0.30).toInt()
+        val chatList = device.findObject(byTag("chat_message_list"))
+        chatList?.fling(Direction.DOWN)
+        device.waitForIdle()
+        chatList?.fling(Direction.UP)
+        device.waitForIdle()
 
-        // Fling up and down in chat
-        repeat(2) {
-            device.swipe(startX, startY, startX, endY, 15)
-            device.waitForIdle()
-        }
-        repeat(2) {
-            device.swipe(startX, endY, startX, startY, 15)
-            device.waitForIdle()
-        }
-
-        // Tap quick replies if available or input text
-        val inputY = displayHeight - 120
+        // Send 5 messages
+        val composer = device.findObject(byTag("chat_composer_field"))
+        val sendBtn = device.findObject(byTag("chat_send_button"))
         repeat(5) { i ->
-            device.click(displayWidth / 2, inputY)
+            composer?.text = "Benchmark test message $i"
             device.waitForIdle()
+            sendBtn?.click()
+            device.waitForIdle()
+        }
+
+        // Send 3 quick replies
+        repeat(3) {
+            val quickChips = device.findObjects(byTag("chat_quick_reply_chip"))
+            if (quickChips.isNotEmpty()) {
+                quickChips.first().click()
+                device.waitForIdle()
+                val sheetChips = device.findObjects(byTag("chat_quick_reply_chip"))
+                if (sheetChips.isNotEmpty()) {
+                    sheetChips.last().click()
+                    device.waitForIdle()
+                    device.findObject(byTag("chat_send_button"))?.click()
+                    device.waitForIdle()
+                }
+            }
         }
     }
 
     // ------------------------------------------------------------------------
-    // Journey 5: Settings -> Conversations -> Quick replies: swipe-delete, Edit mode, add a reply
+    // Journey e: Settings -> Conversations -> Quick replies: swipe-delete one row, enter Edit mode, add a reply
     // ------------------------------------------------------------------------
     @Test
     fun journey5SettingsQuickRepliesPartial() = runSettingsQuickReplies(CompilationMode.Partial())
@@ -200,36 +221,36 @@ class ScrollAndTransitionBenchmark {
         setupBlock = {
             pressHome()
             startActivityAndWait()
-            device.waitForIdle()
-            // Open settings via top bar icon (top right)
-            device.click(device.displayWidth - 80, 120)
-            device.waitForIdle()
-            // Click Conversations row
-            device.click(device.displayWidth / 2, (device.displayHeight * 0.25).toInt())
+            ensureHomeScreen(device)
+            device.findObject(byTag("home_settings_button"))?.click()
+            device.wait(Until.hasObject(byTag("settings_page_conversations")), 5000)
+            device.findObject(byTag("settings_page_conversations"))?.click()
+            device.wait(Until.hasObject(byTag("quick_reply_list")), 5000)
             device.waitForIdle()
         }
     ) {
-        val displayHeight = device.displayHeight
-        val displayWidth = device.displayWidth
-
-        // Swipe left to reveal and delete first quick reply
-        val rowY = (displayHeight * 0.60).toInt()
-        device.swipe((displayWidth * 0.85).toInt(), rowY, (displayWidth * 0.20).toInt(), rowY, 20)
+        // Swipe-delete one row
+        val row = device.findObject(byTag("quick_reply_row_0"))
+        row?.swipe(Direction.LEFT, 0.8f)
         device.waitForIdle()
 
-        // Toggle Edit mode
-        val editToggleX = (displayWidth * 0.85).toInt()
-        val editToggleY = (displayHeight * 0.48).toInt()
-        device.click(editToggleX, editToggleY)
+        // Enter and exit edit mode
+        val editToggle = device.findObject(byTag("quick_reply_edit_toggle"))
+        editToggle?.click()
+        device.waitForIdle()
+        editToggle?.click()
         device.waitForIdle()
 
-        // Tap Done to exit Edit mode
-        device.click(editToggleX, editToggleY)
+        // Add a reply
+        val input = device.findObject(byTag("quick_reply_input_field"))
+        input?.text = "Bench reply"
+        device.waitForIdle()
+        device.findObject(byTag("quick_reply_add_button"))?.click()
         device.waitForIdle()
     }
 
     // ------------------------------------------------------------------------
-    // Journey 6: Chat <-> Home open/close x10 (back gesture too)
+    // Journey f: Chat <-> Home open/close x10 (including back gesture)
     // ------------------------------------------------------------------------
     @Test
     fun journey6ChatOpenClosePartial() = runChatOpenClose(CompilationMode.Partial())
@@ -246,24 +267,39 @@ class ScrollAndTransitionBenchmark {
         setupBlock = {
             pressHome()
             startActivityAndWait()
-            device.waitForIdle()
+            ensureHomeScreen(device)
         }
     ) {
-        val displayWidth = device.displayWidth
-        val rowY = (device.displayHeight * 0.35).toInt()
-
         repeat(10) {
-            // Tap first conversation row
-            device.click(displayWidth / 2, rowY)
+            val firstConv = device.findObject(By.textContains("Alex Morgan"))
+            firstConv?.click()
+            device.wait(Until.hasObject(byTag("chat_message_list")), 5000)
             device.waitForIdle()
 
             // Navigate back via back gesture
             device.pressBack()
+            device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
             device.waitForIdle()
         }
     }
 
     companion object {
         const val TARGET_PACKAGE = "com.messages.app.benchmark"
+
+        fun byTag(tag: String): BySelector = By.res(Pattern.compile(".*(:id/)?$tag"))
+
+        fun ensureHomeScreen(device: UiDevice) {
+            var attempts = 0
+            while (!device.hasObject(byTag("home_conversation_list")) && attempts < 5) {
+                device.pressBack()
+                device.waitForIdle()
+                attempts++
+            }
+            device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
+            val listObj = device.findObject(byTag("home_conversation_list"))
+            check(listObj != null && listObj.wait(Until.hasObject(By.textContains("Alex Morgan")), 5000)) {
+                "Seeded conversation row ('Alex Morgan') not found in home_conversation_list"
+            }
+        }
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.imePadding
@@ -488,6 +489,7 @@ fun HomeScreen(
                     actions = {
                         FilledTonalIconButton(
                             onClick = onSettings,
+                            modifier = Modifier.testTag("home_settings_button"),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                             ),
@@ -692,6 +694,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     interactionSource = searchPillInteractionSource,
                     modifier = Modifier
+                        .testTag("home_search_pill")
                         .fillMaxWidth()
                         .height(52.dp)
                         .graphicsLayer {
@@ -1008,7 +1011,7 @@ private fun FolderPane(
                     Box(Modifier.fillMaxSize()) {
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().testTag("home_conversation_list"),
                         contentPadding = PaddingValues(bottom = 88.dp),
                     ) {
                         if (pinnedList.isNotEmpty() && !unreadOnly) {

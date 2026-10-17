@@ -19,6 +19,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import com.messages.designsystem.Motion
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -1469,6 +1470,7 @@ private fun QuickRepliesEditor(
     val scope = rememberCoroutineScope()
 
     SettingsGroupCard(
+        modifier = Modifier.testTag("quick_reply_list"),
         cardIndex = cardIndex,
         footer = {
             Text(
@@ -1543,7 +1545,8 @@ private fun QuickRepliesEditor(
                 onClick = {
                     isEditMode = !isEditMode
                     selectedTemplates = emptySet()
-                }
+                },
+                modifier = Modifier.testTag("quick_reply_edit_toggle"),
             ) {
                 Text(
                     text = if (isEditMode) stringResource(R.string.action_done) else stringResource(R.string.action_edit),
@@ -1565,7 +1568,7 @@ private fun QuickRepliesEditor(
                         expandVertically(com.messages.designsystem.Motion.chatEnter())
                 } else androidx.compose.animation.EnterTransition.None,
             ) {
-                Column {
+                Column(modifier = Modifier.testTag("quick_reply_row_$index")) {
                     SettingsCardDivider()
                     if (isEditMode) {
                         val isSelected = template in selectedTemplates

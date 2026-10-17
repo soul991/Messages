@@ -16,6 +16,9 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -283,7 +286,12 @@ class MainActivity : FragmentActivity() {
                         }
                     }
                 }
-                SharedTransitionLayout {
+                SharedTransitionLayout(
+                    modifier = Modifier.semantics {
+                        @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+                        testTagsAsResourceId = true
+                    },
+                ) {
                     CompositionLocalProvider(LocalSharedTransitionScope provides this) {
                 NavHost(
                     navController = nav,

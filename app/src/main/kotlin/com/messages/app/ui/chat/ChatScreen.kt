@@ -20,6 +20,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -927,7 +928,7 @@ fun ChatScreen(
 
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().testTag("chat_message_list"),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
@@ -1175,7 +1176,7 @@ fun ChatScreen(
                                 draft = ""
                             },
                             interactionSource = actionInteractionSource,
-                            modifier = Modifier.size(48.dp).scale(actionScale),
+                            modifier = Modifier.size(48.dp).scale(actionScale).testTag("chat_send_button"),
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.action_send))
                         }
@@ -1346,6 +1347,7 @@ fun ChatScreen(
                             template,
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier
+                                .testTag("chat_quick_reply_chip")
                                 .fillMaxWidth()
                                 .clickable {
                                     draft = if (draft.isBlank()) template else "$draft $template"
@@ -1492,7 +1494,7 @@ private fun ComposerField(
         ),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         maxLines = 5,
-        modifier = modifier,
+        modifier = modifier.testTag("chat_composer_field"),
         decorationBox = { inner ->
             Row(
                 Modifier
@@ -1518,7 +1520,10 @@ private fun ComposerField(
                 // 48 — which is where Material's composer sits anyway — rather
                 // than shipping a 36 dp target inside the most-tapped row in
                 // the app. The glyph stays 20 dp, so nothing looks heavier.
-                IconButton(onClick = onQuickReplies) {
+                IconButton(
+                    onClick = onQuickReplies,
+                    modifier = Modifier.testTag("chat_quick_reply_chip"),
+                ) {
                     Icon(
                         Icons.Filled.Bolt,
                         contentDescription = stringResource(R.string.chat_quick_replies),

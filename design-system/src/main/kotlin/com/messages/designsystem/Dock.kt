@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -171,6 +172,7 @@ fun BottomDock(
 
                     Box(
                         modifier = Modifier
+                            .testTag("dock_${item.key}")
                             .weight(weight)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(24.dp))

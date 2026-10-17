@@ -248,6 +248,57 @@ app/build/intermediates\merged_manifests\release\processReleaseManifest\AndroidM
 | AMOLED | REVIEW | `#BDC7DC` | 1.70:1 | **FAIL** | `#3E4759` | `#D9E3F8` | 7.24:1 | PASS (AAA) |
 | AMOLED | SPAM | `#FFB4AB` | 1.70:1 | **FAIL** | `#93000A` | `#FFDAD6` | 7.24:1 | PASS (AAA) |
 
+---
+
+## Part 6: Make the Benchmarks Test What They Claim
+
+### 1. Implementation Summary
+- **Element Grounding (`testTagsAsResourceId`)**:
+  - Configured `Modifier.semantics { @OptIn(ExperimentalComposeUiApi::class) testTagsAsResourceId = true }` at the root UI level on `SharedTransitionLayout` in `MainActivity.kt`.
+  - Added 14 inert `testTag` locators across all primary user surfaces:
+    1. `home_conversation_list`: `HomeScreen.kt` LazyColumn (`LazyListState`).
+    2. `home_search_pill`: `HomeScreen.kt` resting search Surface.
+    3. `home_settings_button`: `HomeScreen.kt` top-bar FilledTonalIconButton.
+    4. `dock_INBOX`, `dock_TRANSACTIONS`, `dock_PROMOTIONS`, `dock_REVIEW`, `dock_SPAM`: `Dock.kt` Box tab slots.
+    5. `chat_message_list`: `ChatScreen.kt` message LazyColumn.
+    6. `chat_composer_field`: `ChatScreen.kt` composer BasicTextField.
+    7. `chat_send_button`: `ChatScreen.kt` send FilledIconButton.
+    8. `chat_quick_reply_chip`: `ChatScreen.kt` composer bolt button and bottom-sheet quick reply chips.
+    9. `settings_page_conversations`: `SettingsHub.kt` HubRow navigating to Conversations settings.
+    10. `quick_reply_list`: `SettingsScreen.kt` SettingsGroupCard wrapping quick replies.
+    11. `quick_reply_row_<index>`: `SettingsScreen.kt` Column wrapping each quick reply template item.
+    12. `quick_reply_edit_toggle`: `SettingsScreen.kt` Edit/Done mode TextButton.
+    13. `quick_reply_input_field`: `SettingsComponents.kt` BasicTextField in QuickReplyInputPill.
+    14. `quick_reply_add_button`: `SettingsComponents.kt` "+" Box button in QuickReplyInputPill.
+- **Seeding Inside Macrobenchmark (`@Before`)**:
+  - Integrated `@Before` fixture in `ScrollAndTransitionBenchmark.kt`, `StartupBenchmark.kt`, and `BaselineProfileGenerator.kt`:
+    `device.executeShellCommand("am broadcast -n com.messages.app.benchmark/com.messages.app.debug.SeedDataReceiver -a com.messages.app.debug.SEED --ez wipe true")`
+    Verifies output contains `result=-1` (Activity.RESULT_OK) or fails the test run.
+  - Added `ensureHomeScreen(device)` assertion verifying `home_conversation_list` contains the seeded row (`Alex Morgan`) before measurement begins.
+- **Journeys Overhaul (No Raw Coordinates)**:
+  - Overhauled all journeys in `ScrollAndTransitionBenchmark.kt` to use `By.res(Pattern.compile(".*(:id/)?$tag"))`:
+    - **Journey a**: Home fling down/up x5 over 500 conversations (`home_conversation_list.fling(Direction.DOWN/UP)`).
+    - **Journey b**: Home search overlay tap search pill (`home_search_pill`), wait for idle, press back x10 inside measured block.
+    - **Journey c**: Home switch dock tabs (`dock_INBOX` -> `dock_TRANSACTIONS` -> `dock_PROMOTIONS` -> `dock_REVIEW` -> `dock_SPAM` -> `dock_INBOX`).
+    - **Journey d**: 100-message chat fling up/down; send 5 text messages (`chat_composer_field`, `chat_send_button`) and 3 quick replies (`chat_quick_reply_chip`).
+    - **Journey e**: Settings (`home_settings_button`) -> Conversations (`settings_page_conversations`) -> Quick replies: swipe-delete row (`quick_reply_row_0`), toggle Edit mode (`quick_reply_edit_toggle`), add reply (`quick_reply_input_field`, `quick_reply_add_button`).
+    - **Journey f**: Chat <-> Home open/close transitions x10 via thread click and device back gesture.
+  - All journeys evaluated under both `CompilationMode.Partial()` and `CompilationMode.None()` with `iterations = 10` and `FrameTimingMetric()`.
+  - Cold and warm startups evaluated in `StartupBenchmark.kt` under both compilation modes with `StartupTimingMetric()`.
+- **Baseline Profile Generator**:
+  - Updated `BaselineProfileGenerator.kt` to cover journeys a through f using the new semantic tags.
+  - Removed handwritten wildcard rules from `app/src/main/baseline-prof.txt` in preparation for real profile generation on device.
+
+### 2. Release & Build Verification
+- **Release Compilation (`:app:assembleRelease`)**:
+  - Built successfully in 2m 45s.
+- **DEX Symbol Leak Check**:
+  - Command: Scan `classes*.dex` in release APK for `SeedDataReceiver`, `SyntheticStress`, `Rostova`.
+  - Result: `Total matches: 0`.
+- **Macrobenchmark Compilation (`:macrobenchmark:compileBenchmarkKotlin`)**:
+  - Built successfully in 20s.
+
+
 
 
 

@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
@@ -494,7 +495,7 @@ internal fun QuickReplyInputPill(
                     textStyle = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onSurface,
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("quick_reply_input_field"),
                 )
             }
 
@@ -502,6 +503,7 @@ internal fun QuickReplyInputPill(
 
             Box(
                 modifier = Modifier
+                    .testTag("quick_reply_add_button")
                     .size(40.dp)
                     .graphicsLayer {
                         scaleX = scale.value
