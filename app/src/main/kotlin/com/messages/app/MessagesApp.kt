@@ -26,6 +26,17 @@ class MessagesApp : Application() {
         releaseStaleScheduledClaims()
         settleAbandonedMmsTransactions()
         sealLockedBacklog()
+        injectSyntheticStressData()
+    }
+
+    private fun injectSyntheticStressData() {
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+        ).launch {
+            runCatching {
+                com.messages.app.ui.chat.SyntheticStressData.injectIfNeeded(this@MessagesApp)
+            }
+        }
     }
 
     /**

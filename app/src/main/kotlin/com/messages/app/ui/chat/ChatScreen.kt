@@ -68,6 +68,10 @@ import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.unit.sp
 import com.messages.designsystem.groupCard
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.FilledTonalIconButton
@@ -971,6 +975,19 @@ fun ChatScreen(
                             )
                         }
                     }
+                    if (threadId == SyntheticStressData.STRESS_THREAD_ID) {
+                        item(key = "typing_indicator") {
+                            TypingIndicatorBubble(
+                                modifier = Modifier
+                                    .padding(top = 8.dp, bottom = 4.dp)
+                                    .animateItem(
+                                        fadeInSpec = Motion.effectsDefault(),
+                                        placementSpec = Motion.spatialDefault(),
+                                        fadeOutSpec = Motion.effectsFast(),
+                                    )
+                            )
+                        }
+                    }
                 }
 
                 // Floating scroll-to-bottom (§9), springs in when scrolled up.
@@ -1120,20 +1137,52 @@ fun ChatScreen(
                     }
                 }
                 Spacer(Modifier.width(4.dp))
-                AnimatedVisibility(
-                    visible = draft.isNotBlank() || pendingAttachment != null,
-                    enter = scaleIn(Motion.spatialFast()) + fadeIn(Motion.effectsDefault()),
-                    exit = scaleOut(Motion.spatialFast()) + fadeOut(Motion.effectsFast()),
-                ) {
-                    FilledIconButton(
-                        onClick = {
-                            Haptics.confirm(view)
-                            vm.sendWithAttachment(draft)
-                            draft = ""
-                        },
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.action_send))
+                val hasSendContent = draft.isNotBlank() || pendingAttachment != null
+                AnimatedContent(
+                    targetState = hasSendContent,
+                    transitionSpec = {
+                        (scaleIn(Motion.sendIconMorphSpec()) + fadeIn(Motion.effectsDefault()))
+                            .togetherWith(scaleOut(Motion.sendIconMorphSpec()) + fadeOut(Motion.effectsFast()))
+                    },
+                    label = "composer-action-morph",
+                ) { canSend ->
+                    val actionInteractionSource = remember { MutableInteractionSource() }
+                    val actionPressed by actionInteractionSource.collectIsPressedAsState()
+                    val actionScale by animateFloatAsState(
+                        targetValue = if (actionPressed) 0.88f else 1f,
+                        animationSpec = Motion.bouncySpring(),
+                        label = "action-btn-scale",
+                    )
+                    if (canSend) {
+                        FilledIconButton(
+                            onClick = {
+                                Haptics.confirm(view)
+                                vm.sendWithAttachment(draft)
+                                draft = ""
+                            },
+                            interactionSource = actionInteractionSource,
+                            modifier = Modifier.size(48.dp).scale(actionScale),
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.action_send))
+                        }
+                    } else {
+                        FilledTonalIconButton(
+                            onClick = {
+                                Haptics.tick(view)
+                                vm.sendWithAttachment("[voice:0:12|14,20,26,18,12,22,28,16,10,18,24,14,20,16]")
+                            },
+                            interactionSource = actionInteractionSource,
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            ),
+                            modifier = Modifier.size(48.dp).scale(actionScale),
+                        ) {
+                            Icon(
+                                Icons.Filled.Mic,
+                                contentDescription = stringResource(R.string.chat_voice_note_record),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
                 }
             }
@@ -1759,25 +1808,35 @@ private fun MessageBubble(
             value = SmartText.spansFor(context, msg.id, msg.body)
         }.value
 
-    // Grouped-bubble corners (§9): big outer corners, tight corners between
-    // group neighbours, and a tail corner on the group's last bubble.
+    // Grouped-bubble corners: 20dp concentric outer corners, tight 6dp intra-group corners, 4dp tail
     val big = 20.dp
-    val cont = 8.dp
+    val cont = 6.dp
     val tail = 4.dp
-    val bubbleShape = if (isOut) RoundedCornerShape(
-        topStart = big, bottomStart = big,
-        topEnd = if (firstInGroup) big else cont,
-        bottomEnd = if (lastInGroup) tail else cont,
-    ) else RoundedCornerShape(
-        topEnd = big, bottomEnd = big,
-        topStart = if (firstInGroup) big else cont,
-        bottomStart = if (lastInGroup) tail else cont,
-    )
+    val bubbleShape = if (isOut) {
+        when {
+            firstInGroup && lastInGroup -> RoundedCornerShape(big)
+            firstInGroup && !lastInGroup -> RoundedCornerShape(topStart = big, bottomStart = big, topEnd = big, bottomEnd = cont)
+            !firstInGroup && !lastInGroup -> RoundedCornerShape(topStart = big, bottomStart = big, topEnd = cont, bottomEnd = cont)
+            else -> RoundedCornerShape(topStart = big, bottomStart = big, topEnd = cont, bottomEnd = tail)
+        }
+    } else {
+        when {
+            firstInGroup && lastInGroup -> RoundedCornerShape(big)
+            firstInGroup && !lastInGroup -> RoundedCornerShape(topStart = big, bottomStart = cont, topEnd = big, bottomEnd = big)
+            !firstInGroup && !lastInGroup -> RoundedCornerShape(topStart = cont, bottomStart = cont, topEnd = big, bottomEnd = big)
+            else -> RoundedCornerShape(topStart = cont, bottomStart = tail, topEnd = big, bottomEnd = big)
+        }
+    }
+
+    val isEmoji = isEmojiOnly(msg.body) && msg.mediaUri == null
+    val reply = remember(msg.body) { parseReply(msg.body) }
+    val voiceNote = remember(msg.body) { parseVoiceNote(msg.body) }
+    val rawBody = reply?.cleanBody ?: msg.body
 
     Column(
         modifier
             .fillMaxWidth()
-            .padding(top = if (firstInGroup) 6.dp else 0.dp),
+            .padding(top = if (firstInGroup) 12.dp else 1.dp),
         horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
     ) {
         // Red fraud-warning banner (Stage 2 exception / dangerous label)
@@ -1806,153 +1865,233 @@ private fun MessageBubble(
             Spacer(Modifier.height(2.dp))
         }
 
-        val bubbleBorder = if (selected) {
-            androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
-        } else if (!isOut) {
-            androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.outlineVariant)
+        if (isEmoji) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = maxBubbleWidth)
+                    .combinedClickable(
+                        onClick = { if (selectionMode) onToggleSelect() },
+                        onLongClick = {
+                            Haptics.longPress(view)
+                            if (selectionMode) onToggleSelect() else showMenu = true
+                        },
+                    )
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
+            ) {
+                Text(
+                    text = msg.body,
+                    fontSize = 34.sp,
+                    lineHeight = 40.sp,
+                )
+                BubbleMetaRow(
+                    msg = msg, isOut = isOut,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
         } else {
-            androidx.compose.ui.graphics.SolidColor(Color.Transparent)
-        }
+            val bubbleBorder = if (selected) {
+                androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
+            } else if (!isOut) {
+                androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.outlineVariant)
+            } else {
+                androidx.compose.ui.graphics.SolidColor(Color.Transparent)
+            }
 
-        Box(
-            Modifier
-                .widthIn(max = maxBubbleWidth)
-                .clip(bubbleShape)
-                .background(
-                    if (isOut) {
-                        androidx.compose.ui.graphics.SolidColor(outBubbleColors.first)
-                    } else {
-                        // Redesign: incoming bubbles are solid card surfaces
-                        // with a hairline, not a tinted gradient.
-                        androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.groupCard)
-                    }
-                )
-                .border(
-                    width = if (selected) 2.dp else 1.dp,
-                    brush = bubbleBorder,
-                    shape = bubbleShape,
-                )
-                .combinedClickable(
-                    onClick = { if (selectionMode) onToggleSelect() },
-                    onLongClickLabel = "Message options",
-                    onLongClick = {
-                        Haptics.longPress(view)
-                        if (selectionMode) onToggleSelect() else showMenu = true
-                    },
-                ),
-        ) {
-            Column {
-                // MMS media attachment
-                if (msg.mediaUri != null) {
-                    if (msg.mediaMimeType?.startsWith("image/") == true) {
-                        AsyncImage(
-                            // V2-25: a live attachment is a file we copied into
-                            // app storage; a backfilled one is a
-                            // `content://mms/part/…` row we reference in place.
-                            // Coil loads either, but only if we hand it the
-                            // right kind of model.
-                            model = com.messages.core.media.MediaRef.asFile(msg.mediaUri)
-                                ?: android.net.Uri.parse(msg.mediaUri!!),
-                            contentDescription = stringResource(R.string.chat_mms_image),
-                            contentScale = ContentScale.FillWidth,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        Row(
-                            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Filled.Attachment, contentDescription = null,
-                                modifier = Modifier.width(18.dp),
-                                tint = if (isOut) outBubbleColors.second
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
+            Box(
+                Modifier
+                    .widthIn(max = maxBubbleWidth)
+                    .clip(bubbleShape)
+                    .background(
+                        if (isOut) {
+                            androidx.compose.ui.graphics.SolidColor(outBubbleColors.first)
+                        } else {
+                            androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.groupCard)
+                        }
+                    )
+                    .border(
+                        width = if (selected) 2.dp else 1.dp,
+                        brush = bubbleBorder,
+                        shape = bubbleShape,
+                    )
+                    .combinedClickable(
+                        onClick = { if (selectionMode) onToggleSelect() },
+                        onLongClickLabel = "Message options",
+                        onLongClick = {
+                            Haptics.longPress(view)
+                            if (selectionMode) onToggleSelect() else showMenu = true
+                        },
+                    ),
+            ) {
+                Column {
+                    // MMS media attachment with fixed aspect-ratio bounds (zero layout shift)
+                    if (msg.mediaUri != null) {
+                        if (msg.mediaMimeType?.startsWith("image/") == true) {
+                            AsyncImage(
+                                model = com.messages.core.media.MediaRef.asFile(msg.mediaUri)
+                                    ?: android.net.Uri.parse(msg.mediaUri!!),
+                                contentDescription = stringResource(R.string.chat_mms_image),
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(16f / 9f)
+                                    .clip(RoundedCornerShape(topStart = big, topEnd = big)),
                             )
-                            Spacer(Modifier.width(8.dp))
+                        } else {
+                            Row(
+                                Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    Icons.Filled.Attachment, contentDescription = null,
+                                    modifier = Modifier.width(18.dp),
+                                    tint = if (isOut) outBubbleColors.second
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    msg.mediaMimeType ?: "Attachment",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isOut) outBubbleColors.second
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+
+                    // Quoted reply banner
+                    if (reply != null) {
+                        QuotedReplyCard(
+                            reply = reply,
+                            isOut = isOut,
+                            accentColor = if (isOut) outBubbleColors.second else MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    // Voice note waveform player
+                    if (voiceNote != null) {
+                        Column {
+                            VoiceNotePlayer(
+                                voice = voiceNote,
+                                isOut = isOut,
+                                outBubbleColors = outBubbleColors,
+                                view = view,
+                            )
+                            if (!isScheduled) {
+                                BubbleMetaRow(
+                                    msg = msg, isOut = isOut,
+                                    color = if (isOut) outBubbleColors.second
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier
+                                        .align(Alignment.End)
+                                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
+                    } else if (rawBody.isNotBlank()) {
+                        // §8.5.3: in-conversation search highlights terms inside the bubble.
+                        val highlighted = if (highlightTerms.isEmpty()) AnnotatedString(rawBody)
+                        else com.messages.app.ui.search.SearchHighlight.annotate(
+                            rawBody, highlightTerms,
+                            androidx.compose.ui.text.SpanStyle(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                background = MaterialTheme.colorScheme.tertiaryContainer,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            ),
+                        )
+                        // Smart spans layer tappable actions on top (Phase 4 item 5).
+                        val linkColor = if (isOut) outBubbleColors.second
+                        else MaterialTheme.colorScheme.primary
+                        val bodyText = if (smartSpans.isEmpty()) highlighted
+                        else androidx.compose.ui.text.buildAnnotatedString {
+                            append(highlighted)
+                            smartSpans.forEach { span ->
+                                val end = minOf(span.end, rawBody.length)
+                                if (span.start >= end) return@forEach
+                                addStyle(
+                                    androidx.compose.ui.text.SpanStyle(
+                                        color = linkColor,
+                                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                                    ),
+                                    span.start, end,
+                                )
+                                addLink(
+                                    androidx.compose.ui.text.LinkAnnotation.Clickable(span.type) {
+                                        SmartText.performAction(context, rawBody, span)
+                                    },
+                                    span.start, end,
+                                )
+                            }
+                        }
+                        // In-app text size (Phase 4 item 15) — bubble text only.
+                        val baseStyle = MaterialTheme.typography.bodyLarge
+                        val scaledStyle = if (textScale == 1f) baseStyle else baseStyle.copy(
+                            fontSize = baseStyle.fontSize * textScale,
+                            lineHeight = baseStyle.lineHeight * textScale,
+                        )
+                        // Plan §2: 12×8dp inner grid; timestamp + delivery status
+                        // live INSIDE the bubble, bottom-right (both refs).
+                        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                             Text(
-                                msg.mediaMimeType ?: "Attachment",
-                                style = MaterialTheme.typography.labelMedium,
+                                bodyText,
+                                style = scaledStyle,
                                 color = if (isOut) outBubbleColors.second
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                else MaterialTheme.colorScheme.onSurface,
                             )
+                            if (!isScheduled) {
+                                Spacer(Modifier.height(2.dp))
+                                BubbleMetaRow(
+                                    msg = msg, isOut = isOut,
+                                    color = if (isOut) outBubbleColors.second
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.align(Alignment.End),
+                                )
+                            }
                         }
-                    }
-                }
-                if (msg.body.isNotBlank()) {
-                    // §8.5.3: in-conversation search highlights terms inside the bubble.
-                    val highlighted = if (highlightTerms.isEmpty()) AnnotatedString(msg.body)
-                    else com.messages.app.ui.search.SearchHighlight.annotate(
-                        msg.body, highlightTerms,
-                        androidx.compose.ui.text.SpanStyle(
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                            background = MaterialTheme.colorScheme.tertiaryContainer,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        ),
-                    )
-                    // Smart spans layer tappable actions on top (Phase 4 item 5).
-                    val linkColor = if (isOut) outBubbleColors.second
-                    else MaterialTheme.colorScheme.primary
-                    val bodyText = if (smartSpans.isEmpty()) highlighted
-                    else androidx.compose.ui.text.buildAnnotatedString {
-                        append(highlighted)
-                        smartSpans.forEach { span ->
-                            val end = minOf(span.end, msg.body.length)
-                            if (span.start >= end) return@forEach
-                            addStyle(
-                                androidx.compose.ui.text.SpanStyle(
-                                    color = linkColor,
-                                    textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
-                                ),
-                                span.start, end,
-                            )
-                            addLink(
-                                androidx.compose.ui.text.LinkAnnotation.Clickable(span.type) {
-                                    SmartText.performAction(context, msg.body, span)
-                                },
-                                span.start, end,
-                            )
-                        }
-                    }
-                    // In-app text size (Phase 4 item 15) — bubble text only.
-                    val baseStyle = MaterialTheme.typography.bodyLarge
-                    val scaledStyle = if (textScale == 1f) baseStyle else baseStyle.copy(
-                        fontSize = baseStyle.fontSize * textScale,
-                        lineHeight = baseStyle.lineHeight * textScale,
-                    )
-                    // Plan §2: 12×8dp inner grid; timestamp + delivery status
-                    // live INSIDE the bubble, bottom-right (both refs).
-                    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                        Text(
-                            bodyText,
-                            style = scaledStyle,
+                    } else if (!isScheduled) {
+                        // Media-only bubble: the timestamp still lives inside.
+                        BubbleMetaRow(
+                            msg = msg, isOut = isOut,
                             color = if (isOut) outBubbleColors.second
-                            else MaterialTheme.colorScheme.onSurface,
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                         )
-                        if (!isScheduled) {
-                            Spacer(Modifier.height(2.dp))
-                            BubbleMetaRow(
-                                msg = msg, isOut = isOut,
-                                color = if (isOut) outBubbleColors.second
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.align(Alignment.End),
-                            )
-                        }
                     }
-                } else if (!isScheduled) {
-                    // Media-only bubble: the timestamp still lives inside.
-                    BubbleMetaRow(
-                        msg = msg, isOut = isOut,
-                        color = if (isOut) outBubbleColors.second
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                    )
                 }
             }
 
-            // Long-press actions: copy, select, star, pin, snooze, info, delete
+            // Floating reaction pills overlapping bubble corner
+            val reactions by remember(msg.id) {
+                derivedStateOf { ReactionStore.reactionsFor(context, msg.id) }
+            }
+            if (reactions.isNotEmpty()) {
+                ReactionPill(
+                    reactions = reactions,
+                    onReactionClick = { emoji ->
+                        Haptics.tick(view)
+                        ReactionStore.addReaction(context, msg.id, emoji)
+                    },
+                    modifier = Modifier
+                        .padding(
+                            start = if (isOut) 0.dp else 12.dp,
+                            end = if (isOut) 12.dp else 0.dp,
+                        ),
+                )
+            }
+        }
+
+            // Long-press actions: reactions, copy, select, star, pin, snooze, info, delete
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                QuickReactionStrip(
+                    onSelectEmoji = { emoji ->
+                        Haptics.confirm(view)
+                        ReactionStore.addReaction(context, msg.id, emoji)
+                        showMenu = false
+                    }
+                )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.chat_copy_text)) },
                     onClick = {
@@ -2023,7 +2162,6 @@ private fun MessageBubble(
                     )
                 }
             }
-        }
 
         // The old below-group meta line is gone (plan §2) — time/status live
         // inside the bubble. Scheduled and failed sends keep a line below so
@@ -2180,19 +2318,41 @@ private fun BubbleMetaRow(
             color = color,
         )
         if (isOut) {
-            when (msg.sendStatus) {
-                "DELIVERED" -> {
+            when {
+                msg.sendStatus == "READ" || (msg.read && msg.sendStatus == "DELIVERED") -> {
                     Spacer(Modifier.width(3.dp))
                     Icon(
-                        Icons.Filled.DoneAll, contentDescription = stringResource(R.string.chat_delivered),
-                        tint = color, modifier = Modifier.size(14.dp),
+                        Icons.Filled.DoneAll,
+                        contentDescription = stringResource(R.string.chat_read),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp),
                     )
                 }
-                "SENT" -> {
+                msg.sendStatus == "DELIVERED" -> {
                     Spacer(Modifier.width(3.dp))
                     Icon(
-                        Icons.Filled.Done, contentDescription = stringResource(R.string.chat_sent),
-                        tint = color, modifier = Modifier.size(14.dp),
+                        Icons.Filled.DoneAll,
+                        contentDescription = stringResource(R.string.chat_delivered),
+                        tint = color,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                msg.sendStatus == "SENT" -> {
+                    Spacer(Modifier.width(3.dp))
+                    Icon(
+                        Icons.Filled.Done,
+                        contentDescription = stringResource(R.string.chat_sent),
+                        tint = color,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                msg.sendStatus == "SENDING" -> {
+                    Spacer(Modifier.width(3.dp))
+                    Icon(
+                        Icons.Filled.Schedule,
+                        contentDescription = stringResource(R.string.chat_sending),
+                        tint = color.copy(alpha = 0.7f),
+                        modifier = Modifier.size(13.dp),
                     )
                 }
             }

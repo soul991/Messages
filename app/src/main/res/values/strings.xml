@@ -508,6 +508,9 @@
     <string name="chat_send_now">Send now</string>
     <string name="chat_delivered">Delivered</string>
     <string name="chat_sent">Sent</string>
+    <string name="chat_read">Read</string>
+    <string name="chat_sending">Sending</string>
+    <string name="chat_voice_note_record">Record voice note</string>
     <string name="chat_send_later">Send later</string>
     <string name="chat_pick_date_time">Pick date &amp; time…</string>
     <string name="chat_send_at">Send at</string>
