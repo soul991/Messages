@@ -38,8 +38,17 @@ import com.messages.app.ui.common.LocalNavAnimatedVisibilityScope
 import com.messages.app.ui.common.LocalSharedTransitionScope
 import com.messages.app.ui.common.fadeThroughEnter
 import com.messages.app.ui.common.fadeThroughExit
+import com.messages.app.ui.common.homeExitForChat
+import com.messages.app.ui.common.homePopEnterFromChat
+import com.messages.app.ui.common.screenBehindExitForSubMenu
+import com.messages.app.ui.common.screenBehindPopEnterFromSubMenu
 import com.messages.app.ui.common.sharedAxisEnter
 import com.messages.app.ui.common.sharedAxisExit
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import com.messages.designsystem.Motion
 import com.messages.app.ui.chat.ChatScreen
 import com.messages.app.ui.compose.NewMessageScreen
 import com.messages.app.ui.dashboard.DashboardScreen
@@ -310,8 +319,24 @@ class MainActivity : FragmentActivity() {
                     composable(
                         "home",
                         enterTransition = { fadeThroughEnter() },
-                        exitTransition = { fadeThroughExit() },
-                        popEnterTransition = { fadeThroughEnter() },
+                        exitTransition = {
+                            if (targetState.destination.route?.startsWith("chat") == true) {
+                                homeExitForChat()
+                            } else if (targetState.destination.route?.startsWith("settings") == true) {
+                                screenBehindExitForSubMenu()
+                            } else {
+                                fadeThroughExit()
+                            }
+                        },
+                        popEnterTransition = {
+                            if (initialState.destination.route?.startsWith("chat") == true) {
+                                homePopEnterFromChat()
+                            } else if (initialState.destination.route?.startsWith("settings") == true) {
+                                screenBehindPopEnterFromSubMenu()
+                            } else {
+                                fadeThroughEnter()
+                            }
+                        },
                         popExitTransition = { fadeThroughExit() },
                     ) {
                         ProvideNavScope(this) {
@@ -535,7 +560,21 @@ class MainActivity : FragmentActivity() {
                             onBack = { nav.popBackStack() },
                         )
                     }
-                    composable("settings") {
+                    composable(
+                        "settings",
+                        enterTransition = {
+                            slideInHorizontally(Motion.screenSpring()) { it / 4 } + fadeIn(Motion.effectsDefault())
+                        },
+                        exitTransition = {
+                            screenBehindExitForSubMenu()
+                        },
+                        popEnterTransition = {
+                            screenBehindPopEnterFromSubMenu()
+                        },
+                        popExitTransition = {
+                            slideOutHorizontally(Motion.screenSpring()) { it / 4 } + fadeOut(Motion.effectsFast())
+                        },
+                    ) {
                         SettingsScreen(
                             onBack = { nav.popBackStack() },
                             onOpenTrash = { nav.navigate("trash") },
@@ -609,10 +648,18 @@ class MainActivity : FragmentActivity() {
                     }
                     composable(
                         "chat/{threadId}?address={address}&q={q}&target={target}&draft={draft}&search={search}",
-                        enterTransition = { fadeThroughEnter() },
-                        exitTransition = { fadeThroughExit() },
-                        popEnterTransition = { fadeThroughEnter() },
-                        popExitTransition = { fadeThroughExit() },
+                        enterTransition = {
+                            slideInHorizontally(Motion.chatEnter()) { it / 6 } + fadeIn(Motion.effectsDefault())
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(Motion.chatEnter()) { it / 6 } + fadeOut(Motion.effectsFast())
+                        },
+                        popEnterTransition = {
+                            slideInHorizontally(Motion.chatEnter()) { -it / 6 } + fadeIn(Motion.effectsDefault())
+                        },
+                        popExitTransition = {
+                            slideOutHorizontally(Motion.chatEnter()) { it / 6 } + fadeOut(Motion.effectsFast())
+                        },
                         arguments = listOf(
                             navArgument("address") {
                                 type = NavType.StringType

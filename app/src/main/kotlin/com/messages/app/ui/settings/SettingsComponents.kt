@@ -94,6 +94,32 @@ internal fun SettingsCardDivider() {
 }
 
 /**
+ * Cascading card entrance animation for Settings pages (Phase 4):
+ * 30ms stagger per card, capped at 6 cards (0..5), animated with screenSpring.
+ */
+@Composable
+fun Modifier.cascadeEntrance(index: Int): Modifier {
+    if (!Motion.animationsEnabled()) return this
+    val clampedIndex = index.coerceIn(0, 5) // capped at 6 cards
+    val delayMs = (clampedIndex * 30).toLong()
+    var visible by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
+        visible = true
+    }
+    val animProgress = animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = Motion.screenSpring(),
+        label = "card-cascade-$index",
+    )
+    return this.graphicsLayer {
+        val p = animProgress.value
+        alpha = p
+        translationY = (1f - p) * 24.dp.toPx()
+    }
+}
+
+/**
  * Grouped card container for sub-page settings rows:
  * Corner 28dp, fill colorScheme.groupCard, 1dp outlineVariant 50% alpha border (hairline),
  * with optional footer caption below the card.
@@ -101,13 +127,15 @@ internal fun SettingsCardDivider() {
 @Composable
 internal fun SettingsGroupCard(
     modifier: Modifier = Modifier,
+    cardIndex: Int = 0,
     footer: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .cascadeEntrance(cardIndex),
     ) {
         Surface(
             shape = RoundedCornerShape(28.dp),

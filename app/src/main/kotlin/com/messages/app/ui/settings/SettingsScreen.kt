@@ -7,11 +7,18 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import com.messages.designsystem.Motion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -602,37 +609,60 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.padding(padding).fillMaxSize()) {
-            // Hub: shown until a section is picked.
-            if (page == null) {
-                item {
-                    SettingsHub(onPick = { picked -> if (picked == null) onOpenAbout() else page = picked })
-                }
-            }
-
-            // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
-            if (page == SettingsPage.APPEARANCE) {
-                item {
-                    SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
-                    SettingsGroupCard {
-                        SettingsDropdownRow(
-                            icon = Icons.Outlined.DarkMode,
-                            categoryBadge = null,
-                            title = stringResource(R.string.settings_theme),
-                            subtitle = stringResource(R.string.settings_theme_subtitle),
-                            value = stringResource(themeMode.labelRes()),
-                            options = ThemeMode.values().map { it to stringResource(it.labelRes()) },
-                            onSelect = onThemeModeChange,
+        AnimatedContent(
+            targetState = page,
+            transitionSpec = {
+                if (initialState == null && targetState != null) {
+                    (slideInHorizontally(Motion.screenSpring()) { full -> full / 5 } + fadeIn(Motion.effectsDefault()))
+                        .togetherWith(
+                            scaleOut(targetScale = 0.94f, animationSpec = Motion.screenSpring()) + fadeOut(Motion.effectsFast())
                         )
-                        SettingsCardDivider()
-                        AccentPickerRow(selected = accent, onSelect = onAccentChange)
-                        SettingsCardDivider()
-                        MessageTextSizeRow()
+                } else if (initialState != null && targetState == null) {
+                    (scaleIn(initialScale = 0.94f, animationSpec = Motion.screenSpring()) + fadeIn(Motion.effectsDefault()))
+                        .togetherWith(
+                            slideOutHorizontally(Motion.screenSpring()) { full -> full / 5 } + fadeOut(Motion.effectsFast())
+                        )
+                } else {
+                    (slideInHorizontally(Motion.screenSpring()) { full -> full / 5 } + fadeIn(Motion.effectsDefault()))
+                        .togetherWith(
+                            slideOutHorizontally(Motion.screenSpring()) { full -> -full / 5 } + fadeOut(Motion.effectsFast())
+                        )
+                }
+            },
+            label = "settings-page-transition",
+            modifier = Modifier.padding(padding).fillMaxSize(),
+        ) { currentPage ->
+            LazyColumn(Modifier.fillMaxSize()) {
+                // Hub: shown until a section is picked.
+                if (currentPage == null) {
+                    item {
+                        SettingsHub(onPick = { picked -> if (picked == null) onOpenAbout() else page = picked })
                     }
                 }
-                item {
-                    SettingsSectionHeader(stringResource(R.string.settings_section_brightness))
-                    SettingsGroupCard {
+
+                // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
+                if (currentPage == SettingsPage.APPEARANCE) {
+                    item {
+                        SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
+                        SettingsGroupCard(cardIndex = 0) {
+                            SettingsDropdownRow(
+                                icon = Icons.Outlined.DarkMode,
+                                categoryBadge = null,
+                                title = stringResource(R.string.settings_theme),
+                                subtitle = stringResource(R.string.settings_theme_subtitle),
+                                value = stringResource(themeMode.labelRes()),
+                                options = ThemeMode.values().map { it to stringResource(it.labelRes()) },
+                                onSelect = onThemeModeChange,
+                            )
+                            SettingsCardDivider()
+                            AccentPickerRow(selected = accent, onSelect = onAccentChange)
+                            SettingsCardDivider()
+                            MessageTextSizeRow()
+                        }
+                    }
+                    item {
+                        SettingsSectionHeader(stringResource(R.string.settings_section_brightness))
+                        SettingsGroupCard(cardIndex = 1) {
                         InAppBrightnessSection(
                             customEnabled = customBrightness,
                             brightness = brightnessLevel,
@@ -645,10 +675,10 @@ fun SettingsScreen(
             }
 
             // ---- Protection sensitivity (§3 Stage 5) ----
-            if (page == SettingsPage.PROTECTION) {
+            if (currentPage == SettingsPage.PROTECTION) {
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
-                    SettingsGroupCard {
+                    SettingsGroupCard(cardIndex = 0) {
                         SettingsSwitchRow(
                             icon = Icons.Outlined.Shield,
                             categoryBadge = null,
@@ -693,6 +723,7 @@ fun SettingsScreen(
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_rules))
                     SettingsGroupCard(
+                        cardIndex = 1,
                         footer = {
                             Text(
                                 stringResource(R.string.settings_rules_subtitle),
@@ -726,7 +757,7 @@ fun SettingsScreen(
                 }
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_pattern_library))
-                    SettingsGroupCard {
+                    SettingsGroupCard(cardIndex = 2) {
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                             Text(
                                 pluralStringResource(
@@ -762,10 +793,10 @@ fun SettingsScreen(
             }
 
             // ---- Notifications (Phase 4 item 3: full per-folder screen) ----
-            if (page == SettingsPage.NOTIFICATIONS) {
+            if (currentPage == SettingsPage.NOTIFICATIONS) {
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_notifications))
-                    SettingsGroupCard {
+                    SettingsGroupCard(cardIndex = 0) {
                         SettingsNavRow(
                             icon = Icons.Outlined.Notifications,
                             categoryBadge = null,
@@ -779,7 +810,7 @@ fun SettingsScreen(
             }
 
             // ---- Privacy & security (§8.2) ----
-            if (page == SettingsPage.PRIVACY) {
+            if (currentPage == SettingsPage.PRIVACY) {
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_privacy))
                     val enablePrompt = stringResource(R.string.settings_app_lock_prompt_enable)
@@ -790,6 +821,7 @@ fun SettingsScreen(
                     }
 
                     SettingsGroupCard(
+                        cardIndex = 0,
                         footer = {
                             Text(
                                 stringResource(R.string.settings_lock_chat_tip),
@@ -871,7 +903,7 @@ fun SettingsScreen(
             }
 
             // ---- Conversations (§8.1/§8.2): swipe actions + delivery reports ----
-            if (page == SettingsPage.CONVERSATIONS) {
+            if (currentPage == SettingsPage.CONVERSATIONS) {
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_conversations))
                     val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -891,6 +923,7 @@ fun SettingsScreen(
                     }
 
                     SettingsGroupCard(
+                        cardIndex = 0,
                         footer = {
                             Column {
                                 Text(
@@ -966,17 +999,17 @@ fun SettingsScreen(
                     }
 
                     Spacer(Modifier.height(8.dp))
-                    QuickRepliesEditor(ctx, snackbarHostState)
+                    QuickRepliesEditor(ctx, snackbarHostState, cardIndex = 1)
                     Spacer(Modifier.height(24.dp))
                 }
             }
 
             // ---- Auto-clean features ----
-            if (page == SettingsPage.STORAGE) {
+            if (currentPage == SettingsPage.STORAGE) {
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_auto_clean))
                     var confirmSpamClean by remember { mutableStateOf(false) }
-                    SettingsGroupCard {
+                    SettingsGroupCard(cardIndex = 0) {
                         SettingsSwitchRow(
                             icon = Icons.Outlined.AutoDelete,
                             categoryBadge = null,
@@ -1023,6 +1056,7 @@ fun SettingsScreen(
                     SettingsSectionHeader(stringResource(R.string.settings_trash))
                     val trashCount by vm.trashCount.collectAsStateWithLifecycle(initialValue = 0)
                     SettingsGroupCard(
+                        cardIndex = 1,
                         footer = {
                             Text(
                                 stringResource(R.string.settings_trash_subtitle),
@@ -1048,10 +1082,11 @@ fun SettingsScreen(
             }
 
             // ---- Backup & restore (§8.2) ----
-            if (page == SettingsPage.BACKUP) {
+            if (currentPage == SettingsPage.BACKUP) {
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_backup))
                     SettingsGroupCard(
+                        cardIndex = 0,
                         footer = {
                             Text(
                                 stringResource(R.string.settings_backup_subtitle),
@@ -1091,6 +1126,7 @@ fun SettingsScreen(
                         ?.takeIf { it.state == androidx.work.WorkInfo.State.RUNNING }
 
                     SettingsGroupCard(
+                        cardIndex = 1,
                         footer = {
                             Text(
                                 stringResource(R.string.settings_reimport_subtitle),
@@ -1130,6 +1166,7 @@ fun SettingsScreen(
             }
         }
     }
+}
 }
 
 @StringRes
@@ -1412,6 +1449,7 @@ private fun InAppBrightnessSection(
 private fun QuickRepliesEditor(
     ctx: android.content.Context,
     snackbarHostState: SnackbarHostState,
+    cardIndex: Int = 1,
 ) {
     val templates by com.messages.app.ui.chat.QuickReplies.templates.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { com.messages.app.ui.chat.QuickReplies.load(ctx) }
@@ -1420,6 +1458,7 @@ private fun QuickRepliesEditor(
     val scope = rememberCoroutineScope()
 
     SettingsGroupCard(
+        cardIndex = cardIndex,
         footer = {
             Text(
                 stringResource(R.string.settings_quick_replies_subtitle),

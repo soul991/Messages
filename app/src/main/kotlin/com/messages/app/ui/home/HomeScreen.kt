@@ -170,6 +170,7 @@ import com.messages.app.ui.common.LoadState
 import com.messages.app.ui.common.listRender
 import com.messages.app.ui.common.rememberLoadingGrace
 import com.messages.app.ui.common.sharedThreadAvatar
+import com.messages.app.ui.common.sharedThreadName
 import com.messages.app.ui.common.valueOrNull
 import com.messages.app.ui.search.SearchHighlight
 import com.messages.core.db.ConversationEntity
@@ -757,9 +758,18 @@ fun HomeScreen(
                 val searchFocusRequester = remember { FocusRequester() }
                 LaunchedEffect(searchActive) {
                     if (searchActive) {
-                        searchFocusRequester.requestFocus()
+                        kotlinx.coroutines.delay(40)
+                        try {
+                            searchFocusRequester.requestFocus()
+                        } catch (_: Exception) {}
                     }
                 }
+
+                val searchHeaderProgress = animateFloatAsState(
+                    targetValue = if (searchActive) 1f else 0f,
+                    animationSpec = Motion.screenSpring(),
+                    label = "search-header-morph",
+                )
 
                 Surface(
                     shape = RoundedCornerShape(28.dp),
@@ -767,7 +777,13 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .height(52.dp),
+                        .height(52.dp)
+                        .graphicsLayer {
+                            val p = searchHeaderProgress.value
+                            scaleX = 0.96f + 0.04f * p
+                            scaleY = 0.96f + 0.04f * p
+                            translationY = (1f - p) * 12.dp.toPx()
+                        },
                 ) {
                     TextField(
                         value = typing,
@@ -1304,6 +1320,28 @@ private fun PinnedConversationsRow(
     }
 }
 
+@Composable
+private fun Modifier.searchCascadeEntrance(index: Int): Modifier {
+    if (!Motion.animationsEnabled()) return this
+    val clampedIndex = index.coerceIn(0, 7) // capped at 8 items
+    val delayMs = (clampedIndex * 35).toLong()
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
+        visible = true
+    }
+    val animProgress = animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = Motion.screenSpring(),
+        label = "search-cascade-$index",
+    )
+    return this.graphicsLayer {
+        val p = animProgress.value
+        alpha = p
+        translationY = (1f - p) * 16.dp.toPx()
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SearchPane(
@@ -1342,11 +1380,12 @@ private fun SearchPane(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
     ) {
-        items(SEARCH_LABELS) { (key, labelRes) ->
+        itemsIndexed(SEARCH_LABELS) { index, (key, labelRes) ->
             FilterChip(
                 selected = labelFilter == key,
                 onClick = { vm.setLabelFilter(if (labelFilter == key) null else key) },
                 label = { Text(stringResource(labelRes)) },
+                modifier = Modifier.searchCascadeEntrance(index),
             )
         }
     }
@@ -1427,20 +1466,26 @@ private fun SearchPane(
             item {
                 SearchSectionHeader(stringResource(R.string.home_search_section_conversations))
             }
-            items(state.conversationMatches, key = { "conv-${it.threadId}" }) { conv ->
-                ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
+            itemsIndexed(state.conversationMatches, key = { _, it -> "conv-${it.threadId}" }) { index, conv ->
+                Box(Modifier.searchCascadeEntrance(index)) {
+                    ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
+                }
             }
             if (state.results.isNotEmpty()) {
                 item { SearchSectionHeader(stringResource(R.string.home_search_section_messages)) }
             }
         }
-        items(normal, key = { it.message.id }) { row ->
-            SearchResultRow(row, state.activeKeywords, onOpenResult)
+        itemsIndexed(normal, key = { _, it -> it.message.id }) { index, row ->
+            Box(Modifier.searchCascadeEntrance(index)) {
+                SearchResultRow(row, state.activeKeywords, onOpenResult)
+            }
         }
         if (filtered.isNotEmpty()) {
             item { SearchSectionHeader(stringResource(R.string.home_search_section_spam)) }
-            items(filtered, key = { it.message.id }) { row ->
-                SearchResultRow(row, state.activeKeywords, onOpenResult)
+            itemsIndexed(filtered, key = { _, it -> it.message.id }) { index, row ->
+                Box(Modifier.searchCascadeEntrance(index)) {
+                    SearchResultRow(row, state.activeKeywords, onOpenResult)
+                }
             }
         }
     }
@@ -2105,7 +2150,7 @@ private fun ConversationRow(
                         overflow = TextOverflow.Ellipsis,
                         // fill=false: short names keep the badge hugging them,
                         // long names still ellipsize before the badge.
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f, fill = false).sharedThreadName(conv.threadId),
                     )
                     if (badge != null && badge != com.messages.protection.SenderBadges.Badge.VERIFIED) {
                         Spacer(Modifier.width(4.dp))
