@@ -1321,12 +1321,26 @@ private fun PinnedConversationsRow(
 }
 
 @Composable
-private fun Modifier.searchCascadeEntrance(index: Int): Modifier {
+private fun Modifier.searchCascadeEntrance(
+    key: Any,
+    index: Int,
+    alreadyAnimatedKeys: MutableSet<Any>,
+    isScrolling: Boolean,
+): Modifier {
     if (!Motion.animationsEnabled()) return this
-    val clampedIndex = index.coerceIn(0, 7) // capped at 8 items
-    val delayMs = (clampedIndex * 35).toLong()
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+
+    // An item animates ONLY if its key is not in the set AND its index < 8 AND the list is not scrolling;
+    // add the key to the set on first composition. Items outside those conditions render at full alpha with no delay.
+    val shouldAnimate = remember(key) {
+        val inSet = alreadyAnimatedKeys.contains(key)
+        alreadyAnimatedKeys.add(key)
+        !inSet && index < 8 && !isScrolling
+    }
+    if (!shouldAnimate) return this
+
+    val delayMs = (index * 35L).coerceAtLeast(0L)
+    var visible by remember(key) { mutableStateOf(false) }
+    LaunchedEffect(key) {
         if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
         visible = true
     }
@@ -1353,6 +1367,11 @@ private fun SearchPane(
     onOpenResult: (com.messages.core.db.MessageEntity) -> Unit,
     onOpenThread: (Long) -> Unit,
 ) {
+    val queryKey = listOf(chips, typing, labelFilter, state.activeKeywords)
+    val alreadyAnimatedKeys = remember(queryKey) { mutableSetOf<Any>() }
+    val searchListState = rememberLazyListState()
+    val isScrolling = searchListState.isScrollInProgress
+
     // Committed keyword chips — unlimited, each removable (§8.5.2).
     if (chips.isNotEmpty()) {
         FlowRow(
@@ -1385,7 +1404,12 @@ private fun SearchPane(
                 selected = labelFilter == key,
                 onClick = { vm.setLabelFilter(if (labelFilter == key) null else key) },
                 label = { Text(stringResource(labelRes)) },
-                modifier = Modifier.searchCascadeEntrance(index),
+                modifier = Modifier.searchCascadeEntrance(
+                    key = "label-$key",
+                    index = index,
+                    alreadyAnimatedKeys = alreadyAnimatedKeys,
+                    isScrolling = false,
+                ),
             )
         }
     }
@@ -1460,14 +1484,18 @@ private fun SearchPane(
     val (filtered, normal) = state.results.partition {
         it.message.category == "SPAM" || it.message.category == "BLOCKED"
     }
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(
+        state = searchListState,
+        modifier = Modifier.fillMaxSize(),
+    ) {
         // §8.5.3: conversations whose contact name / number matches ("mom").
         if (state.conversationMatches.isNotEmpty()) {
             item {
                 SearchSectionHeader(stringResource(R.string.home_search_section_conversations))
             }
             itemsIndexed(state.conversationMatches, key = { _, it -> "conv-${it.threadId}" }) { index, conv ->
-                Box(Modifier.searchCascadeEntrance(index)) {
+                val rowKey = "conv-${conv.threadId}"
+                Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
                     ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
                 }
             }
@@ -1476,14 +1504,16 @@ private fun SearchPane(
             }
         }
         itemsIndexed(normal, key = { _, it -> it.message.id }) { index, row ->
-            Box(Modifier.searchCascadeEntrance(index)) {
+            val rowKey = "msg-${row.message.id}"
+            Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
                 SearchResultRow(row, state.activeKeywords, onOpenResult)
             }
         }
         if (filtered.isNotEmpty()) {
             item { SearchSectionHeader(stringResource(R.string.home_search_section_spam)) }
             itemsIndexed(filtered, key = { _, it -> it.message.id }) { index, row ->
-                Box(Modifier.searchCascadeEntrance(index)) {
+                val rowKey = "spam-${row.message.id}"
+                Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
                     SearchResultRow(row, state.activeKeywords, onOpenResult)
                 }
             }

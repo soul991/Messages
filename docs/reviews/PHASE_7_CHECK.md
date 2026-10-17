@@ -164,3 +164,29 @@ app/build/intermediates\merged_manifest\release\processReleaseMainManifest\Andro
 app/build/intermediates\merged_manifests\release\processReleaseManifest\AndroidManifest.xml contains SeedDataReceiver: False
 ```
 
+---
+
+## Part 3: Cascade Animations Replay While Scrolling
+
+### 1. Implementation Summary
+- **Search Pane Cascade Entrance (`HomeScreen.kt`)**:
+  - Hoisted `val alreadyAnimatedKeys = remember(queryKey) { mutableSetOf<Any>() }` and `val searchListState = rememberLazyListState()` at `SearchPane` level, with `val isScrolling = searchListState.isScrollInProgress`.
+  - In `searchCascadeEntrance(key, index, alreadyAnimatedKeys, isScrolling)`:
+    - Checks `Motion.animationsEnabled()`.
+    - An item animates **ONLY** if its key is not in `alreadyAnimatedKeys` AND `index < 8` AND `!isScrolling`.
+    - Key is added to `alreadyAnimatedKeys` on first composition.
+    - Items outside these conditions render immediately at full alpha with no delay or offset.
+- **Settings Cascade Entrance (`SettingsComponents.kt`, `SettingsScreen.kt`, `NotificationSettingsScreen.kt`)**:
+  - Introduced `LocalSettingsPageAnimated` CompositionLocal.
+  - In `SettingsScreen.kt`: hoisted `val pageEntrancePlayed = rememberSaveable(currentPage) { mutableStateOf(false) }` per page entry, setting it to `true` after the initial cascade completes via `LaunchedEffect(currentPage)`.
+  - In `cascadeEntrance(index)`:
+    - Checks `Motion.animationsEnabled()`.
+    - Only animates cards with `index < 6` (0..5).
+    - If `LocalSettingsPageAnimated.current` is true, returns immediately without replaying animation.
+    - Cards never replay on scroll re-entry.
+
+### 2. Device Verification
+- **Screen Recording**: Recorded on connected emulator (`emulator-5554`) while scrolling a long search results list ("Rivera") down and back up. Rows that scroll back into view render immediately at full alpha without fading or sliding in again.
+- **Artifact**: `docs/reviews/screens/search_scroll.mp4` (3,436,384 bytes).
+
+

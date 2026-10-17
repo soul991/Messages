@@ -632,7 +632,17 @@ fun SettingsScreen(
             label = "settings-page-transition",
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) { currentPage ->
-            LazyColumn(Modifier.fillMaxSize()) {
+            val pageEntrancePlayed = androidx.compose.runtime.saveable.rememberSaveable(currentPage) {
+                androidx.compose.runtime.mutableStateOf(false)
+            }
+            androidx.compose.runtime.LaunchedEffect(currentPage) {
+                kotlinx.coroutines.delay(250)
+                pageEntrancePlayed.value = true
+            }
+            androidx.compose.runtime.CompositionLocalProvider(
+                LocalSettingsPageAnimated provides pageEntrancePlayed.value
+            ) {
+                LazyColumn(Modifier.fillMaxSize()) {
                 // Hub: shown until a section is picked.
                 if (currentPage == null) {
                     item {
@@ -1163,6 +1173,7 @@ fun SettingsScreen(
                     }
                     Spacer(Modifier.height(24.dp))
                 }
+            }
             }
         }
     }

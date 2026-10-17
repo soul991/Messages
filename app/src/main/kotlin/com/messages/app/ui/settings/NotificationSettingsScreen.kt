@@ -95,12 +95,22 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
             )
         },
     ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
+        val pageEntrancePlayed = androidx.compose.runtime.saveable.rememberSaveable {
+            androidx.compose.runtime.mutableStateOf(false)
+        }
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(250)
+            pageEntrancePlayed.value = true
+        }
+        androidx.compose.runtime.CompositionLocalProvider(
+            LocalSettingsPageAnimated provides pageEntrancePlayed.value
         ) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState()),
+            ) {
             SettingsSectionHeader(stringResource(R.string.notification_preview_header))
             NotificationPreviewCard()
             Spacer(Modifier.height(12.dp))
@@ -229,6 +239,7 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
                 )
             }
             Spacer(Modifier.height(24.dp))
+        }
         }
     }
 }

@@ -93,15 +93,19 @@ internal fun SettingsCardDivider() {
     )
 }
 
+val LocalSettingsPageAnimated = androidx.compose.runtime.compositionLocalOf { false }
+
 /**
  * Cascading card entrance animation for Settings pages (Phase 4):
  * 30ms stagger per card, capped at 6 cards (0..5), animated with screenSpring.
+ * Animate cards only once per page entry, only the first 6 cards, and never on scroll re-entry.
  */
 @Composable
 fun Modifier.cascadeEntrance(index: Int): Modifier {
     if (!Motion.animationsEnabled()) return this
-    val clampedIndex = index.coerceIn(0, 5) // capped at 6 cards
-    val delayMs = (clampedIndex * 30).toLong()
+    if (index >= 6) return this
+    if (LocalSettingsPageAnimated.current) return this
+    val delayMs = (index * 30).toLong()
     var visible by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) {
         if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
