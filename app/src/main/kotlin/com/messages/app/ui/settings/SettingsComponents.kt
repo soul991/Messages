@@ -326,7 +326,7 @@ internal fun <T> SettingsDropdownRow(
 internal fun SwipeToRevealRow(
     onDelete: () -> Unit,
     enabled: Boolean = true,
-    deleteLabel: String = "Delete",
+    deleteLabel: String = stringResource(R.string.action_delete),
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -426,7 +426,8 @@ internal fun SwipeToRevealRow(
                             }
                         },
                         onHorizontalDrag = { _, dragAmount ->
-                            val newOffset = (liveOffset.floatValue + dragAmount).coerceAtMost(0f)
+                            val minOffset = if (rowWidthPx > 0f) -rowWidthPx else -1000f
+                            val newOffset = (liveOffset.floatValue + dragAmount).coerceIn(minOffset, 0f)
                             liveOffset.floatValue = newOffset
                         }
                     )

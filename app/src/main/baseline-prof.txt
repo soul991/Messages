@@ -1,137 +1,55 @@
 # Baseline Profile for Messages App
-# Generated & verified for Android 15/16 (API 36) runtime and Ahead-Of-Time (AOT) DEX compilation.
-# Covers all primary screens, liquid motion physics, tactile spring interactions, and design system components.
+# Ahead-Of-Time (AOT) DEX profile rules covering startup, navigation, and motion hot-paths.
 
-# ---------------------------------------------------------------------------
-# 1. Main Entrypoint, Navigation & System Bars
-# ---------------------------------------------------------------------------
-HSPLcom/messages/app/MainActivity;->onCreate(Landroid/os/Bundle;)V
-HSPLcom/messages/app/MainActivity;->onResume()V
-HSPLcom/messages/app/MainActivityKt;->**(**)**
-HSPLcom/messages/app/ui/common/SystemBarsKt;->**(**)**
-HSPLcom/messages/app/ui/common/TransitionsKt;->**(**)**
 Lcom/messages/app/MainActivity;
+HSPLcom/messages/app/MainActivity;-><init>()V
+HSPLcom/messages/app/MainActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLcom/messages/app/MainActivity;->onStart()V
+HSPLcom/messages/app/MainActivity;->onResume()V
+HSPLcom/messages/app/MainActivity;->onPause()V
+HSPLcom/messages/app/MainActivity;->onStop()V
+HSPLcom/messages/app/MainActivity;->onDestroy()V
 Lcom/messages/app/AppLockStateViewModel;
+HSPLcom/messages/app/AppLockStateViewModel;-><init>()V
 
-# ---------------------------------------------------------------------------
-# 2. Design System & Liquid Motion Physics
-# ---------------------------------------------------------------------------
+Lcom/messages/designsystem/Motion;
+HSPLcom/messages/designsystem/Motion;->animationsEnabled()Z
+HSPLcom/messages/designsystem/Motion;->chatEnter()Landroidx/compose/animation/core/FiniteAnimationSpec;
+HSPLcom/messages/designsystem/Motion;->screenSpring()Landroidx/compose/animation/core/FiniteAnimationSpec;
 HSPLcom/messages/designsystem/Motion;->butterSpring()Landroidx/compose/animation/core/FiniteAnimationSpec;
 HSPLcom/messages/designsystem/Motion;->bouncySpring()Landroidx/compose/animation/core/FiniteAnimationSpec;
-HSPLcom/messages/designsystem/Motion;->**(**)**
-HSPLcom/messages/designsystem/MotionKt;->**(**)**
-HSPLcom/messages/designsystem/DockKt;->BottomDock(**)**
-HSPLcom/messages/designsystem/DockKt;->DockItem(**)**
-HSPLcom/messages/designsystem/DockKt;->**(**)**
-HSPLcom/messages/designsystem/ThemeKt;->MessagesTheme(**)**
-HSPLcom/messages/designsystem/ThemeKt;->categoryPalette(**)**
-HSPLcom/messages/designsystem/ThemeKt;->schemeForSeed(**)**
-HSPLcom/messages/designsystem/ThemeKt;->**(**)**
-Lcom/messages/designsystem/Motion;
+HSPLcom/messages/designsystem/Motion;->spatialDefault()Landroidx/compose/animation/core/FiniteAnimationSpec;
+HSPLcom/messages/designsystem/Motion;->spatialFast()Landroidx/compose/animation/core/FiniteAnimationSpec;
+HSPLcom/messages/designsystem/Motion;->effectsDefault()Landroidx/compose/animation/core/FiniteAnimationSpec;
+HSPLcom/messages/designsystem/Motion;->effectsFast()Landroidx/compose/animation/core/FiniteAnimationSpec;
+
+Lcom/messages/designsystem/DockItem;
 Lcom/messages/designsystem/ThemeMode;
 Lcom/messages/designsystem/AccentSeed;
-Lcom/messages/designsystem/DockItem;
 
-# ---------------------------------------------------------------------------
-# 3. Home Screen & Date-Grouped Conversations
-# ---------------------------------------------------------------------------
-HSPLcom/messages/app/ui/home/HomeScreenKt;->HomeScreen(**)**
-HSPLcom/messages/app/ui/home/HomeScreenKt;->FolderPane(**)**
-HSPLcom/messages/app/ui/home/HomeScreenKt;->SwipeableConversationRow(**)**
-HSPLcom/messages/app/ui/home/HomeScreenKt;->ProtectionStatusCard(**)**
-HSPLcom/messages/app/ui/home/HomeScreenKt;->**(**)**
-HSPLcom/messages/app/ui/home/HomeViewModel;->conversationsFor(Ljava/lang/String;)Lkotlinx/coroutines/flow/StateFlow;
-HSPLcom/messages/app/ui/home/HomeViewModel;->unreadConversationsFor(Ljava/lang/String;)Lkotlinx/coroutines/flow/StateFlow;
-HSPLcom/messages/app/ui/home/HomeViewModel;->setFolder(Ljava/lang/String;)V
-HSPLcom/messages/app/ui/home/HomeViewModel;->**(**)**
 Lcom/messages/app/ui/home/HomeScreenKt;
 Lcom/messages/app/ui/home/HomeViewModel;
 Lcom/messages/app/ui/home/HomeRow;
 Lcom/messages/app/ui/home/HomeRow$Header;
 Lcom/messages/app/ui/home/HomeRow$Item;
+HSPLcom/messages/app/ui/home/HomeViewModel;-><init>(Lcom/messages/core/MessageRepository;)V
 
-# ---------------------------------------------------------------------------
-# 4. Liquid Search Overlay & Multi-Keyword FTS
-# ---------------------------------------------------------------------------
-HSPLcom/messages/app/ui/search/SearchHighlightKt;->**(**)**
-HSPLcom/messages/app/ui/search/SavedSearchesKt;->**(**)**
-HSPLcom/messages/core/search/MessageSearch;->query(**)**
-HSPLcom/messages/core/search/MessageSearch;->**(**)**
 Lcom/messages/core/search/MessageSearch;
 
-# ---------------------------------------------------------------------------
-# 5. Conversation / Chat Screen & Animated Headers
-# ---------------------------------------------------------------------------
-HSPLcom/messages/app/ui/chat/ChatScreenKt;->ChatScreen(**)**
-HSPLcom/messages/app/ui/chat/MessageCardsKt;->**(**)**
-HSPLcom/messages/app/ui/chat/SmartTextKt;->**(**)**
-HSPLcom/messages/app/ui/chat/SummaryCardKt;->**(**)**
-HSPLcom/messages/app/ui/chat/ChatViewModel;->**(**)**
 Lcom/messages/app/ui/chat/ChatScreenKt;
 Lcom/messages/app/ui/chat/ChatViewModel;
-Lcom/messages/app/ui/chat/MessageCardsKt;
-Lcom/messages/app/ui/chat/SmartTextKt;
-Lcom/messages/app/ui/chat/SummaryCardKt;
+Lcom/messages/app/ui/chat/MessageCards;
 
-# ---------------------------------------------------------------------------
-# 6. Protection Dashboard & Rolling Odometer Counters
-# ---------------------------------------------------------------------------
-HSPLcom/messages/app/ui/dashboard/DashboardScreenKt;->DashboardScreen(**)**
-HSPLcom/messages/app/ui/dashboard/DashboardScreenKt;->**(**)**
 Lcom/messages/app/ui/dashboard/DashboardScreenKt;
-
-# ---------------------------------------------------------------------------
-# 7. Settings Hub, Sub-pages & Default SMS Status
-# ---------------------------------------------------------------------------
-HSPLcom/messages/app/ui/settings/SettingsHubKt;->SettingsHub(**)**
-HSPLcom/messages/app/ui/settings/SettingsHubKt;->**(**)**
-HSPLcom/messages/app/ui/settings/SettingsScreenKt;->SettingsScreen(**)**
-HSPLcom/messages/app/ui/settings/SettingsScreenKt;->**(**)**
-HSPLcom/messages/app/ui/settings/AboutScreenKt;->**(**)**
-HSPLcom/messages/app/ui/settings/NotificationSettingsScreenKt;->**(**)**
 Lcom/messages/app/ui/settings/SettingsHubKt;
 Lcom/messages/app/ui/settings/SettingsScreenKt;
 Lcom/messages/app/ui/settings/SettingsViewModel;
-
-# ---------------------------------------------------------------------------
-# 8. Onboarding Flow & Expanding Liquid Indicators
-# ---------------------------------------------------------------------------
-HSPLcom/messages/app/ui/onboarding/OnboardingScreenKt;->OnboardingScreen(**)**
-HSPLcom/messages/app/ui/onboarding/OnboardingScreenKt;->**(**)**
+Lcom/messages/app/ui/settings/NotificationSettingsScreenKt;
 Lcom/messages/app/ui/onboarding/OnboardingScreenKt;
+Lcom/messages/app/ui/lock/LockScreenKt;
 
-# ---------------------------------------------------------------------------
-# 9. Secret Space Vault & Biometric Lock
-# ---------------------------------------------------------------------------
-HSPLcom/messages/app/ui/secret/LockedSpaceScreenKt;->**(**)**
-HSPLcom/messages/app/ui/secret/SecretPromptScreenKt;->**(**)**
-HSPLcom/messages/app/ui/secret/SecretSetupScreenKt;->**(**)**
-HSPLcom/messages/app/ui/lock/LockScreenKt;->**(**)**
-Lcom/messages/app/ui/secret/LockedSpaceScreenKt;
-Lcom/messages/app/ui/secret/SecretPromptScreenKt;
-
-# ---------------------------------------------------------------------------
-# 10. Core Messaging, Database Entities & Protection Engine
-# ---------------------------------------------------------------------------
-HSPLcom/messages/core/MessageRepository;->**(**)**
-HSPLcom/messages/core/db/MessagesDatabase;->**(**)**
-HSPLcom/messages/core/db/MessagesDao;->**(**)**
-HSPLcom/messages/core/db/ConversationsDao;->**(**)**
-HSPLcom/messages/protection/ProtectionEngine;->classify(**)**
-HSPLcom/messages/protection/ProtectionEngine;->**(**)**
 Lcom/messages/core/MessageRepository;
 Lcom/messages/core/db/MessageEntity;
 Lcom/messages/core/db/ConversationEntity;
+Lcom/messages/core/db/MessagesDatabase;
 Lcom/messages/protection/ProtectionEngine;
-
-# ---------------------------------------------------------------------------
-# Wildcard Coverage for All First-Party Packages
-# ---------------------------------------------------------------------------
-HSPLcom/messages/app/**->**(**)**
-HSPLcom/messages/core/**->**(**)**
-HSPLcom/messages/protection/**->**(**)**
-HSPLcom/messages/designsystem/**->**(**)**
-Lcom/messages/app/**
-Lcom/messages/core/**
-Lcom/messages/protection/**
-Lcom/messages/designsystem/**

@@ -1544,8 +1544,11 @@ private fun QuickRepliesEditor(
 
         // Templates rows
         templates.forEachIndexed { index, template ->
+            val visibleState = remember(template) {
+                androidx.compose.animation.core.MutableTransitionState(false).apply { targetState = true }
+            }
             AnimatedVisibility(
-                visible = true,
+                visibleState = visibleState,
                 enter = if (com.messages.designsystem.Motion.animationsEnabled()) {
                     fadeIn(com.messages.designsystem.Motion.effectsDefault()) +
                         expandVertically(com.messages.designsystem.Motion.chatEnter())

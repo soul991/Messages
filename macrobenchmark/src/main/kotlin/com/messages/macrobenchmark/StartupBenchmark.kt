@@ -10,8 +10,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Macrobenchmark measuring Cold and Warm startup timings.
- * Evaluates Time-To-Initial-Display and Time-To-Fully-Drawn.
+ * Macrobenchmark measuring Cold and Warm startup timings (Phase 6.3).
+ * Evaluates Time-To-Initial-Display and Time-To-Fully-Drawn across
+ * CompilationMode.Partial (baseline profile) and CompilationMode.None.
+ * 10 iterations each.
  */
 @RunWith(AndroidJUnit4::class)
 class StartupBenchmark {
@@ -19,11 +21,11 @@ class StartupBenchmark {
     val benchmarkRule = MacrobenchmarkRule()
 
     @Test
-    fun startupCold() = benchmarkRule.measureRepeated(
+    fun startupColdCompilationNone() = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
         metrics = listOf(StartupTimingMetric()),
-        compilationMode = CompilationMode.DEFAULT,
-        iterations = 5,
+        compilationMode = CompilationMode.None(),
+        iterations = 10,
         startupMode = StartupMode.COLD,
     ) {
         pressHome()
@@ -31,11 +33,35 @@ class StartupBenchmark {
     }
 
     @Test
-    fun startupWarm() = benchmarkRule.measureRepeated(
+    fun startupColdCompilationPartial() = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
         metrics = listOf(StartupTimingMetric()),
-        compilationMode = CompilationMode.DEFAULT,
-        iterations = 5,
+        compilationMode = CompilationMode.Partial(),
+        iterations = 10,
+        startupMode = StartupMode.COLD,
+    ) {
+        pressHome()
+        startActivityAndWait()
+    }
+
+    @Test
+    fun startupWarmCompilationNone() = benchmarkRule.measureRepeated(
+        packageName = TARGET_PACKAGE,
+        metrics = listOf(StartupTimingMetric()),
+        compilationMode = CompilationMode.None(),
+        iterations = 10,
+        startupMode = StartupMode.WARM,
+    ) {
+        pressHome()
+        startActivityAndWait()
+    }
+
+    @Test
+    fun startupWarmCompilationPartial() = benchmarkRule.measureRepeated(
+        packageName = TARGET_PACKAGE,
+        metrics = listOf(StartupTimingMetric()),
+        compilationMode = CompilationMode.Partial(),
+        iterations = 10,
         startupMode = StartupMode.WARM,
     ) {
         pressHome()

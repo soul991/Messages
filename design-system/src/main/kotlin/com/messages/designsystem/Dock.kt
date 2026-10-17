@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,8 +60,9 @@ data class DockItem(
     val filledIcon: ImageVector,
     val unreadCount: Int = 0,
     val category: String? = null,
+    val showDot: Boolean = false,
 ) {
-    // Backward compatibility constructor
+    // Backward compatibility constructors
     constructor(
         key: String,
         title: String,
@@ -74,6 +76,24 @@ data class DockItem(
         filledIcon = icon,
         unreadCount = unreadCount,
         category = null,
+        showDot = false,
+    )
+
+    constructor(
+        key: String,
+        title: String,
+        outlinedIcon: ImageVector,
+        filledIcon: ImageVector,
+        unreadCount: Int,
+        category: String?,
+    ) : this(
+        key = key,
+        title = title,
+        outlinedIcon = outlinedIcon,
+        filledIcon = filledIcon,
+        unreadCount = unreadCount,
+        category = category,
+        showDot = false,
     )
 }
 
@@ -106,6 +126,7 @@ fun BottomDock(
                 .padding(horizontal = 6.dp, vertical = 6.dp),
         ) {
             val totalWidthPx = constraints.maxWidth.toFloat()
+            val density = androidx.compose.ui.platform.LocalDensity.current
             val itemCount = items.size
             val selectedIndex = items.indexOfFirst { it.key == selectedKey }.coerceAtLeast(0)
 
@@ -115,33 +136,20 @@ fun BottomDock(
             val activeWidthPx = inactiveWidthPx * 1.75f
 
             val targetLeftPx = selectedIndex * inactiveWidthPx
-            val targetWidthPx = activeWidthPx
+            val activeWidthDp = with(density) { activeWidthPx.toDp() }
 
             val animLeftPx = animateFloatAsState(
                 targetValue = targetLeftPx,
                 animationSpec = if (Motion.animationsEnabled()) spring(dampingRatio = 0.82f, stiffness = 380f) else snap(),
                 label = "dock-pill-slide",
             )
-            val animWidthPx = animateFloatAsState(
-                targetValue = targetWidthPx,
-                animationSpec = if (Motion.animationsEnabled()) spring(dampingRatio = 0.82f, stiffness = 380f) else snap(),
-                label = "dock-pill-width",
-            )
 
-            // Active sliding pill: BORDERLESS pill filled with primaryContainer
+            // Active sliding pill: BORDERLESS pill filled with primaryContainer, animated via offset lambda
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .offset { IntOffset(animLeftPx.value.roundToInt(), 0) }
-                    .layout { measurable, constraints ->
-                        val w = animWidthPx.value.roundToInt()
-                        val placeable = measurable.measure(
-                            constraints.copy(minWidth = w, maxWidth = w)
-                        )
-                        layout(placeable.width, placeable.height) {
-                            placeable.place(0, 0)
-                        }
-                    }
+                    .width(activeWidthDp)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(24.dp))
                     .background(MaterialTheme.colorScheme.primaryContainer),
@@ -250,6 +258,31 @@ fun BottomDock(
                                             maxLines = 1,
                                         )
                                     }
+                                } else if (item.showDot) {
+                                    val badgeColor = when (item.category ?: item.key) {
+                                        "TRANSACTIONS" -> categoryPalette("TRANSACTIONS")?.tint
+                                            ?: MaterialTheme.colorScheme.primary
+                                        "PROMOTIONS" -> categoryPalette("PROMOTIONS")?.tint
+                                            ?: MaterialTheme.colorScheme.primary
+                                        "REVIEW" -> categoryPalette("REVIEW")?.tint
+                                            ?: MaterialTheme.colorScheme.primary
+                                        "SPAM" -> categoryPalette("SPAM")?.tint
+                                            ?: MaterialTheme.colorScheme.error
+                                        else -> MaterialTheme.colorScheme.primary
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(x = 6.dp, y = (-2).dp)
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(badgeColor)
+                                            .border(
+                                                1.5.dp,
+                                                MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                CircleShape,
+                                            ),
+                                    )
                                 }
                             }
 
