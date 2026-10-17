@@ -1729,7 +1729,7 @@ private fun SwipeableConversationRow(
     val leftEnabled = leftAction != SwipeActions.NONE && !selectionActive
 
     if (selectionActive || (!rightEnabled && !leftEnabled)) {
-        Box(modifier.background(MaterialTheme.colorScheme.surface)) {
+        Box(modifier.background(MaterialTheme.colorScheme.groupCard)) {
             ConversationRow(
                 conv = conv, draft = draft, onClick = onClick,
                 badge = badge, onBadgeTap = onBadgeTap,
@@ -1747,34 +1747,52 @@ private fun SwipeableConversationRow(
     val returnOffset = remember { Animatable(0f) }
     val liveOffset = remember { mutableFloatStateOf(0f) }
     val rowWidthPx = remember { mutableFloatStateOf(0f) }
-    val translatedX = liveOffset.floatValue + returnOffset.value
-    val threshold = rowWidthPx.floatValue * 0.42f
-    val direction = when {
-        translatedX > 0f && rightEnabled -> 1
-        translatedX < 0f && leftEnabled -> -1
-        else -> 0
+
+    val direction by remember(rightEnabled, leftEnabled) {
+        derivedStateOf {
+            val tx = liveOffset.floatValue + returnOffset.value
+            when {
+                tx > 0f && rightEnabled -> 1
+                tx < 0f && leftEnabled -> -1
+                else -> 0
+            }
+        }
     }
-    val swipeAction = when (direction) {
-        1 -> rightAction
-        -1 -> leftAction
-        else -> null
+    val swipeAction by remember(rightAction, leftAction) {
+        derivedStateOf {
+            when (direction) {
+                1 -> rightAction
+                -1 -> leftAction
+                else -> null
+            }
+        }
     }
-    val willCommit = swipeAction != null && kotlin.math.abs(translatedX) >= threshold
+    val willCommit by remember(rightAction, leftAction) {
+        derivedStateOf {
+            val tx = liveOffset.floatValue + returnOffset.value
+            val threshold = rowWidthPx.floatValue * 0.42f
+            swipeAction != null && kotlin.math.abs(tx) >= threshold
+        }
+    }
 
     Box(modifier = modifier) {
-        if (swipeAction != null && rowWidthPx.floatValue > 0f) {
+        val currentAction = swipeAction
+        if (currentAction != null && rowWidthPx.floatValue > 0f) {
             SwipeActionBackground(
-                action = swipeAction,
+                action = currentAction,
                 fromStart = direction > 0,
-                progress = (kotlin.math.abs(translatedX) / rowWidthPx.floatValue).coerceIn(0f, 1f),
+                progress = {
+                    val w = rowWidthPx.floatValue
+                    if (w > 0f) (kotlin.math.abs(liveOffset.floatValue + returnOffset.value) / w).coerceIn(0f, 1f) else 0f
+                },
                 willDismiss = willCommit,
             )
         }
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .graphicsLayer { translationX = translatedX }
+                .background(MaterialTheme.colorScheme.groupCard)
+                .graphicsLayer { translationX = liveOffset.floatValue + returnOffset.value }
                 .pointerInput(conv.threadId, rightAction, leftAction, selectionActive) {
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { change, dragAmount ->
@@ -1786,6 +1804,7 @@ private fun SwipeableConversationRow(
                         },
                         onDragEnd = {
                             val released = liveOffset.floatValue
+                            val threshold = rowWidthPx.floatValue * 0.42f
                             val action = when {
                                 released >= threshold && rightEnabled -> rightAction
                                 released <= -threshold && leftEnabled -> leftAction
@@ -1840,7 +1859,7 @@ private data class SwipeVisuals(
 private fun SwipeActionBackground(
     action: String,
     fromStart: Boolean,
-    progress: Float,
+    progress: () -> Float,
     willDismiss: Boolean,
 ) {
     val view = LocalView.current
@@ -1887,22 +1906,10 @@ private fun SwipeActionBackground(
         else -> return
     }
 
-    // Gmail-style physics-based animations
-    val iconScale by animateFloatAsState(
-        targetValue = if (willDismiss) 1.22f else (0.72f + progress * 0.35f).coerceIn(0.72f, 1.05f),
+    val willDismissScale by animateFloatAsState(
+        targetValue = if (willDismiss) 1.22f else 1.0f,
         animationSpec = Motion.spatialDefault(),
         label = "gmail-swipe-scale",
-    )
-
-    val iconAlpha by animateFloatAsState(
-        targetValue = (progress * 3.5f).coerceIn(0.45f, 1.0f),
-        label = "gmail-swipe-icon-alpha",
-    )
-
-    val textSlide by animateDpAsState(
-        targetValue = if (willDismiss) 0.dp else ((1f - progress.coerceIn(0f, 1f)) * 14).dp,
-        animationSpec = Motion.spatialFast(),
-        label = "gmail-swipe-text-slide",
     )
 
     Row(
@@ -1921,15 +1928,17 @@ private fun SwipeActionBackground(
                 modifier = Modifier
                     .size(24.dp)
                     .graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
-                        alpha = iconAlpha
+                        val p = progress()
+                        val s = if (willDismiss) willDismissScale else (0.72f + p * 0.35f).coerceIn(0.72f, 1.05f)
+                        scaleX = s
+                        scaleY = s
+                        alpha = (p * 3.5f).coerceIn(0.45f, 1.0f)
                     },
             )
             Spacer(Modifier.width(10.dp))
-            SwipeActionLabel(visuals.label, visuals.tint, textSlide, fromStart = true, progress = progress)
+            SwipeActionLabel(visuals.label, visuals.tint, fromStart = true, progress = progress, willDismiss = willDismiss)
         } else {
-            SwipeActionLabel(visuals.label, visuals.tint, textSlide, fromStart = false, progress = progress)
+            SwipeActionLabel(visuals.label, visuals.tint, fromStart = false, progress = progress, willDismiss = willDismiss)
             Spacer(Modifier.width(10.dp))
             Icon(
                 imageVector = visuals.icon,
@@ -1938,9 +1947,11 @@ private fun SwipeActionBackground(
                 modifier = Modifier
                     .size(24.dp)
                     .graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
-                        alpha = iconAlpha
+                        val p = progress()
+                        val s = if (willDismiss) willDismissScale else (0.72f + p * 0.35f).coerceIn(0.72f, 1.05f)
+                        scaleX = s
+                        scaleY = s
+                        alpha = (p * 3.5f).coerceIn(0.45f, 1.0f)
                     },
             )
         }
@@ -1951,22 +1962,28 @@ private fun SwipeActionBackground(
 private fun SwipeActionLabel(
     label: String,
     tint: Color,
-    textSlide: androidx.compose.ui.unit.Dp,
     fromStart: Boolean,
-    progress: Float,
+    progress: () -> Float,
+    willDismiss: Boolean,
 ) {
+    val isVisible by remember(progress) {
+        derivedStateOf { progress() >= 0.20f }
+    }
     AnimatedVisibility(
-        visible = progress >= 0.20f,
+        visible = isVisible,
         enter = scaleIn(Motion.bouncySpring(), initialScale = 0.68f) + fadeIn(Motion.effectsFast()),
         exit = scaleOut(Motion.bouncySpring(), targetScale = 0.76f) + fadeOut(Motion.effectsFast()),
     ) {
+        val density = androidx.compose.ui.platform.LocalDensity.current
         Text(
             text = label,
             color = tint,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.graphicsLayer {
-                translationX = if (fromStart) textSlide.toPx() else -textSlide.toPx()
+                val p = progress()
+                val slidePx = if (willDismiss) 0f else (1f - p.coerceIn(0f, 1f)) * with(density) { 14.dp.toPx() }
+                translationX = if (fromStart) slidePx else -slidePx
             },
         )
     }
