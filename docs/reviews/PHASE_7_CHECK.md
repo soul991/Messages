@@ -210,5 +210,44 @@ app/build/intermediates\merged_manifests\release\processReleaseManifest\AndroidM
   - Artifact: `docs/reviews/screens/swipe_quick_reply.png` (197,233 bytes).
   - Shows `errorContainer` red action background with delete icon and "Delete" label revealed behind sliding template row.
 
+---
+
+## Part 5: Small Fixes & Contrast Audit
+
+### 1. Implementation Summary
+- **Search Focus (`HomeScreen.kt`)**:
+  - Replaced `delay(40)` and try/catch exception-swallowing with `kotlinx.coroutines.android.awaitFrame()` followed immediately by `searchFocusRequester.requestFocus()`.
+  - Ensures focus request occurs after the composable node is measured and attached to the layout hierarchy without arbitrary timeouts or swallowed errors.
+- **Dock Badge Ring (`Dock.kt`)**:
+  - Dynamic surface ring behind badge: `val ringColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh`.
+  - Applied to 1.5dp border on both numeric unread count badges and dot indicators.
+- **DockItem Constructor Cleanup (`Dock.kt`)**:
+  - Removed unused `accentColor: Color? = null` parameter from backward compatibility constructor in `DockItem`.
+- **Dock Badge Text & Container Contrast Audit**:
+  - Calculated WCAG relative luminance contrast ratios for badge text against category tints across Light, Dark, and AMOLED modes.
+  - While Light mode tints (#1B6C31, #7A5900, #555F71, #BA1A1A, #5A41DD) provide 6.44:1 to 6.49:1 contrast against white text, Dark/AMOLED mode tints (#88D896, #EFC047, #BDC7DC, #FFB4AB, #D1BBFD) are high-luminance (Tone 80) and fail severely against white text with 1.70:1 to 1.72:1 (< 4.5:1).
+  - To guarantee AA and AAA contrast across all themes and user-selected accents, badge uses the palette's `(container, onContainer)` pair (`palette.container` / `palette.onContainer` for category items, and `primary` / `onPrimary` for Inbox/default), achieving ≥ 7.16:1 contrast in all modes.
+
+### 2. Contrast Audit Table
+
+| Theme | Category | Tint Hex | White vs Tint (CR) | Result (< 4.5:1?) | Palette Container | Palette onContainer | Container Pair CR | Result (≥ 4.5:1?) |
+|---|---|---|---|---|---|---|---|---|
+| Light | INBOX (Default) | `#5A41DD` | 6.49:1 | PASS | `#E8DEFF` | `#1E0060` | 13.34:1 | PASS (AAA) |
+| Light | TRANSACTIONS | `#1B6C31` | 6.49:1 | PASS | `#A3F4AF` | `#00210A` | 13.19:1 | PASS (AAA) |
+| Light | PROMOTIONS | `#7A5900` | 6.45:1 | PASS | `#FFDF9E` | `#261A00` | 13.25:1 | PASS (AAA) |
+| Light | REVIEW | `#555F71` | 6.44:1 | PASS | `#D9E3F8` | `#121C2B` | 13.28:1 | PASS (AAA) |
+| Light | SPAM | `#BA1A1A` | 6.46:1 | PASS | `#FFDAD6` | `#410002` | 13.26:1 | PASS (AAA) |
+| Dark | INBOX (Default) | `#D1BBFD` | 1.72:1 | **FAIL** | `#4F378B` | `#E8DEFF` | 7.25:1 | PASS (AAA) |
+| Dark | TRANSACTIONS | `#88D896` | 1.71:1 | **FAIL** | `#0F5223` | `#A3F4AF` | 7.16:1 | PASS (AAA) |
+| Dark | PROMOTIONS | `#EFC047` | 1.71:1 | **FAIL** | `#5C4300` | `#FFDF9E` | 7.22:1 | PASS (AAA) |
+| Dark | REVIEW | `#BDC7DC` | 1.70:1 | **FAIL** | `#3E4759` | `#D9E3F8` | 7.24:1 | PASS (AAA) |
+| Dark | SPAM | `#FFB4AB` | 1.70:1 | **FAIL** | `#93000A` | `#FFDAD6` | 7.24:1 | PASS (AAA) |
+| AMOLED | INBOX (Default) | `#D1BBFD` | 1.72:1 | **FAIL** | `#4F378B` | `#E8DEFF` | 7.25:1 | PASS (AAA) |
+| AMOLED | TRANSACTIONS | `#88D896` | 1.71:1 | **FAIL** | `#0F5223` | `#A3F4AF` | 7.16:1 | PASS (AAA) |
+| AMOLED | PROMOTIONS | `#EFC047` | 1.71:1 | **FAIL** | `#5C4300` | `#FFDF9E` | 7.22:1 | PASS (AAA) |
+| AMOLED | REVIEW | `#BDC7DC` | 1.70:1 | **FAIL** | `#3E4759` | `#D9E3F8` | 7.24:1 | PASS (AAA) |
+| AMOLED | SPAM | `#FFB4AB` | 1.70:1 | **FAIL** | `#93000A` | `#FFDAD6` | 7.24:1 | PASS (AAA) |
+
+
 
 
