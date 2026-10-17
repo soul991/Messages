@@ -521,7 +521,7 @@ private fun PageDots(current: Int) {
                     .padding(horizontal = 4.dp)
                     .height(8.dp)
                     .width(dotWidth)
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(CircleShape)
                     .background(dotColor)
             )
         }
