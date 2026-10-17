@@ -69,6 +69,6 @@ class StartupBenchmark {
     }
 
     companion object {
-        const val TARGET_PACKAGE = "com.messages.app"
+        const val TARGET_PACKAGE = "com.messages.app.benchmark"
     }
 }

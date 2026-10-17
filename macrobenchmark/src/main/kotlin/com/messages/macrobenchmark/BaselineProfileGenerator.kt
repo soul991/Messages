@@ -21,7 +21,7 @@ class BaselineProfileGenerator {
 
     @Test
     fun generateBaselineProfile() = baselineRule.collect(
-        packageName = "com.messages.app",
+        packageName = "com.messages.app.benchmark",
         includeInStartupProfile = true,
     ) {
         pressHome()

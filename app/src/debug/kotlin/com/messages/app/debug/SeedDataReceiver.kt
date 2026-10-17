@@ -8,10 +8,8 @@ import com.messages.core.MessageRepository
 import com.messages.core.db.ConversationEntity
 import com.messages.core.db.MessageEntity
 import com.messages.core.db.Spaces
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.Locale
 
 /**
@@ -31,8 +29,7 @@ class SeedDataReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_SEED) return
-        val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+        runBlocking(Dispatchers.IO) {
             try {
                 val repo = MessageRepository.get(context)
                 val wipe = intent.getBooleanExtra(EXTRA_WIPE, false) ||
@@ -40,14 +37,17 @@ class SeedDataReceiver : BroadcastReceiver() {
                 if (wipe) {
                     repo.db.clearAllTables()
                 }
+                context.getSharedPreferences("onboarding", Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("done", true)
+                    .apply()
                 seedFictionalData(repo)
-                pendingResult.setResultCode(Activity.RESULT_OK)
-                pendingResult.resultData = "Seeded 500 conversations across 5 categories and 100 messages in thread 1"
+                setResultCode(Activity.RESULT_OK)
+                resultData = "Seeded 500 conversations across 5 categories and 100 messages in thread 1"
             } catch (e: Exception) {
-                pendingResult.setResultCode(Activity.RESULT_CANCELED)
-                pendingResult.resultData = "Seed failed: ${e.message}"
-            } finally {
-                pendingResult.finish()
+                android.util.Log.e("SeedDataReceiver", "Seed failed", e)
+                setResultCode(Activity.RESULT_CANCELED)
+                resultData = "Seed failed: ${e.message}"
             }
         }
     }
@@ -102,21 +102,24 @@ class SeedDataReceiver : BroadcastReceiver() {
             )
             repo.db.conversations().upsert(conv)
 
-            val msg = MessageEntity(
-                threadId = threadId,
-                address = address,
-                body = lastBody,
-                normalizedBody = lastBody.lowercase(Locale.US),
-                timestamp = timestamp,
-                isOutgoing = (i % 2 == 0),
-                read = (i % 7 != 0),
-                category = category,
-                space = Spaces.NORMAL,
-            )
-            repo.db.messages().insert(msg)
+            // Thread 1 messages are inserted in the 100-message loop below to ensure exactly 100 messages
+            if (i > 1) {
+                val msg = MessageEntity(
+                    threadId = threadId,
+                    address = address,
+                    body = lastBody,
+                    normalizedBody = lastBody.lowercase(Locale.US),
+                    timestamp = timestamp,
+                    isOutgoing = (i % 2 == 0),
+                    read = (i % 7 != 0),
+                    category = category,
+                    space = Spaces.NORMAL,
+                )
+                repo.db.messages().insert(msg)
+            }
         }
 
-        // 2. Seed 100 messages in one chat (threadId 1)
+        // 2. Seed exactly 100 messages in thread 1
         val thread1Address = "+15550000001"
         val thread1BaseTime = now - 100 * 15_000L
         for (m in 1..100) {
@@ -129,6 +132,11 @@ class SeedDataReceiver : BroadcastReceiver() {
                 m == 40 -> "Your bill of Rs.840.00 for account ending in 4321 is due on 28-10-26." to "TRANSACTIONS"
                 m == 65 -> "Rs.320.50 debited from A/c XX4321 at ExampleStore on 17-10-26. Avl Bal Rs.14,550.05" to "TRANSACTIONS"
                 m == 85 -> "Your utility bill payment of Rs.1,100.00 was successful. Ref: 987654321." to "TRANSACTIONS"
+                // OTP messages
+                m == 15 -> "Your login OTP is 482910. Valid for 10 minutes. Do not share with anyone." to "REVIEW"
+                m == 30 -> "Use code 918234 to verify your transaction of Rs.1,250.00." to "TRANSACTIONS"
+                m == 55 -> "739102 is your verification code for ExampleBank." to "REVIEW"
+                m == 78 -> "Your one-time passcode for account recovery is 654321." to "REVIEW"
                 // Emoji-only
                 m % 17 == 0 -> "👍🎉🚀" to "INBOX"
                 m % 23 == 0 -> "❤️🙌" to "INBOX"

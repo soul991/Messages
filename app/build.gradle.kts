@@ -132,6 +132,7 @@ android {
             matchingFallbacks += listOf("release")
             signingConfig = signingConfigs.getByName("debug")
             isDebuggable = false
+            applicationIdSuffix = ".benchmark"
             proguardFiles("benchmark-rules.pro")
         }
     }

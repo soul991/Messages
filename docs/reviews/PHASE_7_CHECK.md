@@ -94,3 +94,73 @@ OK: no findings over threshold.
  kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
  kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ```
+
+### 3. CI Results (Run 39064962565)
+- **URL**: `https://github.com/soul991/Messages/actions/runs/39064962565`
+- **Dependency vulnerability scan**: PASSED (35s)
+- **Tests, lint, and release build**: PASSED (11m 1s)
+- **Signed release artifact**: Skipped (expected behavior on non-tag PR push)
+
+---
+
+## Part 2: Lock the Seed Receiver & Isolate Benchmark Data
+
+### 1. Implementation Summary
+- **DUMP Permission Protection**: Added `android:permission="android.permission.DUMP"` to `SeedDataReceiver` in both `app/src/debug/AndroidManifest.xml` and `app/src/benchmark/AndroidManifest.xml`. Third-party applications cannot send broadcasts without holding `DUMP`, whereas `adb shell` holds `DUMP`.
+- **Application ID Suffix**: Added `applicationIdSuffix = ".benchmark"` to the `benchmark` build type in `app/build.gradle.kts`. This ensures the benchmark APK (`com.messages.app.benchmark`) installs alongside the release APK (`com.messages.app`) without touching production data.
+- **Component Addressing**: Updated `TARGET_PACKAGE = "com.messages.app.benchmark"` across macrobenchmarks. The receiver uses its fully qualified class name `com.messages.app.debug.SeedDataReceiver` so that `-n com.messages.app.benchmark/com.messages.app.debug.SeedDataReceiver` resolves without class-name mismatch.
+- **Onboarding Skip**: Added `context.getSharedPreferences("onboarding", Context.MODE_PRIVATE).edit().putBoolean("done", true).apply()` in `SeedDataReceiver` so seeded builds immediately launch into `HomeScreen`.
+- **Fictional Data & Thread 1 Count**:
+  - Excluded thread 1 from the 500-conversation outer loop (`if (i > 1)`), ensuring thread 1 contains exactly 100 messages from the dedicated message loop.
+  - Added varied fictional data, OTPs, bank/bill alerts, emojis, and links (all using 555-range numbers).
+- **Synchronous Execution**: Wrapped `SeedDataReceiver` execution in `runBlocking(Dispatchers.IO)` with `setResultCode(Activity.RESULT_OK)` so that `am broadcast` synchronously waits and captures `result=-1`.
+
+### 2. Verification on Device & Release Verification
+
+#### Broadcast Seeding Command & Output:
+```
+$ adb shell am broadcast -n com.messages.app.benchmark/com.messages.app.debug.SeedDataReceiver -a com.messages.app.debug.SEED --ez wipe true
+Broadcasting: Intent { act=com.messages.app.debug.SEED flg=0x400000 cmp=com.messages.app.benchmark/com.messages.app.debug.SeedDataReceiver (has extras) }
+Broadcast completed: result=-1, data="Seeded 500 conversations across 5 categories and 100 messages in thread 1"
+```
+
+#### Screenshot Verification:
+- Launched `com.messages.app.benchmark/com.messages.app.MainActivity` after seeding.
+- Verified app opens directly to Home displaying seeded conversations (skipping onboarding):
+  `docs/reviews/screens/home_seeded.png`
+
+#### Release APK Leak Check (`./gradlew :app:assembleRelease`):
+```
+$ python -c "import zipfile, glob, re
+apk_files = glob.glob('app/build/outputs/apk/release/*.apk')
+print('Found APKs:', apk_files)
+pattern = re.compile(b'SeedDataReceiver|SyntheticStress|Rostova', re.IGNORECASE)
+total_matches = 0
+for apk in apk_files:
+    with zipfile.ZipFile(apk, 'r') as z:
+        for name in z.namelist():
+            if name.startswith('classes') and name.endswith('.dex'):
+                data = z.read(name)
+                matches = pattern.findall(data)
+                total_matches += len(matches)
+                print(f'{name}: {len(matches)} matches')
+print('TOTAL MATCHES:', total_matches)"
+
+Found APKs: ['app/build/outputs/apk/release\\Messages.apk']
+classes.dex: 0 matches
+TOTAL MATCHES: 0
+```
+
+#### Merged Release Manifest Inspection:
+```
+$ python -c "import glob
+manifests = glob.glob('app/build/intermediates/merged*manifest*/**/release/**/AndroidManifest.xml', recursive=True)
+for m in manifests:
+    with open(m, 'r', encoding='utf-8', errors='ignore') as f:
+        content = f.read()
+        print(m, 'contains SeedDataReceiver:', 'SeedDataReceiver' in content)"
+
+app/build/intermediates\merged_manifest\release\processReleaseMainManifest\AndroidManifest.xml contains SeedDataReceiver: False
+app/build/intermediates\merged_manifests\release\processReleaseManifest\AndroidManifest.xml contains SeedDataReceiver: False
+```
+

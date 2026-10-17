@@ -35,8 +35,9 @@
 
         <!-- DEBUG-ONLY: test data seeder for automated UI motion and performance benchmarks -->
         <receiver
-            android:name=".debug.SeedDataReceiver"
-            android:exported="true">
+            android:name="com.messages.app.debug.SeedDataReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
             <intent-filter>
                 <action android:name="com.messages.app.debug.SEED" />
             </intent-filter>
