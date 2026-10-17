@@ -36,6 +36,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.foundation.layout.Arrangement
@@ -116,15 +117,13 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -132,12 +131,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
@@ -179,6 +182,56 @@ import com.messages.app.R
 // Phase 5 §1 row grid (REFS §1): 54dp avatar + 16dp gap ≈ 76dp rows.
 private val ROW_AVATAR = 54.dp
 private val ROW_GAP = 16.dp
+
+/** Draw one continuous hairline around a multi-row conversation card. */
+private fun Modifier.groupCardOutline(index: Int, size: Int, color: Color): Modifier =
+    drawBehind {
+        val strokeWidth = 1.dp.toPx()
+        val halfStroke = strokeWidth / 2f
+        val radius = 28.dp.toPx().coerceAtMost(this.size.height / 2f)
+        val left = halfStroke
+        val right = this.size.width - halfStroke
+        val top = halfStroke
+        val bottom = this.size.height - halfStroke
+        val path = Path()
+
+        when {
+            size <= 1 -> {
+                path.moveTo(left, top + radius)
+                path.quadraticTo(left, top, left + radius, top)
+                path.lineTo(right - radius, top)
+                path.quadraticTo(right, top, right, top + radius)
+                path.lineTo(right, bottom - radius)
+                path.quadraticTo(right, bottom, right - radius, bottom)
+                path.lineTo(left + radius, bottom)
+                path.quadraticTo(left, bottom, left, bottom - radius)
+                path.close()
+            }
+            index == 0 -> {
+                path.moveTo(left, bottom)
+                path.lineTo(left, top + radius)
+                path.quadraticTo(left, top, left + radius, top)
+                path.lineTo(right - radius, top)
+                path.quadraticTo(right, top, right, top + radius)
+                path.lineTo(right, bottom)
+            }
+            index == size - 1 -> {
+                path.moveTo(left, top)
+                path.lineTo(left, bottom - radius)
+                path.quadraticTo(left, bottom, left + radius, bottom)
+                path.lineTo(right - radius, bottom)
+                path.quadraticTo(right, bottom, right, bottom - radius)
+                path.lineTo(right, top)
+            }
+            else -> {
+                path.moveTo(left, top)
+                path.lineTo(left, bottom)
+                path.moveTo(right, top)
+                path.lineTo(right, bottom)
+            }
+        }
+        drawPath(path, color, style = Stroke(width = strokeWidth))
+    }
 
 // V2-36. The left half of each pair is the stored folder/label id and never
 // changes; the right half is a resource, because the tab is the first thing a
@@ -499,7 +552,7 @@ fun HomeScreen(
         floatingActionButton = {
             // Smooth spring scale transition so FAB doesn't pop or collide with search/selection
             AnimatedVisibility(
-                visible = !searchActive && !selectionActive && isDefaultSmsApp,
+                visible = !searchActive && !selectionActive,
                 enter = scaleIn(Motion.butterSpring()) + fadeIn(Motion.effectsDefault()),
                 exit = scaleOut(Motion.butterSpring()) + fadeOut(Motion.effectsFast()),
             ) {
@@ -529,7 +582,7 @@ fun HomeScreen(
         bottomBar = {
             // Smooth spring slide transition so Dock doesn't pop or thrash Scaffold padding
             AnimatedVisibility(
-                visible = !searchActive && !selectionActive && isDefaultSmsApp,
+                visible = !searchActive && !selectionActive,
                 enter = slideInVertically(Motion.butterSpring()) { it } + fadeIn(Motion.effectsDefault()),
                 exit = slideOutVertically(Motion.butterSpring()) { it } + fadeOut(Motion.effectsFast()),
             ) {
@@ -597,22 +650,18 @@ fun HomeScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
 
-            // §8.4 gate (Google Messages behavior): if the role was denied, the
-            // conversation area is an empty state with a single card that
-            // re-triggers the role request. No list, no search, no composer.
-            if (!isDefaultSmsApp) {
-                DefaultSmsGate(
+            if (isDefaultSmsApp) {
+                val reviewFlow = remember(vm) { vm.folderUnread("REVIEW") }
+                val reviewWaiting by reviewFlow.collectAsStateWithLifecycle(initialValue = 0)
+                ProtectionStatusCard(reviewWaiting = reviewWaiting, onClick = onDashboard)
+            } else {
+                DefaultSmsInfoCard(
                     onRequestDefault = onRequestDefault,
                     roleRequestFailed = roleRequestFailed,
                     onOpenAppSettings = onOpenAppSettings,
                     onOpenDefaultApps = onOpenDefaultApps,
                 )
-                return@Column
             }
-
-            val reviewFlow = remember(vm) { vm.folderUnread("REVIEW") }
-            val reviewWaiting by reviewFlow.collectAsStateWithLifecycle(initialValue = 0)
-            ProtectionStatusCard(reviewWaiting = reviewWaiting, onClick = onDashboard)
 
             // Resting search pill — calm, stable, tactile touch feedback
             val searchPillInteractionSource = remember { MutableInteractionSource() }
@@ -997,7 +1046,12 @@ private fun FolderPane(
                                             )
                                             .padding(horizontal = 16.dp)
                                             .clip(cardShape)
-                                            .background(MaterialTheme.colorScheme.groupCard),
+                                            .background(MaterialTheme.colorScheme.groupCard)
+                                            .groupCardOutline(
+                                                index = row.indexInGroup,
+                                                size = row.groupSize,
+                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                                            ),
                                     ) {
                                     SwipeableConversationRow(
                                         conv = conv,
@@ -1018,6 +1072,9 @@ private fun FolderPane(
                                             Haptics.longPress(rowView)
                                             vm.toggleSelected(conv.threadId)
                                         },
+                                        // A vertical list drag may carry a small horizontal wobble.
+                                        // Do not let that in-flight scroll commit a row action.
+                                        canCommitSwipe = { !listState.isScrollInProgress },
                                     )
                                     // Inset divider starting at the text column (plan
                                     // §1 prototype) — never after the last row.
@@ -1571,13 +1628,8 @@ private fun ContactsPermissionBanner() {
     }
 }
 
-/**
- * §8.4: the viewer-shell empty state shown while the default-SMS role is not
- * held — mirrors Google Messages' "Set as default" screen. The single card
- * re-triggers the RoleManager request; no popup nagging.
- */
 @Composable
-private fun DefaultSmsGate(
+private fun DefaultSmsInfoCard(
     onRequestDefault: () -> Unit,
     roleRequestFailed: Boolean = false,
     onOpenAppSettings: () -> Unit = {},
@@ -1587,96 +1639,60 @@ private fun DefaultSmsGate(
     val isRestricted = remember(roleRequestFailed) {
         roleRequestFailed || MainActivity.isRestrictedSettingsActive(context)
     }
-    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.Shield, contentDescription = null,
-                    modifier = Modifier.size(44.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-            Spacer(Modifier.height(20.dp))
-            Text(
-                stringResource(R.string.home_default_sms_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.home_default_sms_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(20.dp))
-
-            if (isRestricted) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.groupCard,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.groupCard,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(40.dp).clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Filled.Shield,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                stringResource(R.string.restricted_settings_title),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            stringResource(R.string.restricted_settings_body),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Button(
-                                onClick = onOpenAppSettings,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text(stringResource(R.string.action_open_app_settings), maxLines = 1)
-                            }
-                            OutlinedButton(
-                                onClick = onOpenDefaultApps,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text(stringResource(R.string.action_open_default_apps), maxLines = 1)
-                            }
-                        }
-                    }
+                    Icon(
+                        Icons.Filled.Shield,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.home_default_sms_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(R.string.home_default_sms_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
-
-            Button(
-                onClick = onRequestDefault,
-                modifier = Modifier.fillMaxWidth(),
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    if (isRestricted) stringResource(R.string.restricted_settings_retry)
-                    else stringResource(R.string.home_default_sms_action)
-                )
+                if (isRestricted) {
+                    androidx.compose.material3.TextButton(onClick = onOpenAppSettings) {
+                        Text(stringResource(R.string.action_open_app_settings))
+                    }
+                    androidx.compose.material3.TextButton(onClick = onOpenDefaultApps) {
+                        Text(stringResource(R.string.action_open_default_apps))
+                    }
+                }
+                Button(onClick = onRequestDefault) {
+                    Text(
+                        if (isRestricted) stringResource(R.string.restricted_settings_retry)
+                        else stringResource(R.string.home_default_sms_action),
+                    )
+                }
             }
         }
     }
@@ -1688,15 +1704,10 @@ private fun DefaultSmsGate(
  * the data update + animateItem, so non-removing actions (pin, read, mute)
  * don't strand a dismissed row.
  *
- * Hand-rolled instead of M3's SwipeToDismissBox (Phase 6): the box's anchored-
- * draggable machinery costs real composition time PER ROW while flinging the
- * list (~12ms/frame on-device across a compose burst), and our rows never
- * actually dismiss (the old confirmValueChange always returned false). Here
- * the drag offset is an Animatable read only inside graphicsLayer (draw phase
- * — zero recomposition while dragging) and the colored action background is
- * composed only while a drag is engaged (no permanent extra layer/overdraw).
+ * Horizontal-axis-locked drags keep small sideways finger movement from
+ * competing with vertical list scrolling. Actions require a deliberate
+ * distance threshold; fling velocity alone never commits one.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeableConversationRow(
     conv: ConversationEntity,
@@ -1712,6 +1723,7 @@ private fun SwipeableConversationRow(
     selectionActive: Boolean = false,
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
+    canCommitSwipe: () -> Boolean = { true },
 ) {
     val rightEnabled = rightAction != SwipeActions.NONE && !selectionActive
     val leftEnabled = leftAction != SwipeActions.NONE && !selectionActive
@@ -1731,49 +1743,72 @@ private fun SwipeableConversationRow(
         return
     }
 
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    if (rightEnabled) onAction(rightAction, conv)
-                    false
-                }
-                SwipeToDismissBoxValue.EndToStart -> {
-                    if (leftEnabled) onAction(leftAction, conv)
-                    false
-                }
-                SwipeToDismissBoxValue.Settled -> false
-            }
-        },
-        positionalThreshold = { totalDistance -> totalDistance * 0.35f },
-    )
+    val scope = rememberCoroutineScope()
+    val returnOffset = remember { Animatable(0f) }
+    val liveOffset = remember { mutableFloatStateOf(0f) }
+    val rowWidthPx = remember { mutableFloatStateOf(0f) }
+    val translatedX = liveOffset.floatValue + returnOffset.value
+    val threshold = rowWidthPx.floatValue * 0.42f
+    val direction = when {
+        translatedX > 0f && rightEnabled -> 1
+        translatedX < 0f && leftEnabled -> -1
+        else -> 0
+    }
+    val swipeAction = when (direction) {
+        1 -> rightAction
+        -1 -> leftAction
+        else -> null
+    }
+    val willCommit = swipeAction != null && kotlin.math.abs(translatedX) >= threshold
 
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = rightEnabled,
-        enableDismissFromEndToStart = leftEnabled,
-        backgroundContent = {
-            val direction = dismissState.dismissDirection
-            val action = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd -> rightAction
-                SwipeToDismissBoxValue.EndToStart -> leftAction
-                SwipeToDismissBoxValue.Settled -> null
-            }
-            if (action != null) {
-                SwipeActionBackground(
-                    action = action,
-                    fromStart = direction == SwipeToDismissBoxValue.StartToEnd,
-                    progress = dismissState.progress,
-                    willDismiss = dismissState.targetValue != SwipeToDismissBoxValue.Settled,
-                )
-            }
-        },
-        modifier = modifier,
-    ) {
+    Box(modifier = modifier) {
+        if (swipeAction != null && rowWidthPx.floatValue > 0f) {
+            SwipeActionBackground(
+                action = swipeAction,
+                fromStart = direction > 0,
+                progress = (kotlin.math.abs(translatedX) / rowWidthPx.floatValue).coerceIn(0f, 1f),
+                willDismiss = willCommit,
+            )
+        }
         Box(
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
+                .graphicsLayer { translationX = translatedX }
+                .pointerInput(conv.threadId, rightAction, leftAction, selectionActive) {
+                    detectHorizontalDragGestures(
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val next = liveOffset.floatValue + dragAmount
+                            val minOffset = if (leftEnabled) -size.width.toFloat() else 0f
+                            val maxOffset = if (rightEnabled) size.width.toFloat() else 0f
+                            liveOffset.floatValue = next.coerceIn(minOffset, maxOffset)
+                        },
+                        onDragEnd = {
+                            val released = liveOffset.floatValue
+                            val action = when {
+                                released >= threshold && rightEnabled -> rightAction
+                                released <= -threshold && leftEnabled -> leftAction
+                                else -> null
+                            }
+                            liveOffset.floatValue = 0f
+                            scope.launch {
+                                returnOffset.snapTo(released)
+                                if (action != null && canCommitSwipe()) onAction(action, conv)
+                                returnOffset.animateTo(0f, Motion.butterSpring())
+                            }
+                        },
+                        onDragCancel = {
+                            val released = liveOffset.floatValue
+                            liveOffset.floatValue = 0f
+                            scope.launch {
+                                returnOffset.snapTo(released)
+                                returnOffset.animateTo(0f, Motion.butterSpring())
+                            }
+                        },
+                    )
+                }
+                .onSizeChanged { rowWidthPx.floatValue = it.width.toFloat() },
         ) {
             ConversationRow(
                 conv = conv,

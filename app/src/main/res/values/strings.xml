@@ -843,7 +843,7 @@
     <string name="home_contacts_prompt_body">Allow Contacts access so people show up by name and photo, not number.</string>
     <string name="home_contacts_allow">Allow</string>
     <string name="home_default_sms_title">Set Messages as your default SMS app</string>
-    <string name="home_default_sms_body">To see your conversations and turn on spam, scam &amp; fraud protection, Messages needs to be your SMS app.</string>
+    <string name="home_default_sms_body">You can still use Settings and browse conversations already available to Messages. Set it as your default SMS app to send or receive texts and enable SMS protection.</string>
     <string name="home_default_sms_action">Set as default SMS app</string>
     <string name="home_select_conversation">Select conversation</string>
     <string name="home_muted">Muted</string>

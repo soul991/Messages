@@ -194,16 +194,6 @@ class MainActivity : FragmentActivity() {
         folderRequest = intent.getStringExtra("folder")
         val onboardingPrefs = getSharedPreferences("onboarding", MODE_PRIVATE)
 
-        // Only fire the first-open default role prompt if onboarding is ALREADY COMPLETED.
-        // During onboarding, the dedicated Onboarding screen asks for the role when the user taps
-        // "Set as default". Firing here on cold start would cause a premature denial popup over
-        // the intro onboarding page!
-        val onboardingDone = onboardingPrefs.getBoolean("done", false)
-        if (onboardingDone && !isDefaultSmsApp && !onboardingPrefs.getBoolean("role_prompted", false)) {
-            onboardingPrefs.edit().putBoolean("role_prompted", true).apply()
-            requestDefaultRole()
-        }
-
         // R-26: resolve lock state BEFORE the first composition so the lock
         // screen never flashes on a cold start when app lock is disabled.
         // onStart repeats this check for foreground re-entries; the ViewModel
@@ -601,7 +591,13 @@ class MainActivity : FragmentActivity() {
                     composable("trash") {
                         com.messages.app.ui.trash.TrashScreen(onBack = { nav.popBackStack() })
                     }
-                    composable("compose") {
+                    composable(
+                        "compose",
+                        enterTransition = { fadeThroughEnter() },
+                        exitTransition = { fadeThroughExit() },
+                        popEnterTransition = { fadeThroughEnter() },
+                        popExitTransition = { fadeThroughExit() },
+                    ) {
                         NewMessageScreen(
                             onBack = { nav.popBackStack() },
                             onOpenThread = { threadId, address ->
