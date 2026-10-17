@@ -107,113 +107,127 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
 
             SettingsSectionHeader(stringResource(R.string.notif_section_folders))
 
-            SettingsNavRow(
-                icon = Icons.Outlined.Inbox,
-                title = stringResource(R.string.category_inbox),
-                subtitle = stringResource(R.string.notif_inbox_subtitle),
-                onClick = { openChannelSettings(MessagesApp.CH_PERSONAL) },
-                external = true,
-            )
-
-            SettingsSwitchRow(
-                icon = Icons.Outlined.Receipt,
-                title = stringResource(R.string.category_transactions),
-                subtitle = stringResource(R.string.notif_transactions_subtitle),
-                checked = notifyTransactions,
-                onChange = { vm.setNotifyTransactions(it) },
-            )
-            if (notifyTransactions) {
+            SettingsGroupCard(
+                footer = {
+                    Text(
+                        stringResource(R.string.notif_silent_folders_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            ) {
                 SettingsNavRow(
-                    icon = null,
-                    title = stringResource(R.string.notif_sound_transactions),
-                    subtitle = null,
-                    onClick = { openChannelSettings(MessagesApp.CH_TRANSACTIONS) },
+                    icon = Icons.Outlined.Inbox,
+                    categoryBadge = "INBOX",
+                    title = stringResource(R.string.category_inbox),
+                    subtitle = stringResource(R.string.notif_inbox_subtitle),
+                    onClick = { openChannelSettings(MessagesApp.CH_PERSONAL) },
                     external = true,
-                    indented = true,
                 )
+                SettingsCardDivider()
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.Receipt,
+                    categoryBadge = "TRANSACTIONS",
+                    title = stringResource(R.string.category_transactions),
+                    subtitle = stringResource(R.string.notif_transactions_subtitle),
+                    checked = notifyTransactions,
+                    onChange = { vm.setNotifyTransactions(it) },
+                )
+                if (notifyTransactions) {
+                    SettingsCardDivider()
+                    SettingsNavRow(
+                        icon = null,
+                        title = stringResource(R.string.notif_sound_transactions),
+                        subtitle = null,
+                        onClick = { openChannelSettings(MessagesApp.CH_TRANSACTIONS) },
+                        external = true,
+                        indented = true,
+                    )
+                }
+                SettingsCardDivider()
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.LocalOffer,
+                    categoryBadge = "PROMOTIONS",
+                    title = stringResource(R.string.category_promotions),
+                    subtitle = stringResource(R.string.notif_promotions_subtitle),
+                    checked = notifyPromotions,
+                    onChange = { vm.setNotifyPromotions(it) },
+                )
+                if (notifyPromotions) {
+                    SettingsCardDivider()
+                    SettingsNavRow(
+                        icon = null,
+                        title = stringResource(R.string.notif_sound_promotions),
+                        subtitle = null,
+                        onClick = { openChannelSettings(MessagesApp.CH_PROMOTIONS) },
+                        external = true,
+                        indented = true,
+                    )
+                }
+                SettingsCardDivider()
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.RateReview,
+                    categoryBadge = "REVIEW",
+                    title = stringResource(R.string.notif_review_title),
+                    subtitle = stringResource(R.string.notif_review_subtitle),
+                    checked = notifyReview,
+                    onChange = { vm.setNotifyReview(it) },
+                )
+                if (notifyReview) {
+                    SettingsCardDivider()
+                    SettingsNavRow(
+                        icon = null,
+                        title = stringResource(R.string.notif_sound_review),
+                        subtitle = null,
+                        onClick = { openChannelSettings(MessagesApp.CH_REVIEW) },
+                        external = true,
+                        indented = true,
+                    )
+                }
             }
 
-            SettingsSwitchRow(
-                icon = Icons.Outlined.LocalOffer,
-                title = stringResource(R.string.category_promotions),
-                subtitle = stringResource(R.string.notif_promotions_subtitle),
-                checked = notifyPromotions,
-                onChange = { vm.setNotifyPromotions(it) },
-            )
-            if (notifyPromotions) {
-                SettingsNavRow(
-                    icon = null,
-                    title = stringResource(R.string.notif_sound_promotions),
-                    subtitle = null,
-                    onClick = { openChannelSettings(MessagesApp.CH_PROMOTIONS) },
-                    external = true,
-                    indented = true,
-                )
-            }
-
-            SettingsSwitchRow(
-                icon = Icons.Outlined.RateReview,
-                title = stringResource(R.string.notif_review_title),
-                subtitle = stringResource(R.string.notif_review_subtitle),
-                checked = notifyReview,
-                onChange = { vm.setNotifyReview(it) },
-            )
-            if (notifyReview) {
-                SettingsNavRow(
-                    icon = null,
-                    title = stringResource(R.string.notif_sound_review),
-                    subtitle = null,
-                    onClick = { openChannelSettings(MessagesApp.CH_REVIEW) },
-                    external = true,
-                    indented = true,
-                )
-            }
-
-            Text(
-                stringResource(R.string.notif_silent_folders_note),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-            )
-
-            SettingsSectionDivider()
             SettingsSectionHeader(stringResource(R.string.notif_section_protection))
             val warnDangerous by vm.warnDangerous.collectAsStateWithLifecycle()
-            SettingsSwitchRow(
-                icon = Icons.Outlined.GppMaybe,
-                title = stringResource(R.string.notif_warn_dangerous_title),
-                subtitle = stringResource(R.string.notif_warn_dangerous_subtitle),
-                checked = warnDangerous,
-                onChange = { vm.setWarnDangerous(it) },
-            )
-
-            SettingsSectionDivider()
-            SettingsSectionHeader(stringResource(R.string.notif_section_otp))
-            SettingsSwitchRow(
-                icon = Icons.Outlined.ContentCopy,
-                title = stringResource(R.string.notif_otp_autocopy_title),
-                subtitle = stringResource(R.string.notif_otp_autocopy_subtitle),
-                checked = otpAutoCopy,
-                onChange = { vm.setOtpAutoCopy(it) },
-            )
-            // R-30: below Android 13 the clipboard has no system-level access
-            // notice and no sensitive-content masking, so any app with a
-            // foreground window can read what we put there. Say so plainly
-            // rather than letting the switch imply parity across versions.
-            if (android.os.Build.VERSION.SDK_INT < 33) {
-                Text(
-                    stringResource(R.string.notif_otp_clipboard_warning),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+            SettingsGroupCard {
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.GppMaybe,
+                    categoryBadge = "SPAM",
+                    title = stringResource(R.string.notif_warn_dangerous_title),
+                    subtitle = stringResource(R.string.notif_warn_dangerous_subtitle),
+                    checked = warnDangerous,
+                    onChange = { vm.setWarnDangerous(it) },
                 )
             }
-            Text(
-                stringResource(R.string.notif_otp_copy_button_note),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-            )
+
+            SettingsSectionHeader(stringResource(R.string.notif_section_otp))
+            SettingsGroupCard(
+                footer = {
+                    Column {
+                        if (android.os.Build.VERSION.SDK_INT < 33) {
+                            Text(
+                                stringResource(R.string.notif_otp_clipboard_warning),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                        }
+                        Text(
+                            stringResource(R.string.notif_otp_copy_button_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            ) {
+                SettingsSwitchRow(
+                    icon = Icons.Outlined.ContentCopy,
+                    categoryBadge = null,
+                    title = stringResource(R.string.notif_otp_autocopy_title),
+                    subtitle = stringResource(R.string.notif_otp_autocopy_subtitle),
+                    checked = otpAutoCopy,
+                    onChange = { vm.setOtpAutoCopy(it) },
+                )
+            }
             Spacer(Modifier.height(24.dp))
         }
     }

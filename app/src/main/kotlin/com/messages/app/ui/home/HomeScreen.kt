@@ -72,10 +72,14 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Drafts
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RateReview
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
@@ -597,42 +601,47 @@ fun HomeScreen(
                 val reviewPalette = categoryPalette("REVIEW")
                 val spamPalette = categoryPalette("SPAM")
 
-                val primaryColor = MaterialTheme.colorScheme.primary
-                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread, txnPalette, promoPalette, reviewPalette, spamPalette, primaryColor) {
+                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread) {
                     listOf(
                         DockItem(
                             key = "INBOX",
                             title = resources.getString(R.string.nav_personal),
-                            icon = Icons.Outlined.Forum,
+                            outlinedIcon = Icons.Outlined.Forum,
+                            filledIcon = Icons.Filled.Forum,
                             unreadCount = inboxUnread,
+                            category = "INBOX",
                         ),
                         DockItem(
                             key = "TRANSACTIONS",
                             title = resources.getString(R.string.nav_bank),
-                            icon = Icons.Outlined.ReceiptLong,
+                            outlinedIcon = Icons.Outlined.ReceiptLong,
+                            filledIcon = Icons.Filled.ReceiptLong,
                             unreadCount = txnUnread,
-                            accentColor = txnPalette?.tint ?: primaryColor,
+                            category = "TRANSACTIONS",
                         ),
                         DockItem(
                             key = "PROMOTIONS",
                             title = resources.getString(R.string.nav_offers),
-                            icon = Icons.Outlined.LocalOffer,
+                            outlinedIcon = Icons.Outlined.LocalOffer,
+                            filledIcon = Icons.Filled.LocalOffer,
                             unreadCount = promoUnread,
-                            accentColor = promoPalette?.tint ?: primaryColor,
+                            category = "PROMOTIONS",
                         ),
                         DockItem(
                             key = "REVIEW",
                             title = resources.getString(R.string.nav_review),
-                            icon = Icons.Outlined.RateReview,
+                            outlinedIcon = Icons.Outlined.RateReview,
+                            filledIcon = Icons.Filled.RateReview,
                             unreadCount = reviewUnread,
-                            accentColor = reviewPalette?.tint ?: primaryColor,
+                            category = "REVIEW",
                         ),
                         DockItem(
                             key = "SPAM",
                             title = resources.getString(R.string.nav_spam),
-                            icon = Icons.Outlined.Shield,
+                            outlinedIcon = Icons.Outlined.Shield,
+                            filledIcon = Icons.Filled.Shield,
                             unreadCount = spamUnread,
-                            accentColor = spamPalette?.tint ?: primaryColor,
+                            category = "SPAM",
                         ),
                     )
                 }
