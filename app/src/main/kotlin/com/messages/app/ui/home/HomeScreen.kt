@@ -1791,18 +1791,20 @@ private fun SwipeableConversationRow(
                                 released <= -threshold && leftEnabled -> leftAction
                                 else -> null
                             }
-                            liveOffset.floatValue = 0f
                             scope.launch {
                                 returnOffset.snapTo(released)
+                                // Hand the live drag to the spring with the same offset so the
+                                // action reveal never flashes closed for a frame on finger-up.
+                                liveOffset.floatValue = 0f
                                 if (action != null && canCommitSwipe()) onAction(action, conv)
                                 returnOffset.animateTo(0f, Motion.butterSpring())
                             }
                         },
                         onDragCancel = {
                             val released = liveOffset.floatValue
-                            liveOffset.floatValue = 0f
                             scope.launch {
                                 returnOffset.snapTo(released)
+                                liveOffset.floatValue = 0f
                                 returnOffset.animateTo(0f, Motion.butterSpring())
                             }
                         },
@@ -1897,11 +1899,6 @@ private fun SwipeActionBackground(
         label = "gmail-swipe-icon-alpha",
     )
 
-    val textAlpha by animateFloatAsState(
-        targetValue = if (progress > 0.15f) ((progress - 0.15f) * 3.5f).coerceIn(0f, 1f) else 0f,
-        label = "gmail-swipe-text-alpha",
-    )
-
     val textSlide by animateDpAsState(
         targetValue = if (willDismiss) 0.dp else ((1f - progress.coerceIn(0f, 1f)) * 14).dp,
         animationSpec = Motion.spatialFast(),
@@ -1930,27 +1927,9 @@ private fun SwipeActionBackground(
                     },
             )
             Spacer(Modifier.width(10.dp))
-            Text(
-                text = visuals.label,
-                color = visuals.tint,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.graphicsLayer {
-                    alpha = textAlpha
-                    translationX = textSlide.toPx()
-                },
-            )
+            SwipeActionLabel(visuals.label, visuals.tint, textSlide, fromStart = true, progress = progress)
         } else {
-            Text(
-                text = visuals.label,
-                color = visuals.tint,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.graphicsLayer {
-                    alpha = textAlpha
-                    translationX = -textSlide.toPx()
-                },
-            )
+            SwipeActionLabel(visuals.label, visuals.tint, textSlide, fromStart = false, progress = progress)
             Spacer(Modifier.width(10.dp))
             Icon(
                 imageVector = visuals.icon,
@@ -1965,6 +1944,31 @@ private fun SwipeActionBackground(
                     },
             )
         }
+    }
+}
+
+@Composable
+private fun SwipeActionLabel(
+    label: String,
+    tint: Color,
+    textSlide: androidx.compose.ui.unit.Dp,
+    fromStart: Boolean,
+    progress: Float,
+) {
+    AnimatedVisibility(
+        visible = progress >= 0.20f,
+        enter = scaleIn(Motion.bouncySpring(), initialScale = 0.68f) + fadeIn(Motion.effectsFast()),
+        exit = scaleOut(Motion.bouncySpring(), targetScale = 0.76f) + fadeOut(Motion.effectsFast()),
+    ) {
+        Text(
+            text = label,
+            color = tint,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.graphicsLayer {
+                translationX = if (fromStart) textSlide.toPx() else -textSlide.toPx()
+            },
+        )
     }
 }
 
