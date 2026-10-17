@@ -758,10 +758,8 @@ fun HomeScreen(
                 val searchFocusRequester = remember { FocusRequester() }
                 LaunchedEffect(searchActive) {
                     if (searchActive) {
-                        kotlinx.coroutines.delay(40)
-                        try {
-                            searchFocusRequester.requestFocus()
-                        } catch (_: Exception) {}
+                        kotlinx.coroutines.android.awaitFrame()
+                        searchFocusRequester.requestFocus()
                     }
                 }
 

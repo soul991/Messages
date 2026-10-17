@@ -68,7 +68,6 @@ data class DockItem(
         title: String,
         icon: ImageVector,
         unreadCount: Int = 0,
-        accentColor: Color? = null,
     ) : this(
         key = key,
         title = title,
@@ -214,18 +213,21 @@ fun BottomDock(
                                     )
                                 }
 
+                                val ringColor = if (selected) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerHigh
+                                }
+
                                 // Notification Badge
                                 if (item.unreadCount > 0) {
-                                    val badgeColor = when (item.category ?: item.key) {
-                                        "TRANSACTIONS" -> categoryPalette("TRANSACTIONS")?.tint
-                                            ?: MaterialTheme.colorScheme.primary
-                                        "PROMOTIONS" -> categoryPalette("PROMOTIONS")?.tint
-                                            ?: MaterialTheme.colorScheme.primary
-                                        "REVIEW" -> categoryPalette("REVIEW")?.tint
-                                            ?: MaterialTheme.colorScheme.primary
-                                        "SPAM" -> categoryPalette("SPAM")?.tint
-                                            ?: MaterialTheme.colorScheme.error
-                                        else -> MaterialTheme.colorScheme.primary
+                                    val palette = categoryPalette(item.category ?: item.key)
+                                    val (badgeBg, badgeText) = when {
+                                        palette != null -> palette.container to palette.onContainer
+                                        item.category == "SPAM" || item.key == "SPAM" ->
+                                            MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+                                        else ->
+                                            MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
                                     }
 
                                     Box(
@@ -234,10 +236,10 @@ fun BottomDock(
                                             .height(16.dp)
                                             .widthIn(min = 16.dp)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(badgeColor)
+                                            .background(badgeBg)
                                             .border(
                                                 1.5.dp,
-                                                MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                ringColor,
                                                 RoundedCornerShape(8.dp),
                                             )
                                             .padding(horizontal = 4.dp),
@@ -245,11 +247,7 @@ fun BottomDock(
                                     ) {
                                         Text(
                                             text = if (item.unreadCount > 99) "99+" else item.unreadCount.toString(),
-                                            color = if (item.category == "SPAM" || item.key == "SPAM") {
-                                                MaterialTheme.colorScheme.onError
-                                            } else {
-                                                MaterialTheme.colorScheme.onPrimary
-                                            },
+                                            color = badgeText,
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.SemiBold,
@@ -259,27 +257,23 @@ fun BottomDock(
                                         )
                                     }
                                 } else if (item.showDot) {
-                                    val badgeColor = when (item.category ?: item.key) {
-                                        "TRANSACTIONS" -> categoryPalette("TRANSACTIONS")?.tint
-                                            ?: MaterialTheme.colorScheme.primary
-                                        "PROMOTIONS" -> categoryPalette("PROMOTIONS")?.tint
-                                            ?: MaterialTheme.colorScheme.primary
-                                        "REVIEW" -> categoryPalette("REVIEW")?.tint
-                                            ?: MaterialTheme.colorScheme.primary
-                                        "SPAM" -> categoryPalette("SPAM")?.tint
-                                            ?: MaterialTheme.colorScheme.error
-                                        else -> MaterialTheme.colorScheme.primary
-                                    }
+                                    val palette = categoryPalette(item.category ?: item.key)
+                                    val dotColor = palette?.tint
+                                        ?: if (item.category == "SPAM" || item.key == "SPAM") {
+                                            MaterialTheme.colorScheme.error
+                                        } else {
+                                            MaterialTheme.colorScheme.primary
+                                        }
 
                                     Box(
                                         modifier = Modifier
                                             .offset(x = 6.dp, y = (-2).dp)
                                             .size(8.dp)
                                             .clip(CircleShape)
-                                            .background(badgeColor)
+                                            .background(dotColor)
                                             .border(
                                                 1.5.dp,
-                                                MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                ringColor,
                                                 CircleShape,
                                             ),
                                     )
