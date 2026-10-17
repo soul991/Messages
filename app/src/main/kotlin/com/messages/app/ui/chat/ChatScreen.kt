@@ -975,19 +975,6 @@ fun ChatScreen(
                             )
                         }
                     }
-                    if (threadId == SyntheticStressData.STRESS_THREAD_ID) {
-                        item(key = "typing_indicator") {
-                            TypingIndicatorBubble(
-                                modifier = Modifier
-                                    .padding(top = 8.dp, bottom = 4.dp)
-                                    .animateItem(
-                                        fadeInSpec = Motion.effectsDefault(),
-                                        placementSpec = Motion.spatialDefault(),
-                                        fadeOutSpec = Motion.effectsFast(),
-                                    )
-                            )
-                        }
-                    }
                 }
 
                 // Floating scroll-to-bottom (§9), springs in when scrolled up.
@@ -2063,35 +2050,10 @@ private fun MessageBubble(
                 }
             }
 
-            // Floating reaction pills overlapping bubble corner
-            val reactions by remember(msg.id) {
-                derivedStateOf { ReactionStore.reactionsFor(context, msg.id) }
-            }
-            if (reactions.isNotEmpty()) {
-                ReactionPill(
-                    reactions = reactions,
-                    onReactionClick = { emoji ->
-                        Haptics.tick(view)
-                        ReactionStore.addReaction(context, msg.id, emoji)
-                    },
-                    modifier = Modifier
-                        .padding(
-                            start = if (isOut) 0.dp else 12.dp,
-                            end = if (isOut) 12.dp else 0.dp,
-                        ),
-                )
-            }
         }
 
-            // Long-press actions: reactions, copy, select, star, pin, snooze, info, delete
+            // Long-press actions: copy, select, star, pin, snooze, info, delete
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                QuickReactionStrip(
-                    onSelectEmoji = { emoji ->
-                        Haptics.confirm(view)
-                        ReactionStore.addReaction(context, msg.id, emoji)
-                        showMenu = false
-                    }
-                )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.chat_copy_text)) },
                     onClick = {
