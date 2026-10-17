@@ -127,6 +127,19 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            matchingFallbacks += listOf("release")
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+            proguardFiles("benchmark-rules.pro")
+        }
+    }
+    sourceSets {
+        getByName("benchmark") {
+            kotlin.srcDir("src/debug/kotlin")
+            manifest.srcFile("src/benchmark/AndroidManifest.xml")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -147,6 +160,8 @@ android {
             if (output != null) {
                 if (variant.buildType.name == "release") {
                     output.outputFileName = "Messages.apk"
+                } else if (variant.buildType.name == "benchmark") {
+                    output.outputFileName = "Messages-benchmark.apk"
                 } else {
                     output.outputFileName = "Messages-debug.apk"
                 }
