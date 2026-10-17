@@ -1875,8 +1875,8 @@ private fun SwipeableConversationRow(
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.groupCard)
                 .graphicsLayer { translationX = liveOffset.floatValue + returnOffset.value }
+                .background(MaterialTheme.colorScheme.groupCard)
                 .pointerInput(conv.threadId, rightAction, leftAction, selectionActive) {
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { change, dragAmount ->

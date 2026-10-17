@@ -400,6 +400,9 @@ internal fun SwipeToRevealRow(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .graphicsLayer {
+                    translationX = liveOffset.floatValue + returnOffset.value
+                }
                 .background(MaterialTheme.colorScheme.groupCard)
                 .pointerInput(enabled) {
                     if (!enabled) return@pointerInput
@@ -435,9 +438,6 @@ internal fun SwipeToRevealRow(
                             liveOffset.floatValue = newOffset
                         }
                     )
-                }
-                .graphicsLayer {
-                    translationX = liveOffset.floatValue + returnOffset.value
                 }
         ) {
             content()

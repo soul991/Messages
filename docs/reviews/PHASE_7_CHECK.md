@@ -189,4 +189,26 @@ app/build/intermediates\merged_manifests\release\processReleaseManifest\AndroidM
 - **Screen Recording**: Recorded on connected emulator (`emulator-5554`) while scrolling a long search results list ("Rivera") down and back up. Rows that scroll back into view render immediately at full alpha without fading or sliding in again.
 - **Artifact**: `docs/reviews/screens/search_scroll.mp4` (3,436,384 bytes).
 
+---
+
+## Part 4: Swipe Row Modifier Order & SwipeToRevealRow Signature
+
+### 1. Implementation Summary
+- **Modifier Reordering**:
+  - Reordered modifier chain on both Home conversation swipe row (`HomeScreen.kt`) and `SwipeToRevealRow` (`SettingsComponents.kt`):
+    `graphicsLayer { translationX = ... }` -> `.background(MaterialTheme.colorScheme.groupCard)` -> `.pointerInput(...)`.
+  - Previously, `.background()` was applied outside the `graphicsLayer`, keeping the opaque background stationary while only inner text moved, obscuring the action background underneath. Placing `graphicsLayer` before `background` moves the card background along with the foreground content, properly revealing the underlying action surface.
+  - Kept all behaviors identical: 42% swipe threshold, `canCommitSwipe`, selection mode handling, `Motion.butterSpring()` spring-back return, and accessibility custom actions.
+- **API Signature Fix**:
+  - Removed hardcoded default `"Delete"` literal from `SwipeToRevealRow(deleteLabel: String)`. Callers now explicitly pass `stringResource(R.string.action_delete)` ensuring proper localization.
+
+### 2. Device Verification
+- **Mid-Swipe Screenshot (Home Conversation)**:
+  - Artifact: `docs/reviews/screens/swipe_home.png` (245,540 bytes).
+  - Shows green action background with archive icon clearly revealed behind sliding conversation row.
+- **Mid-Swipe Screenshot (Quick Replies)**:
+  - Artifact: `docs/reviews/screens/swipe_quick_reply.png` (197,233 bytes).
+  - Shows `errorContainer` red action background with delete icon and "Delete" label revealed behind sliding template row.
+
+
 
