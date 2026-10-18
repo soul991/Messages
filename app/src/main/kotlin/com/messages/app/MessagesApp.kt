@@ -26,15 +26,22 @@ class MessagesApp : Application() {
         releaseStaleScheduledClaims()
         settleAbandonedMmsTransactions()
         sealLockedBacklog()
-        injectSyntheticStressData()
+        cleanupSyntheticData()
     }
 
-    private fun injectSyntheticStressData() {
+    /**
+     * One-time maintenance cleanup for 2.1.0 synthetic rows and preferences.
+     */
+    private fun cleanupSyntheticData() {
         kotlinx.coroutines.CoroutineScope(
             kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
         ).launch {
             runCatching {
-                com.messages.app.ui.chat.SyntheticStressData.injectIfNeeded(this@MessagesApp)
+                val repo = com.messages.core.MessageRepository.get(this@MessagesApp)
+                val deleted = com.messages.core.cleanup.SyntheticCleanup.perform(this@MessagesApp, repo.db)
+                if (deleted > 0) {
+                    android.util.Log.i("MessagesApp", "cleaned up $deleted synthetic message(s)")
+                }
             }
         }
     }
