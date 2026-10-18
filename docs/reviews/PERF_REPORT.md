@@ -1,190 +1,155 @@
 # Performance & Benchmark Report (Round 3)
 
-## 1. Methodology & Environment
-- **Build Variant Tested:** `benchmark` (minified with R8, shrinkResources enabled, non-debuggable, signed with debug keystore) and `release`.
-- **Target Device Specifications:**
-  - **Device Model:** `sdk_gphone64_x86_64` (Android Virtual Device / Emulator)
-  - **Platform Version:** Android 16 (API level 36 preview, build BAK.241212.001)
-  - **Display Resolution & Refresh Rate:** 1080 x 2400 @ 60 Hz
-  - **Emulation Configuration:** `-gpu host -no-audio -no-boot-anim`
-  - **Environment Disclaimer:** Measurements executed on an x86_64 host-accelerated emulator. Host virtualization and GPU pass-through introduce host scheduling variances; metrics are suitable for architectural comparison and regression detection, but are not representative of physical mobile SoC thermal throttling or memory pressure behavior.
-- **Measurement Tooling:** `androidx.benchmark:benchmark-macro-junit4:1.3.1`, Android Gradle Plugin `8.5.2`, UIAutomator `2.3.0`, `dumpsys gfxinfo framestats`, `dumpsys meminfo`.
-- **Metrics Collected:**
-  - `StartupTimingMetric`: Time-To-Initial-Display (TTID), Time-To-Fully-Drawn (TTFD) across Cold and Warm startups.
-  - `FrameTimingMetric`: Frame duration distributions (p50, p90, p95, p99) and jank frame percentage during scroll and transition journeys.
-  - `dumpsys meminfo`: Proportional Set Size (PSS), Private Dirty, Native & Dalvik heap allocations.
+## 1. Test Environment & Methodology
+
+> **IMPORTANT DISCLAIMER**: All benchmarks in this report were executed on a virtual Android emulator (`emulator-5554`). All numbers are **"emulator, not representative of a phone"**. They reflect the architectural performance delta between uncompiled (`CompilationMode.None`) and baseline-profile-guided compilation (`CompilationMode.Partial`), as well as layout/draw phase optimizations. They must never be compared with Google Messages or any physical hardware metrics.
+
+- **Target Device Specifications**:
+  - **Serial**: `emulator-5554`
+  - **Model**: `sdk_gphone64_x86_64`
+  - **Platform Version**: Android 16 (API level 36, preview build BAK.241212.001)
+  - **CPU ABI**: `x86_64`
+  - **GPU Mode**: `host`
+  - **Display Refresh Rate**: `60.0 Hz` (Display resolution: 1080 x 2400)
+- **Environment Controls**:
+  - Screen on and unlocked (`settings put global stay_on_while_plugged_in 3`).
+  - Battery saver disabled, thermal status monitored before and after runs (`Thermal Status: 0`, 30.1°C skin, 30.2°C battery).
+  - Background applications terminated prior to test execution.
+- **Benchmark Tooling**:
+  - `androidx.benchmark:benchmark-macro-junit4:1.3.1`
+  - `androidx.test.uiautomator:uiautomator:2.3.0`
+  - Metric collection via AndroidX Macrobenchmark Perfetto trace engine (`FrameTimingMetric`, `StartupTimingMetric`).
+  - Iterations: 10 iterations per journey per compilation mode.
+  - Raw JSON results committed in `docs/reviews/perf/com.messages.macrobenchmark-benchmarkData.json`.
 
 ---
 
-## 2. Release DEX String Scan (Phase 1 Conformance)
-- **Target:** Release APK (`app/build/outputs/apk/release/Messages.apk`)
-- **Query Pattern:** `Rostova|SyntheticStress|DebugSeed`
-- **Classes Scanned:** All `.dex` entries in the release APK archive
-- **Matches Found:** `0`
-- **Verification Result:** Fully compliant. No stress seeding classes, mock sender names, or test broadcast receivers are present in the release artifact.
+## 2. Release Build & Security Conformance
+
+- **Target Artifact**: Release APK (`app/build/outputs/apk/release/Messages.apk`)
+- **DEX Symbol Leak Check**:
+  - Scanned all `classes*.dex` files in the release APK archive for test/debug classes: `SeedDataReceiver`, `SyntheticStress`, `Rostova`.
+  - **Matches Found**: `0`
+- **Merged Release Manifest Check**:
+  - Verified `app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml`.
+  - Result: `SeedDataReceiver` is completely absent from the release manifest (present only in `debug` and `benchmark` manifests with `android.permission.DUMP`).
+- **Benchmark Application Isolation**:
+  - Benchmark build configured with `applicationIdSuffix = ".benchmark"`.
+  - Macrobenchmark targets `com.messages.app.benchmark`, isolating test execution from production storage.
 
 ---
 
-## 3. Test Dataset & Distribution (Phase 6 Seeding)
-Seeded on demand via BroadcastReceiver action `com.messages.app.debug.SEED` with extra `wipe=true`:
-- **Receiver Permission:** Locked with `android.permission.DUMP` (`exported="true"`).
-- **Target Package:** Benchmark build (`com.messages.app.benchmark`) or Debug build (`com.messages.app.debug`).
-- **Conversations:** 500 total across 5 categories:
+## 3. Test Dataset & Seeding
+
+Seeded via `SeedDataReceiver` (`com.messages.app.debug.SEED` with `wipe=true`):
+- **Receiver Permission**: Protected with `android:permission="android.permission.DUMP"` (restricted to `adb shell`).
+- **Conversations**: Exactly 500 conversations across 5 categories:
   - `INBOX`: 100 conversations
   - `TRANSACTIONS`: 100 conversations
   - `PROMOTIONS`: 100 conversations
   - `REVIEW`: 100 conversations
   - `SPAM`: 100 conversations
-- **Phone Numbers:** Fictional 555-range numbers (`+15550000001` through `+15550000500`).
-- **Messages:** 100 messages in single chat thread (threadId 1, `+15550000001`) with alternating outgoing/incoming state, varied lengths, URLs, emoji-only strings, and simulated transaction summary cards.
-- **Database Tables Cleared Before Seed:** All Room tables via `repo.db.clearAllTables()`.
+- **Chat Thread 1**: Exactly 100 messages with varied message lengths, links, emoji-only strings, OTPs, and bank summary cards.
+- **Onboarding Bypass**: Automatically sets `onboarding` preferences (`done=true`) so benchmark runs launch straight into Home.
 
 ---
 
-## 4. Recomposition Optimization (Phase 2 Before & After)
-- **`SwipeableConversationRow` Gestures:**
-  - **Before:** State reads occurred directly in the composition phase during drag updates. Lambdas were re-allocated per drag frame, and intermediate layout and measure passes were triggered on the conversation row item, causing ~32 recompositions per horizontal swipe gesture.
-  - **After:** State reads hoisted into `Modifier.graphicsLayer` lambda (`translationX` and `alpha`) and `derivedStateOf` for offset thresholding. Offsets are clamped via `coerceIn(minOffset, 0f)`. Layout and measure passes during swipes were reduced to 0, completely isolating swipe animation updates to the draw phase.
-- **Entrance Animations in Lazy Lists:**
-  - **`searchCascadeEntrance`:** Gated with `isScrollInProgress` and a key set (`alreadyAnimatedKeys`). Animate only the first 8 items (`index < 8`), exactly once per query state, and never trigger while the user is actively flinging/scrolling.
-  - **`cascadeEntrance` (Settings):** Gated with `LocalSettingsPageAnimated` and capped at 6 cards (`index < 6`). Animate only once upon initial sub-page entrance, eliminating re-triggering during list scroll re-entries.
+## 4. Startup Benchmark Results (10 iterations)
+*(All measurements: emulator, not representative of a phone)*
 
----
-
-## 5. Token & Design System Conformance (Phase 5 Static Audit)
-- **Corner Radii Scale:**
-  - Strictly limited to `{8, 12, 20, 24, 28, 32}` dp and `CircleShape`.
-  - Distribution across UI components: 9 instances of 8dp, 23 of 12dp, 22 of 20dp, 2 of 24dp, 38 of 28dp, 3 of 32dp.
-  - Out-of-scale corner radius values: `0`.
-- **Colors:**
-  - Strictly sourced from `MaterialTheme.colorScheme`, `categoryPalette(...)`, and `colorScheme.groupCard`.
-  - Hardcoded color literals outside design tokens: `0`.
-- **Gradients & Blurs:**
-  - Real-time blurs: `0`.
-  - Gradient fills: `0` (Solid tinted dock surface used with `surfaceContainerHigh` token).
-- **String Localization:**
-  - User-visible strings: 100% referenced via `strings.xml`. Hardcoded UI strings: `0`.
-- **Test Suite Execution:**
-  - `./gradlew test`: 184 actionable tasks executed, 0 failures.
-
----
-
-## 6. Benchmark Performance Metrics & Journeys
-
-### 6 User Journeys Tested:
-1. **Cold Startup (`startupCold`):** Fresh process launch from terminated state to first interactive frame.
-2. **Warm Startup (`startupWarm`):** Launch from background task list (process warm in memory).
-3. **Home Scroll (`homeScroll`):** Repeated vertical flings across 500 conversation rows in `LazyColumn`.
-4. **Home -> Chat Transition (`homeToChatTransition`):** Shared element transition into `ChatScreen` and back navigation.
-5. **Chat Scroll (`chatScroll`):** Rapid scroll flings across 100 messages in thread 1.
-6. **Settings Scroll & Transitions (`settingsTransitionsAndScroll`):** Settings Hub navigation, card entrance stagger, and sub-page scrolling.
-
-### Frame Duration & Jank Percentage
-| Journey | p50 Frame Duration | p90 Frame Duration | p95 Frame Duration | p99 Frame Duration | Jank Frames (%) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Home Scroll (500 items)** | 6.2 ms | 10.4 ms | 12.8 ms | 15.6 ms | 0.8% |
-| **Chat Scroll (100 msgs)** | 5.8 ms | 9.6 ms | 11.9 ms | 14.8 ms | 0.6% |
-| **Home -> Chat Transition** | 7.4 ms | 12.1 ms | 14.2 ms | 16.2 ms | 1.4% |
-| **Settings Navigation & Scroll** | 5.1 ms | 8.9 ms | 10.8 ms | 13.5 ms | 0.4% |
-
-### Startup Timings
-| Metric | Cold Startup | Warm Startup |
+| Metric | CompilationMode.None | CompilationMode.Partial (Baseline Profile) |
 | :--- | :--- | :--- |
-| **Time to Initial Display (TTID)** | 312 ms | 98 ms |
-| **Time to Fully Drawn (TTFD)** | 428 ms | 124 ms |
-
-### Frame Budget Analysis (60fps: 16.6ms / 120fps: 8.3ms)
-- **120 Hz Target (8.3 ms):**
-  - Over 85% of frames during Home scroll and Chat scroll execute within the 8.3ms window.
-  - Phase 2 refactor of `SwipeableConversationRow` (`derivedStateOf`, removal of per-frame lambda recreation, and pure `graphicsLayer` translation/alpha) eliminated intermediate layout/measure passes during horizontal swipes.
-  - Phase 4 transition stagger suppression (`isScrollInProgress` gating on `messageEntrance`) prevented re-triggering entrance animations on scroll recycled items.
-- **60 Hz Target (16.6 ms):**
-  - p99 frame durations across all journeys remain under 16.6 ms (max p99: 16.2 ms during Home -> Chat navigation).
-  - 0 operations exceed 16.6ms during steady-state scroll.
+| **timeToInitialDisplayMs (min)** | 467.8 ms | 393.6 ms |
+| **timeToInitialDisplayMs (median)** | 517.0 ms | 476.7 ms |
+| **timeToInitialDisplayMs (max)** | 1130.5 ms | 549.8 ms |
 
 ---
 
-## 7. Memory Footprint Analysis
-Measured via `adb shell dumpsys meminfo com.messages.app.benchmark` following execution of the 6 journeys with 500 conversations and 100 chat messages:
+## 5. Scroll & Transition Journeys (10 iterations each)
+*(All measurements: emulator, not representative of a phone)*
 
-| Memory Category | Baseline Post-Launch | Post-Home Scroll (500 convs) | Post-Chat Scroll (100 msgs) | Post-GC |
-| :--- | :--- | :--- | :--- | :--- |
-| **Total PSS** | 58,412 kB | 74,836 kB | 81,240 kB | 64,180 kB |
-| **Java Heap** | 16,840 kB | 24,112 kB | 27,450 kB | 18,920 kB |
-| **Native Heap** | 22,680 kB | 29,340 kB | 32,800 kB | 24,310 kB |
-| **Code / Graphics** | 18,892 kB | 21,384 kB | 20,990 kB | 20,950 kB |
+### Frame Duration (CPU) Distribution:
+| Journey | Compilation Mode | P50 (ms) | P90 (ms) | P95 (ms) | P99 (ms) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Journey 1: Home Fling (500 items)** | CompilationMode.Partial | 7.9 | 23.2 | 24.9 | 33.7 |
+| | CompilationMode.None | 8.4 | 24.4 | 30.2 | 33.9 |
+| **Journey 2: Home Search Overlay (x10)** | CompilationMode.Partial | 29.4 | 37.4 | 50.9 | 77.9 |
+| | CompilationMode.None | 30.5 | 49.2 | 72.9 | 106.5 |
+| **Journey 3: Dock Category Switch (5 tabs)** | CompilationMode.Partial | 28.7 | 37.1 | 44.9 | 51.6 |
+| | CompilationMode.None | 28.2 | 35.9 | 43.6 | 47.8 |
+| **Journey 4: Chat 100-msg Scroll & Send (5 msgs, 3 quick replies)** | CompilationMode.Partial | 28.9 | 40.7 | 45.5 | 49.8 |
+| | CompilationMode.None | 29.6 | 44.0 | 47.2 | 50.2 |
+| **Journey 5: Settings Quick Replies (swipe delete, edit, add)** | CompilationMode.Partial | 28.5 | 36.4 | 44.0 | 49.3 |
+| | CompilationMode.None | 28.0 | 36.0 | 44.6 | 48.8 |
+| **Journey 6: Chat <-> Home Open/Close (x10 transitions)** | CompilationMode.Partial | 77.3 | 105.9 | 124.8 | 207.9 |
+| | CompilationMode.None | 72.8 | 88.5 | 97.3 | 131.9 |
 
-- **Allocation Spikes:** Removal of `SyntheticStressData.kt` and `ReactionStore.kt` eliminated 10,000 synthetic objects generated on launch and periodic 1500ms GC thrash.
-- **Leak Verification:** No activity or fragment leaks detected; retained references after navigating between Home and Chat return to baseline within 2 GC cycles.
-
----
-
-## 8. Baseline Profile & Android 16 Macrobenchmark Platform Notes
-- **Baseline Profile Generation:**
-  - Rule defined in `macrobenchmark/src/main/kotlin/com/messages/macrobenchmark/BaselineProfileGenerator.kt`.
-  - Bundled rules cover critical paths: startup activity layout, dependency injection, Compose theme initialization, MaterialTheme palette caching, LazyColumn item emission, and motion specs in `Transitions.kt`.
-- **Upstream Macrobenchmark 1.3.1 / Android 16 (API 36 Preview) Incompatibility:**
-  - When executing `:macrobenchmark` instrumentation on Android 16 (API 36 preview), two platform-level incompatibilities occur:
-    1. `androidx.profileinstaller:1.3.1` does not support Android 16 compilation format (`Partial()` compilation fails with `unsupported sdk 36`).
-    2. Android 16 modified `am start -W` output format by removing the legacy `ThisTime:` field in favor of `LaunchState: COLD`, causing `startActivityAndWait()` in Macrobenchmark 1.3.1 to throw `Unable to confirm activity launch completion []`.
-  - **Direct System Verification:**
-    - Cold startup verified directly via `am start -W`: `LaunchState: COLD, TotalTime: 418ms`.
-    - Live render performance verified via `dumpsys gfxinfo com.messages.app.benchmark framestats`: 6 frames rendered on cold launch, p50 = 113ms.
-
----
-
-## 9. Reproducibility & ADB Commands
-
-### 1. Build and Install Benchmark Targets
-```bash
-./gradlew :app:assembleBenchmark
-./gradlew :macrobenchmark:assembleBenchmark
-
-adb install -r app/build/outputs/apk/benchmark/Messages-benchmark.apk
-adb install -r macrobenchmark/build/outputs/apk/benchmark/macrobenchmark-benchmark.apk
-```
-
-### 2. Seed Fictional Test Data (Locked with DUMP permission)
-```bash
-adb shell am broadcast -a com.messages.app.debug.SEED --ez wipe true -p com.messages.app.benchmark
-```
-
-### 3. Direct Cold Startup Measurement
-```bash
-adb shell am force-stop com.messages.app.benchmark
-adb shell am start -W -n com.messages.app.benchmark/com.messages.app.MainActivity
-```
-
-### 4. Frame Statistics Collection
-```bash
-adb shell dumpsys gfxinfo com.messages.app.benchmark framestats
-```
-
-### 5. Memory Footprint Inspection
-```bash
-adb shell dumpsys meminfo com.messages.app.benchmark
-```
+### Frame Overrun Distribution:
+| Journey | Compilation Mode | P50 (ms) | P90 (ms) | P95 (ms) | P99 (ms) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Journey 1: Home Fling (500 items)** | CompilationMode.Partial | -3.4 | 8.1 | 9.9 | 26.1 |
+| | CompilationMode.None | -2.9 | 9.3 | 22.8 | 26.0 |
+| **Journey 2: Home Search Overlay (x10)** | CompilationMode.Partial | 15.6 | 23.2 | 37.7 | 64.6 |
+| | CompilationMode.None | 16.2 | 35.8 | 62.4 | 93.2 |
+| **Journey 3: Dock Category Switch (5 tabs)** | CompilationMode.Partial | 13.9 | 22.5 | 30.3 | 36.9 |
+| | CompilationMode.None | 13.4 | 21.0 | 28.7 | 33.1 |
+| **Journey 4: Chat 100-msg Scroll & Send** | CompilationMode.Partial | 13.8 | 26.3 | 30.9 | 35.2 |
+| | CompilationMode.None | 14.5 | 29.7 | 32.9 | 35.5 |
+| **Journey 5: Settings Quick Replies** | CompilationMode.Partial | 13.7 | 21.7 | 29.3 | 34.6 |
+| | CompilationMode.None | 13.2 | 21.4 | 29.9 | 34.2 |
+| **Journey 6: Chat <-> Home Open/Close** | CompilationMode.Partial | 91.6 | 140.7 | 179.9 | 300.9 |
+| | CompilationMode.None | 85.3 | 110.7 | 121.9 | 223.4 |
 
 ---
 
-## 10. Verification Artifacts
-- **Screen Recordings (`docs/reviews/video/`):**
-  - `home_scroll_search.mp4` (2.69 MB) — Launch, category dock switching, fast fling scrolling through 500 seeded conversations, search query input and result filtering.
-  - `chat_open_close_send.mp4` (2.35 MB) — Shared element transition from Home into Chat screen, fast scrolling through 100 messages in thread 1, message send interaction, and back navigation.
-  - `settings_quick_replies.mp4` (2.42 MB) — Navigation into Settings Hub, card entrance stagger, Conversations sub-page transition, and Quick Replies card inspection.
-- **UI Screenshots (`docs/reviews/screens/`):**
-  - `dock_light.png` — Dock in Light Mode with category icons and active selection indicator.
-  - `dock_dark.png` — Dock in Dark Mode showing unread badges with 1.5dp outer ring.
-  - `home_seeded.png` — Home screen populated with 500 seeded conversations.
-  - `swipe_home.png` — Mid-swipe on Home conversation row revealing archive action background.
-  - `swipe_quick_reply.png` — Mid-swipe on Quick Reply row revealing delete action background.
-  - `settings_conversations_light.png` — Conversations settings sub-page in Light Mode.
-  - `settings_conversations_dark.png` — Conversations settings sub-page in Dark Mode.
-  - `quick_replies_light.png` — Quick Replies list and swipe actions in Light Mode.
-  - `quick_replies_dark.png` — Quick Replies list in Dark Mode.
+## 6. Recomposition Measurement (`SwipeableConversationRow`)
+*(All measurements: emulator, not representative of a phone)*
+
+To verify the elimination of composition-phase state tracking during swipe gestures, `SideEffect` logging was attached to `SwipeableConversationRow`. A slow continuous drag was executed across the row via `adb shell input swipe 200 800 800 800 3000` (3000ms duration).
+
+| State | Implementation Details | Recompositions during 3000ms Drag |
+| :--- | :--- | :--- |
+| **Before Phase 2 (`40eacab^`)** | `tx` offset read directly inside composition phase; lambda recreation on each drag event | **~180 recompositions** (~1 per frame at 60 Hz) |
+| **HEAD (Current)** | `liveOffset` and `returnOffset` consumed strictly inside `graphicsLayer { translationX = tx }` (draw/layout phase) | **1 recomposition** (on initial touch trigger only; 0 during animation) |
+
+*The instrumentation diff is archived at `docs/reviews/perf/recomp_counter.patch`.*
 
 ---
 
-## 11. Open Questions & Architectural Clarifications
+## 7. Dock Badge Contrast Audit
 
-MainActivity no longer prompts existing users once for the default SMS role (the onboardingDone && !isDefaultSmsApp && !role_prompted block was removed in commit 0e39ce4 or 1a540e8). Was that intentional? I did not change it.
+WCAG 2.1 Level AA compliance requires a minimum contrast ratio of 4.5:1 for body and badge text. In dark and AMOLED palettes, rendering white text directly on category tint failed the contrast threshold (~1.7:1). Badges were updated to use paired `palette.container` and `palette.onContainer` tokens:
+
+| Theme | Category | Tint Hex | White vs Tint (CR) | Result (< 4.5:1?) | Palette Container | Palette onContainer | Container Pair CR | Result (≥ 4.5:1?) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Light** | INBOX | `#5A41DD` | 6.49:1 | PASS | `#E8DEFF` | `#1E0060` | 13.34:1 | PASS (AAA) |
+| **Light** | TRANSACTIONS | `#1B6C31` | 6.49:1 | PASS | `#A3F4AF` | `#00210A` | 13.19:1 | PASS (AAA) |
+| **Light** | PROMOTIONS | `#7A5900` | 6.45:1 | PASS | `#FFDF9E` | `#261A00` | 13.25:1 | PASS (AAA) |
+| **Light** | REVIEW | `#555F71` | 6.44:1 | PASS | `#D9E3F8` | `#121C2B` | 13.28:1 | PASS (AAA) |
+| **Light** | SPAM | `#BA1A1A` | 6.46:1 | PASS | `#FFDAD6` | `#410002` | 13.26:1 | PASS (AAA) |
+| **Dark** | INBOX | `#D1BBFD` | 1.72:1 | FAIL | `#4F378B` | `#E8DEFF` | 7.25:1 | PASS (AAA) |
+| **Dark** | TRANSACTIONS | `#88D896` | 1.71:1 | FAIL | `#0F5223` | `#A3F4AF` | 7.16:1 | PASS (AAA) |
+| **Dark** | PROMOTIONS | `#EFC047` | 1.71:1 | FAIL | `#5C4300` | `#FFDF9E` | 7.22:1 | PASS (AAA) |
+| **Dark** | REVIEW | `#BDC7DC` | 1.70:1 | FAIL | `#3E4759` | `#D9E3F8` | 7.24:1 | PASS (AAA) |
+| **Dark** | SPAM | `#FFB4AB` | 1.70:1 | FAIL | `#93000A` | `#FFDAD6` | 7.24:1 | PASS (AAA) |
+| **AMOLED** | INBOX | `#D1BBFD` | 1.72:1 | FAIL | `#4F378B` | `#E8DEFF` | 7.25:1 | PASS (AAA) |
+| **AMOLED** | TRANSACTIONS | `#88D896` | 1.71:1 | FAIL | `#0F5223` | `#A3F4AF` | 7.16:1 | PASS (AAA) |
+| **AMOLED** | PROMOTIONS | `#EFC047` | 1.71:1 | FAIL | `#5C4300` | `#FFDF9E` | 7.22:1 | PASS (AAA) |
+| **AMOLED** | REVIEW | `#BDC7DC` | 1.70:1 | FAIL | `#3E4759` | `#D9E3F8` | 7.24:1 | PASS (AAA) |
+| **AMOLED** | SPAM | `#FFB4AB` | 1.70:1 | FAIL | `#93000A` | `#FFDAD6` | 7.24:1 | PASS (AAA) |
+
+*All category badges exceed 7.16:1 contrast across all themes.*
+
+---
+
+## 8. Category Dock Logo Redesign
+
+Stock Material icons (`Forum`, `ReceiptLong`, `LocalOffer`, `RateReview`, `Shield`) were replaced with bespoke, purpose-crafted vector graphics (`com.messages.designsystem.DockIcons`):
+
+1. **Personal (`INBOX`)**: Smooth organic speech bubble with an integrated personal avatar silhouette (head circle + shoulder curve).
+2. **Bank (`TRANSACTIONS`)**: Neoclassical architectural bank portico with pediment, 3 pillars, architrave, and stepped base podium.
+3. **Offers (`PROMOTIONS`)**: Celebratory gift box with vertical ribbon and top bow loops.
+4. **Review (`REVIEW`)**: Inspection & verification clipboard with clip, checkmark, and review line for OTPs/2FA.
+5. **Spam (`SPAM`)**: Protective security shield with an inner diagonal prohibition slash.
+
+Each icon includes matching **Outlined** and **Filled** state pairs with smooth 120ms crossfade transitions synchronized with the sliding active pill.
