@@ -45,7 +45,7 @@ class BaselineProfileGenerator {
         includeInStartupProfile = true,
     ) {
         pressHome()
-        startActivityAndWait()
+        device.executeShellCommand("am start -W -n $TARGET_PACKAGE/com.messages.app.MainActivity")
         device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
 
         // Journey a: Home fling
@@ -76,7 +76,7 @@ class BaselineProfileGenerator {
         }
 
         // Journey d: Chat scroll and send
-        val firstConv = device.findObject(By.textContains("Alex Morgan"))
+        val firstConv = device.findObject(By.textContains("+15550000001"))
         firstConv?.click()
         device.wait(Until.hasObject(byTag("chat_message_list")), 5000)
         device.waitForIdle()
@@ -128,7 +128,11 @@ class BaselineProfileGenerator {
         device.findObject(byTag("quick_reply_edit_toggle"))?.click()
         device.waitForIdle()
 
-        device.findObject(byTag("quick_reply_input_field"))?.text = "Profile reply"
+        val input = device.findObject(byTag("quick_reply_input_field")) ?: run {
+            device.findObject(byTag("quick_reply_list"))?.scroll(Direction.DOWN, 0.4f)
+            device.findObject(byTag("quick_reply_input_field"))
+        }
+        input?.text = "Profile reply"
         device.waitForIdle()
         device.findObject(byTag("quick_reply_add_button"))?.click()
         device.waitForIdle()
@@ -141,7 +145,7 @@ class BaselineProfileGenerator {
 
         // Journey f: Chat <-> Home open/close x2
         repeat(2) {
-            device.findObject(By.textContains("Alex Morgan"))?.click()
+            device.findObject(By.textContains("+15550000001"))?.click()
             device.wait(Until.hasObject(byTag("chat_message_list")), 5000)
             device.waitForIdle()
             device.pressBack()

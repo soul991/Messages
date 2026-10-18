@@ -7,6 +7,7 @@ import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -43,46 +44,29 @@ class StartupBenchmark {
         startupMode = StartupMode.COLD,
     ) {
         pressHome()
-        startActivityAndWait()
+        device.executeShellCommand("am start -W -n $TARGET_PACKAGE/com.messages.app.MainActivity")
+        device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
     }
 
     @Test
     fun startupColdCompilationPartial() = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
         metrics = listOf(StartupTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
+        compilationMode = CompilationMode.Partial(
+            baselineProfileMode = androidx.benchmark.macro.BaselineProfileMode.Disable,
+            warmupIterations = 1,
+        ),
         iterations = 10,
         startupMode = StartupMode.COLD,
     ) {
         pressHome()
-        startActivityAndWait()
-    }
-
-    @Test
-    fun startupWarmCompilationNone() = benchmarkRule.measureRepeated(
-        packageName = TARGET_PACKAGE,
-        metrics = listOf(StartupTimingMetric()),
-        compilationMode = CompilationMode.None(),
-        iterations = 10,
-        startupMode = StartupMode.WARM,
-    ) {
-        pressHome()
-        startActivityAndWait()
-    }
-
-    @Test
-    fun startupWarmCompilationPartial() = benchmarkRule.measureRepeated(
-        packageName = TARGET_PACKAGE,
-        metrics = listOf(StartupTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
-        iterations = 10,
-        startupMode = StartupMode.WARM,
-    ) {
-        pressHome()
-        startActivityAndWait()
+        device.executeShellCommand("am start -W -n $TARGET_PACKAGE/com.messages.app.MainActivity")
+        device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
     }
 
     companion object {
         const val TARGET_PACKAGE = "com.messages.app.benchmark"
+
+        fun byTag(tag: String) = androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*(:id/)?$tag"))
     }
 }

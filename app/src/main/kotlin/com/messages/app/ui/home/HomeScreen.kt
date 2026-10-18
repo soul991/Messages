@@ -175,6 +175,7 @@ import com.messages.app.ui.common.sharedThreadName
 import com.messages.app.ui.common.valueOrNull
 import com.messages.app.ui.search.SearchHighlight
 import com.messages.core.db.ConversationEntity
+import com.messages.designsystem.DockIcons
 import com.messages.designsystem.Haptics
 import com.messages.designsystem.Motion
 import com.messages.designsystem.categoryPalette
@@ -609,40 +610,40 @@ fun HomeScreen(
                         DockItem(
                             key = "INBOX",
                             title = resources.getString(R.string.nav_personal),
-                            outlinedIcon = Icons.Outlined.Forum,
-                            filledIcon = Icons.Filled.Forum,
+                            outlinedIcon = DockIcons.PersonalOutlined,
+                            filledIcon = DockIcons.PersonalFilled,
                             unreadCount = inboxUnread,
                             category = "INBOX",
                         ),
                         DockItem(
                             key = "TRANSACTIONS",
                             title = resources.getString(R.string.nav_bank),
-                            outlinedIcon = Icons.Outlined.ReceiptLong,
-                            filledIcon = Icons.Filled.ReceiptLong,
+                            outlinedIcon = DockIcons.BankOutlined,
+                            filledIcon = DockIcons.BankFilled,
                             unreadCount = txnUnread,
                             category = "TRANSACTIONS",
                         ),
                         DockItem(
                             key = "PROMOTIONS",
                             title = resources.getString(R.string.nav_offers),
-                            outlinedIcon = Icons.Outlined.LocalOffer,
-                            filledIcon = Icons.Filled.LocalOffer,
+                            outlinedIcon = DockIcons.OffersOutlined,
+                            filledIcon = DockIcons.OffersFilled,
                             unreadCount = promoUnread,
                             category = "PROMOTIONS",
                         ),
                         DockItem(
                             key = "REVIEW",
                             title = resources.getString(R.string.nav_review),
-                            outlinedIcon = Icons.Outlined.RateReview,
-                            filledIcon = Icons.Filled.RateReview,
+                            outlinedIcon = DockIcons.ReviewOutlined,
+                            filledIcon = DockIcons.ReviewFilled,
                             unreadCount = reviewUnread,
                             category = "REVIEW",
                         ),
                         DockItem(
                             key = "SPAM",
                             title = resources.getString(R.string.nav_spam),
-                            outlinedIcon = Icons.Outlined.Shield,
-                            filledIcon = Icons.Filled.Shield,
+                            outlinedIcon = DockIcons.SpamOutlined,
+                            filledIcon = DockIcons.SpamFilled,
                             unreadCount = spamUnread,
                             category = "SPAM",
                         ),

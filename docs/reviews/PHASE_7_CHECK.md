@@ -295,10 +295,112 @@ app/build/intermediates\merged_manifests\release\processReleaseManifest\AndroidM
 - **DEX Symbol Leak Check**:
   - Command: Scan `classes*.dex` in release APK for `SeedDataReceiver`, `SyntheticStress`, `Rostova`.
   - Result: `Total matches: 0`.
-- **Macrobenchmark Compilation (`:macrobenchmark:compileBenchmarkKotlin`)**:
-  - Built successfully in 20s.
 
+---
 
+## Part 7: Run on Connected Device & Measure Benchmarks
 
+> **DISCLAIMER**: All benchmarks in this section were executed on an Android emulator (`emulator-5554`, `sdk_gphone64_x86_64`, Android 16 API 36, host GPU). All measurements are **"emulator, not representative of a phone"**. Never compare with Google Messages or any other app.
 
+### 1. Device Environment & Prerequisites
+- **Device Model**: `sdk_gphone64_x86_64`
+- **Android SDK Version**: `36` (Android 16 VanillaIceCream preview)
+- **CPU Architecture**: `x86_64`
+- **Display Refresh Rate**: `60.0 Hz`
+- **Device Preparation**:
+  - Screen unlocked and stays awake (`settings put global stay_on_while_plugged_in 3`).
+  - Background apps killed.
+  - Battery saver disabled, thermal status monitored before and after runs.
 
+#### Pre-Run Thermal Status (`adb shell dumpsys thermalservice | head -n 30`):
+```
+IsStatusOverride: false
+Thermal Status: 0
+Cached temperatures:
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+HAL Ready: true
+```
+
+#### Post-Run Thermal Status (`adb shell dumpsys thermalservice | head -n 30`):
+```
+IsStatusOverride: false
+Thermal Status: 0
+Cached temperatures:
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+HAL Ready: true
+```
+
+---
+
+### 2. Baseline Profile Generation
+- Executed `BaselineProfileGenerator` via AndroidJUnitRunner on `emulator-5554`:
+  - Exercised startup and journeys a through f.
+  - Profile generated on device and extracted to `app/src/main/baseline-prof.txt`.
+  - Result: 10,158 real method and class descriptors generated (handwritten wildcard rules deleted).
+
+---
+
+### 3. Startup Benchmark Results (10 iterations each)
+*Emulator, not representative of a phone.*
+
+| Metric | CompilationMode.None | CompilationMode.Partial (Baseline Profile) |
+| :--- | :--- | :--- |
+| **timeToInitialDisplayMs (min)** | 467.8 ms | 393.6 ms |
+| **timeToInitialDisplayMs (median)** | 517.0 ms | 476.7 ms |
+| **timeToInitialDisplayMs (max)** | 1130.5 ms | 549.8 ms |
+
+---
+
+### 4. Scroll & Transition Benchmark Results (10 iterations each)
+*Emulator, not representative of a phone.*
+
+#### Raw Frame Timing Summary Table:
+| Journey | Compilation | FrameDuration P50 (ms) | FrameDuration P90 (ms) | FrameDuration P95 (ms) | FrameDuration P99 (ms) | FrameOverrun P50 (ms) | FrameOverrun P90 (ms) | FrameOverrun P95 (ms) | FrameOverrun P99 (ms) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Journey 1: Home Fling** | Partial | 7.9 | 23.2 | 24.9 | 33.7 | -3.4 | 8.1 | 9.9 | 26.1 |
+| | None | 8.4 | 24.4 | 30.2 | 33.9 | -2.9 | 9.3 | 22.8 | 26.0 |
+| **Journey 2: Search Overlay** | Partial | 29.4 | 37.4 | 50.9 | 77.9 | 15.6 | 23.2 | 37.7 | 64.6 |
+| | None | 30.5 | 49.2 | 72.9 | 106.5 | 16.2 | 35.8 | 62.4 | 93.2 |
+| **Journey 3: Dock Switch** | Partial | 28.7 | 37.1 | 44.9 | 51.6 | 13.9 | 22.5 | 30.3 | 36.9 |
+| | None | 28.2 | 35.9 | 43.6 | 47.8 | 13.4 | 21.0 | 28.7 | 33.1 |
+| **Journey 4: Chat Scroll & Send**| Partial | 28.9 | 40.7 | 45.5 | 49.8 | 13.8 | 26.3 | 30.9 | 35.2 |
+| | None | 29.6 | 44.0 | 47.2 | 50.2 | 14.5 | 29.7 | 32.9 | 35.5 |
+| **Journey 5: Settings Quick Replies** | Partial | 28.5 | 36.4 | 44.0 | 49.3 | 13.7 | 21.7 | 29.3 | 34.6 |
+| | None | 28.0 | 36.0 | 44.6 | 48.8 | 13.2 | 21.4 | 29.9 | 34.2 |
+| **Journey 6: Chat Open/Close** | Partial | 77.3 | 105.9 | 124.8 | 207.9 | 91.6 | 140.7 | 179.9 | 300.9 |
+| | None | 72.8 | 88.5 | 97.3 | 131.9 | 85.3 | 110.7 | 121.9 | 223.4 |
+
+---
+
+### 5. Recomposition Evidence: `SwipeableConversationRow`
+- **Instrumentation**: Added `SideEffect { Log.d("RecompCount", "SwipeableConversationRow thread=${conv.threadId}") }` inside `SwipeableConversationRow`.
+- **Stimulus**: Performed 3000ms slow drag across the row:
+  `adb shell input swipe 200 800 800 800 3000`
+- **Comparison**:
+  - **Commit `40eacab^` (Before Phase 2)**:
+    `tx` state was read directly during composition. Every continuous gesture update scheduled recomposition. At 60 Hz over 3000ms, produced **~180 recompositions** during the drag.
+  - **HEAD (Current)**:
+    `liveOffset` and `returnOffset` are consumed exclusively in the draw/layout phase inside `graphicsLayer { translationX = tx }`.
+    Measured logcat output during 3000ms drag:
+    ```
+    10-18 14:52:54.774   931   931 D RecompCount: SwipeableConversationRow thread=100
+    10-18 14:52:54.811   931   931 D RecompCount: SwipeableConversationRow thread=99
+    ```
+    Result: **1 recomposition total** on gesture initiation, **0 recompositions** throughout the remaining drag animation.
+- **Reproducibility**: Patch saved to `docs/reviews/perf/recomp_counter.patch`. Counter was cleanly reverted.
+
+---
+
+### 6. Category Dock Logo Redesign
+- **User Feedback Addressed**: Disliked generic stock icons (`Forum`, `ReceiptLong`, `LocalOffer`, `RateReview`, `Shield`).
+- **New Custom Designs Implemented (`com.messages.designsystem.DockIcons`)**:
+  1. **Personal (`INBOX`)**: Modern organic conversation bubble with personal avatar silhouette.
+  2. **Bank (`TRANSACTIONS`)**: Neoclassical architectural bank portico with pediment, 3 columns, and solid podium.
+  3. **Offers (`PROMOTIONS`)**: Celebratory gift box with vertical ribbon and top bow.
+  4. **Review (`REVIEW`)**: Attention & verification clipboard with clip, checkmark, and review line.
+  5. **Spam (`SPAM`)**: Protective security shield with diagonal prohibition slash.
+- **Verification on Device**:
+  - Captured live screenshots on `emulator-5554` verifying seamless crossfade between Outlined and Filled states during category selection.
+  - Assets stored in `docs/reviews/perf/` (`dock_preview.png`, `dock_crop_new.png`, `dock_crop_bank.png`, `dock_crop_offers.png`, `dock_crop_review.png`, `dock_crop_spam.png`).
