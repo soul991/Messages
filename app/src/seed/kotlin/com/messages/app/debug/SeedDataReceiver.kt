@@ -29,12 +29,14 @@ class SeedDataReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_SEED) return
+        if (!DebugAuth.isAuthorized(context, intent)) return
         runBlocking(Dispatchers.IO) {
             try {
                 val repo = MessageRepository.get(context)
                 val wipe = intent.getBooleanExtra(EXTRA_WIPE, false) ||
                     intent.getStringExtra(EXTRA_WIPE)?.toBoolean() == true
-                if (wipe) {
+                val confirm = intent.getStringExtra(EXTRA_CONFIRM)
+                if (wipe && confirm == CONFIRM_WIPE_VALUE) {
                     repo.db.clearAllTables()
                 }
                 context.getSharedPreferences("onboarding", Context.MODE_PRIVATE)
@@ -185,5 +187,7 @@ class SeedDataReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_SEED = "com.messages.app.debug.SEED"
         const val EXTRA_WIPE = "wipe"
+        const val EXTRA_CONFIRM = "confirm"
+        const val CONFIRM_WIPE_VALUE = "WIPE_ALL_DATA"
     }
 }

@@ -133,12 +133,17 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             isDebuggable = false
             applicationIdSuffix = ".benchmark"
+            versionNameSuffix = "-benchmark"
+            resValue("string", "app_name", "Messages (bench)")
             proguardFiles("benchmark-rules.pro")
         }
     }
     sourceSets {
+        getByName("debug") {
+            kotlin.srcDir("src/seed/kotlin")
+        }
         getByName("benchmark") {
-            kotlin.srcDir("src/debug/kotlin")
+            kotlin.srcDir("src/seed/kotlin")
             manifest.srcFile("src/benchmark/AndroidManifest.xml")
         }
     }
