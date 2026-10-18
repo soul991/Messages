@@ -1,6 +1,6 @@
 # Performance & Benchmark Report (Round 3)
 
-Previous values were not backed by committed benchmark output and have been withdrawn.
+Previous values were not backed by committed benchmark output and have been withdrawn. The only genuine result so far is the chat open/close journey with CompilationMode.None, frameDurationCpuMs P50 72.8 ms and P99 131.9 ms on emulator sdk_gphone64_x86_64 (API 36), which is far above the targets.
 
 ## 1. Device Information
 
@@ -8,6 +8,7 @@ Previous values were not backed by committed benchmark output and have been with
 Device: EMULATOR, not representative of a phone
 Model: sdk_gphone64_x86_64
 ro.build.version.sdk: 36
+Fingerprint: google/sdk_gphone64_x86_64/emu64xa:16/BE2A.250530.026.D1/13818094:user/release-keys
 ABI: x86_64
 Display: 1080 x 2400
 Refresh Rate: 60.0 Hz (60 Hz screen)
@@ -112,6 +113,6 @@ MainActivity no longer prompts existing users once for the default SMS role (the
 1. **`homeToChatTransition` (Partial & None)**:
    - **Reason**: Attempted 3 times on emulator. Perfetto trace extraction in AndroidX Macrobenchmark failed repeatedly with `IllegalStateException: Observed no renderthread slices in trace` when capturing activity transition windows.
 2. **`startupCold` and `startupWarm` (Partial & None)**:
-   - **Reason**: Incompatible with Android 16 (API 36 preview build BAK.241212.001). `startActivityAndWait()` in Macrobenchmark 1.3.1 parses `am start -W` output expecting `ThisTime: (\d+)`. Android 16 removed the `ThisTime:` field, throwing `IllegalStateException: Unable to confirm activity launch completion []`.
+   - **Reason**: Incompatible with Android 16 (API 36, fingerprint google/sdk_gphone64_x86_64/emu64xa:16/BE2A.250530.026.D1/13818094:user/release-keys). `startActivityAndWait()` in Macrobenchmark 1.3.1 parses `am start -W` output expecting `ThisTime: (\d+)`. Android 16 removed the `ThisTime:` field, throwing `IllegalStateException: Unable to confirm activity launch completion []`.
 3. **Recomposition counts during slow drag (Step 3)**:
    - **Reason**: Layout Inspector recomposition tracking requires an interactive GUI session in Android Studio, which cannot be automated via headless CLI execution.

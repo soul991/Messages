@@ -1,4 +1,4 @@
-# Implementation Plan: Flagship Chat Motion & Parity Perfection
+# Implementation Plan: Chat Motion & Parity Review
 
 ## 1. Executive Summary & Objective
 This document outlines the architectural plan, physical specifications, and execution strategy for engineering, stress-testing, and achieving > 9.8 / 10.0 critique parity in the native Android Messages chat experience against **Google Messages (Material 3 Expressive)** and **Apple iMessage**.
