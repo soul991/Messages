@@ -317,6 +317,12 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun userDelete(id: Long)
 
+    @Query(
+        "DELETE FROM messages WHERE threadId = 100 AND address = '+1 (555) 019-2834' " +
+            "AND smsId BETWEEN 900001 AND 900100"
+    )
+    suspend fun deleteSyntheticRows(): Int
+
     // ---- Trash (§6.4) ----
 
     @Query("UPDATE messages SET trashed = 1, trashedAt = :at WHERE id = :id")

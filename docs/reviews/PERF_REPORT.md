@@ -48,10 +48,10 @@ All numbers below are copied directly from committed JSON files under `docs/revi
 
 | Metric | Compilation Mode | Median (ms) | Source |
 |---|---|---|---|
-| startupCold | CompilationMode.Partial() | NOT RUN | Android 16 (API 36 preview) Macrobenchmark 1.3.1 incompatibility (`ThisTime:` absent from `am start -W`) |
-| startupCold | CompilationMode.None() | NOT RUN | Android 16 (API 36 preview) Macrobenchmark 1.3.1 incompatibility (`ThisTime:` absent from `am start -W`) |
-| startupWarm | CompilationMode.Partial() | NOT RUN | Android 16 (API 36 preview) Macrobenchmark 1.3.1 incompatibility (`ThisTime:` absent from `am start -W`) |
-| startupWarm | CompilationMode.None() | NOT RUN | Android 16 (API 36 preview) Macrobenchmark 1.3.1 incompatibility (`ThisTime:` absent from `am start -W`) |
+| startupCold | CompilationMode.Partial() | NOT RUN | Android 16 (google/sdk_gphone64_x86_64/emu64xa:16/BE2A.250530.026.D1/138) Macrobenchmark 1.3.1 incompatibility (`ThisTime:` absent from `am start -W`) |
+| startupCold | CompilationMode.None() | NOT RUN | Android 16 (google/sdk_gphone64_x86_64/emu64xa:16/BE2A.250530.026.D1/138) Macrobenchmark 1.3.1 incompatibility (`ThisTime:` absent from `am start -W`) |
+| startupWarm | CompilationMode.Partial() | NOT RUN | Android 16 (google/sdk_gphone64_x86_64/emu64xa:16/BE2A.250530.026.D1/138) Macrobenchmark 1.3.1 incompatibility (`ThisTime:` absent from `am start -W`) |
+| startupWarm | CompilationMode.None() | NOT RUN | Android 16 (google/sdk_gphone64_x86_64/emu64xa:16/BE2A.250530.026.D1/138) Macrobenchmark 1.3.1 incompatibility (`ThisTime:` absent from `am start -W`) |
 
 ---
 
@@ -100,7 +100,7 @@ Every journey executed on the emulator failed at least one target threshold. Fil
 7. **`homeToChatTransition`**:
    - `macrobenchmark/src/main/kotlin/com/messages/macrobenchmark/ScrollAndTransitionBenchmark.kt` line 279–310 (repeated failure with `IllegalStateException: Observed no renderthread slices in trace` during Perfetto trace parsing after 3 attempts).
 8. **`startupCold` & `startupWarm`**:
-   - `macrobenchmark/src/main/kotlin/com/messages/macrobenchmark/StartupBenchmark.kt` line 24–45 (`am start -W` missing `ThisTime:` on Android 16 API 36 preview).
+   - `macrobenchmark/src/main/kotlin/com/messages/macrobenchmark/StartupBenchmark.kt` line 24–45 (`am start -W` missing `ThisTime:` on Android 16 google/sdk_gphone64_x86_64/emu64xa:16/BE2A.250530.026.D1/138).
 
 ---
 
