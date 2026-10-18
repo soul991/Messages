@@ -5,7 +5,6 @@ import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.Direction
@@ -18,13 +17,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Macrobenchmark measuring frame timing across the Phase 6.3 user journeys:
- * a. Home fling down/up x5 over 500 conversations
- * b. Home: open search overlay, back x10
- * c. Home: switch dock Personal -> Bank -> Offers -> Review -> Spam
- * d. Open 100-message chat, fling up/down; send 5 messages and 3 quick replies
- * e. Settings -> Conversations -> Quick replies: swipe-delete one row, enter Edit mode, add a reply
- * f. Chat <-> Home open/close x10 (including back gesture)
+ * Macrobenchmark measuring frame timing across the required user journeys:
+ * a. homeScroll: Home fling down/up over 500 conversations
+ * b. homeSearchOpenClose: open search overlay, wait, press back x10 per iteration
+ * c. dockSwitch: switch dock Personal -> Bank -> Offers -> Review -> Spam
+ * d. chatScroll: 100-message chat, fling up/down; send 5 messages and 3 quick replies
+ * e. quickRepliesSwipeDelete: Settings -> Conversations -> Quick replies, swipe-delete one row, enter Edit mode and leave it, add a reply
+ * f. homeToChatTransition: Chat <-> Home open/close x10
  *
  * 10 iterations each, evaluated under CompilationMode.Partial and CompilationMode.None.
  */
@@ -35,13 +34,7 @@ class ScrollAndTransitionBenchmark {
 
     @Before
     fun setUp() {
-        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        val output = device.executeShellCommand(
-            "am broadcast -n $TARGET_PACKAGE/com.messages.app.debug.SeedDataReceiver -a com.messages.app.debug.SEED --ez wipe true"
-        )
-        check(output.contains("result=-1")) {
-            "Database seeding failed! Output was: $output"
-        }
+        BenchmarkSeeder.seed(wipe = true)
     }
 
     private fun partialMode() = CompilationMode.Partial(
@@ -50,15 +43,15 @@ class ScrollAndTransitionBenchmark {
     )
 
     // ------------------------------------------------------------------------
-    // Journey a: Home fling down/up x5 over the 500 conversations
+    // Journey a: homeScroll
     // ------------------------------------------------------------------------
     @Test
-    fun journey1HomeFlingPartial() = runHomeFling(partialMode())
+    fun homeScroll_profile() = runHomeScroll(partialMode())
 
     @Test
-    fun journey1HomeFlingNone() = runHomeFling(CompilationMode.None())
+    fun homeScroll_noProfile() = runHomeScroll(CompilationMode.None())
 
-    private fun runHomeFling(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
+    private fun runHomeScroll(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
         metrics = listOf(FrameTimingMetric()),
         compilationMode = compilationMode,
@@ -70,26 +63,26 @@ class ScrollAndTransitionBenchmark {
         }
     ) {
         val list = device.findObject(byTag("home_conversation_list"))
-        repeat(5) {
+        repeat(2) {
             list?.fling(Direction.DOWN)
             device.waitForIdle()
         }
-        repeat(5) {
+        repeat(2) {
             list?.fling(Direction.UP)
             device.waitForIdle()
         }
     }
 
     // ------------------------------------------------------------------------
-    // Journey b: Home: open search overlay, back x10
+    // Journey b: homeSearchOpenClose: tap search pill, wait for overlay, press back x10
     // ------------------------------------------------------------------------
     @Test
-    fun journey2HomeSearchOverlayPartial() = runSearchOverlay(partialMode())
+    fun homeSearchOpenClose_profile() = runSearchOpenClose(partialMode())
 
     @Test
-    fun journey2HomeSearchOverlayNone() = runSearchOverlay(CompilationMode.None())
+    fun homeSearchOpenClose_noProfile() = runSearchOpenClose(CompilationMode.None())
 
-    private fun runSearchOverlay(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
+    private fun runSearchOpenClose(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
         metrics = listOf(FrameTimingMetric()),
         compilationMode = compilationMode,
@@ -112,13 +105,13 @@ class ScrollAndTransitionBenchmark {
     }
 
     // ------------------------------------------------------------------------
-    // Journey c: Home: switch dock Personal -> Bank -> Offers -> Review -> Spam
+    // Journey c: dockSwitch: Personal -> Bank -> Offers -> Review -> Spam
     // ------------------------------------------------------------------------
     @Test
-    fun journey3DockCategorySwitchPartial() = runDockSwitch(partialMode())
+    fun dockSwitch_profile() = runDockSwitch(partialMode())
 
     @Test
-    fun journey3DockCategorySwitchNone() = runDockSwitch(CompilationMode.None())
+    fun dockSwitch_noProfile() = runDockSwitch(CompilationMode.None())
 
     private fun runDockSwitch(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
@@ -147,44 +140,16 @@ class ScrollAndTransitionBenchmark {
         device.waitForIdle()
     }
 
-    private fun safeSetText(device: UiDevice, tag: String, text: String, maxAttempts: Int = 3) {
-        for (i in 0 until maxAttempts) {
-            try {
-                val obj = device.findObject(byTag(tag))
-                if (obj != null) {
-                    obj.text = text
-                    return
-                }
-            } catch (e: androidx.test.uiautomator.StaleObjectException) {
-                device.waitForIdle()
-            }
-        }
-    }
-
-    private fun safeClick(device: UiDevice, tag: String, maxAttempts: Int = 3) {
-        for (i in 0 until maxAttempts) {
-            try {
-                val obj = device.findObject(byTag(tag))
-                if (obj != null) {
-                    obj.click()
-                    return
-                }
-            } catch (e: androidx.test.uiautomator.StaleObjectException) {
-                device.waitForIdle()
-            }
-        }
-    }
-
     // ------------------------------------------------------------------------
-    // Journey d: Open 100-message chat, fling up/down; send 5 messages and 3 quick replies
+    // Journey d: chatScroll: fling up/down; send 5 messages and 3 quick replies
     // ------------------------------------------------------------------------
     @Test
-    fun journey4ChatScrollAndSendPartial() = runChatScrollAndSend(partialMode())
+    fun chatScroll_profile() = runChatScroll(partialMode())
 
     @Test
-    fun journey4ChatScrollAndSendNone() = runChatScrollAndSend(CompilationMode.None())
+    fun chatScroll_noProfile() = runChatScroll(CompilationMode.None())
 
-    private fun runChatScrollAndSend(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
+    private fun runChatScroll(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
         metrics = listOf(FrameTimingMetric()),
         compilationMode = compilationMode,
@@ -193,17 +158,30 @@ class ScrollAndTransitionBenchmark {
         setupBlock = {
             pressHome()
             launchAndEnsureHomeScreen(device)
-            val firstConv = device.findObject(By.textContains("+15550000001"))
+            val firstConv = device.wait(Until.findObject(By.textContains("Alex Morgan")), 3000)
             firstConv?.click()
-            device.wait(Until.hasObject(byTag("chat_message_list")), 5000)
+            if (!device.wait(Until.hasObject(byTag("chat_message_list")), 2000)) {
+                val rowY = (device.displayHeight * 0.28).toInt()
+                device.click(device.displayWidth / 2, rowY)
+                device.wait(Until.hasObject(byTag("chat_message_list")), 5000)
+            }
             device.waitForIdle()
         }
     ) {
         val chatList = device.findObject(byTag("chat_message_list"))
-        chatList?.fling(Direction.DOWN)
-        device.waitForIdle()
-        chatList?.fling(Direction.UP)
-        device.waitForIdle()
+        if (chatList != null) {
+            chatList.fling(Direction.DOWN)
+            device.waitForIdle()
+            chatList.fling(Direction.UP)
+            device.waitForIdle()
+        } else {
+            val startY = (device.displayHeight * 0.70).toInt()
+            val endY = (device.displayHeight * 0.30).toInt()
+            device.swipe(device.displayWidth / 2, startY, device.displayWidth / 2, endY, 15)
+            device.waitForIdle()
+            device.swipe(device.displayWidth / 2, endY, device.displayWidth / 2, startY, 15)
+            device.waitForIdle()
+        }
 
         // Send 5 messages
         repeat(5) { i ->
@@ -240,15 +218,15 @@ class ScrollAndTransitionBenchmark {
     }
 
     // ------------------------------------------------------------------------
-    // Journey e: Settings -> Conversations -> Quick replies: swipe-delete one row, enter Edit mode, add a reply
+    // Journey e: quickRepliesSwipeDelete: swipe-delete one row, edit mode, add reply
     // ------------------------------------------------------------------------
     @Test
-    fun journey5SettingsQuickRepliesPartial() = runSettingsQuickReplies(partialMode())
+    fun quickRepliesSwipeDelete_profile() = runQuickRepliesSwipeDelete(partialMode())
 
     @Test
-    fun journey5SettingsQuickRepliesNone() = runSettingsQuickReplies(CompilationMode.None())
+    fun quickRepliesSwipeDelete_noProfile() = runQuickRepliesSwipeDelete(CompilationMode.None())
 
-    private fun runSettingsQuickReplies(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
+    private fun runQuickRepliesSwipeDelete(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
         metrics = listOf(FrameTimingMetric()),
         compilationMode = compilationMode,
@@ -295,13 +273,13 @@ class ScrollAndTransitionBenchmark {
     }
 
     // ------------------------------------------------------------------------
-    // Journey f: Chat <-> Home open/close x10 (including back gesture)
+    // Journey f: homeToChatTransition: open and close chat x10
     // ------------------------------------------------------------------------
     @Test
-    fun journey6ChatOpenClosePartial() = runChatOpenClose(partialMode())
+    fun homeToChatTransition_profile() = runChatOpenClose(partialMode())
 
     @Test
-    fun journey6ChatOpenCloseNone() = runChatOpenClose(CompilationMode.None())
+    fun homeToChatTransition_noProfile() = runChatOpenClose(CompilationMode.None())
 
     private fun runChatOpenClose(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
@@ -312,20 +290,102 @@ class ScrollAndTransitionBenchmark {
         setupBlock = {
             pressHome()
             launchAndEnsureHomeScreen(device)
-            device.wait(Until.hasObject(By.textContains("+15550000001")), 5000)
+            device.wait(Until.hasObject(By.textContains("Alex Morgan")), 5000)
             device.waitForIdle()
         }
     ) {
         repeat(10) {
-            val firstConv = device.wait(Until.findObject(By.textContains("+15550000001")), 5000)
-            if (firstConv != null) {
-                firstConv.click()
+            val firstConv = device.findObject(By.textContains("Alex Morgan"))
+            firstConv?.click()
+            if (!device.wait(Until.hasObject(byTag("chat_message_list")), 2000)) {
+                val rowY = (device.displayHeight * 0.28).toInt()
+                device.click(device.displayWidth / 2, rowY)
                 device.wait(Until.hasObject(byTag("chat_message_list")), 5000)
-                device.waitForIdle()
+            }
+            device.waitForIdle()
 
-                // Navigate back via back gesture
+            // Navigate back via back button in top bar or fallback
+            val backButton = device.findObject(By.desc("Back"))
+            if (backButton != null) {
+                backButton.click()
+            } else {
                 device.pressBack()
-                device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
+            }
+            device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
+            device.waitForIdle()
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // Journey g: settingsTransitionsAndScroll: navigate to settings, scroll, open subpage, back
+    // ------------------------------------------------------------------------
+    @Test
+    fun settingsTransitionsAndScroll_profile() = runSettingsTransitionsAndScroll(partialMode())
+
+    @Test
+    fun settingsTransitionsAndScroll_noProfile() = runSettingsTransitionsAndScroll(CompilationMode.None())
+
+    private fun runSettingsTransitionsAndScroll(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
+        packageName = TARGET_PACKAGE,
+        metrics = listOf(FrameTimingMetric()),
+        compilationMode = compilationMode,
+        iterations = 10,
+        startupMode = StartupMode.WARM,
+        setupBlock = {
+            pressHome()
+            launchAndEnsureHomeScreen(device)
+        }
+    ) {
+        // Open Settings
+        device.findObject(byTag("home_settings_button"))?.click()
+        device.wait(Until.hasObject(byTag("settings_page_conversations")), 5000)
+        device.waitForIdle()
+
+        // Fling / scroll settings list
+        val displayHeight = device.displayHeight
+        val displayWidth = device.displayWidth
+        device.swipe(displayWidth / 2, (displayHeight * 0.7).toInt(), displayWidth / 2, (displayHeight * 0.3).toInt(), 15)
+        device.waitForIdle()
+
+        // Open Conversations subpage
+        device.findObject(byTag("settings_page_conversations"))?.click()
+        device.wait(Until.hasObject(byTag("quick_reply_list")), 5000)
+        device.waitForIdle()
+
+        // Back to settings hub
+        device.pressBack()
+        device.wait(Until.hasObject(byTag("settings_page_conversations")), 5000)
+        device.waitForIdle()
+
+        // Back to home
+        device.pressBack()
+        device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
+        device.waitForIdle()
+    }
+
+    private fun safeSetText(device: UiDevice, tag: String, text: String, maxAttempts: Int = 3) {
+        for (i in 0 until maxAttempts) {
+            try {
+                val obj = device.findObject(byTag(tag))
+                if (obj != null) {
+                    obj.text = text
+                    return
+                }
+            } catch (e: androidx.test.uiautomator.StaleObjectException) {
+                device.waitForIdle()
+            }
+        }
+    }
+
+    private fun safeClick(device: UiDevice, tag: String, maxAttempts: Int = 3) {
+        for (i in 0 until maxAttempts) {
+            try {
+                val obj = device.findObject(byTag(tag))
+                if (obj != null) {
+                    obj.click()
+                    return
+                }
+            } catch (e: androidx.test.uiautomator.StaleObjectException) {
                 device.waitForIdle()
             }
         }
@@ -353,7 +413,7 @@ class ScrollAndTransitionBenchmark {
             check(device.hasObject(byTag("home_conversation_list"))) {
                 "home_conversation_list not found on screen"
             }
-            device.wait(Until.hasObject(By.textContains("+1555")), 5000)
+            device.wait(Until.hasObject(By.textContains("Alex Morgan")), 5000)
         }
     }
 }

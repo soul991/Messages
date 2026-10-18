@@ -1,0 +1,10 @@
+Device: EMULATOR, not representative of a phone
+Model: sdk_gphone64_x86_64
+ro.build.version.sdk: 36
+ABI: x86_64
+Display: 1080 x 2400
+Refresh Rate: 60.0 Hz (60 Hz screen)
+dumpsys display fps/refreshRate:
+  mSupportedRefreshRates=[60.000004]
+  DisplayMode{id=0, width=1080, height=2400, xDpi=420.0, yDpi=420.0, peakRefreshRate=60.000004, vsyncRate=60.000004, appVsyncOffsetNanos=1000000, presentationDeadlineNanos=16666666, supportedHdrTypes=[], group=0}
+  mDefaultRefreshRate: 60.0

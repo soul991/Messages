@@ -30,13 +30,7 @@ class BaselineProfileGenerator {
 
     @Before
     fun setUp() {
-        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        val output = device.executeShellCommand(
-            "am broadcast -n $TARGET_PACKAGE/com.messages.app.debug.SeedDataReceiver -a com.messages.app.debug.SEED --ez wipe true"
-        )
-        check(output.contains("result=-1")) {
-            "Database seeding failed! Output was: $output"
-        }
+        BenchmarkSeeder.seed(wipe = true)
     }
 
     @Test
@@ -76,7 +70,7 @@ class BaselineProfileGenerator {
         }
 
         // Journey d: Chat scroll and send
-        val firstConv = device.findObject(By.textContains("+15550000001"))
+        val firstConv = device.findObject(By.textContains("Alex Morgan"))
         firstConv?.click()
         device.wait(Until.hasObject(byTag("chat_message_list")), 5000)
         device.waitForIdle()
@@ -145,7 +139,7 @@ class BaselineProfileGenerator {
 
         // Journey f: Chat <-> Home open/close x2
         repeat(2) {
-            device.findObject(By.textContains("+15550000001"))?.click()
+            device.findObject(By.textContains("Alex Morgan"))?.click()
             device.wait(Until.hasObject(byTag("chat_message_list")), 5000)
             device.waitForIdle()
             device.pressBack()

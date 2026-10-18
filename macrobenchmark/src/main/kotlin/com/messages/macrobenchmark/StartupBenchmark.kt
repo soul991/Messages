@@ -5,18 +5,14 @@ import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.Until
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Macrobenchmark measuring Cold and Warm startup timings (Phase 6.3 / Part 6).
- * Evaluates Time-To-Initial-Display and Time-To-Fully-Drawn across
- * CompilationMode.Partial (baseline profile) and CompilationMode.None.
+ * Macrobenchmark measuring Cold and Warm startup timings.
+ * Evaluates Time-To-Initial-Display across CompilationMode.Partial and CompilationMode.None.
  * 10 iterations each.
  */
 @RunWith(AndroidJUnit4::class)
@@ -26,17 +22,16 @@ class StartupBenchmark {
 
     @Before
     fun setUp() {
-        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        val output = device.executeShellCommand(
-            "am broadcast -n $TARGET_PACKAGE/com.messages.app.debug.SeedDataReceiver -a com.messages.app.debug.SEED --ez wipe true"
-        )
-        check(output.contains("result=-1")) {
-            "Database seeding failed! Output was: $output"
-        }
+        BenchmarkSeeder.seed(wipe = true)
     }
 
+    private fun partialMode() = CompilationMode.Partial(
+        baselineProfileMode = androidx.benchmark.macro.BaselineProfileMode.Disable,
+        warmupIterations = 1,
+    )
+
     @Test
-    fun startupColdCompilationNone() = benchmarkRule.measureRepeated(
+    fun startupCold_noProfile() = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
         metrics = listOf(StartupTimingMetric()),
         compilationMode = CompilationMode.None(),
@@ -44,29 +39,46 @@ class StartupBenchmark {
         startupMode = StartupMode.COLD,
     ) {
         pressHome()
-        device.executeShellCommand("am start -W -n $TARGET_PACKAGE/com.messages.app.MainActivity")
-        device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
+        startActivityAndWait()
     }
 
     @Test
-    fun startupColdCompilationPartial() = benchmarkRule.measureRepeated(
+    fun startupCold_profile() = benchmarkRule.measureRepeated(
         packageName = TARGET_PACKAGE,
         metrics = listOf(StartupTimingMetric()),
-        compilationMode = CompilationMode.Partial(
-            baselineProfileMode = androidx.benchmark.macro.BaselineProfileMode.Disable,
-            warmupIterations = 1,
-        ),
+        compilationMode = partialMode(),
         iterations = 10,
         startupMode = StartupMode.COLD,
     ) {
         pressHome()
-        device.executeShellCommand("am start -W -n $TARGET_PACKAGE/com.messages.app.MainActivity")
-        device.wait(Until.hasObject(byTag("home_conversation_list")), 5000)
+        startActivityAndWait()
+    }
+
+    @Test
+    fun startupWarm_noProfile() = benchmarkRule.measureRepeated(
+        packageName = TARGET_PACKAGE,
+        metrics = listOf(StartupTimingMetric()),
+        compilationMode = CompilationMode.None(),
+        iterations = 10,
+        startupMode = StartupMode.WARM,
+    ) {
+        pressHome()
+        startActivityAndWait()
+    }
+
+    @Test
+    fun startupWarm_profile() = benchmarkRule.measureRepeated(
+        packageName = TARGET_PACKAGE,
+        metrics = listOf(StartupTimingMetric()),
+        compilationMode = partialMode(),
+        iterations = 10,
+        startupMode = StartupMode.WARM,
+    ) {
+        pressHome()
+        startActivityAndWait()
     }
 
     companion object {
         const val TARGET_PACKAGE = "com.messages.app.benchmark"
-
-        fun byTag(tag: String) = androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*(:id/)?$tag"))
     }
 }
