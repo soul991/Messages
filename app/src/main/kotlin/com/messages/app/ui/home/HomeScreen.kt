@@ -24,6 +24,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.imePadding
@@ -72,10 +73,14 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Drafts
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RateReview
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
@@ -166,9 +171,11 @@ import com.messages.app.ui.common.LoadState
 import com.messages.app.ui.common.listRender
 import com.messages.app.ui.common.rememberLoadingGrace
 import com.messages.app.ui.common.sharedThreadAvatar
+import com.messages.app.ui.common.sharedThreadName
 import com.messages.app.ui.common.valueOrNull
 import com.messages.app.ui.search.SearchHighlight
 import com.messages.core.db.ConversationEntity
+import com.messages.designsystem.DockIcons
 import com.messages.designsystem.Haptics
 import com.messages.designsystem.Motion
 import com.messages.designsystem.categoryPalette
@@ -483,6 +490,7 @@ fun HomeScreen(
                     actions = {
                         FilledTonalIconButton(
                             onClick = onSettings,
+                            modifier = Modifier.testTag("home_settings_button"),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                             ),
@@ -597,42 +605,47 @@ fun HomeScreen(
                 val reviewPalette = categoryPalette("REVIEW")
                 val spamPalette = categoryPalette("SPAM")
 
-                val primaryColor = MaterialTheme.colorScheme.primary
-                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread, txnPalette, promoPalette, reviewPalette, spamPalette, primaryColor) {
+                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread) {
                     listOf(
                         DockItem(
                             key = "INBOX",
                             title = resources.getString(R.string.nav_personal),
-                            icon = Icons.Outlined.Forum,
+                            outlinedIcon = DockIcons.PersonalOutlined,
+                            filledIcon = DockIcons.PersonalFilled,
                             unreadCount = inboxUnread,
+                            category = "INBOX",
                         ),
                         DockItem(
                             key = "TRANSACTIONS",
                             title = resources.getString(R.string.nav_bank),
-                            icon = Icons.Outlined.ReceiptLong,
+                            outlinedIcon = DockIcons.BankOutlined,
+                            filledIcon = DockIcons.BankFilled,
                             unreadCount = txnUnread,
-                            accentColor = txnPalette?.tint ?: primaryColor,
+                            category = "TRANSACTIONS",
                         ),
                         DockItem(
                             key = "PROMOTIONS",
                             title = resources.getString(R.string.nav_offers),
-                            icon = Icons.Outlined.LocalOffer,
+                            outlinedIcon = DockIcons.OffersOutlined,
+                            filledIcon = DockIcons.OffersFilled,
                             unreadCount = promoUnread,
-                            accentColor = promoPalette?.tint ?: primaryColor,
+                            category = "PROMOTIONS",
                         ),
                         DockItem(
                             key = "REVIEW",
                             title = resources.getString(R.string.nav_review),
-                            icon = Icons.Outlined.RateReview,
+                            outlinedIcon = DockIcons.ReviewOutlined,
+                            filledIcon = DockIcons.ReviewFilled,
                             unreadCount = reviewUnread,
-                            accentColor = reviewPalette?.tint ?: primaryColor,
+                            category = "REVIEW",
                         ),
                         DockItem(
                             key = "SPAM",
                             title = resources.getString(R.string.nav_spam),
-                            icon = Icons.Outlined.Shield,
+                            outlinedIcon = DockIcons.SpamOutlined,
+                            filledIcon = DockIcons.SpamFilled,
                             unreadCount = spamUnread,
-                            accentColor = spamPalette?.tint ?: primaryColor,
+                            category = "SPAM",
                         ),
                     )
                 }
@@ -682,6 +695,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     interactionSource = searchPillInteractionSource,
                     modifier = Modifier
+                        .testTag("home_search_pill")
                         .fillMaxWidth()
                         .height(52.dp)
                         .graphicsLayer {
@@ -748,9 +762,16 @@ fun HomeScreen(
                 val searchFocusRequester = remember { FocusRequester() }
                 LaunchedEffect(searchActive) {
                     if (searchActive) {
+                        kotlinx.coroutines.android.awaitFrame()
                         searchFocusRequester.requestFocus()
                     }
                 }
+
+                val searchHeaderProgress = animateFloatAsState(
+                    targetValue = if (searchActive) 1f else 0f,
+                    animationSpec = Motion.screenSpring(),
+                    label = "search-header-morph",
+                )
 
                 Surface(
                     shape = RoundedCornerShape(28.dp),
@@ -758,7 +779,13 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .height(52.dp),
+                        .height(52.dp)
+                        .graphicsLayer {
+                            val p = searchHeaderProgress.value
+                            scaleX = 0.96f + 0.04f * p
+                            scaleY = 0.96f + 0.04f * p
+                            translationY = (1f - p) * 12.dp.toPx()
+                        },
                 ) {
                     TextField(
                         value = typing,
@@ -985,7 +1012,7 @@ private fun FolderPane(
                     Box(Modifier.fillMaxSize()) {
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().testTag("home_conversation_list"),
                         contentPadding = PaddingValues(bottom = 88.dp),
                     ) {
                         if (pinnedList.isNotEmpty() && !unreadOnly) {
@@ -1295,6 +1322,42 @@ private fun PinnedConversationsRow(
     }
 }
 
+@Composable
+private fun Modifier.searchCascadeEntrance(
+    key: Any,
+    index: Int,
+    alreadyAnimatedKeys: MutableSet<Any>,
+    isScrolling: Boolean,
+): Modifier {
+    if (!Motion.animationsEnabled()) return this
+
+    // An item animates ONLY if its key is not in the set AND its index < 8 AND the list is not scrolling;
+    // add the key to the set on first composition. Items outside those conditions render at full alpha with no delay.
+    val shouldAnimate = remember(key) {
+        val inSet = alreadyAnimatedKeys.contains(key)
+        alreadyAnimatedKeys.add(key)
+        !inSet && index < 8 && !isScrolling
+    }
+    if (!shouldAnimate) return this
+
+    val delayMs = (index * 35L).coerceAtLeast(0L)
+    var visible by remember(key) { mutableStateOf(false) }
+    LaunchedEffect(key) {
+        if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
+        visible = true
+    }
+    val animProgress = animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = Motion.screenSpring(),
+        label = "search-cascade-$index",
+    )
+    return this.graphicsLayer {
+        val p = animProgress.value
+        alpha = p
+        translationY = (1f - p) * 16.dp.toPx()
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SearchPane(
@@ -1306,6 +1369,11 @@ private fun SearchPane(
     onOpenResult: (com.messages.core.db.MessageEntity) -> Unit,
     onOpenThread: (Long) -> Unit,
 ) {
+    val queryKey = listOf(chips, typing, labelFilter, state.activeKeywords)
+    val alreadyAnimatedKeys = remember(queryKey) { mutableSetOf<Any>() }
+    val searchListState = rememberLazyListState()
+    val isScrolling = searchListState.isScrollInProgress
+
     // Committed keyword chips — unlimited, each removable (§8.5.2).
     if (chips.isNotEmpty()) {
         FlowRow(
@@ -1333,11 +1401,17 @@ private fun SearchPane(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
     ) {
-        items(SEARCH_LABELS) { (key, labelRes) ->
+        itemsIndexed(SEARCH_LABELS) { index, (key, labelRes) ->
             FilterChip(
                 selected = labelFilter == key,
                 onClick = { vm.setLabelFilter(if (labelFilter == key) null else key) },
                 label = { Text(stringResource(labelRes)) },
+                modifier = Modifier.searchCascadeEntrance(
+                    key = "label-$key",
+                    index = index,
+                    alreadyAnimatedKeys = alreadyAnimatedKeys,
+                    isScrolling = false,
+                ),
             )
         }
     }
@@ -1412,26 +1486,38 @@ private fun SearchPane(
     val (filtered, normal) = state.results.partition {
         it.message.category == "SPAM" || it.message.category == "BLOCKED"
     }
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(
+        state = searchListState,
+        modifier = Modifier.fillMaxSize(),
+    ) {
         // §8.5.3: conversations whose contact name / number matches ("mom").
         if (state.conversationMatches.isNotEmpty()) {
             item {
                 SearchSectionHeader(stringResource(R.string.home_search_section_conversations))
             }
-            items(state.conversationMatches, key = { "conv-${it.threadId}" }) { conv ->
-                ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
+            itemsIndexed(state.conversationMatches, key = { _, it -> "conv-${it.threadId}" }) { index, conv ->
+                val rowKey = "conv-${conv.threadId}"
+                Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
+                    ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
+                }
             }
             if (state.results.isNotEmpty()) {
                 item { SearchSectionHeader(stringResource(R.string.home_search_section_messages)) }
             }
         }
-        items(normal, key = { it.message.id }) { row ->
-            SearchResultRow(row, state.activeKeywords, onOpenResult)
+        itemsIndexed(normal, key = { _, it -> it.message.id }) { index, row ->
+            val rowKey = "msg-${row.message.id}"
+            Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
+                SearchResultRow(row, state.activeKeywords, onOpenResult)
+            }
         }
         if (filtered.isNotEmpty()) {
             item { SearchSectionHeader(stringResource(R.string.home_search_section_spam)) }
-            items(filtered, key = { it.message.id }) { row ->
-                SearchResultRow(row, state.activeKeywords, onOpenResult)
+            itemsIndexed(filtered, key = { _, it -> it.message.id }) { index, row ->
+                val rowKey = "spam-${row.message.id}"
+                Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
+                    SearchResultRow(row, state.activeKeywords, onOpenResult)
+                }
             }
         }
     }
@@ -1729,7 +1815,7 @@ private fun SwipeableConversationRow(
     val leftEnabled = leftAction != SwipeActions.NONE && !selectionActive
 
     if (selectionActive || (!rightEnabled && !leftEnabled)) {
-        Box(modifier.background(MaterialTheme.colorScheme.surface)) {
+        Box(modifier.background(MaterialTheme.colorScheme.groupCard)) {
             ConversationRow(
                 conv = conv, draft = draft, onClick = onClick,
                 badge = badge, onBadgeTap = onBadgeTap,
@@ -1747,34 +1833,52 @@ private fun SwipeableConversationRow(
     val returnOffset = remember { Animatable(0f) }
     val liveOffset = remember { mutableFloatStateOf(0f) }
     val rowWidthPx = remember { mutableFloatStateOf(0f) }
-    val translatedX = liveOffset.floatValue + returnOffset.value
-    val threshold = rowWidthPx.floatValue * 0.42f
-    val direction = when {
-        translatedX > 0f && rightEnabled -> 1
-        translatedX < 0f && leftEnabled -> -1
-        else -> 0
+
+    val direction by remember(rightEnabled, leftEnabled) {
+        derivedStateOf {
+            val tx = liveOffset.floatValue + returnOffset.value
+            when {
+                tx > 0f && rightEnabled -> 1
+                tx < 0f && leftEnabled -> -1
+                else -> 0
+            }
+        }
     }
-    val swipeAction = when (direction) {
-        1 -> rightAction
-        -1 -> leftAction
-        else -> null
+    val swipeAction by remember(rightAction, leftAction) {
+        derivedStateOf {
+            when (direction) {
+                1 -> rightAction
+                -1 -> leftAction
+                else -> null
+            }
+        }
     }
-    val willCommit = swipeAction != null && kotlin.math.abs(translatedX) >= threshold
+    val willCommit by remember(rightAction, leftAction) {
+        derivedStateOf {
+            val tx = liveOffset.floatValue + returnOffset.value
+            val threshold = rowWidthPx.floatValue * 0.42f
+            swipeAction != null && kotlin.math.abs(tx) >= threshold
+        }
+    }
 
     Box(modifier = modifier) {
-        if (swipeAction != null && rowWidthPx.floatValue > 0f) {
+        val currentAction = swipeAction
+        if (currentAction != null && rowWidthPx.floatValue > 0f) {
             SwipeActionBackground(
-                action = swipeAction,
+                action = currentAction,
                 fromStart = direction > 0,
-                progress = (kotlin.math.abs(translatedX) / rowWidthPx.floatValue).coerceIn(0f, 1f),
+                progress = {
+                    val w = rowWidthPx.floatValue
+                    if (w > 0f) (kotlin.math.abs(liveOffset.floatValue + returnOffset.value) / w).coerceIn(0f, 1f) else 0f
+                },
                 willDismiss = willCommit,
             )
         }
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .graphicsLayer { translationX = translatedX }
+                .graphicsLayer { translationX = liveOffset.floatValue + returnOffset.value }
+                .background(MaterialTheme.colorScheme.groupCard)
                 .pointerInput(conv.threadId, rightAction, leftAction, selectionActive) {
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { change, dragAmount ->
@@ -1786,6 +1890,7 @@ private fun SwipeableConversationRow(
                         },
                         onDragEnd = {
                             val released = liveOffset.floatValue
+                            val threshold = rowWidthPx.floatValue * 0.42f
                             val action = when {
                                 released >= threshold && rightEnabled -> rightAction
                                 released <= -threshold && leftEnabled -> leftAction
@@ -1840,7 +1945,7 @@ private data class SwipeVisuals(
 private fun SwipeActionBackground(
     action: String,
     fromStart: Boolean,
-    progress: Float,
+    progress: () -> Float,
     willDismiss: Boolean,
 ) {
     val view = LocalView.current
@@ -1887,22 +1992,10 @@ private fun SwipeActionBackground(
         else -> return
     }
 
-    // Gmail-style physics-based animations
-    val iconScale by animateFloatAsState(
-        targetValue = if (willDismiss) 1.22f else (0.72f + progress * 0.35f).coerceIn(0.72f, 1.05f),
+    val willDismissScale by animateFloatAsState(
+        targetValue = if (willDismiss) 1.22f else 1.0f,
         animationSpec = Motion.spatialDefault(),
         label = "gmail-swipe-scale",
-    )
-
-    val iconAlpha by animateFloatAsState(
-        targetValue = (progress * 3.5f).coerceIn(0.45f, 1.0f),
-        label = "gmail-swipe-icon-alpha",
-    )
-
-    val textSlide by animateDpAsState(
-        targetValue = if (willDismiss) 0.dp else ((1f - progress.coerceIn(0f, 1f)) * 14).dp,
-        animationSpec = Motion.spatialFast(),
-        label = "gmail-swipe-text-slide",
     )
 
     Row(
@@ -1921,15 +2014,17 @@ private fun SwipeActionBackground(
                 modifier = Modifier
                     .size(24.dp)
                     .graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
-                        alpha = iconAlpha
+                        val p = progress()
+                        val s = if (willDismiss) willDismissScale else (0.72f + p * 0.35f).coerceIn(0.72f, 1.05f)
+                        scaleX = s
+                        scaleY = s
+                        alpha = (p * 3.5f).coerceIn(0.45f, 1.0f)
                     },
             )
             Spacer(Modifier.width(10.dp))
-            SwipeActionLabel(visuals.label, visuals.tint, textSlide, fromStart = true, progress = progress)
+            SwipeActionLabel(visuals.label, visuals.tint, fromStart = true, progress = progress, willDismiss = willDismiss)
         } else {
-            SwipeActionLabel(visuals.label, visuals.tint, textSlide, fromStart = false, progress = progress)
+            SwipeActionLabel(visuals.label, visuals.tint, fromStart = false, progress = progress, willDismiss = willDismiss)
             Spacer(Modifier.width(10.dp))
             Icon(
                 imageVector = visuals.icon,
@@ -1938,9 +2033,11 @@ private fun SwipeActionBackground(
                 modifier = Modifier
                     .size(24.dp)
                     .graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
-                        alpha = iconAlpha
+                        val p = progress()
+                        val s = if (willDismiss) willDismissScale else (0.72f + p * 0.35f).coerceIn(0.72f, 1.05f)
+                        scaleX = s
+                        scaleY = s
+                        alpha = (p * 3.5f).coerceIn(0.45f, 1.0f)
                     },
             )
         }
@@ -1951,22 +2048,28 @@ private fun SwipeActionBackground(
 private fun SwipeActionLabel(
     label: String,
     tint: Color,
-    textSlide: androidx.compose.ui.unit.Dp,
     fromStart: Boolean,
-    progress: Float,
+    progress: () -> Float,
+    willDismiss: Boolean,
 ) {
+    val isVisible by remember(progress) {
+        derivedStateOf { progress() >= 0.20f }
+    }
     AnimatedVisibility(
-        visible = progress >= 0.20f,
+        visible = isVisible,
         enter = scaleIn(Motion.bouncySpring(), initialScale = 0.68f) + fadeIn(Motion.effectsFast()),
         exit = scaleOut(Motion.bouncySpring(), targetScale = 0.76f) + fadeOut(Motion.effectsFast()),
     ) {
+        val density = androidx.compose.ui.platform.LocalDensity.current
         Text(
             text = label,
             color = tint,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.graphicsLayer {
-                translationX = if (fromStart) textSlide.toPx() else -textSlide.toPx()
+                val p = progress()
+                val slidePx = if (willDismiss) 0f else (1f - p.coerceIn(0f, 1f)) * with(density) { 14.dp.toPx() }
+                translationX = if (fromStart) slidePx else -slidePx
             },
         )
     }
@@ -2079,7 +2182,7 @@ private fun ConversationRow(
                         overflow = TextOverflow.Ellipsis,
                         // fill=false: short names keep the badge hugging them,
                         // long names still ellipsize before the badge.
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f, fill = false).sharedThreadName(conv.threadId),
                     )
                     if (badge != null && badge != com.messages.protection.SenderBadges.Badge.VERIFIED) {
                         Spacer(Modifier.width(4.dp))

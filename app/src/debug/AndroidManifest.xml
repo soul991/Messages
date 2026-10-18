@@ -33,5 +33,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- DEBUG-ONLY: test data seeder for automated UI motion and performance benchmarks -->
+        <receiver
+            android:name="com.messages.app.debug.SeedDataReceiver"
+            android:exported="true"
+            android:permission="com.messages.app.permission.DEBUG_HARNESS">
+            <intent-filter>
+                <action android:name="com.messages.app.debug.SEED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 </manifest>

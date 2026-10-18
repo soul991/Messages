@@ -1,24 +1,29 @@
 package com.messages.designsystem
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -33,14 +38,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 /**
  * Floating Navigation Dock Item.
@@ -49,13 +57,50 @@ import androidx.compose.ui.unit.sp
 data class DockItem(
     val key: String,
     val title: String,
-    val icon: ImageVector,
+    val outlinedIcon: ImageVector,
+    val filledIcon: ImageVector,
     val unreadCount: Int = 0,
-    val accentColor: Color? = null,
-)
+    val category: String? = null,
+    val showDot: Boolean = false,
+) {
+    // Backward compatibility constructors
+    constructor(
+        key: String,
+        title: String,
+        icon: ImageVector,
+        unreadCount: Int = 0,
+    ) : this(
+        key = key,
+        title = title,
+        outlinedIcon = icon,
+        filledIcon = icon,
+        unreadCount = unreadCount,
+        category = null,
+        showDot = false,
+    )
+
+    constructor(
+        key: String,
+        title: String,
+        outlinedIcon: ImageVector,
+        filledIcon: ImageVector,
+        unreadCount: Int,
+        category: String?,
+    ) : this(
+        key = key,
+        title = title,
+        outlinedIcon = outlinedIcon,
+        filledIcon = filledIcon,
+        unreadCount = unreadCount,
+        category = category,
+        showDot = false,
+    )
+}
 
 /**
- * Floating bottom navigation dock using Material 3 Expressive container and motion principles.
+ * Category dock (Personal, Bank, Offers, Review, Spam)
+ * Floating pill: height 64dp, corner 32dp, horizontal margin 16dp, bottom margin 12dp + navigation-bar inset.
+ * Fill surfaceContainerHigh (solid), 1dp outlineVariant at 50% alpha border, shadow elevation 8dp.
  */
 @Composable
 fun BottomDock(
@@ -64,130 +109,191 @@ fun BottomDock(
     onItemSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(32.dp)
-
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-            .height(68.dp),
-        shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+            .navigationBarsPadding()
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+            .height(64.dp),
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 8.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
     ) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(horizontal = 6.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            items.forEach { item ->
-                val selected = item.key == selectedKey
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
+            val totalWidthPx = constraints.maxWidth.toFloat()
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            val itemCount = items.size
+            val selectedIndex = items.indexOfFirst { it.key == selectedKey }.coerceAtLeast(0)
 
-                val targetScale = when {
-                    isPressed -> 0.88f
-                    selected -> 1.04f
-                    else -> 0.94f
-                }
-                val animatedScale by animateFloatAsState(
-                    targetValue = targetScale,
-                    animationSpec = Motion.bouncySpring(),
-                    label = "dock-scale",
-                )
+            // Layout math: active item has weight 1.75f, inactive items have weight 1.0f
+            val totalWeight = (itemCount - 1) * 1.0f + 1.75f
+            val inactiveWidthPx = totalWidthPx / totalWeight
+            val activeWidthPx = inactiveWidthPx * 1.75f
 
-                val iconOffsetY by animateDpAsState(
-                    targetValue = if (selected) (-2).dp else 0.dp,
-                    animationSpec = Motion.bouncySpring(),
-                    label = "dock-icon-offset",
-                )
+            val targetLeftPx = selectedIndex * inactiveWidthPx
+            val activeWidthDp = with(density) { activeWidthPx.toDp() }
 
-                val primaryColor = MaterialTheme.colorScheme.primary
-                val targetAccent = item.accentColor ?: primaryColor
-                val iconColor by animateColorAsState(
-                    targetValue = if (selected) targetAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-                    animationSpec = Motion.effectsDefault(),
-                    label = "dock-icon-color",
-                )
+            val animLeftPx = animateFloatAsState(
+                targetValue = targetLeftPx,
+                animationSpec = if (Motion.animationsEnabled()) spring(dampingRatio = 0.82f, stiffness = 380f) else snap(),
+                label = "dock-pill-slide",
+            )
 
-                val pillBackground by animateColorAsState(
-                    targetValue = if (selected) targetAccent.copy(alpha = 0.16f) else Color.Transparent,
-                    animationSpec = Motion.effectsDefault(),
-                    label = "dock-pill-bg",
-                )
+            // Active sliding pill: BORDERLESS pill filled with primaryContainer, animated via offset lambda
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset { IntOffset(animLeftPx.value.roundToInt(), 0) }
+                    .width(activeWidthDp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+            )
 
-                val pillBorder = if (selected) {
-                    SolidColor(targetAccent.copy(alpha = 0.35f))
-                } else {
-                    SolidColor(Color.Transparent)
-                }
+            // Interactive Tab Slots
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                items.forEachIndexed { index, item ->
+                    val selected = index == selectedIndex
+                    val weight = if (selected) 1.75f else 1.0f
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .scale(animatedScale)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(pillBackground)
-                        .border(1.dp, pillBorder, RoundedCornerShape(20.dp))
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = ripple(bounded = true, color = targetAccent.copy(alpha = 0.25f)),
-                            onClick = { onItemSelected(item.key) },
-                        )
-                        .padding(vertical = 6.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
+                    val iconScale = animateFloatAsState(
+                        targetValue = if (selected) 1.0f else 0.9f,
+                        animationSpec = if (Motion.animationsEnabled()) spring(dampingRatio = 0.82f, stiffness = 380f) else snap(),
+                        label = "dock-icon-scale",
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .testTag("dock_${item.key}")
+                            .weight(weight)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(24.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(
+                                    bounded = true,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                ),
+                                onClick = { onItemSelected(item.key) },
+                            ),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Box(contentAlignment = Alignment.TopEnd) {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = item.title,
-                                tint = iconColor,
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .offset(y = iconOffsetY),
-                            )
-                            if (item.unreadCount > 0) {
-                                val badgeScale by animateFloatAsState(
-                                    targetValue = 1f,
-                                    animationSpec = Motion.bouncySpring(),
-                                    label = "dock-badge-scale",
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .offset(x = 6.dp, y = (-4).dp)
-                                        .scale(badgeScale)
-                                        .size(if (item.unreadCount > 99) 16.dp else 12.dp)
-                                        .clip(CircleShape)
-                                        .background(item.accentColor ?: MaterialTheme.colorScheme.error)
-                                        .border(1.dp, Color.White.copy(alpha = 0.85f), CircleShape),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    if (item.unreadCount > 9) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 6.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.TopEnd) {
+                                Crossfade(
+                                    targetState = selected,
+                                    animationSpec = tween(durationMillis = 120),
+                                    label = "dock-icon-crossfade",
+                                ) { isSelected ->
+                                    val icon = if (isSelected) item.filledIcon else item.outlinedIcon
+                                    val tint = if (isSelected) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = item.title,
+                                        tint = tint,
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .graphicsLayer {
+                                                scaleX = iconScale.value
+                                                scaleY = iconScale.value
+                                            },
+                                    )
+                                }
+
+                                val ringColor = if (selected) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerHigh
+                                }
+
+                                // Notification Badge
+                                if (item.unreadCount > 0) {
+                                    val palette = categoryPalette(item.category ?: item.key)
+                                    val (badgeBg, badgeText) = when {
+                                        palette != null -> palette.container to palette.onContainer
+                                        item.category == "SPAM" || item.key == "SPAM" ->
+                                            MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+                                        else ->
+                                            MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(x = 8.dp, y = (-4).dp)
+                                            .height(16.dp)
+                                            .widthIn(min = 16.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(badgeBg)
+                                            .border(
+                                                1.5.dp,
+                                                ringColor,
+                                                RoundedCornerShape(8.dp),
+                                            )
+                                            .padding(horizontal = 4.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
                                         Text(
                                             text = if (item.unreadCount > 99) "99+" else item.unreadCount.toString(),
-                                            color = Color.White,
-                                            fontSize = 8.sp,
-                                            fontWeight = FontWeight.Bold,
+                                            color = badgeText,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                lineHeight = 10.sp,
+                                            ),
+                                            maxLines = 1,
                                         )
                                     }
+                                } else if (item.showDot) {
+                                    val palette = categoryPalette(item.category ?: item.key)
+                                    val dotColor = palette?.tint
+                                        ?: if (item.category == "SPAM" || item.key == "SPAM") {
+                                            MaterialTheme.colorScheme.error
+                                        } else {
+                                            MaterialTheme.colorScheme.primary
+                                        }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(x = 6.dp, y = (-2).dp)
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(dotColor)
+                                            .border(
+                                                1.5.dp,
+                                                ringColor,
+                                                CircleShape,
+                                            ),
+                                    )
                                 }
                             }
+
+                            if (selected) {
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = item.title,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = item.title,
-                            color = iconColor,
-                            fontSize = 11.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
                 }
             }

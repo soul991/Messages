@@ -20,6 +20,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -133,6 +134,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.messages.app.ui.common.ContactAvatar
 import com.messages.app.ui.common.sharedThreadAvatar
+import com.messages.app.ui.common.sharedThreadName
 import com.messages.app.ui.common.AppDateFormat
 import com.messages.app.ui.common.minTouchTarget
 import com.messages.core.db.MessageEntity
@@ -733,7 +735,7 @@ fun ChatScreen(
                                                 style = MaterialTheme.typography.titleMedium,
                                                 maxLines = 1,
                                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                                modifier = Modifier.weight(1f, fill = false),
+                                                modifier = Modifier.weight(1f, fill = false).sharedThreadName(threadId),
                                             )
                                             if (senderBadge != null && senderBadge != com.messages.protection.SenderBadges.Badge.VERIFIED) {
                                                 Spacer(Modifier.width(4.dp))
@@ -909,9 +911,24 @@ fun ChatScreen(
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f))
                     )
                 }
+                val initialVisibleKeys = remember { mutableStateOf<Set<String>?>(null) }
+                val knownMessageKeys = remember { mutableStateOf<Set<String>>(emptySet()) }
+
+                LaunchedEffect(items) {
+                    if (items.isNotEmpty()) {
+                        if (initialVisibleKeys.value == null) {
+                            val initialKeys = items.takeLast(8).map { it.key }.toSet()
+                            initialVisibleKeys.value = initialKeys
+                            knownMessageKeys.value = items.map { it.key }.toSet()
+                        } else {
+                            knownMessageKeys.value = knownMessageKeys.value + items.map { it.key }
+                        }
+                    }
+                }
+
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().testTag("chat_message_list"),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
@@ -920,11 +937,22 @@ fun ChatScreen(
                         key = { it.key },
                         contentType = { if (it is ChatItem.Msg) "msg" else "date" },
                     ) { item ->
-                        val itemModifier = Modifier.animateItem(
-                            fadeInSpec = Motion.effectsDefault(),
-                            placementSpec = Motion.spatialDefault(),
-                            fadeOutSpec = Motion.effectsFast(),
-                        )
+                        val isScrollInProgress = listState.isScrollInProgress
+                        val isInitial = !isScrollInProgress && (initialVisibleKeys.value != null && item.key in initialVisibleKeys.value!!)
+                        val isNew = !isScrollInProgress && (initialVisibleKeys.value != null && item.key !in knownMessageKeys.value)
+                        val shouldAnimate = isInitial || isNew
+                        val staggerIndex = if (isInitial) {
+                            val visibleItems = items.takeLast(8)
+                            visibleItems.indexOfFirst { it.key == item.key }.coerceIn(0, 7)
+                        } else 0
+
+                        val itemModifier = Modifier
+                            .animateItem(
+                                fadeInSpec = Motion.effectsDefault(),
+                                placementSpec = Motion.spatialDefault(),
+                                fadeOutSpec = Motion.effectsFast(),
+                            )
+                            .messageEntrance(item.key, staggerIndex, shouldAnimate)
                         when (item) {
                             is ChatItem.DateHeader -> DatePill(item.ts, itemModifier)
                             is ChatItem.Msg -> MessageBubble(
@@ -1148,7 +1176,7 @@ fun ChatScreen(
                                 draft = ""
                             },
                             interactionSource = actionInteractionSource,
-                            modifier = Modifier.size(48.dp).scale(actionScale),
+                            modifier = Modifier.size(48.dp).scale(actionScale).testTag("chat_send_button"),
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.action_send))
                         }
@@ -1319,6 +1347,7 @@ fun ChatScreen(
                             template,
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier
+                                .testTag("chat_quick_reply_chip")
                                 .fillMaxWidth()
                                 .clickable {
                                     draft = if (draft.isBlank()) template else "$draft $template"
@@ -1465,7 +1494,7 @@ private fun ComposerField(
         ),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         maxLines = 5,
-        modifier = modifier,
+        modifier = modifier.testTag("chat_composer_field"),
         decorationBox = { inner ->
             Row(
                 Modifier
@@ -1491,7 +1520,10 @@ private fun ComposerField(
                 // 48 — which is where Material's composer sits anyway — rather
                 // than shipping a 36 dp target inside the most-tapped row in
                 // the app. The glyph stays 20 dp, so nothing looks heavier.
-                IconButton(onClick = onQuickReplies) {
+                IconButton(
+                    onClick = onQuickReplies,
+                    modifier = Modifier.testTag("chat_quick_reply_chip"),
+                ) {
                     Icon(
                         Icons.Filled.Bolt,
                         contentDescription = stringResource(R.string.chat_quick_replies),
@@ -1694,6 +1726,33 @@ private fun timePresets(): List<Pair<String, Long>> {
 // V2-45: these were file-level SimpleDateFormats pinned to Locale.US, so they
 // froze both the locale and the time zone at class-init and wrote dates the way
 // one language writes them. AppDateFormat resolves both at render time.
+
+@Composable
+private fun Modifier.messageEntrance(
+    key: String,
+    staggerIndex: Int,
+    shouldAnimate: Boolean,
+): Modifier {
+    if (!shouldAnimate || !Motion.animationsEnabled()) return this
+    var visible by remember(key) { mutableStateOf(false) }
+    LaunchedEffect(key) {
+        val delayMs = (staggerIndex.coerceIn(0, 7) * 30).toLong()
+        if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
+        visible = true
+    }
+    val animProgress = animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = Motion.chatEnter(),
+        label = "msg-enter-$key",
+    )
+    return this.graphicsLayer {
+        val p = animProgress.value
+        alpha = p
+        translationY = (1f - p) * 20.dp.toPx()
+        scaleX = 0.94f + 0.06f * p
+        scaleY = 0.94f + 0.06f * p
+    }
+}
 
 @Composable
 private fun DatePill(ts: Long, modifier: Modifier = Modifier) {

@@ -23,6 +23,14 @@ object Motion {
     fun animationsEnabled(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ValueAnimator.areAnimatorsEnabled()
 
+    /** Chat message entrance spring. */
+    fun <T> chatEnter(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 0.81f, stiffness = 340f) else snap()
+
+    /** Screen and sub-menu transition spring. */
+    fun <T> screenSpring(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 0.82f, stiffness = 380f) else snap()
+
     /** Position/size/layout changes — the visible, bouncy character. */
     fun <T> spatialDefault(): FiniteAnimationSpec<T> =
         if (animationsEnabled()) spring(dampingRatio = 0.88f, stiffness = 420f) else snap()

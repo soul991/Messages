@@ -1,0 +1,220 @@
+﻿Starting a Gradle Daemon, 1 busy and 1 incompatible and 4 stopped Daemons could not be reused, use --status for details
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+WARNING: We recommend using a newer Android Gradle plugin to use compileSdk = 35
+
+This Android Gradle plugin (8.5.2) was tested up to compileSdk = 34.
+
+You are strongly encouraged to update your project to use a newer
+Android Gradle plugin that has been tested with compileSdk = 35.
+
+If you are already using the latest version of the Android Gradle plugin,
+you may need to wait until a newer version with support for compileSdk = 35 is available.
+
+For more information refer to the compatibility table:
+https://d.android.com/r/tools/api-level-support
+
+To suppress this warning, add/update
+    android.suppressUnsupportedCompileSdk=35
+to this project's gradle.properties.
+> Task :core-messaging:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :protection-engine:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :design-system:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :macrobenchmark:preBuild UP-TO-DATE
+> Task :design-system:preBuild UP-TO-DATE
+> Task :macrobenchmark:preBenchmarkBuild UP-TO-DATE
+> Task :core-messaging:preBuild UP-TO-DATE
+> Task :design-system:preReleaseBuild UP-TO-DATE
+> Task :core-messaging:preReleaseBuild UP-TO-DATE
+> Task :core-messaging:generateReleaseResValues UP-TO-DATE
+> Task :design-system:generateReleaseResValues UP-TO-DATE
+> Task :core-messaging:generateReleaseResources UP-TO-DATE
+> Task :design-system:generateReleaseResources UP-TO-DATE
+> Task :app:buildKotlinToolingMetadata UP-TO-DATE
+> Task :design-system:packageReleaseResources UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :core-messaging:packageReleaseResources UP-TO-DATE
+> Task :app:preBenchmarkBuild UP-TO-DATE
+> Task :core-messaging:parseReleaseLocalResources UP-TO-DATE
+> Task :design-system:parseReleaseLocalResources UP-TO-DATE
+> Task :design-system:generateReleaseRFile UP-TO-DATE
+> Task :core-messaging:generateReleaseRFile UP-TO-DATE
+> Task :protection-engine:compileKotlin UP-TO-DATE
+> Task :protection-engine:compileJava NO-SOURCE
+> Task :protection-engine:processResources UP-TO-DATE
+> Task :protection-engine:classes UP-TO-DATE
+> Task :protection-engine:jar UP-TO-DATE
+> Task :macrobenchmark:checkTestedAppObfuscationBenchmark UP-TO-DATE
+> Task :macrobenchmark:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core-messaging:javaPreCompileRelease UP-TO-DATE
+> Task :macrobenchmark:checkBenchmarkAarMetadata UP-TO-DATE
+> Task :macrobenchmark:generateBenchmarkResValues UP-TO-DATE
+> Task :macrobenchmark:mapBenchmarkSourceSetPaths UP-TO-DATE
+> Task :macrobenchmark:generateBenchmarkResources UP-TO-DATE
+> Task :macrobenchmark:mergeBenchmarkResources UP-TO-DATE
+> Task :macrobenchmark:processBenchmarkManifest UP-TO-DATE
+> Task :app:checkBenchmarkDuplicateClasses UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateBenchmarkBuildConfig UP-TO-DATE
+> Task :app:generateBenchmarkResValues UP-TO-DATE
+> Task :design-system:compileReleaseKotlin UP-TO-DATE
+> Task :design-system:javaPreCompileRelease UP-TO-DATE
+> Task :design-system:compileReleaseJavaWithJavac NO-SOURCE
+> Task :design-system:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :design-system:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :design-system:writeReleaseAarMetadata UP-TO-DATE
+> Task :design-system:extractDeepLinksRelease UP-TO-DATE
+> Task :design-system:processReleaseManifest UP-TO-DATE
+> Task :design-system:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :design-system:prepareReleaseArtProfile UP-TO-DATE
+> Task :design-system:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :design-system:processReleaseJavaRes UP-TO-DATE
+> Task :design-system:mergeReleaseShaders UP-TO-DATE
+> Task :design-system:compileReleaseShaders NO-SOURCE
+> Task :design-system:generateReleaseAssets UP-TO-DATE
+> Task :design-system:packageReleaseAssets UP-TO-DATE
+> Task :design-system:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :design-system:mergeReleaseNativeLibs NO-SOURCE
+> Task :design-system:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :macrobenchmark:processBenchmarkResources UP-TO-DATE
+> Task :app:mapBenchmarkSourceSetPaths UP-TO-DATE
+> Task :app:generateBenchmarkResources UP-TO-DATE
+> Task :core-messaging:kspReleaseKotlin UP-TO-DATE
+> Task :core-messaging:compileReleaseKotlin UP-TO-DATE
+> Task :core-messaging:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :core-messaging:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :core-messaging:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :core-messaging:writeReleaseAarMetadata UP-TO-DATE
+> Task :core-messaging:extractDeepLinksRelease UP-TO-DATE
+> Task :core-messaging:processReleaseManifest UP-TO-DATE
+> Task :core-messaging:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :core-messaging:prepareReleaseArtProfile UP-TO-DATE
+> Task :core-messaging:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :core-messaging:processReleaseJavaRes UP-TO-DATE
+> Task :app:mergeBenchmarkResources UP-TO-DATE
+> Task :core-messaging:mergeReleaseShaders UP-TO-DATE
+> Task :core-messaging:compileReleaseShaders NO-SOURCE
+> Task :core-messaging:generateReleaseAssets UP-TO-DATE
+> Task :core-messaging:packageReleaseAssets UP-TO-DATE
+> Task :core-messaging:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :core-messaging:mergeReleaseNativeLibs NO-SOURCE
+> Task :core-messaging:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :app:checkBenchmarkAarMetadata UP-TO-DATE
+> Task :app:packageBenchmarkResources UP-TO-DATE
+> Task :app:parseBenchmarkLocalResources UP-TO-DATE
+> Task :app:createBenchmarkCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksBenchmark UP-TO-DATE
+> Task :app:processBenchmarkMainManifest UP-TO-DATE
+> Task :app:processBenchmarkManifest UP-TO-DATE
+> Task :app:processBenchmarkManifestForPackage UP-TO-DATE
+> Task :app:processBenchmarkResources UP-TO-DATE
+> Task :app:kspBenchmarkKotlin UP-TO-DATE
+> Task :app:compileBenchmarkKotlin UP-TO-DATE
+> Task :app:javaPreCompileBenchmark UP-TO-DATE
+> Task :app:compileBenchmarkJavaWithJavac UP-TO-DATE
+> Task :app:mergeBenchmarkArtProfile UP-TO-DATE
+> Task :macrobenchmark:javaPreCompileBenchmark UP-TO-DATE
+> Task :app:expandBenchmarkArtProfileWildcards UP-TO-DATE
+> Task :macrobenchmark:mergeBenchmarkShaders UP-TO-DATE
+> Task :macrobenchmark:compileBenchmarkShaders NO-SOURCE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :macrobenchmark:generateBenchmarkAssets UP-TO-DATE
+> Task :app:mergeBenchmarkGeneratedProguardFiles UP-TO-DATE
+> Task :macrobenchmark:mergeBenchmarkAssets UP-TO-DATE
+> Task :macrobenchmark:compressBenchmarkAssets UP-TO-DATE
+> Task :macrobenchmark:desugarBenchmarkFileDependencies UP-TO-DATE
+> Task :app:processBenchmarkJavaRes UP-TO-DATE
+> Task :macrobenchmark:checkBenchmarkDuplicateClasses UP-TO-DATE
+> Task :app:mergeBenchmarkJavaResource UP-TO-DATE
+> Task :app:mergeBenchmarkStartupProfile UP-TO-DATE
+> Task :macrobenchmark:mergeExtDexBenchmark UP-TO-DATE
+> Task :macrobenchmark:mergeLibDexBenchmark UP-TO-DATE
+> Task :macrobenchmark:mergeBenchmarkJniLibFolders UP-TO-DATE
+> Task :macrobenchmark:mergeBenchmarkNativeLibs UP-TO-DATE
+> Task :macrobenchmark:stripBenchmarkDebugSymbols UP-TO-DATE
+> Task :macrobenchmark:validateSigningBenchmark UP-TO-DATE
+> Task :macrobenchmark:writeBenchmarkSigningConfigVersions UP-TO-DATE
+> Task :app:minifyBenchmarkWithR8 UP-TO-DATE
+> Task :app:compileBenchmarkArtProfile UP-TO-DATE
+> Task :app:mergeBenchmarkShaders UP-TO-DATE
+> Task :app:compileBenchmarkShaders NO-SOURCE
+> Task :app:generateBenchmarkAssets UP-TO-DATE
+> Task :app:mergeBenchmarkAssets UP-TO-DATE
+> Task :app:compressBenchmarkAssets UP-TO-DATE
+> Task :app:extractBenchmarkVersionControlInfo UP-TO-DATE
+> Task :app:processApplicationManifestBenchmarkForBundle UP-TO-DATE
+> Task :app:bundleBenchmarkResources UP-TO-DATE
+> Task :app:shrinkBenchmarkRes UP-TO-DATE
+> Task :app:optimizeBenchmarkResources UP-TO-DATE
+> Task :app:collectBenchmarkDependencies UP-TO-DATE
+> Task :app:sdkBenchmarkDependencyData UP-TO-DATE
+> Task :app:mergeBenchmarkJniLibFolders UP-TO-DATE
+> Task :app:mergeBenchmarkNativeLibs UP-TO-DATE
+> Task :app:stripBenchmarkDebugSymbols UP-TO-DATE
+> Task :app:validateSigningBenchmark UP-TO-DATE
+> Task :app:writeBenchmarkAppMetadata UP-TO-DATE
+> Task :app:writeBenchmarkSigningConfigVersions UP-TO-DATE
+> Task :app:packageBenchmark UP-TO-DATE
+> Task :app:createBenchmarkApkListingFileRedirect UP-TO-DATE
+> Task :macrobenchmark:compileBenchmarkKotlin
+> Task :macrobenchmark:compileBenchmarkJavaWithJavac NO-SOURCE
+> Task :macrobenchmark:dexBuilderBenchmark
+> Task :macrobenchmark:mergeBenchmarkGlobalSynthetics UP-TO-DATE
+> Task :macrobenchmark:processBenchmarkJavaRes UP-TO-DATE
+> Task :macrobenchmark:mergeBenchmarkJavaResource UP-TO-DATE
+> Task :macrobenchmark:mergeProjectDexBenchmark
+> Task :macrobenchmark:packageBenchmark
+> Task :macrobenchmark:createBenchmarkApkListingFileRedirect UP-TO-DATE
+
+> Task :macrobenchmark:connectedBenchmarkAndroidTest
+Starting 14 tests on medium_phone(AVD) - 16
+
+medium_phone(AVD) - 16 Tests 0/14 completed. (0 skipped) (0 failed)
+medium_phone(AVD) - 16 Tests 1/14 completed. (0 skipped) (0 failed)
+medium_phone(AVD) - 16 Tests 2/14 completed. (0 skipped) (0 failed)
+medium_phone(AVD) - 16 Tests 3/14 completed. (0 skipped) (0 failed)
+medium_phone(AVD) - 16 Tests 4/14 completed. (0 skipped) (0 failed)
+medium_phone(AVD) - 16 Tests 5/14 completed. (0 skipped) (0 failed)
+medium_phone(AVD) - 16 Tests 6/14 completed. (0 skipped) (0 failed)
+medium_phone(AVD) - 16 Tests 7/14 completed. (0 skipped) (0 failed)
+medium_phone(AVD) - 16 Tests 8/14 completed. (0 skipped) (0 failed)
+
+> Task :macrobenchmark:connectedBenchmarkAndroidTest
+
+com.messages.macrobenchmark.ScrollAndTransitionBenchmark > homeToChatTransition_noProfile[medium_phone(AVD) - 16] FAILED 
+	java.lang.IllegalStateException: Observed no renderthread slices in trace - verify that your benchmark is redrawing and is hardware accelerated (which is the default).
+	at androidx.benchmark.macro.perfetto.FrameTimingQuery.getFrameData$benchmark_macro_release(FrameTimingQuery.kt:186)
+
+medium_phone(AVD) - 16 Tests 9/14 completed. (0 skipped) (1 failed)
+medium_phone(AVD) - 16 Tests 10/14 completed. (0 skipped) (1 failed)
+
+> Task :macrobenchmark:connectedBenchmarkAndroidTest
+
+com.messages.macrobenchmark.ScrollAndTransitionBenchmark > homeToChatTransition_profile[medium_phone(AVD) - 16] FAILED 
+	java.lang.IllegalStateException: Observed no renderthread slices in trace - verify that your benchmark is redrawing and is hardware accelerated (which is the default).
+	at androidx.benchmark.macro.perfetto.FrameTimingQuery.getFrameData$benchmark_macro_release(FrameTimingQuery.kt:186)
+
+medium_phone(AVD) - 16 Tests 11/14 completed. (0 skipped) (2 failed)
+medium_phone(AVD) - 16 Tests 12/14 completed. (0 skipped) (2 failed)
+medium_phone(AVD) - 16 Tests 13/14 completed. (0 skipped) (2 failed)
+medium_phone(AVD) - 16 Tests 14/14 completed. (0 skipped) (2 failed)
+Finished 14 tests on medium_phone(AVD) - 16
+
+> Task :macrobenchmark:connectedBenchmarkAndroidTest
+Tests on medium_phone(AVD) - 16 failed: There was 2 failure(s).
+
+> Task :macrobenchmark:connectedBenchmarkAndroidTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':macrobenchmark:connectedBenchmarkAndroidTest'.
+> There were failing tests. See the report at: file:///D:/Istak/Messages/Messages%20App/01_active_codebase/messages/macrobenchmark/build/reports/androidTests/connected/benchmark/index.html
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1h 1m 3s
+122 actionable tasks: 5 executed, 117 up-to-date

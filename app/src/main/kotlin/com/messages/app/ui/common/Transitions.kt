@@ -7,6 +7,8 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
@@ -54,6 +56,26 @@ fun Modifier.sharedThreadAvatar(threadId: Long): Modifier {
     }
 }
 
+/**
+ * Marks this element as the shared contact name for [threadId] across screens.
+ * Uses sharedBounds with boundsTransform using Motion.chatEnter().
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun Modifier.sharedThreadName(threadId: Long): Modifier {
+    val sts = LocalSharedTransitionScope.current ?: return this
+    val scope = LocalNavAnimatedVisibilityScope.current ?: return this
+    val transition = scope.transition
+    if (transition.currentState == transition.targetState && !transition.isRunning) return this
+    return with(sts) {
+        this@sharedThreadName.sharedBounds(
+            rememberSharedContentState(key = "name-$threadId"),
+            animatedVisibilityScope = scope,
+            boundsTransform = { _, _ -> Motion.chatEnter() },
+        )
+    }
+}
+
 // Shared-axis-X pair for sibling screens (settings, dashboard, …) — springs on
 // the slide (spatial), critically damped on the fade (effects).
 private const val AXIS_FRACTION = 5
@@ -72,3 +94,31 @@ fun sharedAxisExit(forward: Boolean): ExitTransition =
 fun fadeThroughEnter(): EnterTransition = fadeIn(Motion.effectsSlow())
 
 fun fadeThroughExit(): ExitTransition = fadeOut(Motion.effectsFast())
+
+/** Screen behind scales to 0.96 (graphicsLayer, no blur) while chat opens. */
+fun homeExitForChat(): ExitTransition =
+    scaleOut(
+        targetScale = 0.96f,
+        animationSpec = Motion.chatEnter(),
+    ) + fadeOut(Motion.effectsFast())
+
+fun homePopEnterFromChat(): EnterTransition =
+    scaleIn(
+        initialScale = 0.96f,
+        animationSpec = Motion.chatEnter(),
+    ) + fadeIn(Motion.effectsDefault())
+
+/** Opening Settings / sub-menus: screen behind scales to 0.94 (graphicsLayer, no blur). */
+fun screenBehindExitForSubMenu(): ExitTransition =
+    scaleOut(
+        targetScale = 0.94f,
+        animationSpec = Motion.screenSpring(),
+    ) + fadeOut(Motion.effectsFast())
+
+fun screenBehindPopEnterFromSubMenu(): EnterTransition =
+    scaleIn(
+        initialScale = 0.94f,
+        animationSpec = Motion.screenSpring(),
+    ) + fadeIn(Motion.effectsDefault())
+
+

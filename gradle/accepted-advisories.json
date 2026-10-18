@@ -77,6 +77,16 @@
       "scope": "build",
       "reason": "commons-io 2.13.0 via androidx.databinding:databinding-compiler-common <- AGP. Path traversal in FileNameUtils on untrusted input; data binding compiles our own layouts. Fixed upstream in 2.14.0, and AGP 8.13.2 does resolve 2.16.1 — this one entry would clear on a toolchain migration.",
       "expires": "2027-02-01"
+    },
+    {
+      "ids": [
+        "GHSA-7xpr-hc2w-34m9",
+        "GHSA-9rm7-3qhh-h2mc"
+      ],
+      "coordinate": "com.squareup.wire:*",
+      "scope": "build",
+      "reason": "wire-runtime 4.9.7 via androidx.benchmark:benchmark-common:1.3.1 <- androidx.benchmark:benchmark-macro-junit4:1.3.1 <- :macrobenchmark. Wire is used by AndroidX Benchmark's Perfetto trace processor to parse device trace files during local benchmark runs. It is entirely scoped to the :macrobenchmark test module, is not packaged into the :app release APK, and never parses untrusted network inputs. Fixed upstream in Wire 6.3.0/6.4.5, but AndroidX Benchmark 1.3.x vendors 4.9.7.",
+      "expires": "2027-02-01"
     }
   ]
 }

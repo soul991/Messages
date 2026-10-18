@@ -1733,5 +1733,14 @@ This application is provided as-is for personal use. By using it you accept that
     <string name="chat_export_failed">Export failed</string>
     <string name="accessibility_opens_in_browser">Opens in web browser</string>
     <string name="notification_preview_header">NOTIFICATION PREVIEW &amp; THEME</string>
+    <!-- Phase 3 Redesign Strings -->
+    <string name="action_edit">Edit</string>
+    <string name="quick_reply_deleted">Quick reply deleted</string>
+    <string name="quick_replies_deleted">Quick replies deleted</string>
+    <string name="quick_replies_delete_n">Delete (%1$d)</string>
+    <string name="settings_link_previews_short_sub">Preview links in Inbox messages</string>
+    <string name="settings_link_previews_footer">Never for filtered folders or dangerous messages; no cookies are sent.</string>
+    <string name="settings_summary_cards_short_sub">Extract key details from bank and bill messages</string>
+    <string name="settings_summary_cards_footer">Read on this phone, from the message itself. Never shown on spam or suspected fraud.</string>
 
 </resources>

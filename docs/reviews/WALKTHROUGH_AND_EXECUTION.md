@@ -1,4 +1,4 @@
-# Walkthrough & Execution Report: Flagship Chat Motion & QA
+# Walkthrough & Execution Report: Chat Motion & QA
 
 ## 1. Overview of Code Modifications
 

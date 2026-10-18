@@ -7,11 +7,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import com.messages.designsystem.Motion
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,6 +39,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -59,6 +68,8 @@ import androidx.compose.material.icons.outlined.SwipeRight
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -67,11 +78,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -561,8 +578,10 @@ fun SettingsScreen(
     // Hub + sub-pages: `page` null shows the hub; otherwise only that slice
     // of the (unchanged) settings content is composed.
     var page by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
     androidx.activity.compose.BackHandler(enabled = page != null) { page = null }
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -591,506 +610,575 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.padding(padding).fillMaxSize()) {
-            // Hub: shown until a section is picked.
-            if (page == null) {
-                item {
-                    SettingsHub(onPick = { picked -> if (picked == null) onOpenAbout() else page = picked })
+        AnimatedContent(
+            targetState = page,
+            transitionSpec = {
+                if (initialState == null && targetState != null) {
+                    (slideInHorizontally(Motion.screenSpring()) { full -> full / 5 } + fadeIn(Motion.effectsDefault()))
+                        .togetherWith(
+                            scaleOut(targetScale = 0.94f, animationSpec = Motion.screenSpring()) + fadeOut(Motion.effectsFast())
+                        )
+                } else if (initialState != null && targetState == null) {
+                    (scaleIn(initialScale = 0.94f, animationSpec = Motion.screenSpring()) + fadeIn(Motion.effectsDefault()))
+                        .togetherWith(
+                            slideOutHorizontally(Motion.screenSpring()) { full -> full / 5 } + fadeOut(Motion.effectsFast())
+                        )
+                } else {
+                    (slideInHorizontally(Motion.screenSpring()) { full -> full / 5 } + fadeIn(Motion.effectsDefault()))
+                        .togetherWith(
+                            slideOutHorizontally(Motion.screenSpring()) { full -> -full / 5 } + fadeOut(Motion.effectsFast())
+                        )
                 }
+            },
+            label = "settings-page-transition",
+            modifier = Modifier.padding(padding).fillMaxSize(),
+        ) { currentPage ->
+            val pageEntrancePlayed = androidx.compose.runtime.saveable.rememberSaveable(currentPage) {
+                androidx.compose.runtime.mutableStateOf(false)
             }
+            androidx.compose.runtime.LaunchedEffect(currentPage) {
+                kotlinx.coroutines.delay(250)
+                pageEntrancePlayed.value = true
+            }
+            androidx.compose.runtime.CompositionLocalProvider(
+                LocalSettingsPageAnimated provides pageEntrancePlayed.value
+            ) {
+                LazyColumn(Modifier.fillMaxSize()) {
+                // Hub: shown until a section is picked.
+                if (currentPage == null) {
+                    item {
+                        SettingsHub(onPick = { picked -> if (picked == null) onOpenAbout() else page = picked })
+                    }
+                }
 
-            // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
-            if (page == SettingsPage.APPEARANCE) {
-                item {
-                SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
-                SettingsDropdownRow(
-                    icon = Icons.Outlined.DarkMode,
-                    title = stringResource(R.string.settings_theme),
-                    subtitle = stringResource(R.string.settings_theme_subtitle),
-                    value = stringResource(themeMode.labelRes()),
-                    options = ThemeMode.values().map { it to stringResource(it.labelRes()) },
-                    onSelect = onThemeModeChange,
-                )
-                AccentPickerRow(selected = accent, onSelect = onAccentChange)
-                MessageTextSizeRow()
-            }
-            }
-
-            // ---- In-app brightness ----
-            if (page == SettingsPage.APPEARANCE) {
-                item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_brightness))
-                InAppBrightnessSection(
-                    customEnabled = customBrightness,
-                    brightness = brightnessLevel,
-                    onCustomEnabledChange = onCustomBrightnessChange,
-                    onBrightnessChange = onBrightnessLevelChange,
-                )
-            }
+                // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
+                if (currentPage == SettingsPage.APPEARANCE) {
+                    item {
+                        SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
+                        SettingsGroupCard(cardIndex = 0) {
+                            SettingsDropdownRow(
+                                icon = Icons.Outlined.DarkMode,
+                                categoryBadge = null,
+                                title = stringResource(R.string.settings_theme),
+                                subtitle = stringResource(R.string.settings_theme_subtitle),
+                                value = stringResource(themeMode.labelRes()),
+                                options = ThemeMode.values().map { it to stringResource(it.labelRes()) },
+                                onSelect = onThemeModeChange,
+                            )
+                            SettingsCardDivider()
+                            AccentPickerRow(selected = accent, onSelect = onAccentChange)
+                            SettingsCardDivider()
+                            MessageTextSizeRow()
+                        }
+                    }
+                    item {
+                        SettingsSectionHeader(stringResource(R.string.settings_section_brightness))
+                        SettingsGroupCard(cardIndex = 1) {
+                        InAppBrightnessSection(
+                            customEnabled = customBrightness,
+                            brightness = brightnessLevel,
+                            onCustomEnabledChange = onCustomBrightnessChange,
+                            onBrightnessChange = onBrightnessLevelChange,
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
             }
 
             // ---- Protection sensitivity (§3 Stage 5) ----
-            if (page == SettingsPage.PROTECTION) {
+            if (currentPage == SettingsPage.PROTECTION) {
                 item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Shield,
-                    title = stringResource(R.string.settings_advanced_filtering_title),
-                    subtitle = stringResource(R.string.settings_advanced_filtering_subtitle),
-                    checked = advancedFiltering,
-                    onChange = { vm.setAdvancedFiltering(it) },
-                )
-                Spacer(Modifier.height(12.dp))
-                val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    Slider(
-                        value = index.toFloat(),
-                        onValueChange = { vm.setSensitivity(SENSITIVITY_STEPS[it.toInt().coerceIn(0, 2)]) },
-                        valueRange = 0f..2f,
-                        steps = 1,
-                    )
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        SENSITIVITY_STEPS.forEachIndexed { i, step ->
+                    SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
+                    SettingsGroupCard(cardIndex = 0) {
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Shield,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_advanced_filtering_title),
+                            subtitle = stringResource(R.string.settings_advanced_filtering_subtitle),
+                            checked = advancedFiltering,
+                            onChange = { vm.setAdvancedFiltering(it) },
+                        )
+                        SettingsCardDivider()
+                        val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
+                        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                            Slider(
+                                value = index.toFloat(),
+                                onValueChange = { vm.setSensitivity(SENSITIVITY_STEPS[it.toInt().coerceIn(0, 2)]) },
+                                valueRange = 0f..2f,
+                                steps = 1,
+                            )
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                SENSITIVITY_STEPS.forEachIndexed { i, step ->
+                                    Text(
+                                        stringResource(sensitivityLabelRes(step)),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (i == index) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (i == index) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(6.dp))
                             Text(
-                                stringResource(sensitivityLabelRes(step)),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = if (i == index) FontWeight.Bold else FontWeight.Normal,
-                                color = if (i == index) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outline,
+                                when (sensitivity) {
+                                    "RELAXED" -> stringResource(R.string.settings_sensitivity_relaxed_body)
+                                    "STRICT" -> stringResource(R.string.settings_sensitivity_strict_body)
+                                    else -> stringResource(R.string.settings_sensitivity_default_body)
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
                             )
                         }
                     }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        when (sensitivity) {
-                            "RELAXED" -> stringResource(R.string.settings_sensitivity_relaxed_body)
-                            "STRICT" -> stringResource(R.string.settings_sensitivity_strict_body)
-                            else -> stringResource(R.string.settings_sensitivity_default_body)
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
                 }
-            }
-            }
-
-            // ---- Rules (§3 Stage 1) ----
-            if (page == SettingsPage.PROTECTION) {
                 item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_rules))
-                Text(
-                    stringResource(R.string.settings_rules_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                )
-            }
-            }
-            if (page == SettingsPage.PROTECTION) {
-                item { RuleGroupHeader(stringResource(R.string.settings_rules_always_allow), "ALLOW", onAdd = { addRuleKind = "ALLOW" }) }
-            }
-            if (page == SettingsPage.PROTECTION) {
-                items(rules.filter { it.kind == "ALLOW" }, key = { it.id }) { rule ->
-                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
-            }
-            }
-            if (page == SettingsPage.PROTECTION) {
-                item { RuleGroupHeader(stringResource(R.string.settings_rules_always_block), "BLOCK", onAdd = { addRuleKind = "BLOCK" }) }
-            }
-            if (page == SettingsPage.PROTECTION) {
-                items(rules.filter { it.kind == "BLOCK" }, key = { it.id }) { rule ->
-                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
-            }
-            }
-            if (page == SettingsPage.PROTECTION) {
-                item { RuleGroupHeader(stringResource(R.string.settings_rules_custom), "CUSTOM", onAdd = { addRuleKind = "CUSTOM" }) }
-            }
-            if (page == SettingsPage.PROTECTION) {
-                items(rules.filter { it.kind == "CUSTOM" }, key = { it.id }) { rule ->
-                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
-            }
+                    SettingsSectionHeader(stringResource(R.string.settings_section_rules))
+                    SettingsGroupCard(
+                        cardIndex = 1,
+                        footer = {
+                            Text(
+                                stringResource(R.string.settings_rules_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    ) {
+                        Column {
+                            RuleGroupHeader(stringResource(R.string.settings_rules_always_allow), "ALLOW", onAdd = { addRuleKind = "ALLOW" })
+                            val allowRules = rules.filter { it.kind == "ALLOW" }
+                            allowRules.forEach { rule ->
+                                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+                            }
+
+                            SettingsCardDivider()
+                            RuleGroupHeader(stringResource(R.string.settings_rules_always_block), "BLOCK", onAdd = { addRuleKind = "BLOCK" })
+                            val blockRules = rules.filter { it.kind == "BLOCK" }
+                            blockRules.forEach { rule ->
+                                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+                            }
+
+                            SettingsCardDivider()
+                            RuleGroupHeader(stringResource(R.string.settings_rules_custom), "CUSTOM", onAdd = { addRuleKind = "CUSTOM" })
+                            val customRules = rules.filter { it.kind == "CUSTOM" }
+                            customRules.forEach { rule ->
+                                RuleRow(rule, onDelete = { vm.deleteRule(rule.id) })
+                            }
+                        }
+                    }
+                }
+                item {
+                    SettingsSectionHeader(stringResource(R.string.settings_section_pattern_library))
+                    SettingsGroupCard(cardIndex = 2) {
+                        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                            Text(
+                                pluralStringResource(
+                                    if (hasImportedPack) R.plurals.settings_library_version_imported
+                                    else R.plurals.settings_library_version_bundled,
+                                    libraryInfo.second,
+                                    libraryInfo.first, libraryInfo.second,
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            if (importStatus != null) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    importStatus!!,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            Row {
+                                TextButton(onClick = {
+                                    packPicker.launch(
+                                        arrayOf("application/json", "text/plain", "application/octet-stream")
+                                    )
+                                }) { Text(stringResource(R.string.settings_import_pattern_pack)) }
+                                if (hasImportedPack) {
+                                    TextButton(onClick = { vm.revertPack() }) { Text(stringResource(R.string.settings_revert_to_bundled)) }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
             }
 
             // ---- Notifications (Phase 4 item 3: full per-folder screen) ----
-            if (page == SettingsPage.NOTIFICATIONS) {
+            if (currentPage == SettingsPage.NOTIFICATIONS) {
                 item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_notifications))
-                SettingsNavRow(
-                    icon = Icons.Outlined.Notifications,
-                    title = stringResource(R.string.settings_notification_behavior),
-                    subtitle = stringResource(R.string.settings_notification_behavior_subtitle),
-                    onClick = onOpenNotificationSettings,
-                )
-            }
+                    SettingsSectionHeader(stringResource(R.string.settings_section_notifications))
+                    SettingsGroupCard(cardIndex = 0) {
+                        SettingsNavRow(
+                            icon = Icons.Outlined.Notifications,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_notification_behavior),
+                            subtitle = stringResource(R.string.settings_notification_behavior_subtitle),
+                            onClick = onOpenNotificationSettings,
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
             }
 
             // ---- Privacy & security (§8.2) ----
-            if (page == SettingsPage.PRIVACY) {
+            if (currentPage == SettingsPage.PRIVACY) {
                 item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_privacy))
-                // The biometric prompt is raised from onChange, which is not a
-                // composable scope; both titles are resolved here instead.
-                val enablePrompt = stringResource(R.string.settings_app_lock_prompt_enable)
-                val disablePrompt = stringResource(R.string.settings_app_lock_prompt_disable)
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Lock,
-                    title = stringResource(R.string.settings_app_lock),
-                    subtitle = if (vm.canAuthenticate) {
-                        stringResource(R.string.settings_app_lock_subtitle)
-                    } else {
-                        stringResource(R.string.settings_app_lock_unavailable)
-                    },
-                    checked = appLock,
-                    enabled = vm.canAuthenticate,
-                    onChange = { enable ->
-                        // Both directions demand a successful auth: enabling
-                        // proves the unlock works; disabling must not be a
-                        // free action for whoever is holding an unlocked
-                        // phone. Cancel/failure leaves the switch as-is.
-                        if (activity != null) {
-                            AppLock.authenticate(
-                                activity,
-                                if (enable) enablePrompt else disablePrompt,
-                                onSuccess = { vm.setAppLock(enable) },
+                    SettingsSectionHeader(stringResource(R.string.settings_section_privacy))
+                    val enablePrompt = stringResource(R.string.settings_app_lock_prompt_enable)
+                    val disablePrompt = stringResource(R.string.settings_app_lock_prompt_disable)
+                    val entryCtx = androidx.compose.ui.platform.LocalContext.current
+                    var accessibleEntry by remember {
+                        mutableStateOf(SecretEntryAccess.enabled(entryCtx))
+                    }
+
+                    SettingsGroupCard(
+                        cardIndex = 0,
+                        footer = {
+                            Text(
+                                stringResource(R.string.settings_lock_chat_tip),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                    },
-                )
-                if (appLock) {
-                    SettingsDropdownRow(
-                        icon = Icons.Outlined.Timer,
-                        title = stringResource(R.string.settings_lock_after),
-                        subtitle = stringResource(R.string.settings_lock_after_subtitle),
-                        value = com.messages.app.security.LockGrace.label(lockAfterMs),
-                        options = com.messages.app.security.LockGrace.options.map { it.first to it.second },
-                        onSelect = { vm.setLockAfter(it) },
-                    )
+                    ) {
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Lock,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_app_lock),
+                            subtitle = if (vm.canAuthenticate) {
+                                stringResource(R.string.settings_app_lock_subtitle)
+                            } else {
+                                stringResource(R.string.settings_app_lock_unavailable)
+                            },
+                            checked = appLock,
+                            enabled = vm.canAuthenticate,
+                            onChange = { enable ->
+                                if (activity != null) {
+                                    AppLock.authenticate(
+                                        activity,
+                                        if (enable) enablePrompt else disablePrompt,
+                                        onSuccess = { vm.setAppLock(enable) },
+                                    )
+                                }
+                            },
+                        )
+                        if (appLock) {
+                            SettingsCardDivider()
+                            SettingsDropdownRow(
+                                icon = Icons.Outlined.Timer,
+                                categoryBadge = null,
+                                title = stringResource(R.string.settings_lock_after),
+                                subtitle = stringResource(R.string.settings_lock_after_subtitle),
+                                value = com.messages.app.security.LockGrace.label(lockAfterMs),
+                                options = com.messages.app.security.LockGrace.options.map { it.first to it.second },
+                                onSelect = { vm.setLockAfter(it) },
+                            )
+                        }
+                        SettingsCardDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.VisibilityOff,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_hide_previews),
+                            subtitle = stringResource(R.string.settings_hide_previews_subtitle),
+                            checked = hidePreviews,
+                            onChange = { vm.setHidePreviews(it) },
+                        )
+                        SettingsCardDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Accessibility,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_accessible_entry_title),
+                            subtitle = stringResource(R.string.settings_accessible_entry_subtitle),
+                            checked = accessibleEntry,
+                            onChange = {
+                                accessibleEntry = it
+                                SecretEntryAccess.setEnabled(entryCtx, it)
+                            },
+                        )
+                        if (accessibleEntry) {
+                            SettingsCardDivider()
+                            SettingsRow(
+                                icon = Icons.Outlined.Lock,
+                                categoryBadge = null,
+                                title = stringResource(SecretEntryAccess.ACTION_LABEL),
+                                subtitle = stringResource(
+                                    R.string.settings_accessible_entry_row_subtitle,
+                                ),
+                                onClick = onSecretEntry,
+                                indented = true,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
                 }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.VisibilityOff,
-                    title = stringResource(R.string.settings_hide_previews),
-                    subtitle = stringResource(R.string.settings_hide_previews_subtitle),
-                    checked = hidePreviews,
-                    onChange = { vm.setHidePreviews(it) },
-                )
-                // V2-39. The locked space's only entrance was a 1.5-second
-                // press on the Home title — raw pointer input, so it does not
-                // exist for a screen reader, Switch Access, a keyboard or a
-                // D-pad, and is out of reach for many motor impairments.
-                //
-                // This switch is the user's own call on the trade: a labelled
-                // action is discoverable by definition, which is the opposite
-                // of what concealment wants. It ships on every install and
-                // defaults off, so its presence says something about the app,
-                // never about this user. Both rows lead to the credential
-                // prompt; nothing here weakens it.
-                val entryCtx = androidx.compose.ui.platform.LocalContext.current
-                var accessibleEntry by remember {
-                    mutableStateOf(SecretEntryAccess.enabled(entryCtx))
-                }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Accessibility,
-                    title = stringResource(R.string.settings_accessible_entry_title),
-                    subtitle = stringResource(R.string.settings_accessible_entry_subtitle),
-                    checked = accessibleEntry,
-                    onChange = {
-                        accessibleEntry = it
-                        SecretEntryAccess.setEnabled(entryCtx, it)
-                    },
-                )
-                if (accessibleEntry) {
-                    SettingsRow(
-                        icon = Icons.Outlined.Lock,
-                        title = stringResource(SecretEntryAccess.ACTION_LABEL),
-                        subtitle = stringResource(
-                            R.string.settings_accessible_entry_row_subtitle,
-                        ),
-                        onClick = onSecretEntry,
-                        indented = true,
-                    )
-                }
-                Text(
-                    stringResource(R.string.settings_lock_chat_tip),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                )
-            }
             }
 
             // ---- Conversations (§8.1/§8.2): swipe actions + delivery reports ----
-            if (page == SettingsPage.CONVERSATIONS) {
+            if (currentPage == SettingsPage.CONVERSATIONS) {
                 item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_conversations))
-                val ctx = androidx.compose.ui.platform.LocalContext.current
-                val rightAction by com.messages.app.ui.home.SwipeActions.right.collectAsStateWithLifecycle()
-                val leftAction by com.messages.app.ui.home.SwipeActions.left.collectAsStateWithLifecycle()
-                SettingsDropdownRow(
-                    icon = Icons.Outlined.SwipeRight,
-                    title = stringResource(R.string.settings_swipe_right),
-                    subtitle = stringResource(R.string.settings_swipe_right_subtitle),
-                    value = com.messages.app.ui.home.SwipeActions.label(rightAction),
-                    options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
-                    onSelect = { com.messages.app.ui.home.SwipeActions.setRight(ctx, it) },
-                )
-                SettingsDropdownRow(
-                    icon = Icons.Outlined.SwipeLeft,
-                    title = stringResource(R.string.settings_swipe_left),
-                    subtitle = stringResource(R.string.settings_swipe_left_subtitle),
-                    value = com.messages.app.ui.home.SwipeActions.label(leftAction),
-                    options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
-                    onSelect = { com.messages.app.ui.home.SwipeActions.setLeft(ctx, it) },
-                )
-                var deliveryReports by remember {
-                    mutableStateOf(
-                        ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-                            .getBoolean("delivery_reports", true)
-                    )
+                    SettingsSectionHeader(stringResource(R.string.settings_section_conversations))
+                    val ctx = androidx.compose.ui.platform.LocalContext.current
+                    val rightAction by com.messages.app.ui.home.SwipeActions.right.collectAsStateWithLifecycle()
+                    val leftAction by com.messages.app.ui.home.SwipeActions.left.collectAsStateWithLifecycle()
+                    var deliveryReports by remember {
+                        mutableStateOf(
+                            ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                                .getBoolean("delivery_reports", true)
+                        )
+                    }
+                    var linkPreviews by remember {
+                        mutableStateOf(com.messages.app.ui.chat.LinkPreview.enabled(ctx))
+                    }
+                    var summaryCards by remember {
+                        mutableStateOf(com.messages.app.ui.chat.MessageCards.enabled(ctx))
+                    }
+
+                    SettingsGroupCard(
+                        cardIndex = 0,
+                        footer = {
+                            Column {
+                                Text(
+                                    stringResource(R.string.settings_link_previews_footer),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    stringResource(R.string.settings_summary_cards_footer),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    ) {
+                        SettingsDropdownRow(
+                            icon = Icons.Outlined.SwipeRight,
+                            categoryBadge = "TRANSACTIONS",
+                            title = stringResource(R.string.settings_swipe_right),
+                            subtitle = stringResource(R.string.settings_swipe_right_subtitle),
+                            value = com.messages.app.ui.home.SwipeActions.label(rightAction),
+                            options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
+                            onSelect = { com.messages.app.ui.home.SwipeActions.setRight(ctx, it) },
+                        )
+                        SettingsCardDivider()
+                        SettingsDropdownRow(
+                            icon = Icons.Outlined.SwipeLeft,
+                            categoryBadge = "SPAM",
+                            title = stringResource(R.string.settings_swipe_left),
+                            subtitle = stringResource(R.string.settings_swipe_left_subtitle),
+                            value = com.messages.app.ui.home.SwipeActions.label(leftAction),
+                            options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
+                            onSelect = { com.messages.app.ui.home.SwipeActions.setLeft(ctx, it) },
+                        )
+                        SettingsCardDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.DoneAll,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_delivery_reports),
+                            subtitle = stringResource(R.string.settings_delivery_reports_subtitle),
+                            checked = deliveryReports,
+                            onChange = {
+                                deliveryReports = it
+                                ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                                    .edit().putBoolean("delivery_reports", it).apply()
+                            },
+                        )
+                        SettingsCardDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Link,
+                            categoryBadge = "REVIEW",
+                            title = stringResource(R.string.settings_link_previews),
+                            subtitle = stringResource(R.string.settings_link_previews_short_sub),
+                            checked = linkPreviews,
+                            onChange = {
+                                linkPreviews = it
+                                com.messages.app.ui.chat.LinkPreview.setEnabled(ctx, it)
+                            },
+                        )
+                        SettingsCardDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Summarize,
+                            categoryBadge = "PROMOTIONS",
+                            title = stringResource(R.string.settings_summary_cards),
+                            subtitle = stringResource(R.string.settings_summary_cards_short_sub),
+                            checked = summaryCards,
+                            onChange = {
+                                summaryCards = it
+                                com.messages.app.ui.chat.MessageCards.setEnabled(ctx, it)
+                            },
+                        )
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+                    QuickRepliesEditor(ctx, snackbarHostState, cardIndex = 1)
+                    Spacer(Modifier.height(24.dp))
                 }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.DoneAll,
-                    title = stringResource(R.string.settings_delivery_reports),
-                    subtitle = stringResource(R.string.settings_delivery_reports_subtitle),
-                    checked = deliveryReports,
-                    onChange = {
-                        deliveryReports = it
-                        ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-                            .edit().putBoolean("delivery_reports", it).apply()
-                    },
-                )
-                // Link previews (Phase 4 item 9) — the one opt-in network
-                // feature for message content; scope stated in the subtitle.
-                var linkPreviews by remember {
-                    mutableStateOf(com.messages.app.ui.chat.LinkPreview.enabled(ctx))
-                }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Link,
-                    title = stringResource(R.string.settings_link_previews),
-                    subtitle = stringResource(R.string.settings_link_previews_subtitle),
-                    checked = linkPreviews,
-                    onChange = {
-                        linkPreviews = it
-                        com.messages.app.ui.chat.LinkPreview.setEnabled(ctx, it)
-                    },
-                )
-                // V2-51: summary cards. On by default and entirely offline —
-                // the subtitle says where the numbers come from, because a card
-                // that looks like it phoned the bank is exactly what this
-                // feature must not be mistaken for.
-                var summaryCards by remember {
-                    mutableStateOf(com.messages.app.ui.chat.MessageCards.enabled(ctx))
-                }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Summarize,
-                    title = stringResource(R.string.settings_summary_cards),
-                    subtitle = stringResource(R.string.settings_summary_cards_subtitle),
-                    checked = summaryCards,
-                    onChange = {
-                        summaryCards = it
-                        com.messages.app.ui.chat.MessageCards.setEnabled(ctx, it)
-                    },
-                )
-                Spacer(Modifier.height(8.dp))
-                // Quick-reply templates (Phase 4 item 8).
-                QuickRepliesEditor(ctx)
-            }
             }
 
             // ---- Auto-clean features ----
-            if (page == SettingsPage.STORAGE) {
+            if (currentPage == SettingsPage.STORAGE) {
                 item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_auto_clean))
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.AutoDelete,
-                    title = stringResource(R.string.settings_otp_auto_delete),
-                    subtitle = stringResource(R.string.settings_otp_auto_delete_subtitle),
-                    checked = otpAutoDelete,
-                    onChange = { vm.setOtpAutoDelete(it) },
-                )
-                // §6.5: opt-in, confirmation required, Spam only, via Trash.
-                var confirmSpamClean by remember { mutableStateOf(false) }
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.CleaningServices,
-                    title = stringResource(R.string.settings_spam_auto_clean),
-                    subtitle = stringResource(R.string.settings_spam_auto_clean_subtitle),
-                    checked = spamAutoClean,
-                    onChange = { enable ->
-                        if (enable) confirmSpamClean = true
-                        else vm.setSpamAutoClean(false)
-                    },
-                )
-                if (confirmSpamClean) {
-                    AlertDialog(
-                        onDismissRequest = { confirmSpamClean = false },
-                        title = { Text(stringResource(R.string.settings_spam_auto_clean_confirm_title)) },
-                        text = {
-                            Text(
-                                stringResource(R.string.settings_spam_auto_clean_confirm_body)
-                            )
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                confirmSpamClean = false
-                                vm.setSpamAutoClean(true)
-                            }) { Text(stringResource(R.string.settings_turn_on)) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { confirmSpamClean = false }) { Text(stringResource(R.string.action_cancel)) }
-                        },
-                    )
-                }
-            }
-            }
-
-            // ---- Pattern library (§7.5) ----
-            if (page == SettingsPage.PROTECTION) {
-                item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_pattern_library))
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    Text(
-                        pluralStringResource(
-                            if (hasImportedPack) R.plurals.settings_library_version_imported
-                            else R.plurals.settings_library_version_bundled,
-                            libraryInfo.second,
-                            libraryInfo.first, libraryInfo.second,
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    if (importStatus != null) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            importStatus!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
+                    SettingsSectionHeader(stringResource(R.string.settings_section_auto_clean))
+                    var confirmSpamClean by remember { mutableStateOf(false) }
+                    SettingsGroupCard(cardIndex = 0) {
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.AutoDelete,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_otp_auto_delete),
+                            subtitle = stringResource(R.string.settings_otp_auto_delete_subtitle),
+                            checked = otpAutoDelete,
+                            onChange = { vm.setOtpAutoDelete(it) },
+                        )
+                        SettingsCardDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.CleaningServices,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_spam_auto_clean),
+                            subtitle = stringResource(R.string.settings_spam_auto_clean_subtitle),
+                            checked = spamAutoClean,
+                            onChange = { enable ->
+                                if (enable) confirmSpamClean = true
+                                else vm.setSpamAutoClean(false)
+                            },
                         )
                     }
-                    Row {
-                        TextButton(onClick = {
-                            packPicker.launch(
-                                arrayOf("application/json", "text/plain", "application/octet-stream")
-                            )
-                        }) { Text(stringResource(R.string.settings_import_pattern_pack)) }
-                        if (hasImportedPack) {
-                            TextButton(onClick = { vm.revertPack() }) { Text(stringResource(R.string.settings_revert_to_bundled)) }
-                        }
+                    if (confirmSpamClean) {
+                        AlertDialog(
+                            onDismissRequest = { confirmSpamClean = false },
+                            title = { Text(stringResource(R.string.settings_spam_auto_clean_confirm_title)) },
+                            text = {
+                                Text(
+                                    stringResource(R.string.settings_spam_auto_clean_confirm_body)
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    confirmSpamClean = false
+                                    vm.setSpamAutoClean(true)
+                                }) { Text(stringResource(R.string.settings_turn_on)) }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { confirmSpamClean = false }) { Text(stringResource(R.string.action_cancel)) }
+                            },
+                        )
                     }
                 }
-            }
+                item {
+                    SettingsSectionHeader(stringResource(R.string.settings_trash))
+                    val trashCount by vm.trashCount.collectAsStateWithLifecycle(initialValue = 0)
+                    SettingsGroupCard(
+                        cardIndex = 1,
+                        footer = {
+                            Text(
+                                stringResource(R.string.settings_trash_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    ) {
+                        SettingsNavRow(
+                            icon = Icons.Outlined.Delete,
+                            categoryBadge = "SPAM",
+                            title = if (trashCount > 0) {
+                                stringResource(R.string.settings_trash_with_count, trashCount)
+                            } else {
+                                stringResource(R.string.settings_trash)
+                            },
+                            subtitle = stringResource(R.string.settings_trash_subtitle),
+                            onClick = onOpenTrash,
+                        )
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
             }
 
             // ---- Backup & restore (§8.2) ----
-            if (page == SettingsPage.BACKUP) {
+            if (currentPage == SettingsPage.BACKUP) {
                 item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_backup))
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    Text(
-                        stringResource(R.string.settings_backup_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    if (backupStatus != null) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            backupStatus!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                    SettingsSectionHeader(stringResource(R.string.settings_section_backup))
+                    SettingsGroupCard(
+                        cardIndex = 0,
+                        footer = {
+                            Text(
+                                stringResource(R.string.settings_backup_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    ) {
+                        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                            if (backupStatus != null) {
+                                Text(
+                                    backupStatus!!,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Spacer(Modifier.height(8.dp))
+                            }
+                            Row {
+                                TextButton(onClick = {
+                                    val stamp = java.text.SimpleDateFormat(
+                                        "yyyy-MM-dd", java.util.Locale.US
+                                    ).format(java.util.Date())
+                                    backupCreator.launch(LocalArchive.suggestedName(stamp))
+                                }) { Text(stringResource(R.string.settings_back_up_now)) }
+                                TextButton(onClick = { confirmRestore = true }) { Text(stringResource(R.string.settings_restore)) }
+                            }
+                            TextButton(onClick = onOpenDriveBackup) { Text(stringResource(R.string.settings_google_drive_backup)) }
+                        }
                     }
-                    Row {
-                        TextButton(onClick = {
-                            // V2-45: deliberately NOT AppDateFormat. This goes
-                            // into a file name, so it must stay invariant — a
-                            // localized month name or a non-Gregorian calendar
-                            // would make backups sort wrongly and, in some
-                            // scripts, produce characters the picker rejects.
-                            // Built per click, so no stale-locale risk either.
-                            val stamp = java.text.SimpleDateFormat(
-                                "yyyy-MM-dd", java.util.Locale.US
-                            ).format(java.util.Date())
-                            backupCreator.launch(LocalArchive.suggestedName(stamp))
-                        }) { Text(stringResource(R.string.settings_back_up_now)) }
-                        TextButton(onClick = { confirmRestore = true }) { Text(stringResource(R.string.settings_restore)) }
-                    }
-                    // §8.3: encrypted, scheduled cloud backup.
-                    TextButton(onClick = onOpenDriveBackup) { Text(stringResource(R.string.settings_google_drive_backup)) }
                 }
-                Spacer(Modifier.height(24.dp))
-            }
-            }
-
-            // ---- Message import (BUG-1 safety net: §10 backfill re-run) ----
-            if (page == SettingsPage.BACKUP) {
                 item {
-                SettingsSectionDivider()
-                SettingsSectionHeader(stringResource(R.string.settings_section_import))
-                Column(Modifier.padding(horizontal = 20.dp)) {
+                    SettingsSectionHeader(stringResource(R.string.settings_section_import))
                     val context = androidx.compose.ui.platform.LocalContext.current
                     val backfillInfos by com.messages.core.backfill.Backfill
                         .progressFlow(context).collectAsStateWithLifecycle(initialValue = emptyList())
                     val running = backfillInfos.firstOrNull()
                         ?.takeIf { it.state == androidx.work.WorkInfo.State.RUNNING }
-                    Text(
-                        stringResource(R.string.settings_reimport_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    if (running != null) {
-                        val processed = running.progress.getInt(
-                            com.messages.core.backfill.BackfillWorker.KEY_PROCESSED, 0)
-                        val total = running.progress.getInt(
-                            com.messages.core.backfill.BackfillWorker.KEY_TOTAL, 0)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            if (total > 0) {
-                                pluralStringResource(
-                                    R.plurals.settings_importing_progress,
-                                    total, processed, total,
-                                )
-                            } else {
-                                stringResource(R.string.settings_importing)
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    TextButton(
-                        onClick = { com.messages.core.backfill.Backfill.reimport(context) },
-                        enabled = running == null,
-                    ) { Text(stringResource(R.string.settings_reimport)) }
-                }
-                Spacer(Modifier.height(24.dp))
-            }
-            }
 
-            // ---- Trash (§6.4) ----
-            if (page == SettingsPage.STORAGE) {
-                item {
-                SettingsSectionDivider()
-                val trashCount by vm.trashCount.collectAsStateWithLifecycle(initialValue = 0)
-                SettingsNavRow(
-                    icon = Icons.Outlined.Delete,
-                    title = if (trashCount > 0) {
-                        stringResource(R.string.settings_trash_with_count, trashCount)
-                    } else {
-                        stringResource(R.string.settings_trash)
-                    },
-                    subtitle = stringResource(R.string.settings_trash_subtitle),
-                    onClick = onOpenTrash,
-                )
-                Spacer(Modifier.height(24.dp))
+                    SettingsGroupCard(
+                        cardIndex = 1,
+                        footer = {
+                            Text(
+                                stringResource(R.string.settings_reimport_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    ) {
+                        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                            if (running != null) {
+                                val processed = running.progress.getInt(
+                                    com.messages.core.backfill.BackfillWorker.KEY_PROCESSED, 0)
+                                val total = running.progress.getInt(
+                                    com.messages.core.backfill.BackfillWorker.KEY_TOTAL, 0)
+                                Text(
+                                    if (total > 0) {
+                                        pluralStringResource(
+                                            R.plurals.settings_importing_progress,
+                                            total, processed, total,
+                                        )
+                                    } else {
+                                        stringResource(R.string.settings_importing)
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Spacer(Modifier.height(8.dp))
+                            }
+                            TextButton(
+                                onClick = { com.messages.core.backfill.Backfill.reimport(context) },
+                                enabled = running == null,
+                            ) { Text(stringResource(R.string.settings_reimport)) }
+                        }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
             }
             }
         }
     }
+}
 }
 
 @StringRes
@@ -1128,16 +1216,30 @@ internal fun AccentSeed.labelRes(): Int = when (this) {
  */
 @Composable
 private fun AccentPickerRow(selected: AccentSeed, onSelect: (AccentSeed) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.Palette, contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(Modifier.width(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Palette, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Spacer(Modifier.width(18.dp))
             Column {
-                Text(stringResource(R.string.settings_app_color), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    stringResource(R.string.settings_app_color),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     if (selected == AccentSeed.DYNAMIC) {
                         stringResource(R.string.settings_accent_dynamic_subtitle)
@@ -1146,6 +1248,8 @@ private fun AccentPickerRow(selected: AccentSeed, onSelect: (AccentSeed) -> Unit
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -1154,7 +1258,7 @@ private fun AccentPickerRow(selected: AccentSeed, onSelect: (AccentSeed) -> Unit
             Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(start = 40.dp),
+                .padding(start = 58.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             AccentSeed.values().forEach { seed ->
@@ -1222,37 +1326,58 @@ private fun AccentSwatch(seed: AccentSeed, selected: Boolean, onClick: () -> Uni
 @Composable
 private fun MessageTextSizeRow() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val options = listOf(stringResource(R.string.settings_text_size_small) to 0.85f, stringResource(R.string.settings_text_size_default) to 1f, stringResource(R.string.settings_text_size_large) to 1.15f, stringResource(R.string.settings_text_size_extra_large) to 1.3f)
+    val options = listOf(
+        stringResource(R.string.settings_text_size_small) to 0.85f,
+        stringResource(R.string.settings_text_size_default) to 1f,
+        stringResource(R.string.settings_text_size_large) to 1.15f,
+        stringResource(R.string.settings_text_size_extra_large) to 1.3f,
+    )
     var scale by remember {
         mutableStateOf(
             ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
                 .getFloat("message_text_scale", 1f)
         )
     }
-    Column(Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.FormatSize, contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(Modifier.width(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.FormatSize, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Spacer(Modifier.width(18.dp))
             Column {
-                Text(stringResource(R.string.settings_text_size), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    stringResource(R.string.settings_text_size),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     stringResource(R.string.settings_text_size_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(start = 40.dp),
+                .padding(start = 58.dp),
         ) {
             options.forEach { (label, value) ->
                 FilterChip(
@@ -1291,7 +1416,7 @@ private fun InAppBrightnessSection(
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically(),
         ) {
-            Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
@@ -1331,73 +1456,199 @@ private fun InAppBrightnessSection(
     }
 }
 
-/** Quick-reply template manager (Phase 4 item 8): list + add + delete. */
+/** Quick-reply template manager (Phase 3C): grouped card + SwipeToRevealRow + Edit mode + Input pill. */
 @Composable
-private fun QuickRepliesEditor(ctx: android.content.Context) {
+private fun QuickRepliesEditor(
+    ctx: android.content.Context,
+    snackbarHostState: SnackbarHostState,
+    cardIndex: Int = 1,
+) {
     val templates by com.messages.app.ui.chat.QuickReplies.templates.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { com.messages.app.ui.chat.QuickReplies.load(ctx) }
-    var newTemplate by remember { mutableStateOf("") }
+    var isEditMode by remember { mutableStateOf(false) }
+    var selectedTemplates by remember { mutableStateOf(setOf<String>()) }
+    val scope = rememberCoroutineScope()
 
-    Column(Modifier.padding(horizontal = 20.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.Bolt, contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
+    SettingsGroupCard(
+        modifier = Modifier.testTag("quick_reply_list"),
+        cardIndex = cardIndex,
+        footer = {
+            Text(
+                stringResource(R.string.settings_quick_replies_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.width(16.dp))
-            Column {
-                Text(stringResource(R.string.settings_quick_replies), style = MaterialTheme.typography.bodyLarge)
+        }
+    ) {
+        // Card Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Bolt,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Spacer(Modifier.width(18.dp))
+            Text(
+                text = stringResource(R.string.settings_quick_replies),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            if (isEditMode && selectedTemplates.isNotEmpty()) {
+                TextButton(
+                    onClick = {
+                        val prev = templates
+                        val toDelete = selectedTemplates
+                        val remaining = templates.filter { it !in toDelete }
+                        com.messages.app.ui.chat.QuickReplies.setAll(ctx, remaining)
+                        selectedTemplates = emptySet()
+                        isEditMode = false
+                        scope.launch {
+                            val res = snackbarHostState.showSnackbar(
+                                message = if (toDelete.size > 1) {
+                                    ctx.getString(R.string.quick_replies_deleted)
+                                } else {
+                                    ctx.getString(R.string.quick_reply_deleted)
+                                },
+                                actionLabel = ctx.getString(R.string.action_undo),
+                                duration = SnackbarDuration.Short,
+                            )
+                            if (res == SnackbarResult.ActionPerformed) {
+                                com.messages.app.ui.chat.QuickReplies.setAll(ctx, prev)
+                            }
+                        }
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.quick_replies_delete_n, selectedTemplates.size),
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+            TextButton(
+                onClick = {
+                    isEditMode = !isEditMode
+                    selectedTemplates = emptySet()
+                },
+                modifier = Modifier.testTag("quick_reply_edit_toggle"),
+            ) {
                 Text(
-                    stringResource(R.string.settings_quick_replies_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = if (isEditMode) stringResource(R.string.action_done) else stringResource(R.string.action_edit),
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }
-        Column(Modifier.padding(start = 40.dp)) {
-            templates.forEach { template ->
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        template,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = {
-                        com.messages.app.ui.chat.QuickReplies.remove(ctx, template)
-                    }) {
-                        Icon(
-                            Icons.Filled.Delete, contentDescription = stringResource(R.string.settings_delete_template),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+
+        // Templates rows
+        templates.forEachIndexed { index, template ->
+            val visibleState = remember(template) {
+                androidx.compose.animation.core.MutableTransitionState(false).apply { targetState = true }
+            }
+            AnimatedVisibility(
+                visibleState = visibleState,
+                enter = if (com.messages.designsystem.Motion.animationsEnabled()) {
+                    fadeIn(com.messages.designsystem.Motion.effectsDefault()) +
+                        expandVertically(com.messages.designsystem.Motion.chatEnter())
+                } else androidx.compose.animation.EnterTransition.None,
+            ) {
+                Column(modifier = Modifier.testTag("quick_reply_row_$index")) {
+                    SettingsCardDivider()
+                    if (isEditMode) {
+                        val isSelected = template in selectedTemplates
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    selectedTemplates = if (isSelected) {
+                                        selectedTemplates - template
+                                    } else {
+                                        selectedTemplates + template
+                                    }
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = { checked ->
+                                    selectedTemplates = if (checked) {
+                                        selectedTemplates + template
+                                    } else {
+                                        selectedTemplates - template
+                                    }
+                                },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = template,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    } else {
+                        SwipeToRevealRow(
+                            deleteLabel = stringResource(R.string.action_delete),
+                            onDelete = {
+                                val prev = templates
+                                com.messages.app.ui.chat.QuickReplies.remove(ctx, template)
+                                scope.launch {
+                                    val res = snackbarHostState.showSnackbar(
+                                        message = ctx.getString(R.string.quick_reply_deleted),
+                                        actionLabel = ctx.getString(R.string.action_undo),
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                    if (res == SnackbarResult.ActionPerformed) {
+                                        com.messages.app.ui.chat.QuickReplies.setAll(ctx, prev)
+                                    }
+                                }
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = template,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
                     }
                 }
             }
-            Row(
-                Modifier.fillMaxWidth().padding(top = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = newTemplate,
-                    onValueChange = { newTemplate = it },
-                    placeholder = { Text(stringResource(R.string.settings_new_quick_reply)) },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(
-                    onClick = {
-                        com.messages.app.ui.chat.QuickReplies.add(ctx, newTemplate)
-                        newTemplate = ""
-                    },
-                    enabled = newTemplate.isNotBlank(),
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.settings_add_template))
-                }
-            }
         }
+    }
+
+    // Input pill below the card
+    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+        QuickReplyInputPill(
+            onAdd = { com.messages.app.ui.chat.QuickReplies.add(ctx, it) },
+        )
     }
 }
 

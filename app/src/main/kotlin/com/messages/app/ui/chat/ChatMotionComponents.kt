@@ -132,7 +132,7 @@ fun QuotedReplyCard(
     Surface(
         color = if (isOut) Color.Black.copy(alpha = 0.12f)
         else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         modifier = modifier
             .fillMaxWidth()
             .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
@@ -145,7 +145,7 @@ fun QuotedReplyCard(
                 Modifier
                     .width(3.dp)
                     .height(30.dp)
-                    .clip(RoundedCornerShape(1.5.dp))
+                    .clip(CircleShape)
                     .background(accentColor)
             )
             Spacer(Modifier.width(8.dp))
