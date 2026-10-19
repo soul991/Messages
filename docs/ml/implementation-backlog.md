@@ -157,8 +157,8 @@ Status: Active Work Tracker
 #### [P6-02] Deterministic Protection & AI Safety Gate Invariant
 - **Priority**: P0
 - **Status**: **Enforced (Default-Off Verified)**
-- **Artifact**: `protection-engine/src/main/kotlin/com/messages/protection/AiScorer.kt`, `core-messaging/src/main/kotlin/com/messages/core/MessageRepository.kt`
-- **Description**: Verify that `AI_LAYER_ENABLED = false` by default, `advanced_message_filtering` setting defaults to `false`, `readsAsProtected` prevents any OTP/transaction modification, and routing effect is strictly `INBOX -> REVIEW`.
+- **Artifact**: `protection-engine/src/main/kotlin/com/messages/protection/AiScorer.kt`, `core-messaging/src/main/kotlin/com/messages/core/MessageRepository.kt`, `core-messaging/src/main/kotlin/com/messages/core/AiFeatureGate.kt`
+- **Description**: The AI layer is blocked by AI_LAYER_ENABLED in the app code as of 2.1.2, preventing user settings from routing messages. In 2.1.1, a user could switch it on from Settings. Verify that `AI_LAYER_ENABLED = false` by default, `advanced_message_filtering` setting defaults to `false`, `readsAsProtected` prevents any OTP/transaction modification, and routing effect is strictly `INBOX -> REVIEW`.
 - **Release Invariant**: AI filtering remains permanently disabled in the shipping app until independent human-labeled acceptance criteria pass. No research candidate may be enabled for user routing.
-- **Acceptance Evidence**: Verified in codebase; passes all unit and integration tests.
+- **Acceptance Evidence**: Verified in codebase; passes all unit and integration tests (`AiFeatureGateTest`).
 
