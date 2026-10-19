@@ -285,6 +285,22 @@ class IndicClassificationAndAiTest {
             )
         }
     }
+
+    @Test
+    fun scorer_rejects_a_unicode_model_that_exceeds_the_byte_cap() {
+        // The cap protects APK memory usage, so it must be measured in UTF-8
+        // bytes rather than Kotlin UTF-16 code units. This string is below the
+        // old character limit but above the real two-megabyte asset budget.
+        val oversizedKey = "é".repeat((NGramScorer.MAX_MODEL_BYTES / 2) + 1)
+        val json = """{"weights":{"$oversizedKey":1.0},"threshold":0.0,"ngramMin":2,"ngramMax":2,"minWords":1}"""
+
+        try {
+            NGramScorer.fromJson(json)
+            throw AssertionError("Expected oversized UTF-8 model to be rejected")
+        } catch (_: IllegalArgumentException) {
+            // Expected: the parser enforces the serialized asset byte budget.
+        }
+    }
 }
 
 @Serializable

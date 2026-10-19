@@ -160,12 +160,17 @@ class MessageRepository private constructor(private val context: Context) {
     }
 
     fun isAdvancedFilteringEnabled(): Boolean =
-        // The bundled model has not cleared the held-out false-positive gate.
-        // Keep its routing effect opt-in until that evaluation is complete.
-        settingsPrefs.getBoolean("advanced_message_filtering", false)
+        AiFeatureGate.allowsRouting(
+            settingsPrefs.getBoolean("advanced_message_filtering", false)
+        )
 
     fun setAdvancedFilteringEnabled(enabled: Boolean) {
-        settingsPrefs.edit().putBoolean("advanced_message_filtering", enabled).apply()
+        // Never retain a stale opt-in while the release gate is closed. If a
+        // future certified model enables the gate, every user must opt in again
+        // rather than silently inheriting a setting from research builds.
+        settingsPrefs.edit()
+            .putBoolean("advanced_message_filtering", enabled && AiLayer.AI_LAYER_ENABLED)
+            .apply()
     }
 
     // ---- Pattern-pack import (§7.5) ----

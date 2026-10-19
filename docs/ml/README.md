@@ -93,8 +93,9 @@ The threshold was selected on training ham only; the held-out figures were not
 used to tune it. These figures are weak evidence because the test corpus shares
 authorship with the rules and the synthetic messages share one author.
 
-For now, Advanced Message Filtering defaults off on fresh installs. Keep the
-model as an optional local experiment until the owner supplies an independent,
+As of 2.1.2, the AI layer is blocked by AI_LAYER_ENABLED in the app code, and the
+setting is unavailable in Settings. In 2.1.1, a user could switch it on from Settings.
+Keep the model as an offline experiment until the owner supplies an independent,
 human-labeled evaluation set with real, de-identified examples across the
 languages and message types the app supports. Never train from users' SMS or
 upload their messages.

@@ -563,7 +563,7 @@
     <string name="settings_brightness_footnote">In-app brightness applies only while Messages is in the foreground. It does not affect other apps or system brightness.</string>
     <string name="settings_section_sensitivity">Protection sensitivity</string>
     <string name="settings_advanced_filtering_title">Advanced Message Filtering</string>
-    <string name="settings_advanced_filtering_subtitle">Optional on-device text scoring may move uncertain Inbox messages to Review. Message text stays on this device.</string>
+    <string name="settings_advanced_filtering_subtitle">Unavailable while on-device scoring remains in research evaluation. Your message text stays on this device.</string>
     <string name="settings_sensitivity_relaxed_body">Fewer messages filtered — borderline messages stay in your Inbox or Review.</string>
     <string name="settings_sensitivity_strict_body">Aggressive filtering — borderline messages go to Spam sooner. Protected messages (OTPs, bank alerts) are never filtered at any level.</string>
     <string name="settings_sensitivity_default_body">Balanced filtering, recommended for most people. Protected messages (OTPs, bank alerts) are never filtered.</string>
