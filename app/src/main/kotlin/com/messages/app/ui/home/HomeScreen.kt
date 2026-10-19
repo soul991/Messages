@@ -312,11 +312,41 @@ fun HomeScreen(
     val selectionActive = selectedThreads.isNotEmpty()
     var showHomeMenu by remember { mutableStateOf(false) }
 
-    // Hoist listState to dynamically expand/collapse the compose FAB on scroll
-    val listState = rememberLazyListState()
-    val fabExpanded by remember {
+    // Hoist per-folder listState to dynamically expand/collapse the compose FAB on scroll
+    // and prevent concurrent composition conflicts during AnimatedContent transitions.
+    val inboxListState = rememberLazyListState()
+    val transactionsListState = rememberLazyListState()
+    val promotionsListState = rememberLazyListState()
+    val spamListState = rememberLazyListState()
+    val reviewListState = rememberLazyListState()
+    val blockedListState = rememberLazyListState()
+    val fallbackListState = rememberLazyListState()
+
+    val folderListStates = remember(
+        inboxListState,
+        transactionsListState,
+        promotionsListState,
+        spamListState,
+        reviewListState,
+        blockedListState,
+    ) {
+        mapOf(
+            "INBOX" to inboxListState,
+            "TRANSACTIONS" to transactionsListState,
+            "PROMOTIONS" to promotionsListState,
+            "SPAM" to spamListState,
+            "REVIEW" to reviewListState,
+            "BLOCKED" to blockedListState,
+        )
+    }
+    val listStateFor: (String) -> LazyListState = { folderKey ->
+        folderListStates[folderKey] ?: fallbackListState
+    }
+
+    val activeListState = listStateFor(folder)
+    val fabExpanded by remember(activeListState) {
         derivedStateOf {
-            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 60
+            activeListState.firstVisibleItemIndex == 0 && activeListState.firstVisibleItemScrollOffset < 60
         }
     }
 
@@ -731,7 +761,7 @@ fun HomeScreen(
             FolderPane(
                 vm = vm,
                 folder = folder,
-                listState = listState,
+                listStateFor = listStateFor,
                 onSelectFolder = { key ->
                     if (key != folder) Haptics.tick(view)
                     vm.setFolder(key)
@@ -878,7 +908,7 @@ private fun FolderPane(
     onSelectFolder: (String) -> Unit,
     onOpenThread: (Long) -> Unit,
     onSwipeAction: (String, ConversationEntity) -> Unit,
-    listState: LazyListState = rememberLazyListState(),
+    listStateFor: (String) -> LazyListState,
 ) {
     val rightAction by SwipeActions.right.collectAsStateWithLifecycle()
     val leftAction by SwipeActions.left.collectAsStateWithLifecycle()
@@ -932,6 +962,7 @@ private fun FolderPane(
             },
             label = "folder-switch",
         ) { targetFolder ->
+            val folderListState = listStateFor(targetFolder)
             val loadState by remember(targetFolder, unreadOnly) {
                 if (unreadOnly) vm.unreadConversationsFor(targetFolder)
                 else vm.conversationsFor(targetFolder)
@@ -1011,7 +1042,7 @@ private fun FolderPane(
                     }
                     Box(Modifier.fillMaxSize()) {
                     LazyColumn(
-                        state = listState,
+                        state = folderListState,
                         modifier = Modifier.fillMaxSize().testTag("home_conversation_list"),
                         contentPadding = PaddingValues(bottom = 88.dp),
                     ) {
@@ -1101,7 +1132,7 @@ private fun FolderPane(
                                         },
                                         // A vertical list drag may carry a small horizontal wobble.
                                         // Do not let that in-flight scroll commit a row action.
-                                        canCommitSwipe = { !listState.isScrollInProgress },
+                                        canCommitSwipe = { !folderListState.isScrollInProgress },
                                     )
                                     // Inset divider starting at the text column (plan
                                     // §1 prototype) — never after the last row.
@@ -1121,8 +1152,8 @@ private fun FolderPane(
                     // Jump back to the newest conversations after scrolling
                     // deep into the list (Google Messages affordance).
                     // Bottom-start so it never collides with the compose FAB.
-                    val showJumpTop by remember {
-                        derivedStateOf { listState.firstVisibleItemIndex > 6 }
+                    val showJumpTop by remember(folderListState) {
+                        derivedStateOf { folderListState.firstVisibleItemIndex > 6 }
                     }
                     androidx.compose.animation.AnimatedVisibility(
                         visible = showJumpTop,
@@ -1132,7 +1163,7 @@ private fun FolderPane(
                     ) {
                         SmallFloatingActionButton(
                             onClick = {
-                                listScope.launch { listState.animateScrollToItem(0) }
+                                listScope.launch { folderListState.animateScrollToItem(0) }
                             },
                         ) {
                             Icon(

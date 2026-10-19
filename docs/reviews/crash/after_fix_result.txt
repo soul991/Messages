@@ -1,0 +1,1 @@
+﻿FolderSwitchStressTest 300 cycles: OK (1 test), Time: 3406.682s, 0 failures, 0 crashes
