@@ -141,8 +141,20 @@ FAIL: 0   WARN: 0
 - CI Workflow `39215188139` completed successfully.
 - No release published on GitHub.
 
+### 6.1 Signing Verification Details & Baseline Digest
+- **CI Artifact Signing Status**: NOT RUN in CI because release signing secrets (`RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`) are not stored in GitHub repository secrets (held securely by the owner).
+- **v2.0.1 Official Release Signing Baseline**:
+  - Downloaded official `v2.0.1` APK (`Messages.apk`, 4,179,641 bytes) via `gh release download v2.0.1`.
+  - Executed `apksigner verify --print-certs Messages.apk`:
+    - **Signer #1 certificate DN**: `CN=Messages, OU=Personal, O=Personal, C=IN`
+    - **Signer #1 SHA-256 digest**: `8f06a576a05f50892b35f6b4e5983de51826d983966bd71c480d73d0d7914915`
+    - **Signer #1 SHA-1 digest**: `79e2f95144814f30309daf569804d3cca79c2c62`
+    - **Signer #1 MD5 digest**: `a05aec5a144537f5fd5e71ba1d49c8ea`
+  - **Requirement for v2.1.1 Local Signing**: When the owner signs the `v2.1.1` release APK locally with `apksigner`, the SHA-256 certificate digest must MATCH `8f06a576a05f50892b35f6b4e5983de51826d983966bd71c480d73d0d7914915`. Any mismatch will cause Android to reject the in-place update on existing v2.0.1 user devices.
+
 ---
 
 ## 7. Open Architectural Question for the Owner
 
 > *MainActivity no longer prompts existing users once for the default SMS role (the `onboardingDone && !isDefaultSmsApp && !role_prompted` block was removed in commit `0e39ce4` or `1a540e8`). Was that intentional? I did not change it.*
+
