@@ -84,7 +84,7 @@ def main():
     args = parser.parse_args()
     candidate_dir = Path(args.candidate_dir)
     fit_report = json.loads((candidate_dir / "report.json").read_text(encoding="utf-8"))
-    checkpoint = torch.load(candidate_dir / "char_cnn.pt", map_location="cpu", weights_only=False)
+    checkpoint = torch.load(candidate_dir / "char_cnn.pt", map_location="cpu", weights_only=True)
     vocab, config = checkpoint["vocabulary"], checkpoint["config"]
     model = trainer.CharacterCNN(len(vocab) + 2, embedding_dim=config["embeddingDim"],
         channels=config["channelsPerKernel"], dropout=config["dropout"])
