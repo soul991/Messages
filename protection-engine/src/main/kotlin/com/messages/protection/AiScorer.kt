@@ -5,6 +5,7 @@ import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.nio.charset.StandardCharsets
 
 /**
  * Layer 5 — the character n-gram classifier.
@@ -165,8 +166,9 @@ class NGramScorer(
          * on every message for the life of the install.
          */
         fun fromJson(text: String): NGramScorer {
-            require(text.length <= MAX_MODEL_BYTES) {
-                "model is ${text.length} bytes, max $MAX_MODEL_BYTES"
+            val modelBytes = text.toByteArray(StandardCharsets.UTF_8).size
+            require(modelBytes <= MAX_MODEL_BYTES) {
+                "model is $modelBytes bytes, max $MAX_MODEL_BYTES"
             }
             val root = Json.parseToJsonElement(text).jsonObject
             val weights = root.getValue("weights").jsonObject
