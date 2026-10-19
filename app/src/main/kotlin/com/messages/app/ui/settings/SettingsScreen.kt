@@ -115,6 +115,7 @@ import com.messages.core.MessageRepository
 import com.messages.core.backup.BackupCrypto
 import com.messages.core.backup.LocalArchive
 import com.messages.core.secret.SecretStrength
+import com.messages.protection.AiLayer
 import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.db.UserRuleEntity
 import com.messages.designsystem.AccentSeed
@@ -233,7 +234,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setAdvancedFiltering(enabled: Boolean) {
         repo.setAdvancedFilteringEnabled(enabled)
-        advancedFiltering.value = enabled
+        advancedFiltering.value = repo.isAdvancedFilteringEnabled()
     }
 
     /**
@@ -697,6 +698,7 @@ fun SettingsScreen(
                             subtitle = stringResource(R.string.settings_advanced_filtering_subtitle),
                             checked = advancedFiltering,
                             onChange = { vm.setAdvancedFiltering(it) },
+                            enabled = AiLayer.AI_LAYER_ENABLED,
                         )
                         SettingsCardDivider()
                         val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
