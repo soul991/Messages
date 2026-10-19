@@ -51,13 +51,13 @@ false
 ### 2.3 Emulator In-Place Upgrade Test
 1. Installed debug build of `8cf1e53` (`v2.1.0`) on `emulator-5554`:
    - Launched and observed synthetic thread generation ("Elena Rostova", thread ID 100).
-   - Screenshot: [01_v2_1_0_with_fake_thread.png](file:///D:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/reviews/upgrade_test/01_v2_1_0_with_fake_thread.png)
+   - Screenshot: [01_v2_1_0_with_fake_thread.png](upgrade_test/01_v2_1_0_with_fake_thread.png)
 2. In-place upgrade with debug build of `origin/hotfix/2.1.1`:
    - Launched and captured cleanup logcat:
 ```
 10-19 02:49:08.725  5004  5042 I MessagesApp: cleaned up 96 synthetic message(s)
 ```
-   - Screenshot after hotfix: [02_after_hotfix.png](file:///D:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/reviews/upgrade_test/02_after_hotfix.png)
+   - Screenshot after hotfix: [02_after_hotfix.png](upgrade_test/02_after_hotfix.png)
 3. Relaunch test:
    - Force-stopped app and relaunched.
    - Logcat inspection confirmed 0 duplicate cleanup executions.
