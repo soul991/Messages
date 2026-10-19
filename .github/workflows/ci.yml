@@ -62,13 +62,13 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
 
       - name: Set up JDK 17
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v4, resolved 2026-07-28
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v4, resolved 2026-07-28
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v4, resolved 2026-07-28
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v4, resolved 2026-07-28
 
       # The pure-JVM engine module: every pattern's positive/negative examples,
       # combo rules, the normalizer obfuscation corpus, the corpus regression
@@ -113,7 +113,7 @@ jobs:
 
       - name: Upload test and lint reports
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, resolved 2026-07-28
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4, resolved 2026-07-28
         with:
           name: reports
           path: |
@@ -135,13 +135,13 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
 
       - name: Set up JDK 17
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v4, resolved 2026-07-28
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v4, resolved 2026-07-28
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v4, resolved 2026-07-28
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v4, resolved 2026-07-28
 
       # Separates the code that ships from the code that only builds it. An
       # advisory in the Android Gradle Plugin's netty and one inside the APK
@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload scan results and SBOM
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, resolved 2026-07-28
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4, resolved 2026-07-28
         with:
           name: dependency-scan
           path: |
@@ -195,13 +195,13 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-07-28
 
       - name: Set up JDK 17
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v4, resolved 2026-07-28
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v4, resolved 2026-07-28
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v4, resolved 2026-07-28
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v4, resolved 2026-07-28
 
       # Check if signing secrets are present in repository secrets.
       - name: Check signing secrets
@@ -275,7 +275,7 @@ jobs:
 
       - name: Upload signed APK and SBOM
         if: steps.check_secrets.outputs.has_secrets == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, resolved 2026-07-28
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4, resolved 2026-07-28
         with:
           name: app-release
           path: |
