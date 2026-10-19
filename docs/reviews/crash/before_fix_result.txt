@@ -1,0 +1,1 @@
+﻿NOT REPRODUCED in 360 cycles (300 cycles standard + 60 cycles with animator_duration_scale 3); proceeding with hypothesis-based fix from code analysis
