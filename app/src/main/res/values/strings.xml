@@ -1269,6 +1269,8 @@
     <string name="secret_start_over">Start over</string>
     <string name="secret_patterns_dont_match">Patterns don\'t match — try again</string>
     <string name="secret_codes_dont_match">Codes don\'t match — try again</string>
+    <string name="secret_pin_progress">%1$d of %2$d digits entered</string>
+    <string name="secret_use_password_instead">Use password instead</string>
     <string name="secret_hide_password">Hide password</string>
     <string name="secret_show_password">Show password</string>
     <string name="secret_tap_to_type_pin">Tap to type your PIN</string>
