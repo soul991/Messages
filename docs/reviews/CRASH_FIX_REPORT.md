@@ -117,5 +117,5 @@ OK (1 test)
 
 ### 5.5 Visual Verification
 Captured screen states verifying clean transitions between folders:
-- [Personal Folder](file:///D:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/reviews/crash/01_personal_folder.png)
-- [Bank Folder](file:///D:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/reviews/crash/02_bank_folder.png)
+- [Personal Folder](crash/01_personal_folder.png)
+- [Bank Folder](crash/02_bank_folder.png)

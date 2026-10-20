@@ -1,0 +1,19 @@
+{
+  "model_name": "CalibratedMultilingualAdvisoryLinear",
+  "sha256": "9a4ddf6934c0bab5fb7a002d08cbef01e5661ea01efbe80d774e8cd113f9e961",
+  "size_bytes": 995087,
+  "size_kib": 971.76,
+  "created_at": "2026-10-20T12:54:00+05:30",
+  "cycle": 7,
+  "license": "Apache-2.0",
+  "data_sources": [
+    "karanverma19/trilingual_fraud_consumer_protection_v2",
+    "SMS-shield-mini-raw",
+    "kaggle/sms-spam-collection-dataset",
+    "HinSpam"
+  ],
+  "latency_p50_ms": 0.52,
+  "latency_p95_ms": 0.81,
+  "release_gate_status": "FAILED",
+  "release_recommendation": "DO NOT MERGE / DO NOT ENABLE"
+}

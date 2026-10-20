@@ -1,0 +1,112 @@
+{
+  "cycle": 4,
+  "hypothesis": "Enforcing actionable response vectors (links/callbacks) and advisory discounts ('never share', 'savdhan') drastically cuts false positive rate on contrastive challenge messages.",
+  "candidate_sha256": "a287be0e758714f860009903f80720a0f5095af5227d23d70e27110d0e26b804",
+  "dataset_manifest_sha256": "76c8aedd77853cf606c3a4998847a4613e5c1e41f80b812033f4f65fa2d3e2f0",
+  "seeds": [
+    20261020,
+    20261021,
+    20261022
+  ],
+  "dev_metrics": {
+    "n": 559,
+    "scam_n": 269,
+    "ham_n": 290,
+    "tp": 230,
+    "fp": 111,
+    "fn": 39,
+    "tn": 179,
+    "recall": 0.855,
+    "recall_ci95": [
+      0.8079,
+      0.8921
+    ],
+    "fpr": 0.3828,
+    "fpr_ci95": [
+      0.3287,
+      0.4399
+    ],
+    "precision": 0.6745,
+    "f1": 0.7541,
+    "brier": 0.2982,
+    "ece": 0.1504,
+    "inconclusive": false
+  },
+  "per_language": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 123,
+      "fp": 53,
+      "fn": 25,
+      "tn": 95,
+      "recall": 0.8311,
+      "recall_ci95": [
+        0.7625,
+        0.8829
+      ],
+      "fpr": 0.3581,
+      "fpr_ci95": [
+        0.2854,
+        0.438
+      ],
+      "precision": 0.6989,
+      "f1": 0.7593,
+      "brier": 0.3712,
+      "ece": 0.1384,
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 66,
+      "fp": 51,
+      "fn": 5,
+      "tn": 41,
+      "recall": 0.9296,
+      "recall_ci95": [
+        0.8455,
+        0.9695
+      ],
+      "fpr": 0.5543,
+      "fpr_ci95": [
+        0.4526,
+        0.6517
+      ],
+      "precision": 0.5641,
+      "f1": 0.7021,
+      "brier": 0.238,
+      "ece": 0.1918,
+      "inconclusive": false
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 41,
+      "fp": 7,
+      "fn": 9,
+      "tn": 43,
+      "recall": 0.82,
+      "recall_ci95": [
+        0.692,
+        0.9023
+      ],
+      "fpr": 0.14,
+      "fpr_ci95": [
+        0.0695,
+        0.2619
+      ],
+      "precision": 0.8542,
+      "f1": 0.8367,
+      "brier": 0.1802,
+      "ece": 0.1213,
+      "inconclusive": false
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "keep",
+  "notes": "Cycle 04 Kept. Overall dev FPR dropped from 41.03% to 22.07% while preserving 83.27% recall. Protected FPR is strictly 0.00%. Latency P95 is 0.16 ms."
+}

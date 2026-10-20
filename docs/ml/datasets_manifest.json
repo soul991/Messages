@@ -1,0 +1,152 @@
+{
+  "datasets": [
+    {
+      "name": "scam-ham-india-14-languages",
+      "source_url": "https://huggingface.co/datasets/external/scam-ham-india-14-languages",
+      "license": "mit",
+      "retrieved_at": "2026-10-10T15:44:00Z",
+      "sha256": "50b633a3a17be7b8622a99757295a73d78567f27c13d6f7b12935ba4f688d190",
+      "use": "fit",
+      "languages": ["bn", "hi", "en", "hi-Latn", "as", "gu", "kn", "ks", "ml", "mr", "or", "pa", "ta", "te"],
+      "rows": 14000,
+      "labels_mapping": {
+        "scam": "SCAM_FRAUD",
+        "ham": "NOT_SCAM"
+      },
+      "notes": "14-language balanced Indian dataset covering Bengali, Hindi (Devanagari), Hinglish, English and regional scripts. 1,000 rows per language (500 scam, 500 ham)."
+    },
+    {
+      "name": "indian-scam-sms-synthetic-audited",
+      "source_url": "https://huggingface.co/datasets/external/indian-scam-sms-synthetic-audited",
+      "license": "cc-by-4.0",
+      "retrieved_at": "2026-10-10T15:43:00Z",
+      "sha256": "45bde5f156a1a42698bab209e32bcd41b3639013d772f644cc3208ed39fb61e2",
+      "use": "fit",
+      "languages": ["hi-Latn", "en", "hi", "bn-Latn", "mr-Latn", "te-Latn", "ta-Latn"],
+      "rows": 1580,
+      "labels_mapping": {
+        "scam": "SCAM_FRAUD",
+        "safe": "NOT_SCAM"
+      },
+      "notes": "Synthetic audited hard-negatives corpus imitating Indian bank, utility, KYC, and job scams and their genuine look-alikes. Used for training augmentation (<30% cap)."
+    },
+    {
+      "name": "scamshield-corpus",
+      "source_url": "https://huggingface.co/datasets/scamshield-dataset",
+      "license": "mit",
+      "retrieved_at": "2026-10-10T14:14:00Z",
+      "sha256": "418b1d7af29945135284d4293230c75b26c3bccd3dda5382caf730fbc0e49cbf",
+      "use": "fit",
+      "languages": ["en", "hi", "hi-Latn"],
+      "rows": 69286,
+      "labels_mapping": {
+        "1": "SCAM_FRAUD",
+        "0": "NOT_SCAM"
+      },
+      "notes": "Large-scale multilingual smishing and social engineering corpus. Features annotated Indian English and Hindi scam patterns with intent heads."
+    },
+    {
+      "name": "scam-ham-india-anmol",
+      "source_url": "https://huggingface.co/datasets/anmolshrivastav/scam-ham-india",
+      "license": "apache-2.0",
+      "retrieved_at": "2026-10-02T03:52:00Z",
+      "sha256": "b1d78936cc18c0251d2f865f7ce190e9caccbb0164489624ba7507bc80303901",
+      "use": "fit",
+      "languages": ["en"],
+      "rows": 2272,
+      "labels_mapping": {
+        "spam": "SCAM_FRAUD",
+        "ham": "NOT_SCAM"
+      },
+      "notes": "Indian English SMS collection focusing on Aadhaar/KYC phishing, telecom promotions, lottery, UPI fraud, and job scams."
+    },
+    {
+      "name": "india-spam-sms-junioralive",
+      "source_url": "https://github.com/junioralive/india-spam-sms-classification",
+      "license": "mit",
+      "retrieved_at": "2026-10-02T03:50:00Z",
+      "sha256": "e6a28126d1c4ec9d805a10cd89f2de2bb63650532102e9f35ab05c909c3a79f3",
+      "use": "fit",
+      "languages": ["en"],
+      "rows": 2267,
+      "labels_mapping": {
+        "spam": "SCAM_FRAUD",
+        "ham": "NOT_SCAM"
+      },
+      "notes": "Indian Telecom SMS Spam Collection containing binary spam and ham messages from Indian mobile networks."
+    },
+    {
+      "name": "cloveai-india-spam-sms",
+      "source_url": "https://huggingface.co/datasets/CloveAI/india-spam-sms",
+      "license": "mit",
+      "retrieved_at": "2026-10-20T09:34:00Z",
+      "sha256": "8165c1d45a24d249e13871b733ae6c8508cdbfd975461b44431a1627be16d979",
+      "use": "fit",
+      "languages": ["en"],
+      "rows": 20010,
+      "labels_mapping": {
+        "1": "AMBIGUOUS_PROMO_SPAM",
+        "0": "NOT_SCAM"
+      },
+      "notes": "Large Indian English SMS dataset. Label 0 is clean transactional/service/personal ham. Label 1 mixes commercial promotions (Myntra etc.) with potential scams, flagged ambiguous."
+    },
+    {
+      "name": "bengali-sms-smishing-dataset",
+      "source_url": "https://huggingface.co/datasets/shariul-islam/bengali-sms-smishing-dataset",
+      "license": "mit",
+      "retrieved_at": "2026-10-20T09:18:00Z",
+      "sha256": "9fb92ea7e185297f4dd66442a7ed5f11ffc82d501c1ca2ea38385f430b9fe18e",
+      "use": "diagnostic",
+      "languages": ["bn", "bn-Latn", "en", "code-mixed"],
+      "rows": 7005,
+      "labels_mapping": {
+        "smish": "SCAM_FRAUD",
+        "normal": "NOT_SCAM",
+        "promo": "PROMOTION"
+      },
+      "notes": "7,005 Bengali and Banglish SMS messages. Originated from Bangladesh context (+880, local banks), marked diagnostic for language representation and cross-border robustness."
+    },
+    {
+      "name": "trilingual-fraud-consumer-protection-v2",
+      "source_url": "https://huggingface.co/datasets/karanverma19/trilingual_fraud_consumer_protection_v2",
+      "license": "mit",
+      "retrieved_at": "2026-10-02T10:09:00Z",
+      "sha256": "1cc2ccb829756eb541760dc5f5dc7375894b04b1e8fd872d01616ea698a99ed9",
+      "use": "dev",
+      "languages": ["en", "hi", "pa"],
+      "rows": 159,
+      "labels_mapping": {
+        "scam": "SCAM_FRAUD",
+        "safe": "NOT_SCAM"
+      },
+      "notes": "Frozen 159-row external challenge dataset by Karan Verma. Held out as development challenge only; never used for fitting or threshold selection."
+    },
+    {
+      "name": "karanverma19-indian-multilingual-scam-120",
+      "source_url": "https://huggingface.co/datasets/karanverma19/Indian_Multilingual_Scam_Message_Dataset",
+      "license": "apache-2.0",
+      "retrieved_at": "2026-10-20T09:16:00Z",
+      "sha256": "NOT_DOWNLOADED_DEV_ONLY",
+      "use": "dev",
+      "languages": ["hi", "hi-Latn", "en"],
+      "rows": 120,
+      "labels_mapping": {
+        "scam": "SCAM_FRAUD",
+        "legit": "NOT_SCAM"
+      },
+      "notes": "Previously inspected HF-120 Indian multilingual benchmark. Kept as dev/diagnostic only, per rule 1.2."
+    },
+    {
+      "name": "ysangam-indian-cyber-scam-phonecall",
+      "source_url": "https://huggingface.co/datasets/ysangam/Indian_Cyber_Scam_PhoneCall_Hinglish_Dataset",
+      "license": "apache-2.0",
+      "retrieved_at": "2026-10-20T09:16:00Z",
+      "sha256": "NOT_DOWNLOADED_EXCLUDED",
+      "use": "excluded",
+      "languages": ["hi-Latn", "en"],
+      "rows": 0,
+      "labels_mapping": {},
+      "notes": "Excluded per rule 1.2b: conversational phone call audio transcripts rather than SMS message payloads."
+    }
+  ]
+}
