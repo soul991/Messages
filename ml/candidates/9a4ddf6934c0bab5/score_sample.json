@@ -1,0 +1,452 @@
+[
+  {
+    "id": 1,
+    "text": "Canada work permit 100% guaranteed. Limited embassy quota left. Pay your file opening fee today.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7441,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 2,
+    "text": "LMIA approved warehouse job in Toronto. No IELTS, no interview, immediate processing after payment.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8421,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 3,
+    "text": "Your visa slot is blocked under your name. Send passport copy and advance amount within one hour.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7444,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 4,
+    "text": "Pay service charges now or your Canada file will be permanently rejected from the embassy side.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7845,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 5,
+    "text": "Student visa approval confirmed. Your profile is selected under a special internal category.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.3167,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 6,
+    "text": "We have direct ties with the High Commission and can clear your backlog case faster.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.3722,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 7,
+    "text": "Your biometrics appointment can be advanced if you transfer a priority handling amount today.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2353,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 8,
+    "text": "No consultant or agent can guarantee a Canada work permit. Verify every offer through official government channels.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 9,
+    "text": "A genuine overseas job requires proper review, documentation, and employer verification before any decision.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 10,
+    "text": "Never send passport details or money because someone claims a slot is blocked in your name.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 11,
+    "text": "Official decisions are not reversed through private service charges. Always confirm directly through verified processes.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 12,
+    "text": "Be cautious of messages claiming internal categories or guaranteed student visa approvals.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 13,
+    "text": "No private agent should claim direct control over embassy decisions or backlog clearances.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 14,
+    "text": "Biometrics appointments should only be managed through official booking systems and verified notices.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2031,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 15,
+    "text": "ਤੁਹਾਡਾ Canada work permit ਪੱਕਾ ਲੱਗਣਾ ਹੈ, ਅੱਜ ਹੀ ਫਾਈਲ ਖੋਲ੍ਹਣ ਵਾਲੇ ਪੈਸੇ ਭੇਜੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2682,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 16,
+    "text": "LMIA approved ਨੌਕਰੀ ready ਪਈ ਹੈ, IELTS ਦੀ ਲੋੜ ਨਹੀਂ, ਹੁਣੇ payment ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.2924,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 17,
+    "text": "ਤੁਹਾਡੇ ਨਾਮ ਤੇ visa slot ਰੁਕਿਆ ਪਿਆ ਹੈ, ਇਕ ਘੰਟੇ ਅੰਦਰ passport copy ਭੇਜੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.325,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 18,
+    "text": "Embassy side ਤੋਂ file hold 'ਚ ਹੈ, service charge ਦਿਓ ਤਾਂ approval ਕੱਢ ਦਿਆਂਗੇ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2758,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 19,
+    "text": "Student visa internal category 'ਚ select ਹੋ ਗਏ ਹੋ, processing amount ਅੱਜ ਹੀ ਪਾਓ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2756,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 20,
+    "text": "ਸਾਡੇ High Commission link ਨਾਲ backlog clear ਹੋ ਜੂ, today ਹੀ payment ਕਰ ਦਿਓ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.3187,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 21,
+    "text": "Biometrics date ਜਲਦੀ ਚਾਹੀਦੀ ਹੈ ਤਾਂ priority fee UPI ਤੇ ਪਾਓ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2841,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 22,
+    "text": "कोई भी एजेंट Canada work permit पक्का नहीं कर सकता। केवल आधिकारिक प्रक्रिया पर भरोसा करें।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 23,
+    "text": "सही overseas job ke liye employer verification, documents aur proper review zaruri hota hai.",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.293,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 24,
+    "text": "पासपोर्ट कॉपी या पैसे केवल इसलिए न भेजें क्योंकि कोई slot block होने का दावा कर रहा है।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.5866,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 25,
+    "text": "Embassy decision ko private service charge dekar badla nahi जा सकता।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2815,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 26,
+    "text": "Refusal ko secret contact se approval me convert karane ka दावा भरोसेमंद नहीं होता।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.4293,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 27,
+    "text": "ਕੋਈ ਵੀ ਏਜੰਟ Canada work permit ਪੱਕਾ ਨਹੀਂ ਕਰ ਸਕਦਾ। ਸਿਰਫ਼ official process ਤੇ ਹੀ ਭਰੋਸਾ ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2272,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 28,
+    "text": "ਅਸਲੀ overseas job ਲਈ employer verification, documents ਤੇ proper review ਲਾਜ਼ਮੀ ਹੁੰਦੇ ਹਨ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2445,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 29,
+    "text": "আপনার ব্যাঙ্ক অ্যাকাউন্ট নিরাপত্তার কারণে ব্লক করা হয়েছে। এখনই এই লিঙ্কে ক্লিক করে KYC আপডেট করুন: http://verify-now.example",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8929,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 30,
+    "text": "অভিনন্দন! আপনি ১০ লাখ টাকার লটারি জিতেছেন। পুরস্কার পেতে আগে ২০০০ টাকা প্রসেসিং ফি জমা দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8275,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 31,
+    "text": "আপনার ক্রেডিট কার্ডে সন্দেহজনক লেনদেন হয়েছে। কার্ড বন্ধ না করতে অবিলম্বে এই নম্বরে কল করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.9426,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 32,
+    "text": "প্রিয় গ্রাহক, আপনার KYC আজই শেষ হয়ে যাবে। অ্যাকাউন্ট চালু রাখতে নিচের লিঙ্কে তথ্য দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8552,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 33,
+    "text": "আপনার মোবাইল নম্বর পুরস্কারের জন্য নির্বাচিত হয়েছে। ৫০,০০০ টাকা পেতে ৫০০ টাকা রেজিস্ট্রেশন ফি পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.9337,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 34,
+    "text": "আপনার বিদ্যুৎ সংযোগ আজ রাতেই বিচ্ছিন্ন হবে। বিল বকেয়া আছে, এখনই পেমেন্ট করতে এই লিঙ্কে যান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7052,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 35,
+    "text": "মা, আমি বাজার থেকে ফেরার সময় তোমার পছন্দের মিষ্টি নিয়ে আসব। চিন্তা কোরো না।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.1348,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 36,
+    "text": "কাল সকাল সাড়ে দশটায় মিটিং আছে, সময়মতো প্রেজেন্টেশন ফাইলটা পাঠিয়ে দিও।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.1022,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 37,
+    "text": "আজ সন্ধ্যায় কোথায় দেখা করব? তুমি সময়টা জানিয়ে দিও।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0659,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 38,
+    "text": "দুপুরের খাবার খেয়েছ? আজ অফিসে অনেক কাজ ছিল নাকি?",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0931,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 39,
+    "text": "বিকেলে বৃষ্টি হতে পারে, বের হলে ছাতাটা সঙ্গে নিয়ে যেও।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.1033,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 40,
+    "text": "আগামীকাল আমাদের ক্লাস সকাল নয়টায় শুরু হবে। সবাই সময়মতো এসো।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0798,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 41,
+    "text": "You missed embassy verification call. To avoid cancellation, share OTP sent to your mobile now.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 42,
+    "text": "Embassy or visa officials will not ask you to share an OTP to keep a file active.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 43,
+    "text": "Refund from previous refused visa is ready. Pay bank release charges to get the money credited.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 44,
+    "text": "सर आपका Canada work permit पक्का है, बस आज advance जमा कर दें।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.5059,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 45,
+    "text": "Aapka embassy verification miss ho gaya, account par aaya OTP abhi share karein.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 46,
+    "text": "OTP share karne ke liye embassy ya consultant ka pressure banana ek fraud signal hai.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 47,
+    "text": "ਤੁਹਾਡਾ embassy verification miss ਹੋ ਗਿਆ, mobile ਤੇ ਆਇਆ OTP ਹੁਣੇ share ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 48,
+    "text": "Embassy ਜਾਂ consultant ਵੱਲੋਂ OTP share ਕਰਨ ਦਾ ਦਬਾਅ fraud signal ਹੁੰਦਾ ਹੈ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 49,
+    "text": "Never share OTP, banking PIN, or card details during job or visa processing.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 50,
+    "text": "OTP, banking PIN ya card details kisi processing chat mein share na karein.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  }
+]
