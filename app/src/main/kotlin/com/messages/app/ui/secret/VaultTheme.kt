@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.messages.app.R
 import com.messages.app.ThemePreferences
 import com.messages.designsystem.AccentSeed
 import com.messages.designsystem.LocalDarkTheme
@@ -206,7 +208,7 @@ fun VaultHeaderStrip(modifier: Modifier = Modifier) {
             VaultLockMark(size = 18.dp)
             Spacer(Modifier.width(8.dp))
             Text(
-                "Locked chats",
+                stringResource(R.string.secret_prompt_title),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
