@@ -50,4 +50,7 @@ design-refs/
 *.pdf
 bin/
 *.log
+__pycache__/
+*.pyc
+*.pyo
 
