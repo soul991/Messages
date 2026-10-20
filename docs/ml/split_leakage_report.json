@@ -1,0 +1,73 @@
+{
+  "partitions": {
+    "train": {
+      "totalRows": 9890,
+      "uniqueExactTexts": 9890,
+      "uniqueNormalizedTexts": 9890,
+      "uniqueTemplates": 9870,
+      "internalExactDuplicates": 0,
+      "internalLabelConflicts": 0,
+      "labelDistribution": {
+        "not_scam": 7938,
+        "scam_fraud": 1952
+      },
+      "languageDistribution": {
+        "unknown": 9890
+      }
+    },
+    "validation": {
+      "totalRows": 2305,
+      "uniqueExactTexts": 2305,
+      "uniqueNormalizedTexts": 2305,
+      "uniqueTemplates": 2292,
+      "internalExactDuplicates": 0,
+      "internalLabelConflicts": 0,
+      "labelDistribution": {
+        "not_scam": 1861,
+        "scam_fraud": 444
+      },
+      "languageDistribution": {
+        "unknown": 2305
+      }
+    },
+    "stress": {
+      "totalRows": 559,
+      "uniqueExactTexts": 559,
+      "uniqueNormalizedTexts": 559,
+      "uniqueTemplates": 559,
+      "internalExactDuplicates": 0,
+      "internalLabelConflicts": 0,
+      "labelDistribution": {
+        "scam_fraud": 269,
+        "not_scam": 290
+      },
+      "languageDistribution": {
+        "unknown": 559
+      }
+    }
+  },
+  "exactCrossSplitLeakage": {
+    "train_vs_validation": 0,
+    "train_vs_stress": 0,
+    "validation_vs_stress": 0
+  },
+  "normalizedCrossSplitLeakage": {
+    "train_vs_validation": 0,
+    "train_vs_stress": 0,
+    "validation_vs_stress": 0
+  },
+  "templateCrossSplitOverlap": {
+    "train_vs_validation": 0,
+    "train_vs_stress": 0,
+    "validation_vs_stress": 0
+  },
+  "labelConflicts": {
+    "withinPartition": {},
+    "crossPartition": {
+      "train_vs_validation": 0,
+      "train_vs_stress": 0,
+      "validation_vs_stress": 0
+    }
+  },
+  "passAllLeakageGates": true
+}
