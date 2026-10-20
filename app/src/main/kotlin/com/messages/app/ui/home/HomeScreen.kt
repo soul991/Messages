@@ -1324,6 +1324,7 @@ private fun PinnedConversationsRow(
                                 name = conv.contactName ?: conv.address,
                                 category = conv.category,
                                 size = 52.dp,
+                                modifier = Modifier.sharedThreadAvatar(conv.threadId),
                                 photoUri = if (conv.locked) null
                                 else com.messages.app.ui.common.rememberContactPhoto(conv.address),
                             )
@@ -1587,6 +1588,7 @@ private fun ConversationMatchRow(
     ) {
         ContactAvatar(
             conv.contactName ?: conv.address, conv.category,
+            modifier = Modifier.sharedThreadAvatar(conv.threadId),
             photoUri = com.messages.app.ui.common.rememberContactPhoto(conv.address),
         )
         Spacer(Modifier.width(12.dp))

@@ -332,8 +332,10 @@ class MainActivity : FragmentActivity() {
                                 homeExitForChat()
                             } else if (targetState.destination.route?.startsWith("settings") == true) {
                                 screenBehindExitForSubMenu()
-                            } else {
+                            } else if (targetState.destination.route == "compose") {
                                 fadeThroughExit()
+                            } else {
+                                sharedAxisExit(forward = true)
                             }
                         },
                         popEnterTransition = {
@@ -341,8 +343,10 @@ class MainActivity : FragmentActivity() {
                                 homePopEnterFromChat()
                             } else if (initialState.destination.route?.startsWith("settings") == true) {
                                 screenBehindPopEnterFromSubMenu()
-                            } else {
+                            } else if (initialState.destination.route == "compose") {
                                 fadeThroughEnter()
+                            } else {
+                                sharedAxisEnter(forward = false)
                             }
                         },
                         popExitTransition = { fadeThroughExit() },
@@ -580,7 +584,7 @@ class MainActivity : FragmentActivity() {
                             screenBehindPopEnterFromSubMenu()
                         },
                         popExitTransition = {
-                            slideOutHorizontally(Motion.screenSpring()) { it / 4 } + fadeOut(Motion.effectsFast())
+                            slideOutHorizontally(Motion.screenSpring()) { it / 4 } + fadeOut(Motion.effectsDefault())
                         },
                     ) {
                         SettingsScreen(
@@ -666,7 +670,7 @@ class MainActivity : FragmentActivity() {
                             slideInHorizontally(Motion.chatEnter()) { -it / 6 } + fadeIn(Motion.effectsDefault())
                         },
                         popExitTransition = {
-                            slideOutHorizontally(Motion.chatEnter()) { it / 6 } + fadeOut(Motion.effectsFast())
+                            slideOutHorizontally(Motion.chatEnter()) { it / 6 } + fadeOut(Motion.effectsDefault())
                         },
                         arguments = listOf(
                             navArgument("address") {

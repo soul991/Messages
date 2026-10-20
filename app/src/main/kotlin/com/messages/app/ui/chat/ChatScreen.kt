@@ -722,7 +722,7 @@ fun ChatScreen(
                                         category,
                                         size = 38.dp,
                                         textStyle = MaterialTheme.typography.titleMedium,
-                                        modifier = Modifier.sharedThreadAvatar(threadId),
+                                        modifier = Modifier.sharedThreadAvatar(threadId, alwaysActive = true),
                                         photoUri = com.messages.app.ui.common.rememberContactPhoto(address.ifBlank { null }),
                                     )
                                     Spacer(Modifier.width(12.dp))
@@ -735,7 +735,7 @@ fun ChatScreen(
                                                 style = MaterialTheme.typography.titleMedium,
                                                 maxLines = 1,
                                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                                modifier = Modifier.weight(1f, fill = false).sharedThreadName(threadId),
+                                                modifier = Modifier.weight(1f, fill = false).sharedThreadName(threadId, alwaysActive = true),
                                             )
                                             if (senderBadge != null && senderBadge != com.messages.protection.SenderBadges.Badge.VERIFIED) {
                                                 Spacer(Modifier.width(4.dp))
