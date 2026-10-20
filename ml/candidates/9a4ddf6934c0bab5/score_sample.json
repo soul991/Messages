@@ -10,60 +10,6 @@
   },
   {
     "id": 2,
-    "text": "LMIA approved warehouse job in Toronto. No IELTS, no interview, immediate processing after payment.",
-    "script": "latin",
-    "true_label": "SCAM_FRAUD",
-    "expected_is_scam": true,
-    "expected_prob": 0.8421,
-    "reason": "latin_linear"
-  },
-  {
-    "id": 3,
-    "text": "Your visa slot is blocked under your name. Send passport copy and advance amount within one hour.",
-    "script": "latin",
-    "true_label": "SCAM_FRAUD",
-    "expected_is_scam": true,
-    "expected_prob": 0.7444,
-    "reason": "latin_linear"
-  },
-  {
-    "id": 4,
-    "text": "Pay service charges now or your Canada file will be permanently rejected from the embassy side.",
-    "script": "latin",
-    "true_label": "SCAM_FRAUD",
-    "expected_is_scam": true,
-    "expected_prob": 0.7845,
-    "reason": "latin_linear"
-  },
-  {
-    "id": 5,
-    "text": "Student visa approval confirmed. Your profile is selected under a special internal category.",
-    "script": "latin",
-    "true_label": "SCAM_FRAUD",
-    "expected_is_scam": false,
-    "expected_prob": 0.3167,
-    "reason": "latin_linear"
-  },
-  {
-    "id": 6,
-    "text": "We have direct ties with the High Commission and can clear your backlog case faster.",
-    "script": "latin",
-    "true_label": "SCAM_FRAUD",
-    "expected_is_scam": false,
-    "expected_prob": 0.3722,
-    "reason": "latin_linear"
-  },
-  {
-    "id": 7,
-    "text": "Your biometrics appointment can be advanced if you transfer a priority handling amount today.",
-    "script": "latin",
-    "true_label": "SCAM_FRAUD",
-    "expected_is_scam": false,
-    "expected_prob": 0.2353,
-    "reason": "latin_linear"
-  },
-  {
-    "id": 8,
     "text": "No consultant or agent can guarantee a Canada work permit. Verify every offer through official government channels.",
     "script": "latin",
     "true_label": "NOT_SCAM",
@@ -72,7 +18,16 @@
     "reason": "advisory_filter"
   },
   {
-    "id": 9,
+    "id": 3,
+    "text": "LMIA approved warehouse job in Toronto. No IELTS, no interview, immediate processing after payment.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8421,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 4,
     "text": "A genuine overseas job requires proper review, documentation, and employer verification before any decision.",
     "script": "latin",
     "true_label": "NOT_SCAM",
@@ -81,7 +36,16 @@
     "reason": "advisory_filter"
   },
   {
-    "id": 10,
+    "id": 5,
+    "text": "Your visa slot is blocked under your name. Send passport copy and advance amount within one hour.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7444,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 6,
     "text": "Never send passport details or money because someone claims a slot is blocked in your name.",
     "script": "latin",
     "true_label": "NOT_SCAM",
@@ -90,7 +54,16 @@
     "reason": "advisory_filter"
   },
   {
-    "id": 11,
+    "id": 7,
+    "text": "Pay service charges now or your Canada file will be permanently rejected from the embassy side.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7845,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 8,
     "text": "Official decisions are not reversed through private service charges. Always confirm directly through verified processes.",
     "script": "latin",
     "true_label": "NOT_SCAM",
@@ -99,7 +72,16 @@
     "reason": "advisory_filter"
   },
   {
-    "id": 12,
+    "id": 9,
+    "text": "Student visa approval confirmed. Your profile is selected under a special internal category.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.3167,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 10,
     "text": "Be cautious of messages claiming internal categories or guaranteed student visa approvals.",
     "script": "latin",
     "true_label": "NOT_SCAM",
@@ -108,13 +90,31 @@
     "reason": "advisory_filter"
   },
   {
-    "id": 13,
+    "id": 11,
+    "text": "We have direct ties with the High Commission and can clear your backlog case faster.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.3722,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 12,
     "text": "No private agent should claim direct control over embassy decisions or backlog clearances.",
     "script": "latin",
     "true_label": "NOT_SCAM",
     "expected_is_scam": false,
     "expected_prob": 0.001,
     "reason": "advisory_filter"
+  },
+  {
+    "id": 13,
+    "text": "Your biometrics appointment can be advanced if you transfer a priority handling amount today.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2353,
+    "reason": "latin_linear"
   },
   {
     "id": 14,
@@ -127,69 +127,600 @@
   },
   {
     "id": 15,
-    "text": "ਤੁਹਾਡਾ Canada work permit ਪੱਕਾ ਲੱਗਣਾ ਹੈ, ਅੱਜ ਹੀ ਫਾਈਲ ਖੋਲ੍ਹਣ ਵਾਲੇ ਪੈਸੇ ਭੇਜੋ।",
-    "script": "devanagari",
+    "text": "Canada PR file ready. Just pay the final security deposit and receive approval letter tonight.",
+    "script": "latin",
     "true_label": "SCAM_FRAUD",
-    "expected_is_scam": false,
-    "expected_prob": 0.2682,
-    "reason": "devanagari_linear"
+    "expected_is_scam": true,
+    "expected_prob": 0.607,
+    "reason": "latin_linear"
   },
   {
     "id": 16,
-    "text": "LMIA approved ਨੌਕਰੀ ready ਪਈ ਹੈ, IELTS ਦੀ ਲੋੜ ਨਹੀਂ, ਹੁਣੇ payment ਕਰੋ।",
-    "script": "devanagari",
-    "true_label": "SCAM_FRAUD",
-    "expected_is_scam": true,
-    "expected_prob": 0.2924,
-    "reason": "devanagari_linear"
+    "text": "Do not trust anyone promising PR approval letters after an immediate deposit.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
   },
   {
     "id": 17,
-    "text": "ਤੁਹਾਡੇ ਨਾਮ ਤੇ visa slot ਰੁਕਿਆ ਪਿਆ ਹੈ, ਇਕ ਘੰਟੇ ਅੰਦਰ passport copy ਭੇਜੋ।",
-    "script": "devanagari",
+    "text": "Job confirmed in Brampton. Salary 4,000 dollars monthly. Only medical and visa stamping fee pending.",
+    "script": "latin",
     "true_label": "SCAM_FRAUD",
     "expected_is_scam": true,
-    "expected_prob": 0.325,
-    "reason": "devanagari_linear"
+    "expected_prob": 0.9128,
+    "reason": "latin_linear"
   },
   {
     "id": 18,
-    "text": "Embassy side ਤੋਂ file hold 'ਚ ਹੈ, service charge ਦਿਓ ਤਾਂ approval ਕੱਢ ਦਿਆਂਗੇ।",
-    "script": "devanagari",
-    "true_label": "SCAM_FRAUD",
+    "text": "A job offer should be verified independently before any medical, stamping, or processing fee is paid.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
     "expected_is_scam": false,
-    "expected_prob": 0.2758,
-    "reason": "devanagari_linear"
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
   },
   {
     "id": 19,
-    "text": "Student visa internal category 'ਚ select ਹੋ ਗਏ ਹੋ, processing amount ਅੱਜ ਹੀ ਪਾਓ।",
-    "script": "devanagari",
-    "true_label": "SCAM_FRAUD",
+    "text": "Legitimate refunds are not released by collecting a separate bank release charge through chat.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
     "expected_is_scam": false,
-    "expected_prob": 0.2756,
-    "reason": "devanagari_linear"
+    "expected_prob": 0.3715,
+    "reason": "latin_linear"
   },
   {
     "id": 20,
-    "text": "ਸਾਡੇ High Commission link ਨਾਲ backlog clear ਹੋ ਜੂ, today ਹੀ payment ਕਰ ਦਿਓ।",
-    "script": "devanagari",
+    "text": "Your work permit can be moved from refusal to approval through our senior legal contact.",
+    "script": "latin",
     "true_label": "SCAM_FRAUD",
     "expected_is_scam": true,
-    "expected_prob": 0.3187,
-    "reason": "devanagari_linear"
+    "expected_prob": 0.5553,
+    "reason": "latin_linear"
   },
   {
     "id": 21,
-    "text": "Biometrics date ਜਲਦੀ ਚਾਹੀਦੀ ਹੈ ਤਾਂ priority fee UPI ਤੇ ਪਾਓ।",
-    "script": "devanagari",
-    "true_label": "SCAM_FRAUD",
+    "text": "No one can convert a refusal into approval through secret contacts or private legal shortcuts.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
     "expected_is_scam": false,
-    "expected_prob": 0.2841,
-    "reason": "devanagari_linear"
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
   },
   {
     "id": 22,
+    "text": "Special amnesty route open for Punjab applicants only. Submit money before midnight to reserve your seat.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.27,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 23,
+    "text": "Be cautious of region-specific urgency claims such as reserved seats or amnesty routes tied to fast payment.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 24,
+    "text": "We process spouse visa without marriage verification. Fastest route available for genuine couples.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.3796,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 25,
+    "text": "Any offer claiming to skip required verification steps is a major red flag.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 26,
+    "text": "We can attach your file to an already approved employer and send LMIA copy after payment.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2863,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 27,
+    "text": "Do not rely on recycled employer papers or promised LMIA copies sent only after payment.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 28,
+    "text": "Your IELTS score can be adjusted internally to meet the requirement. Confidential service only.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.3111,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 29,
+    "text": "Any claim about changing language test scores internally is fraudulent.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2874,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 30,
+    "text": "Border issue resolved from our side. Send passport and police certificate urgently by courier.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.6461,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 31,
+    "text": "Sensitive documents should not be sent to unknown agents based on urgent pressure messages.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2601,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 32,
+    "text": "Last two seats left in caregiver intake. Confirm now with deposit or your chance is gone.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.5955,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 33,
+    "text": "Scarcity messages about final seats should never replace proper verification of the program.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.3058,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 34,
+    "text": "LMIA approved job ready hai, IELTS ki zarurat nahi, turant payment kijiye.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.4953,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 35,
+    "text": "Aapka visa slot block ho chuka hai, ek ghante ke andar passport copy bhejiye.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7141,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 36,
+    "text": "Embassy side se file hold par hai, service charge denge to approval nikal jayega.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7168,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 37,
+    "text": "Student visa internal category me select ho gaye ho, bas processing amount bhejo.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.5943,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 38,
+    "text": "Internal category ya guaranteed selection jaisi baaton ko bina proof ke kabhi accept na karein.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 39,
+    "text": "Hum High Commission link se backlog clear karwa denge, aaj payment kar do.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.572,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 40,
+    "text": "High Commission link ya andar ke contact ke naam par paisa maangna bahut bada red flag hai.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 41,
+    "text": "Biometrics date jaldi chahiye to priority fee UPI par bhej do.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7702,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 42,
+    "text": "Biometrics appointment ke liye sirf official booking method use karein, private UPI payment nahi.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 43,
+    "text": "Canada PR approval letter raat tak mil jayega, final security deposit bhejo.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7473,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 44,
+    "text": "PR approval letter deposit ke badle turant dene ka wada aam taur par fraud hota hai.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 45,
+    "text": "Brampton warehouse job fix hai, sirf medical aur stamping charge dena hai.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.6883,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 46,
+    "text": "Medical ya stamping charge dene se pehle employer aur offer dono ko independently verify karein.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.9696,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 47,
+    "text": "Pehle wali refused visa file ka refund tayyar hai, release charge bhejna hoga.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7027,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 48,
+    "text": "Refund ke naam par alag se release charge maangna aksar fraud pattern hota hai.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 49,
+    "text": "Refusal ko approval me convert karwana hai to hamare legal contact ko amount bhej do.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.564,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 50,
+    "text": "Punjab applicants ke liye special amnesty route khula hai, midnight se pehle booking karo.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2073,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 51,
+    "text": "Special state-based amnesty ya fast booking wale claims ko official source se check karein.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.3565,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 52,
+    "text": "Spouse visa bina marriage verification ke ho jayega, fast file lagwa dete hain.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8456,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 53,
+    "text": "Jahan required verification skip karne ki baat ho, wahan fraud ka risk bahut high hota hai.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 54,
+    "text": "Approved employer ki file attach kar denge, LMIA copy baad me de denge.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.1664,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 55,
+    "text": "Employer papers ya LMIA ka proof payment ke baad dene ki baat suspicious hoti hai.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 56,
+    "text": "IELTS score internally increase karwa denge, confidential service hai.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2585,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 57,
+    "text": "Language test score ko andar se badalne ka claim seedha fraud signal hai.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 58,
+    "text": "Border issue solve ho gaya hai, passport aur police certificate courier kar do.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.119,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 59,
+    "text": "Unknown agent ko urgent pressure me sensitive documents courier mat karein.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 60,
+    "text": "Caregiver intake ki aakhri do seats bachi hain, abhi token bhejo warna chance chala jayega.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.4731,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 61,
+    "text": "Final seats ya last chance wale pressure messages par bina verification ke payment na karein.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 62,
+    "text": "Brampton warehouse job fix ਆ, sirf medical ਤੇ stamping charges dene ne.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.6783,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 63,
+    "text": "Spouse visa ਬਿਨਾਂ marriage verification ਦੇ ਕਰਵਾ ਦੇਵਾਂਗੇ, fast file lag ju.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.5291,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 64,
+    "text": "Your application is under review. Please wait for an update from the official portal.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.3545,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 65,
+    "text": "A document request should be answered only after checking the sender address carefully.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0876,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 66,
+    "text": "Visa decisions may take time. Avoid relying on unofficial status updates from third parties.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2486,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 67,
+    "text": "A genuine consultant will explain that approval depends on the reviewing authority.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.3571,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 68,
+    "text": "Always read fee receipts fully before making any immigration-related payment.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.3486,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 69,
+    "text": "We cannot guarantee your visa, but if you pay a priority review amount today, your chances will become almost certain.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.5509,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 70,
+    "text": "This consultant says approval is never guaranteed and still asks you to verify everything on the official website before paying.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.5841,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 71,
+    "text": "No guarantee from our side, but all Punjab files we handled last week were approved after our special route fee.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.321,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 72,
+    "text": "A trustworthy advisor may discuss success history, but should never present it as a hidden paid route to approval.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0973,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 73,
+    "text": "Hum illegal kaam nahi karte, bas andar ki fast lane use karte hain jisse file jaldi nikal jaati hai.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.3322,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 74,
+    "text": "Fast lane ya andar ki setting jaise claims bina official proof ke serious red flag hote hain.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 75,
+    "text": "The consultant sent a real company website link, but insists the payment must go to a personal account first.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.4641,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 76,
+    "text": "Even if some details look real, payment requests to personal accounts should trigger caution and verification.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 77,
+    "text": "Agent ne company ka asli link bheja hai, lekin payment personal UPI par maang raha hai.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.754,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 78,
+    "text": "Kuch details sahi dikhne par bhi personal account payment ko bina verification accept na karein.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 79,
+    "text": "Public alert: Do not trust overseas job advertisements that ask for instant token payments over chat.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 80,
+    "text": "Public notice: Verify immigration agents, fee receipts, and employer details before making any payment.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.9482,
+    "reason": "latin_linear"
+  },
+  {
+    "id": 81,
     "text": "कोई भी एजेंट Canada work permit पक्का नहीं कर सकता। केवल आधिकारिक प्रक्रिया पर भरोसा करें।",
     "script": "devanagari",
     "true_label": "NOT_SCAM",
@@ -198,7 +729,7 @@
     "reason": "advisory_filter"
   },
   {
-    "id": 23,
+    "id": 82,
     "text": "सही overseas job ke liye employer verification, documents aur proper review zaruri hota hai.",
     "script": "devanagari",
     "true_label": "NOT_SCAM",
@@ -207,7 +738,7 @@
     "reason": "devanagari_linear"
   },
   {
-    "id": 24,
+    "id": 83,
     "text": "पासपोर्ट कॉपी या पैसे केवल इसलिए न भेजें क्योंकि कोई slot block होने का दावा कर रहा है।",
     "script": "devanagari",
     "true_label": "NOT_SCAM",
@@ -216,7 +747,7 @@
     "reason": "devanagari_linear"
   },
   {
-    "id": 25,
+    "id": 84,
     "text": "Embassy decision ko private service charge dekar badla nahi जा सकता।",
     "script": "devanagari",
     "true_label": "NOT_SCAM",
@@ -225,7 +756,7 @@
     "reason": "devanagari_linear"
   },
   {
-    "id": 26,
+    "id": 85,
     "text": "Refusal ko secret contact se approval me convert karane ka दावा भरोसेमंद नहीं होता।",
     "script": "devanagari",
     "true_label": "NOT_SCAM",
@@ -234,7 +765,16 @@
     "reason": "devanagari_linear"
   },
   {
-    "id": 27,
+    "id": 86,
+    "text": "ਤੁਹਾਡਾ Canada work permit ਪੱਕਾ ਲੱਗਣਾ ਹੈ, ਅੱਜ ਹੀ ਫਾਈਲ ਖੋਲ੍ਹਣ ਵਾਲੇ ਪੈਸੇ ਭੇਜੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2682,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 87,
     "text": "ਕੋਈ ਵੀ ਏਜੰਟ Canada work permit ਪੱਕਾ ਨਹੀਂ ਕਰ ਸਕਦਾ। ਸਿਰਫ਼ official process ਤੇ ਹੀ ਭਰੋਸਾ ਕਰੋ।",
     "script": "devanagari",
     "true_label": "NOT_SCAM",
@@ -243,7 +783,16 @@
     "reason": "devanagari_linear"
   },
   {
-    "id": 28,
+    "id": 88,
+    "text": "LMIA approved ਨੌਕਰੀ ready ਪਈ ਹੈ, IELTS ਦੀ ਲੋੜ ਨਹੀਂ, ਹੁਣੇ payment ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.2924,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 89,
     "text": "ਅਸਲੀ overseas job ਲਈ employer verification, documents ਤੇ proper review ਲਾਜ਼ਮੀ ਹੁੰਦੇ ਹਨ।",
     "script": "devanagari",
     "true_label": "NOT_SCAM",
@@ -252,7 +801,556 @@
     "reason": "devanagari_linear"
   },
   {
-    "id": 29,
+    "id": 90,
+    "text": "ਤੁਹਾਡੇ ਨਾਮ ਤੇ visa slot ਰੁਕਿਆ ਪਿਆ ਹੈ, ਇਕ ਘੰਟੇ ਅੰਦਰ passport copy ਭੇਜੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.325,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 91,
+    "text": "ਕੇਵਲ slot ਰੁਕਣ ਦੀ ਗੱਲ ਕਰਕੇ passport copy ਜਾਂ paise ਨਾ ਭੇਜੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.3751,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 92,
+    "text": "Embassy side ਤੋਂ file hold 'ਚ ਹੈ, service charge ਦਿਓ ਤਾਂ approval ਕੱਢ ਦਿਆਂਗੇ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2758,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 93,
+    "text": "Embassy ਦਾ ਫੈਸਲਾ private service charge ਦੇ ਕੇ ਨਹੀਂ ਬਦਲਿਆ ਜਾਂਦਾ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2891,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 94,
+    "text": "Student visa internal category 'ਚ select ਹੋ ਗਏ ਹੋ, processing amount ਅੱਜ ਹੀ ਪਾਓ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2756,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 95,
+    "text": "Internal category ਜਾਂ guaranteed selection ਵਾਲੇ ਦਾਅਵੇ ਬਿਨਾਂ proof ਦੇ ਨਾ ਮਨੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.249,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 96,
+    "text": "ਸਾਡੇ High Commission link ਨਾਲ backlog clear ਹੋ ਜੂ, today ਹੀ payment ਕਰ ਦਿਓ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.3187,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 97,
+    "text": "High Commission link ਜਾਂ ਅੰਦਰੂਨੀ contact ਦੇ ਨਾਂ 'ਤੇ paise ਮੰਗਣਾ ਵੱਡਾ red flag ਹੁੰਦਾ ਹੈ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 98,
+    "text": "Biometrics date ਜਲਦੀ ਚਾਹੀਦੀ ਹੈ ਤਾਂ priority fee UPI ਤੇ ਪਾਓ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2841,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 99,
+    "text": "Biometrics appointment ਲਈ sirf official booking channel ਵਰਤੋ, private UPI payment ਨਹੀਂ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 100,
+    "text": "Canada PR approval letter ਅੱਜ ਰਾਤ ਤੱਕ ਆ ਜੂ, final security deposit ਭੇਜੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.2971,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 101,
+    "text": "PR approval letter deposit ਦੇ ਬਦਲੇ ਫੌਰਨ ਦੇਣ ਦਾ promise ਆਮ ਤੌਰ 'ਤੇ fraud ਹੁੰਦਾ ਹੈ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2013,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 102,
+    "text": "Medical ਜਾਂ stamping charges ਦੇਣ ਤੋਂ ਪਹਿਲਾਂ employer ਤੇ offer ਦੋਵੇਂ verify ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2697,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 103,
+    "text": "ਪਹਿਲੀ refused file ਦਾ refund ready ਆ, release charge ਪਾ ਦਿਓ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2749,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 104,
+    "text": "Refund ਦੇ ਨਾਂ 'ਤੇ ਵੱਖਰਾ release charge ਮੰਗਣਾ ਆਮ fraud pattern ਹੈ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 105,
+    "text": "Refusal ਨੂੰ approval 'ਚ convert ਕਰਵਾ ਦੇਵਾਂਗੇ, ਸਾਡੇ legal bande ਨੂੰ amount ਭੇਜੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2012,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 106,
+    "text": "Secret contact ਜਾਂ legal setting ਨਾਲ refusal ਨੂੰ approval 'ਚ badal dena ਭਰੋਸੇਯੋਗ ਗੱਲ ਨਹੀਂ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2312,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 107,
+    "text": "Punjab applicants ਲਈ special amnesty route ਖੁੱਲਿਆ ਹੋਇਆ ਆ, midnight ਤੋਂ ਪਹਿਲਾਂ booking ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2551,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 108,
+    "text": "State-specific amnesty ਜਾਂ fast booking ਵਾਲੇ claims official source ਤੋਂ ਹੀ check ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.3693,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 109,
+    "text": "ਜਿੱਥੇ required verification skip ਕਰਨ ਦੀ ਗੱਲ ਹੋਵੇ, ਉੱਥੇ fraud ਦਾ ਖਤਰਾ ਕਾਫ਼ੀ ਵੱਧ ਹੁੰਦਾ ਹੈ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2435,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 110,
+    "text": "Approved employer ਨਾਲ ਤੁਹਾਡੀ file attach ਕਰ ਦੇਵਾਂਗੇ, LMIA copy ਬਾਅਦ 'ਚ ਦੇਵਾਂਗੇ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2241,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 111,
+    "text": "Employer papers ਜਾਂ LMIA ਦਾ proof payment ਤੋਂ ਬਾਅਦ ਦੇਣ ਦੀ ਗੱਲ suspicious ਹੁੰਦੀ ਹੈ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2394,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 112,
+    "text": "IELTS score ਅੰਦਰੋਂ increase ਕਰਵਾ ਦੇਵਾਂਗੇ, confidential service ਆ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2882,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 113,
+    "text": "Language test score ਨੂੰ ਅੰਦਰੋਂ badlan da claim ਸਿੱਧਾ fraud signal ਹੈ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 114,
+    "text": "Border issue solve ਹੋ ਗਿਆ, passport ਤੇ police certificate courier ਕਰ ਦਿਓ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.3051,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 115,
+    "text": "Unknown bande ਨੂੰ ਤੁਰੰਤ ਦਬਾਅ 'ਚ sensitive documents courier ਨਾ ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2259,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 116,
+    "text": "Caregiver intake ਦੀਆਂ ਆਖ਼ਰੀ ਦੋ seats ਨੇ, ਹੁਣੇ token ਪਾਓ ਨਹੀਂ ਤਾਂ chance ਨਿਕਲ ਜੂ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2513,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 117,
+    "text": "Last seats ਜਾਂ final chance ਵਾਲੇ pressure messages 'ਤੇ ਬਿਨਾਂ verification payment ਨਾ ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.3143,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 118,
+    "text": "आपकी application review में है। कृपया आधिकारिक portal से update देखें।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.2935,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 119,
+    "text": "Document request ka जवाब देने से पहले sender address ko dhyan se check करें।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2361,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 120,
+    "text": "Visa decision mein समय लग सकता है, unofficial update par भरोसा न करें।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 121,
+    "text": "सही consultant यही बताएगा कि approval reviewing authority पर depend करता है।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.3097,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 122,
+    "text": "Immigration payment karne se pehle receipt aur terms ko dhyan se पढ़ें।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2724,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 123,
+    "text": "ਤੁਹਾਡੀ application review 'ਚ ਹੈ। Update sirf official portal ਤੋਂ ਹੀ ਵੇਖੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 124,
+    "text": "Document request da ਜਵਾਬ ਦੇਣ ਤੋਂ ਪਹਿਲਾਂ sender address ਧਿਆਨ ਨਾਲ check ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2144,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 125,
+    "text": "Visa decision nu ਸਮਾਂ ਲੱਗ ਸਕਦਾ ਹੈ, unofficial update 'ਤੇ ਭਰੋਸਾ ਨਾ ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.278,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 126,
+    "text": "ਅਸਲੀ consultant ਹਮੇਸ਼ਾ ਦੱਸੇਗਾ ਕਿ approval reviewing authority 'ਤੇ depend ਕਰਦਾ ਹੈ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2671,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 127,
+    "text": "Immigration payment ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ receipt ਤੇ terms ਪੂਰੀਆਂ ਪੜ੍ਹੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2357,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 128,
+    "text": "सर guarantee तो नहीं है, लेकिन priority review charge दे देंगे तो refusal ka risk khatam ho jayega.",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.5456,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 129,
+    "text": "सही सलाहकार कभी भी risk khatam hone ka दावा नहीं करेगा, केवल प्रक्रिया समझाएगा।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.6781,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 130,
+    "text": "ਅਸੀਂ guarantee ਨਹੀਂ ਦਿੰਦੇ, ਪਰ ਜੇ ਅੱਜ priority ਵਾਲੇ paise ਪਾ ਦਿਓ ਤਾਂ approval ਲਗਭਗ ਪੱਕਾ ਬਣ ਜੂ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.306,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 131,
+    "text": "ਭਰੋਸੇਯੋਗ advisor ਕਦੇ ਵੀ approval ਲਗਭਗ ਪੱਕਾ ਕਹਿ ਕੇ paise ਨਹੀਂ ਮੰਗਦਾ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2823,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 132,
+    "text": "ਅਸੀਂ ਕੁਝ illegal ਨਹੀਂ ਕਰਦੇ, ਬੱਸ ਅੰਦਰਲਾ fast route ਲਗਾਉਂਦੇ ਹਾਂ ਜਿਸ ਨਾਲ file ਜਲਦੀ ਨਿਕਲਦੀ ਆ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2648,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 133,
+    "text": "Fast route, andarli setting ਜਾਂ special lane ਵਰਗੀਆਂ gallan official proof ਤੋਂ ਬਿਨਾਂ danger sign ਹੁੰਦੀਆਂ ਹਨ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2455,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 134,
+    "text": "Agent ਨੇ company da asli link ਭੇਜਿਆ, ਪਰ payment personal account 'ਚ ਮੰਗ ਰਿਹਾ ਹੈ।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.2886,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 135,
+    "text": "ਜੇ ਕੁਝ cheezaan ਠੀਕ ਵੀ ਲੱਗਣ, personal account payment ਫਿਰ ਵੀ verify ਕੀਤੇ ਬਿਨਾਂ ਨਾ ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2705,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 136,
+    "text": "जन सूचना: विदेश नौकरी के नाम पर chat में तुरंत token payment माँगने वाले ads से सावधान रहें।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 137,
+    "text": "जन सूचना: payment se pehle immigration agent, fee receipt aur employer details verify karein.",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 138,
+    "text": "ਜਨਤਕ ਸੂਚਨਾ: ਵਿਦੇਸ਼ੀ ਨੌਕਰੀ ਦੇ ਨਾਂ 'ਤੇ chat 'ਚ ਤੁਰੰਤ token payment ਮੰਗਣ ਵਾਲਿਆਂ ਤੋਂ ਸਾਵਧਾਨ ਰਹੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.3006,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 139,
+    "text": "ਜਨਤਕ ਸੂਚਨਾ: payment ਤੋਂ ਪਹਿਲਾਂ immigration agent, fee receipt ਤੇ employer details verify ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.2897,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 140,
+    "text": "बधाई हो! आपको पीएम आवास योजना के तहत ₹50,000 की लॉटरी मिली है। दावा करने के लिए 9876543210 पर कॉल करें।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7584,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 141,
+    "text": "आपका बिजली बिल बकाया है, आज रात 9:30 बजे बिजली काट दी जाएगी। तुरंत अधिकारी से बात करें: 9812345678।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.6501,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 142,
+    "text": "प्रिय ग्राहक, आपका पैन कार्ड बैंक खाते से लिंक नहीं है। खाता ब्लॉक होने से बचाएं: http://bit.ly/pnb-kyc",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.9106,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 143,
+    "text": "आपका एसबीआई बैंक खाता आज बंद हो जाएगा। तुरंत अपना आधार नंबर अपडेट करें: http://sbi-update-kyc.com",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.9245,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 144,
+    "text": "कौन बनेगा करोड़पति से आपको ₹25 लाख की लॉटरी लगी है। व्हाट्सएप पर अपनी डिटेल भेजने के लिए 9012345678 पर संपर्क करें।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7633,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 145,
+    "text": "नमस्ते सर, घर बैठे पार्ट-टाइम जॉब करके रोजाना ₹5,000 कमाएं। अभी टेलीग्राम पर संपर्क करें: @JobKing99",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8028,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 146,
+    "text": "आपके क्रेडिट कार्ड पर ₹10,000 का कैशबैक पेंडिंग है। क्लेम करने के लिए दिए गए लिंक पर क्लिक करें: http://bit.ly/cc-reward",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 147,
+    "text": "प्रिय यूजर, आपके जियो सिम की केवाईसी समाप्त हो गई है। तुरंत अधिकारी को 9988776655 पर कॉल करके चालू रखें।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7996,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 148,
+    "text": "कस्टमर केयर को कॉल करने के लिए धन्यवाद। आपका रिफंड पाने के लिए अपना यूपीआई पिन दर्ज करें या इस लिंक को खोलें।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7462,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 149,
+    "text": "चेतावनी: आपके खिलाफ साइबर क्राइम में मामला दर्ज हुआ है। तुरंत इस नंबर पर कॉल करें वर्ना पुलिस आएगी: 9123456789",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 150,
+    "text": "आपने लकी ड्रॉ में एक नई कार जीती है। टैक्स फीस के तौर पर ₹4,999 इस अकाउंट नंबर पर ट्रांसफर करें: 1234567890",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8459,
+    "reason": "devanagari_linear"
+  },
+  {
+    "id": 151,
     "text": "আপনার ব্যাঙ্ক অ্যাকাউন্ট নিরাপত্তার কারণে ব্লক করা হয়েছে। এখনই এই লিঙ্কে ক্লিক করে KYC আপডেট করুন: http://verify-now.example",
     "script": "bengali",
     "true_label": "SCAM_FRAUD",
@@ -261,7 +1359,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 30,
+    "id": 152,
     "text": "অভিনন্দন! আপনি ১০ লাখ টাকার লটারি জিতেছেন। পুরস্কার পেতে আগে ২০০০ টাকা প্রসেসিং ফি জমা দিন।",
     "script": "bengali",
     "true_label": "SCAM_FRAUD",
@@ -270,7 +1368,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 31,
+    "id": 153,
     "text": "আপনার ক্রেডিট কার্ডে সন্দেহজনক লেনদেন হয়েছে। কার্ড বন্ধ না করতে অবিলম্বে এই নম্বরে কল করুন।",
     "script": "bengali",
     "true_label": "SCAM_FRAUD",
@@ -279,7 +1377,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 32,
+    "id": 154,
     "text": "প্রিয় গ্রাহক, আপনার KYC আজই শেষ হয়ে যাবে। অ্যাকাউন্ট চালু রাখতে নিচের লিঙ্কে তথ্য দিন।",
     "script": "bengali",
     "true_label": "SCAM_FRAUD",
@@ -288,7 +1386,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 33,
+    "id": 155,
     "text": "আপনার মোবাইল নম্বর পুরস্কারের জন্য নির্বাচিত হয়েছে। ৫০,০০০ টাকা পেতে ৫০০ টাকা রেজিস্ট্রেশন ফি পাঠান।",
     "script": "bengali",
     "true_label": "SCAM_FRAUD",
@@ -297,7 +1395,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 34,
+    "id": 156,
     "text": "আপনার বিদ্যুৎ সংযোগ আজ রাতেই বিচ্ছিন্ন হবে। বিল বকেয়া আছে, এখনই পেমেন্ট করতে এই লিঙ্কে যান।",
     "script": "bengali",
     "true_label": "SCAM_FRAUD",
@@ -306,7 +1404,331 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 35,
+    "id": 157,
+    "text": "অভিনন্দন! আপনার নামে একটি বিশেষ ক্যাশব্যাক পুরস্কার রয়েছে। দাবি করতে এখনই যোগাযোগ করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7616,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 158,
+    "text": "আপনার ব্যাংক অ্যাকাউন্টে ২৫,০০০ টাকা জমা হয়েছে। টাকা গ্রহণ করতে আপনার ATM PIN পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.9756,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 159,
+    "text": "সরকারি ভর্তুকির টাকা পেতে আজকের মধ্যে আপনার ব্যাংক তথ্য আপডেট করুন: http://claim.example",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.6818,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 160,
+    "text": "আপনি একটি নতুন গাড়ি জিতেছেন! পুরস্কার ছাড়াতে ৩০০০ টাকা ট্যাক্স আগে জমা দিতে হবে।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.4756,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 161,
+    "text": "আপনার অ্যাকাউন্টে অস্বাভাবিক লগইন শনাক্ত হয়েছে। যাচাই করতে আপনার পাসওয়ার্ড এখানে লিখুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.9052,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 162,
+    "text": "আজকের বিশেষ অফারে ৯০% ছাড়! অফারটি পেতে কার্ড নম্বর ও CVV পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7534,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 163,
+    "text": "আপনার পার্সেল কাস্টমসে আটকে আছে। ডেলিভারি সম্পূর্ণ করতে ১৫০ টাকা এখনই পরিশোধ করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8999,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 164,
+    "text": "আপনার লটারির পুরস্কার প্রস্তুত। পরিচয় যাচাইয়ের জন্য আধার নম্বর ও ব্যাংক অ্যাকাউন্ট পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8415,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 165,
+    "text": "আপনার ইন্টারনেট ব্যাংকিং বন্ধ হতে চলেছে। সক্রিয় রাখতে নিচের লিঙ্কে লগইন করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7161,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 166,
+    "text": "জরুরি বার্তা: আপনার PAN নম্বর ব্যাংক অ্যাকাউন্টের সঙ্গে যুক্ত নয়। এখনই তথ্য আপডেট করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8911,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 167,
+    "text": "আপনি নির্বাচিত ভাগ্যবান গ্রাহক! ১ লাখ টাকা পেতে আগে ১০০০ টাকা যাচাইকরণ ফি দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8104,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 168,
+    "text": "আপনার ক্রেডিট কার্ডের রিওয়ার্ড পয়েন্ট আজ মেয়াদ শেষ হবে। পয়েন্ট বাঁচাতে এখনই লগইন করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7727,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 169,
+    "text": "আপনার ইনস্যুরেন্স পলিসির বোনাস আটকে আছে। টাকা পেতে প্রসেসিং চার্জ পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8297,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 170,
+    "text": "চাকরির জন্য আপনার আবেদন নির্বাচিত হয়েছে। নিয়োগপত্র পেতে ২৫০০ টাকা রেজিস্ট্রেশন ফি জমা দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7531,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 171,
+    "text": "ঘরে বসে দিনে ৫০০০ টাকা আয় করুন! কাজ শুরু করতে আগে সদস্যপদ ফি ১০০০ টাকা পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8089,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 172,
+    "text": "আপনার ডেবিট কার্ডের মেয়াদ শেষ হয়েছে। নতুন কার্ড পেতে কার্ডের সম্পূর্ণ তথ্য পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 173,
+    "text": "জরুরি! আপনার অ্যাকাউন্ট ৩০ মিনিটের মধ্যে বন্ধ হয়ে যাবে। নিচের লিঙ্কে ক্লিক করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8421,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 174,
+    "text": "আপনার নামে ২০ লাখ টাকার ঋণ অনুমোদিত হয়েছে। ঋণ পেতে আগে ফাইল চার্জ জমা দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8043,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 175,
+    "text": "আপনার বিদ্যুৎ বিলের অতিরিক্ত টাকা ফেরত দেওয়া হবে। রিফান্ড পেতে ব্যাংক তথ্য দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8426,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 176,
+    "text": "আপনার অনলাইন শপিং অ্যাকাউন্টে পুরস্কার জমেছে। পুরস্কার নিতে লগইন পাসওয়ার্ড পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8624,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 177,
+    "text": "আপনার গ্যাস সংযোগ বন্ধ হওয়া থেকে বাঁচাতে এখনই বকেয়া বিল পরিশোধ করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7177,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 178,
+    "text": "আপনার ভোটার আইডি যাচাই হয়নি। সরকারি সুবিধা চালু রাখতে এই ফর্মে ব্যক্তিগত তথ্য দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.5611,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 179,
+    "text": "আপনার নামে একটি পার্সেল এসেছে। ঠিকানা নিশ্চিত করতে ৯৯ টাকা পেমেন্ট করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8726,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 180,
+    "text": "অভিনন্দন! আপনার নম্বরটি একটি আন্তর্জাতিক পুরস্কারের জন্য নির্বাচিত হয়েছে। দাবি করতে যোগাযোগ করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7566,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 181,
+    "text": "বিশেষ সরকারি ঋণ প্রকল্পে আপনি নির্বাচিত হয়েছেন। আবেদন সম্পূর্ণ করতে প্রসেসিং ফি দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.5439,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 182,
+    "text": "আপনার ফাস্ট্যাগ অ্যাকাউন্ট বন্ধ হবে। রিফান্ড পেতে এই লিঙ্কে কার্ডের তথ্য দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.9406,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 183,
+    "text": "আপনার মোবাইল ওয়ালেটে ১০,০০০ টাকা পুরস্কার এসেছে। টাকা তুলতে যাচাইকরণ কোড পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8653,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 184,
+    "text": "আপনার ব্যাংক অ্যাকাউন্টের KYC অসম্পূর্ণ। আজ রাতের মধ্যে আপডেট না করলে অ্যাকাউন্ট বন্ধ হবে।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7799,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 185,
+    "text": "আপনি একটি বিনামূল্যের স্মার্টফোন জিতেছেন। ডেলিভারি চার্জ হিসেবে ১৫০০ টাকা পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7134,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 186,
+    "text": "আপনার বেতন অ্যাকাউন্ট যাচাই করা দরকার। যাচাইয়ের জন্য ইন্টারনেট ব্যাংকিং পাসওয়ার্ড দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7355,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 187,
+    "text": "আপনার রিফান্ড প্রস্তুত। টাকা আপনার অ্যাকাউন্টে পেতে QR কোড স্ক্যান করে পেমেন্ট অনুমোদন করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.9581,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 188,
+    "text": "আপনার নাম একটি বিনিয়োগ প্রকল্পে নির্বাচিত হয়েছে। দ্বিগুণ রিটার্ন পেতে আজই টাকা জমা দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.6965,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 189,
+    "text": "আপনার অ্যাকাউন্টে নিরাপত্তা সতর্কতা এসেছে। যাচাই করতে এই লিঙ্কে ক্লিক করে লগইন করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.001,
+    "reason": "advisory_filter"
+  },
+  {
+    "id": 190,
+    "text": "আপনার পুরস্কার বাতিল হয়ে যাবে যদি আজকের মধ্যে ৫০০ টাকা যাচাইকরণ ফি না দেন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.6409,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 191,
+    "text": "জরুরি ব্যাংক নোটিশ: অ্যাকাউন্ট নিরাপদ রাখতে এখনই আপনার গোপন PIN পরিবর্তন করতে এই লিঙ্ক ব্যবহার করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.8457,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 192,
+    "text": "অভিনন্দন, আপনি ৫ লাখ টাকা ক্যাশ প্রাইজ পেয়েছেন। পুরস্কার ছাড়াতে আগে কর ও প্রসেসিং ফি জমা দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.6525,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 193,
     "text": "মা, আমি বাজার থেকে ফেরার সময় তোমার পছন্দের মিষ্টি নিয়ে আসব। চিন্তা কোরো না।",
     "script": "bengali",
     "true_label": "NOT_SCAM",
@@ -315,7 +1737,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 36,
+    "id": 194,
     "text": "কাল সকাল সাড়ে দশটায় মিটিং আছে, সময়মতো প্রেজেন্টেশন ফাইলটা পাঠিয়ে দিও।",
     "script": "bengali",
     "true_label": "NOT_SCAM",
@@ -324,7 +1746,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 37,
+    "id": 195,
     "text": "আজ সন্ধ্যায় কোথায় দেখা করব? তুমি সময়টা জানিয়ে দিও।",
     "script": "bengali",
     "true_label": "NOT_SCAM",
@@ -333,7 +1755,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 38,
+    "id": 196,
     "text": "দুপুরের খাবার খেয়েছ? আজ অফিসে অনেক কাজ ছিল নাকি?",
     "script": "bengali",
     "true_label": "NOT_SCAM",
@@ -342,7 +1764,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 39,
+    "id": 197,
     "text": "বিকেলে বৃষ্টি হতে পারে, বের হলে ছাতাটা সঙ্গে নিয়ে যেও।",
     "script": "bengali",
     "true_label": "NOT_SCAM",
@@ -351,7 +1773,7 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 40,
+    "id": 198,
     "text": "আগামীকাল আমাদের ক্লাস সকাল নয়টায় শুরু হবে। সবাই সময়মতো এসো।",
     "script": "bengali",
     "true_label": "NOT_SCAM",
@@ -360,7 +1782,115 @@
     "reason": "bengali_linear"
   },
   {
-    "id": 41,
+    "id": 199,
+    "text": "তোমার পাঠানো ছবিগুলো খুব সুন্দর হয়েছে। ধন্যবাদ!",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.3046,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 200,
+    "text": "আমি আজ একটু দেরি করে বাড়ি ফিরব। রাতের খাবার আমার জন্য অপেক্ষা করে রেখো না।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.1602,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 201,
+    "text": "কালকের অনুষ্ঠানের জন্য ফুলগুলো আমি কিনে নিয়ে আসব।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.155,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 202,
+    "text": "তুমি কি আজ সন্ধ্যায় বাজারে যাবে? গেলে আমার জন্য কিছু ফল নিয়ে এসো।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0834,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 203,
+    "text": "শুভ জন্মদিন! তোমার দিনটা অনেক আনন্দে কাটুক।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.1737,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 204,
+    "text": "আজকের মিটিংটা বিকেল চারটায় হবে। সবাই কনফারেন্স রুমে চলে এসো।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.147,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 205,
+    "text": "আপনার অর্ডারটি সফলভাবে গ্রহণ করা হয়েছে। নির্ধারিত সময়ে ডেলিভারি দেওয়া হবে।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.6673,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 206,
+    "text": "আপনার অ্যামাজন পার্সেলটি সফলভাবে ডেলিভারি করা হয়েছে। বিস্তারিত জানতে অ্যাপটি খুলুন।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.6803,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 207,
+    "text": "আপনার রিচার্জ সফল হয়েছে। নতুন ব্যালেন্স দেখতে অ্যাপটি খুলুন।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.4568,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 208,
+    "text": "আপনার বিদ্যুৎ বিলের পেমেন্ট সফলভাবে সম্পন্ন হয়েছে। ধন্যবাদ।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": true,
+    "expected_prob": 0.6749,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 209,
+    "text": "আপনার ট্রেনের টিকিট বুকিং সফল হয়েছে। যাত্রার আগে টিকিটের তথ্য দেখে নিন।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.3774,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 210,
+    "text": "আপনার অ্যাপয়েন্টমেন্ট আগামী মঙ্গলবার সকাল ১১টায় নির্ধারিত হয়েছে।",
+    "script": "bengali",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.1906,
+    "reason": "bengali_linear"
+  },
+  {
+    "id": 211,
     "text": "You missed embassy verification call. To avoid cancellation, share OTP sent to your mobile now.",
     "script": "latin",
     "true_label": "SCAM_FRAUD",
@@ -369,7 +1899,7 @@
     "reason": "protected_filter"
   },
   {
-    "id": 42,
+    "id": 212,
     "text": "Embassy or visa officials will not ask you to share an OTP to keep a file active.",
     "script": "latin",
     "true_label": "NOT_SCAM",
@@ -378,7 +1908,7 @@
     "reason": "protected_filter"
   },
   {
-    "id": 43,
+    "id": 213,
     "text": "Refund from previous refused visa is ready. Pay bank release charges to get the money credited.",
     "script": "latin",
     "true_label": "SCAM_FRAUD",
@@ -387,7 +1917,7 @@
     "reason": "protected_filter"
   },
   {
-    "id": 44,
+    "id": 214,
     "text": "सर आपका Canada work permit पक्का है, बस आज advance जमा कर दें।",
     "script": "devanagari",
     "true_label": "SCAM_FRAUD",
@@ -396,7 +1926,7 @@
     "reason": "devanagari_linear"
   },
   {
-    "id": 45,
+    "id": 215,
     "text": "Aapka embassy verification miss ho gaya, account par aaya OTP abhi share karein.",
     "script": "latin",
     "true_label": "SCAM_FRAUD",
@@ -405,7 +1935,7 @@
     "reason": "protected_filter"
   },
   {
-    "id": 46,
+    "id": 216,
     "text": "OTP share karne ke liye embassy ya consultant ka pressure banana ek fraud signal hai.",
     "script": "latin",
     "true_label": "NOT_SCAM",
@@ -414,7 +1944,7 @@
     "reason": "protected_filter"
   },
   {
-    "id": 47,
+    "id": 217,
     "text": "ਤੁਹਾਡਾ embassy verification miss ਹੋ ਗਿਆ, mobile ਤੇ ਆਇਆ OTP ਹੁਣੇ share ਕਰੋ।",
     "script": "devanagari",
     "true_label": "SCAM_FRAUD",
@@ -423,7 +1953,7 @@
     "reason": "protected_filter"
   },
   {
-    "id": 48,
+    "id": 218,
     "text": "Embassy ਜਾਂ consultant ਵੱਲੋਂ OTP share ਕਰਨ ਦਾ ਦਬਾਅ fraud signal ਹੁੰਦਾ ਹੈ।",
     "script": "devanagari",
     "true_label": "NOT_SCAM",
@@ -432,7 +1962,7 @@
     "reason": "protected_filter"
   },
   {
-    "id": 49,
+    "id": 219,
     "text": "Never share OTP, banking PIN, or card details during job or visa processing.",
     "script": "latin",
     "true_label": "NOT_SCAM",
@@ -441,12 +1971,147 @@
     "reason": "protected_filter"
   },
   {
-    "id": 50,
+    "id": 220,
     "text": "OTP, banking PIN ya card details kisi processing chat mein share na karein.",
     "script": "latin",
     "true_label": "NOT_SCAM",
     "expected_is_scam": false,
     "expected_prob": 0.0,
     "reason": "protected_filter"
+  },
+  {
+    "id": 221,
+    "text": "OTP, banking PIN ਜਾਂ card details ਕਿਸੇ processing chat 'ਚ ਕਦੇ share ਨਾ ਕਰੋ।",
+    "script": "devanagari",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 222,
+    "text": "আপনার UPI অ্যাকাউন্ট সাময়িকভাবে স্থগিত। পুনরায় সক্রিয় করতে OTP এবং PIN নিশ্চিত করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 223,
+    "text": "আপনার সিম কার্ড বন্ধ হয়ে যাবে। সিম চালু রাখতে এখনই KYC নম্বর এবং OTP শেয়ার করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 224,
+    "text": "আপনার ফোন নম্বরে বিনামূল্যে রিচার্জ পাওয়া যাবে। অফারটি পেতে OTP শেয়ার করুন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 225,
+    "text": "ব্যাংক থেকে বলছি। আপনার অ্যাকাউন্ট যাচাই করতে ATM PIN এবং OTP দরকার। এখনই পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 226,
+    "text": "আপনার ব্যাংক অ্যাকাউন্টে পুরস্কারের টাকা পাঠানো হবে। নিশ্চিত করতে আপনার OTP দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 227,
+    "text": "আপনার ব্যাংক অ্যাকাউন্টে সমস্যা হয়েছে। নিরাপত্তার জন্য আপনার OTP এবং PIN এখনই পাঠান।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 228,
+    "text": "আপনার সিম আপগ্রেডের জন্য একটি OTP এসেছে। OTPটি আমাদের প্রতিনিধিকে জানিয়ে দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 229,
+    "text": "আপনার অনলাইন পেমেন্ট ব্যর্থ হয়েছে। টাকা ফেরত পেতে কার্ড নম্বর, CVV এবং OTP দিন।",
+    "script": "bengali",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 230,
+    "text": "Your WhatsApp security code changed. Someone tried logging into your account from overseas. Verify your OTP sent via SMS to the scammer.",
+    "script": "latin",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 231,
+    "text": "Dear Customer, 482910 is your OTP for your purchase at Amazon. Valid for 10 minutes. Do not share with anyone.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 232,
+    "text": "Dear Customer, Rs 1,500.00 was debited from your HDFC Bank A/c ending 4321 on 28-Sep-26 via UPI. Available Bal: Rs 45,210.50.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 233,
+    "text": "Dear Customer, Rs 5,000.00 has been credited to your SBI Account ending 9821 via NEFT from Acme Corp.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 234,
+    "text": "Your Amazon Pay balance was successfully updated. Cashback of Rs 50 credited for utility bill payment.",
+    "script": "latin",
+    "true_label": "NOT_SCAM",
+    "expected_is_scam": false,
+    "expected_prob": 0.0,
+    "reason": "protected_filter"
+  },
+  {
+    "id": 235,
+    "text": "बीमा पॉलिसी रिन्यूअल की अंतिम तारीख आज है। पॉलिसी लैप्स होने से बचाने के लिए तुरंत ₹8,500 जमा करें।",
+    "script": "devanagari",
+    "true_label": "SCAM_FRAUD",
+    "expected_is_scam": true,
+    "expected_prob": 0.7052,
+    "reason": "devanagari_linear"
   }
 ]
