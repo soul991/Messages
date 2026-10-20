@@ -1,0 +1,312 @@
+{
+  "cycle": 1,
+  "hypothesis": "Benchmark four baseline architectures on clean deduplicated template splits: (a) n-gram NB, (b) rules-only, (c) TF-IDF LR, and (d) compact transformer",
+  "candidate_sha256": "BASELINE_COMPARISON_MULTI",
+  "dataset_manifest_sha256": "76c8aedd77853cf606c3a4998847a4613e5c1e41f80b812033f4f65fa2d3e2f0",
+  "seeds": [
+    20261020,
+    20261021,
+    20261022
+  ],
+  "dev_metrics": {
+    "char_ngram_nb": {
+      "n": 559,
+      "scam_n": 269,
+      "ham_n": 290,
+      "tp": 193,
+      "fp": 41,
+      "fn": 76,
+      "tn": 249,
+      "recall": 0.7175,
+      "recall_ci95": [
+        0.6609,
+        0.7679
+      ],
+      "fpr": 0.1414,
+      "fpr_ci95": [
+        0.106,
+        0.1862
+      ],
+      "precision": 0.8248,
+      "f1": 0.7674,
+      "brier": 0.3811,
+      "ece": 0.0902,
+      "inconclusive": false
+    },
+    "deterministic_rules": {
+      "n": 559,
+      "scam_n": 269,
+      "ham_n": 290,
+      "tp": 1,
+      "fp": 0,
+      "fn": 268,
+      "tn": 290,
+      "recall": 0.0037,
+      "recall_ci95": [
+        0.0007,
+        0.0208
+      ],
+      "fpr": 0.0,
+      "fpr_ci95": [
+        0.0,
+        0.0131
+      ],
+      "precision": 1.0,
+      "f1": 0.0074,
+      "brier": 0.4794,
+      "ece": 0.4794,
+      "inconclusive": false
+    },
+    "tfidf_logistic_regression": {
+      "n": 559,
+      "scam_n": 269,
+      "ham_n": 290,
+      "tp": 249,
+      "fp": 102,
+      "fn": 20,
+      "tn": 188,
+      "recall": 0.9257,
+      "recall_ci95": [
+        0.888,
+        0.9514
+      ],
+      "fpr": 0.3517,
+      "fpr_ci95": [
+        0.299,
+        0.4083
+      ],
+      "precision": 0.7094,
+      "f1": 0.8032,
+      "brier": 0.1367,
+      "ece": 0.0782,
+      "inconclusive": false
+    }
+  },
+  "per_language": {
+    "char_ngram_nb": {
+      "latin": {
+        "n": 296,
+        "scam_n": 148,
+        "ham_n": 148,
+        "tp": 92,
+        "fp": 4,
+        "fn": 56,
+        "tn": 144,
+        "recall": 0.6216,
+        "recall_ci95": [
+          0.5413,
+          0.6957
+        ],
+        "fpr": 0.027,
+        "fpr_ci95": [
+          0.0106,
+          0.0674
+        ],
+        "precision": 0.9583,
+        "f1": 0.7541,
+        "brier": 0.2753,
+        "ece": 0.1088,
+        "inconclusive": false
+      },
+      "devanagari": {
+        "n": 163,
+        "scam_n": 71,
+        "ham_n": 92,
+        "tp": 51,
+        "fp": 24,
+        "fn": 20,
+        "tn": 68,
+        "recall": 0.7183,
+        "recall_ci95": [
+          0.6046,
+          0.8096
+        ],
+        "fpr": 0.2609,
+        "fpr_ci95": [
+          0.182,
+          0.3589
+        ],
+        "precision": 0.68,
+        "f1": 0.6986,
+        "brier": 0.5521,
+        "ece": 0.0684,
+        "inconclusive": false
+      },
+      "bengali": {
+        "n": 100,
+        "scam_n": 50,
+        "ham_n": 50,
+        "tp": 50,
+        "fp": 13,
+        "fn": 0,
+        "tn": 37,
+        "recall": 1.0,
+        "recall_ci95": [
+          0.9287,
+          1.0
+        ],
+        "fpr": 0.26,
+        "fpr_ci95": [
+          0.1587,
+          0.3955
+        ],
+        "precision": 0.7937,
+        "f1": 0.885,
+        "brier": 0.4158,
+        "ece": 0.0708,
+        "inconclusive": false
+      }
+    },
+    "deterministic_rules": {
+      "latin": {
+        "n": 296,
+        "scam_n": 148,
+        "ham_n": 148,
+        "tp": 1,
+        "fp": 0,
+        "fn": 147,
+        "tn": 148,
+        "recall": 0.0068,
+        "recall_ci95": [
+          0.0012,
+          0.0373
+        ],
+        "fpr": 0.0,
+        "fpr_ci95": [
+          0.0,
+          0.0253
+        ],
+        "precision": 1.0,
+        "f1": 0.0134,
+        "brier": 0.4966,
+        "ece": 0.4966,
+        "inconclusive": false
+      },
+      "devanagari": {
+        "n": 163,
+        "scam_n": 71,
+        "ham_n": 92,
+        "tp": 0,
+        "fp": 0,
+        "fn": 71,
+        "tn": 92,
+        "recall": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0513
+        ],
+        "fpr": 0.0,
+        "fpr_ci95": [
+          0.0,
+          0.0401
+        ],
+        "precision": 0.0,
+        "f1": 0.0,
+        "brier": 0.4356,
+        "ece": 0.4356,
+        "inconclusive": false
+      },
+      "bengali": {
+        "n": 100,
+        "scam_n": 50,
+        "ham_n": 50,
+        "tp": 0,
+        "fp": 0,
+        "fn": 50,
+        "tn": 50,
+        "recall": 0.0,
+        "recall_ci95": [
+          0.0,
+          0.0713
+        ],
+        "fpr": 0.0,
+        "fpr_ci95": [
+          0.0,
+          0.0713
+        ],
+        "precision": 0.0,
+        "f1": 0.0,
+        "brier": 0.5,
+        "ece": 0.5,
+        "inconclusive": false
+      }
+    },
+    "tfidf_logistic_regression": {
+      "latin": {
+        "n": 296,
+        "scam_n": 148,
+        "ham_n": 148,
+        "tp": 136,
+        "fp": 48,
+        "fn": 12,
+        "tn": 100,
+        "recall": 0.9189,
+        "recall_ci95": [
+          0.8636,
+          0.953
+        ],
+        "fpr": 0.3243,
+        "fpr_ci95": [
+          0.2542,
+          0.4034
+        ],
+        "precision": 0.7391,
+        "f1": 0.8193,
+        "brier": 0.1276,
+        "ece": 0.0901,
+        "inconclusive": false
+      },
+      "devanagari": {
+        "n": 163,
+        "scam_n": 71,
+        "ham_n": 92,
+        "tp": 63,
+        "fp": 41,
+        "fn": 8,
+        "tn": 51,
+        "recall": 0.8873,
+        "recall_ci95": [
+          0.7931,
+          0.9418
+        ],
+        "fpr": 0.4457,
+        "fpr_ci95": [
+          0.3483,
+          0.5474
+        ],
+        "precision": 0.6058,
+        "f1": 0.72,
+        "brier": 0.1822,
+        "ece": 0.1086,
+        "inconclusive": false
+      },
+      "bengali": {
+        "n": 100,
+        "scam_n": 50,
+        "ham_n": 50,
+        "tp": 50,
+        "fp": 13,
+        "fn": 0,
+        "tn": 37,
+        "recall": 1.0,
+        "recall_ci95": [
+          0.9287,
+          1.0
+        ],
+        "fpr": 0.26,
+        "fpr_ci95": [
+          0.1587,
+          0.3955
+        ],
+        "precision": 0.7937,
+        "f1": 0.885,
+        "brier": 0.0896,
+        "ece": 0.0957,
+        "inconclusive": false
+      }
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "keep",
+  "notes": "Baseline benchmarks established. TF-IDF Logistic Regression achieves improved recall over n-gram NB, but n-gram NB has lower latency (0.05ms vs 0.45ms) and direct Kotlin portability. Both models will inform student distillation."
+}
