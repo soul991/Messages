@@ -258,7 +258,8 @@ class MessageRepository private constructor(private val context: Context) {
             }
             val smsId = uri?.lastPathSegment?.toLongOrNull()
             val threadId = try {
-                Telephony.Threads.getOrCreateThreadId(context, address)
+                val tid = Telephony.Threads.getOrCreateThreadId(context, address)
+                if (tid <= 0L) syntheticThreadId(address) else tid
             } catch (_: Exception) {
                 syntheticThreadId(address) // R-16: never a 32-bit hash
             }
@@ -742,13 +743,18 @@ class MessageRepository private constructor(private val context: Context) {
         address.split(';').map { it.trim() }.filter { it.isNotEmpty() }
 
     private suspend fun resolveThreadId(address: String): Long {
+        val existing = db.conversations().byAddress(address)
+        if (existing != null && existing.threadId != 0L) {
+            return existing.threadId
+        }
         val recipients = recipientsOf(address)
         return try {
-            if (recipients.size > 1) {
+            val tid = if (recipients.size > 1) {
                 Telephony.Threads.getOrCreateThreadId(context, recipients.toSet())
             } else {
                 Telephony.Threads.getOrCreateThreadId(context, address)
             }
+            if (tid <= 0L) syntheticThreadId(address) else tid
         } catch (_: Exception) {
             syntheticThreadId(address)
         }

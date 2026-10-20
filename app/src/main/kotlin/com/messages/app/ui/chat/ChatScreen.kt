@@ -5,6 +5,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -887,11 +900,78 @@ fun ChatScreen(
             // under a soft surface scrim so bubbles stay legible.
             val wallpaperBrush = ChatStyle.wallpaperBrush(wallpaperId)
             val outBubbleColors = ChatStyle.bubbleColors(bubbleStyleId)
+            val overscrollAnim = remember { Animatable(0f) }
+            var rawOverscroll by remember { mutableFloatStateOf(0f) }
+            val density = LocalDensity.current
+            val maxCurveHeightPx = with(density) { 56.dp.toPx() }
+
+            val overscrollConnection = remember {
+                object : NestedScrollConnection {
+                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                        if (rawOverscroll > 0f && available.y > 0f) {
+                            val consumed = available.y.coerceAtMost(rawOverscroll)
+                            rawOverscroll = (rawOverscroll - consumed).coerceAtLeast(0f)
+                            val target = if (rawOverscroll <= 0f) 0f
+                            else maxCurveHeightPx * (1f - kotlin.math.exp(-rawOverscroll / (maxCurveHeightPx * 1.8f)))
+                            scope.launch { overscrollAnim.snapTo(target) }
+                            return Offset(0f, consumed)
+                        }
+                        return Offset.Zero
+                    }
+
+                    override fun onPostScroll(
+                        consumed: Offset,
+                        available: Offset,
+                        source: NestedScrollSource,
+                    ): Offset {
+                        if (available.y < 0f && source == NestedScrollSource.UserInput) {
+                            rawOverscroll += -available.y
+                            val target = maxCurveHeightPx * (1f - kotlin.math.exp(-rawOverscroll / (maxCurveHeightPx * 1.8f)))
+                            scope.launch { overscrollAnim.snapTo(target) }
+                            return Offset(0f, available.y)
+                        }
+                        return Offset.Zero
+                    }
+
+                    override suspend fun onPreFling(available: Velocity): Velocity {
+                        if (rawOverscroll > 0f || overscrollAnim.value > 0f) {
+                            rawOverscroll = 0f
+                            overscrollAnim.animateTo(0f, Motion.overscrollSpring())
+                            return Velocity.Zero
+                        }
+                        return Velocity.Zero
+                    }
+
+                    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                        if (rawOverscroll > 0f || overscrollAnim.value > 0f) {
+                            rawOverscroll = 0f
+                            overscrollAnim.animateTo(0f, Motion.overscrollSpring())
+                        }
+                        return Velocity.Zero
+                    }
+                }
+            }
+
             Box(
                 Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .then(if (wallpaperBrush != null) Modifier.background(wallpaperBrush) else Modifier)
+                    .nestedScroll(overscrollConnection)
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            do {
+                                val event = awaitPointerEvent()
+                            } while (event.changes.any { it.pressed })
+                            if (rawOverscroll > 0f || overscrollAnim.value > 0f) {
+                                rawOverscroll = 0f
+                                scope.launch {
+                                    overscrollAnim.animateTo(0f, Motion.overscrollSpring())
+                                }
+                            }
+                        }
+                    }
             ) {
                 if (wallpaperId == ChatStyle.WALLPAPER_PHOTO) {
                     val photo = remember(wallpaperVersion) { ChatStyle.photoFile(context, threadId, space) }
@@ -911,18 +991,16 @@ fun ChatScreen(
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f))
                     )
                 }
-                val initialVisibleKeys = remember { mutableStateOf<Set<String>?>(null) }
-                val knownMessageKeys = remember { mutableStateOf<Set<String>>(emptySet()) }
+                // Track keys that have already played their entrance animation so they NEVER re-animate on scroll/overscroll
+                val animatedKeys = remember { mutableSetOf<String>() }
+                val initialEntranceDone = remember { mutableStateOf(false) }
+                val initialKeysToAnimate = remember { mutableStateOf<Set<String>>(emptySet()) }
 
                 LaunchedEffect(items) {
-                    if (items.isNotEmpty()) {
-                        if (initialVisibleKeys.value == null) {
-                            val initialKeys = items.takeLast(8).map { it.key }.toSet()
-                            initialVisibleKeys.value = initialKeys
-                            knownMessageKeys.value = items.map { it.key }.toSet()
-                        } else {
-                            knownMessageKeys.value = knownMessageKeys.value + items.map { it.key }
-                        }
+                    if (items.isNotEmpty() && !initialEntranceDone.value) {
+                        val initial = items.takeLast(8).map { it.key }.toSet()
+                        initialKeysToAnimate.value = initial
+                        initialEntranceDone.value = true
                     }
                 }
 
@@ -937,11 +1015,18 @@ fun ChatScreen(
                         key = { it.key },
                         contentType = { if (it is ChatItem.Msg) "msg" else "date" },
                     ) { item ->
-                        val isScrollInProgress = listState.isScrollInProgress
-                        val isInitial = !isScrollInProgress && (initialVisibleKeys.value != null && item.key in initialVisibleKeys.value!!)
-                        val isNew = !isScrollInProgress && (initialVisibleKeys.value != null && item.key !in knownMessageKeys.value)
-                        val shouldAnimate = isInitial || isNew
-                        val staggerIndex = if (isInitial) {
+                        val shouldAnimate = if (item.key in animatedKeys) {
+                            false
+                        } else if (item.key in initialKeysToAnimate.value) {
+                            animatedKeys.add(item.key)
+                            true
+                        } else if (initialEntranceDone.value) {
+                            animatedKeys.add(item.key)
+                            true
+                        } else {
+                            false
+                        }
+                        val staggerIndex = if (shouldAnimate && item.key in initialKeysToAnimate.value) {
                             val visibleItems = items.takeLast(8)
                             visibleItems.indexOfFirst { it.key == item.key }.coerceIn(0, 7)
                         } else 0
@@ -1023,6 +1108,31 @@ fun ChatScreen(
                         },
                     ) {
                         Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.chat_scroll_to_latest))
+                    }
+                }
+
+                // Parabolic curved shape rising from the bottom edge as user overscrolls
+                val curveHeightPx = overscrollAnim.value
+                if (curveHeightPx > 0.5f) {
+                    val curveHeightDp = with(density) { curveHeightPx.toDp() }
+                    val overscrollColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.75f)
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(curveHeightDp)
+                            .align(Alignment.BottomCenter)
+                    ) {
+                        val path = Path().apply {
+                            moveTo(0f, size.height)
+                            quadraticTo(
+                                size.width / 2f,
+                                -size.height,
+                                size.width,
+                                size.height,
+                            )
+                            close()
+                        }
+                        drawPath(path, color = overscrollColor)
                     }
                 }
             }

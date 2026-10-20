@@ -837,8 +837,15 @@ class MainActivity : FragmentActivity() {
      * the repository's persisted alias allocator (V2-21).
      */
     private suspend fun routeFor(intent: Intent): String? {
-        val threadId = intent.getLongExtra("threadId", -1L)
-        if (threadId != -1L) return "chat/$threadId"
+        if (intent.hasExtra("threadId")) {
+            val tid = intent.getLongExtra("threadId", Long.MIN_VALUE)
+            if (tid != Long.MIN_VALUE) return "chat/$tid"
+        }
+        val dataUri = intent.data
+        if (dataUri?.scheme == "messages" && dataUri.host == "thread") {
+            val tid = dataUri.pathSegments?.firstOrNull()?.toLongOrNull()
+            if (tid != null) return "chat/$tid"
+        }
 
         // Direct share (§8.2): chooser target carries the conversation
         // shortcut id + the shared text, which becomes the draft.

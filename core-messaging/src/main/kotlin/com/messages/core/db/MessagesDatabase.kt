@@ -518,6 +518,8 @@ interface ConversationDao {
 
     @Query("SELECT * FROM conversations WHERE threadId = :threadId AND space = :space LIMIT 1")
     suspend fun byThreadId(threadId: Long, space: String = Spaces.NORMAL): ConversationEntity?
+    @Query("SELECT * FROM conversations WHERE address = :address AND space = :space LIMIT 1")
+    suspend fun byAddress(address: String, space: String = Spaces.NORMAL): ConversationEntity?
 
     @Query(
         "SELECT * FROM conversations WHERE category = :category AND archived = 0 " +
