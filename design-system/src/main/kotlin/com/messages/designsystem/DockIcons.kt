@@ -10,18 +10,18 @@ import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 
 /**
- * Bespoke, modern category dock icons for Messages.
+ * Bespoke, Telegram-styled category dock icons for Messages.
  *
- * Each category (Personal, Bank, Offers, Review, Spam) is carefully crafted
- * with distinct silhouettes and matching Outlined / Filled state pairs designed
- * for Material 3 Expressive motion and haptic transitions.
+ * Each category (Personal, Bank, Offers, Review, Spam) is redesigned
+ * to match Telegram's visual metaphor standards with matching Outlined
+ * and Filled state pairs.
  */
 object DockIcons {
 
     private fun parseNodes(pathData: String) = PathParser().parsePathString(pathData).toNodes()
 
     // -------------------------------------------------------------------------
-    // 1. Personal (INBOX): Modern friendly conversation bubble with personal avatar
+    // 1. Personal (INBOX): Telegram-style User Profile Avatar in Circle
     // -------------------------------------------------------------------------
 
     val PersonalOutlined: ImageVector by lazy {
@@ -32,9 +32,9 @@ object DockIcons {
             viewportWidth = 24f,
             viewportHeight = 24f,
         ).apply {
-            // Speech bubble outline
+            // Circle boundary
             addPath(
-                pathData = parseNodes("M19 4H5C3.34 4 2 5.34 2 7V16.5C2 17.05 2.65 17.38 3.1 17.02L5.8 15H19C20.66 15 22 13.66 22 12V7C22 5.34 20.66 4 19 4Z"),
+                pathData = parseNodes("M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"),
                 stroke = SolidColor(Color.White),
                 strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
@@ -42,17 +42,17 @@ object DockIcons {
             )
             // Avatar head
             addPath(
-                pathData = parseNodes("M12 6.5C13.1 6.5 14 7.4 14 8.5C14 9.6 13.1 10.5 12 10.5C10.9 10.5 10 9.6 10 8.5C10 7.4 10.9 6.5 12 6.5Z"),
+                pathData = parseNodes("M12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5Z"),
                 stroke = SolidColor(Color.White),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
             // Avatar shoulders
             addPath(
-                pathData = parseNodes("M8 13.5C8.3 11.8 10 11 12 11C14 11 15.7 11.8 16 13.5"),
+                pathData = parseNodes("M6.8 18C7.6 15.2 9.6 13.8 12 13.8C14.4 13.8 16.4 15.2 17.2 18"),
                 stroke = SolidColor(Color.White),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -67,14 +67,14 @@ object DockIcons {
             viewportWidth = 24f,
             viewportHeight = 24f,
         ).addPath(
-            pathData = parseNodes("M19 4H5C3.34 4 2 5.34 2 7V16.5C2 17.05 2.65 17.38 3.1 17.02L5.8 15H19C20.66 15 22 13.66 22 12V7C22 5.34 20.66 4 19 4ZM12 6.5C13.1 6.5 14 7.4 14 8.5C14 9.6 13.1 10.5 12 10.5C10.9 10.5 10 9.6 10 8.5C10 7.4 10.9 6.5 12 6.5ZM7.8 13.8C8.2 12 10 11.2 12 11.2C14 11.2 15.8 12 16.2 13.8C16.3 14.1 16 14.3 15.7 14.3H8.3C8 14.3 7.7 14.1 7.8 13.8Z"),
+            pathData = parseNodes("M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 6C13.66 6 15 7.34 15 9C15 10.66 13.66 12 12 12C10.34 12 9 10.66 9 9C9 7.34 10.34 6 12 6ZM6.3 18.2C7.3 15 9.4 13.5 12 13.5C14.6 13.5 16.7 15 17.7 18.2C16.1 19.6 14.2 20.5 12 20.5C9.8 20.5 7.9 19.6 6.3 18.2Z"),
             pathFillType = PathFillType.EvenOdd,
             fill = SolidColor(Color.White),
         ).build()
     }
 
     // -------------------------------------------------------------------------
-    // 2. Bank (TRANSACTIONS): Neoclassical Bank / Financial portico with pillars
+    // 2. Bank (TRANSACTIONS): Payment Card with Magnetic Stripe and EMV Chip
     // -------------------------------------------------------------------------
 
     val BankOutlined: ImageVector by lazy {
@@ -85,39 +85,27 @@ object DockIcons {
             viewportWidth = 24f,
             viewportHeight = 24f,
         ).apply {
-            // Triangular pediment / roof
+            // Card outline
             addPath(
-                pathData = parseNodes("M12 3L2 8H22L12 3Z"),
+                pathData = parseNodes("M5 4.5H19C20.38 4.5 21.5 5.62 21.5 7V17C21.5 18.38 20.38 19.5 19 19.5H5C3.62 19.5 2.5 18.38 2.5 17V7C2.5 5.62 3.62 4.5 5 4.5Z"),
                 stroke = SolidColor(Color.White),
                 strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
-            // Architrave beam
+            // Magnetic stripe
             addPath(
-                pathData = parseNodes("M4 9.5H20"),
-                stroke = SolidColor(Color.White),
-                strokeLineWidth = 1.5f,
-                strokeLineCap = StrokeCap.Round,
-            )
-            // 3 Columns
-            addPath(
-                pathData = parseNodes("M6 10V17M12 10V17M18 10V17"),
-                stroke = SolidColor(Color.White),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-            )
-            // Base podium
-            addPath(
-                pathData = parseNodes("M3 17H21V19.5C21 20 20.5 20.5 20 20.5H4C3.5 20.5 3 20 3 19.5V17Z"),
+                pathData = parseNodes("M2.5 8.5H21.5"),
                 stroke = SolidColor(Color.White),
                 strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
-            // Pediment medallion
+            // EMV chip
             addPath(
-                pathData = parseNodes("M12 5.5C12.44 5.5 12.8 5.86 12.8 6.3C12.8 6.74 12.44 7.1 12 7.1C11.56 7.1 11.2 6.74 11.2 6.3C11.2 5.86 11.56 5.5 12 5.5Z"),
-                fill = SolidColor(Color.White),
+                pathData = parseNodes("M6.3 12.5H8.7C9.14 12.5 9.5 12.86 9.5 13.3V14.7C9.5 15.14 9.14 15.5 8.7 15.5H6.3C5.86 15.5 5.5 15.14 5.5 14.7V13.3C5.5 12.86 5.86 12.5 6.3 12.5Z"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.2f,
             )
         }.build()
     }
@@ -130,14 +118,14 @@ object DockIcons {
             viewportWidth = 24f,
             viewportHeight = 24f,
         ).addPath(
-            pathData = parseNodes("M12 2.5L2 7.5V9.5H22V7.5L12 2.5ZM5.5 11H7.5V16.5H5.5V11ZM11 11H13V16.5H11V11ZM16.5 11H18.5V16.5H16.5V11ZM2.5 17.5H21.5V19.5C21.5 20.05 21.05 20.5 20.5 20.5H3.5C2.95 20.5 2.5 20.05 2.5 19.5V17.5ZM12 5.2C12.55 5.2 13 5.65 13 6.2C13 6.75 12.55 7.2 12 7.2C11.45 7.2 11 6.75 11 6.2C11 5.65 11.45 5.2 12 5.2Z"),
+            pathData = parseNodes("M2.5 7C2.5 5.62 3.62 4.5 5 4.5H19C20.38 4.5 21.5 5.62 21.5 7V8.5H2.5V7ZM2.5 10.5V17C2.5 18.38 3.62 19.5 5 19.5H19C20.38 19.5 21.5 18.38 21.5 17V10.5H2.5ZM5.5 13C5.5 12.45 5.95 12 6.5 12H8.5C9.05 12 9.5 12.45 9.5 13V15C9.5 15.55 9.05 16 8.5 16H6.5C5.95 16 5.5 15.55 5.5 15V13Z"),
             pathFillType = PathFillType.EvenOdd,
             fill = SolidColor(Color.White),
         ).build()
     }
 
     // -------------------------------------------------------------------------
-    // 3. Offers (PROMOTIONS): Celebratory Gift Box with floating bow
+    // 3. Offers (PROMOTIONS): Price / Discount Tag with Eyelet and Percent Slash
     // -------------------------------------------------------------------------
 
     val OffersOutlined: ImageVector by lazy {
@@ -148,34 +136,25 @@ object DockIcons {
             viewportWidth = 24f,
             viewportHeight = 24f,
         ).apply {
-            // Box body
+            // Price tag outline
             addPath(
-                pathData = parseNodes("M4 11C4 10.45 4.45 10 5 10H19C19.55 10 20 10.45 20 11V19C20 20.1 19.1 21 18 21H6C4.9 21 4 20.1 4 19V11Z"),
+                pathData = parseNodes("M20.59 13.41L13.42 20.58C13.05 20.95 12.54 21.16 12 21.16C11.46 21.16 10.95 20.95 10.58 20.58L3.41 13.41C3.04 13.04 2.83 12.53 2.83 12V4C2.83 2.9 3.73 2 4.83 2H12.83C13.36 2 13.87 2.21 14.24 2.59L20.59 8.94C21.37 9.72 21.37 10.98 20.59 11.76L20.59 13.41Z"),
                 stroke = SolidColor(Color.White),
                 strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
-            // Box lid
+            // Tag eyelet hole
             addPath(
-                pathData = parseNodes("M3 8.5C3 8.22 3.22 8 3.5 8H20.5C20.78 8 21 8.22 21 8.5V10.5C21 10.78 20.78 11 20.5 11H3.5C3.22 11 3 10.78 3 10.5V8.5Z"),
-                stroke = SolidColor(Color.White),
-                strokeLineWidth = 1.6f,
-                strokeLineJoin = StrokeJoin.Round,
+                pathData = parseNodes("M7.5 5C8.33 5 9 5.67 9 6.5C9 7.33 8.33 8 7.5 8C6.67 8 6 7.33 6 6.5C6 5.67 6.67 5 7.5 5Z"),
+                fill = SolidColor(Color.White),
             )
-            // Vertical ribbon
+            // Percent slash and dots
             addPath(
-                pathData = parseNodes("M12 8V21"),
-                stroke = SolidColor(Color.White),
-                strokeLineWidth = 1.8f,
-                strokeLineCap = StrokeCap.Round,
-            )
-            // Bow loops
-            addPath(
-                pathData = parseNodes("M12 8C10.5 8 8 6.8 8 5C8 3.5 9.5 3 10.8 4C11.6 4.6 12 6.5 12 8ZM12 8C13.5 8 16 6.8 16 5C16 3.5 14.5 3 13.2 4C12.4 4.6 12 6.5 12 8Z"),
+                pathData = parseNodes("M11 15L15 11M11.5 11.5H11.51M14.5 14.5H14.51"),
                 stroke = SolidColor(Color.White),
                 strokeLineWidth = 1.5f,
-                strokeLineJoin = StrokeJoin.Round,
+                strokeLineCap = StrokeCap.Round,
             )
         }.build()
     }
@@ -187,23 +166,15 @@ object DockIcons {
             defaultHeight = 24.dp,
             viewportWidth = 24f,
             viewportHeight = 24f,
-        ).apply {
-            // Bow loops
-            addPath(
-                pathData = parseNodes("M12 7.8C10.4 7.8 8 6.6 8 5C8 3.6 9.4 3 10.7 4C11.5 4.6 12 6.4 12 7.8ZM12 7.8C13.6 7.8 16 6.6 16 5C16 3.6 14.6 3 13.3 4C12.5 4.6 12 6.4 12 7.8Z"),
-                fill = SolidColor(Color.White),
-            )
-            // Box with ribbon cutouts
-            addPath(
-                pathData = parseNodes("M2.5 8C2.5 7.45 2.95 7 3.5 7H20.5C21.05 7 21.5 7.45 21.5 8V10.5C21.5 11.05 21.05 11.5 20.5 11.5H19.5V19C19.5 20.38 18.38 21.5 17 21.5H7C5.62 21.5 4.5 20.38 4.5 19V11.5H3.5C2.95 11.5 2.5 11.05 2.5 10.5V8ZM10.8 11.5H6V19C6 19.55 6.45 20 7 20H10.8V11.5ZM13.2 11.5H18V19C18 19.55 17.55 20 17 20H13.2V11.5ZM10.8 8.5H4V10H10.8V8.5ZM13.2 8.5V10H20V8.5H13.2Z"),
-                pathFillType = PathFillType.EvenOdd,
-                fill = SolidColor(Color.White),
-            )
-        }.build()
+        ).addPath(
+            pathData = parseNodes("M12.83 2H4.83C3.73 2 2.83 2.9 2.83 4V12C2.83 12.53 3.04 13.04 3.41 13.41L10.58 20.58C11.36 21.36 12.64 21.36 13.42 20.58L20.59 13.41C21.37 12.63 21.37 11.35 20.59 10.57L14.24 2.59C13.87 2.21 13.36 2 12.83 2ZM7.5 7.5C8.05 7.5 8.5 7.05 8.5 6.5C8.5 5.95 8.05 5.5 7.5 5.5C6.95 5.5 6.5 5.95 6.5 6.5C6.5 7.05 6.95 7.5 7.5 7.5ZM11.3 14.7C11.1 14.5 11.1 14.2 11.3 14L14 11.3C14.2 11.1 14.5 11.1 14.7 11.3C14.9 11.5 14.9 11.8 14.7 12L12 14.7C11.8 14.9 11.5 14.9 11.3 14.7Z"),
+            pathFillType = PathFillType.EvenOdd,
+            fill = SolidColor(Color.White),
+        ).build()
     }
 
     // -------------------------------------------------------------------------
-    // 4. Review (REVIEW): Attention & Verification Clipboard with checkmark
+    // 4. Review (REVIEW): Attention / Inspection Eye Metaphor
     // -------------------------------------------------------------------------
 
     val ReviewOutlined: ImageVector by lazy {
@@ -214,34 +185,21 @@ object DockIcons {
             viewportWidth = 24f,
             viewportHeight = 24f,
         ).apply {
-            // Clipboard board
+            // Eye contour
             addPath(
-                pathData = parseNodes("M5 6C5 4.9 5.9 4 7 4H8.5C8.8 2.8 9.8 2 11 2H13C14.2 2 15.2 2.8 15.5 4H17C18.1 4 19 4.9 19 6V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V6Z"),
+                pathData = parseNodes("M2 12C3.8 7.5 7.6 4.5 12 4.5C16.4 4.5 20.2 7.5 22 12C20.2 16.5 16.4 19.5 12 19.5C7.6 19.5 3.8 16.5 2 12Z"),
                 stroke = SolidColor(Color.White),
                 strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
-            // Clip top
+            // Pupil circle
             addPath(
-                pathData = parseNodes("M9.5 2.5H14.5C15.3 2.5 15.5 3.2 15.5 4H8.5C8.5 3.2 8.7 2.5 9.5 2.5Z"),
+                pathData = parseNodes("M12 9C13.66 9 15 10.34 15 12C15 13.66 13.66 15 12 15C10.34 15 9 13.66 9 12C9 10.34 10.34 9 12 9Z"),
                 stroke = SolidColor(Color.White),
-                strokeLineWidth = 1.5f,
-            )
-            // Verification checkmark
-            addPath(
-                pathData = parseNodes("M8.5 12.5L10.5 14.5L15.5 9.5"),
-                stroke = SolidColor(Color.White),
-                strokeLineWidth = 2f,
+                strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
-            )
-            // Review action line
-            addPath(
-                pathData = parseNodes("M8.5 17.5H15.5"),
-                stroke = SolidColor(Color.White),
-                strokeLineWidth = 1.6f,
-                strokeLineCap = StrokeCap.Round,
             )
         }.build()
     }
@@ -254,14 +212,14 @@ object DockIcons {
             viewportWidth = 24f,
             viewportHeight = 24f,
         ).addPath(
-            pathData = parseNodes("M7 4C5.9 4 5 4.9 5 6V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V6C19 4.9 18.1 4 17 4H15.5C15.2 2.8 14.2 2 13 2H11C9.8 2 8.8 2.8 8.5 4H7ZM11 3.5H13C13.55 3.5 14 3.95 14 4.5V5H10V4.5C10 3.95 10.45 3.5 11 3.5ZM10.5 15.6L8 13.1C7.6 12.7 7.6 12.1 8 11.7C8.4 11.3 9 11.3 9.4 11.7L10.5 12.8L14.6 8.7C15 8.3 15.6 8.3 16 8.7C16.4 9.1 16.4 9.7 16 10.1L10.5 15.6ZM8 17.5C8 17.1 8.3 16.7 8.7 16.7H15.3C15.7 16.7 16 17.1 16 17.5C16 17.9 15.7 18.3 15.3 18.3H8.7C8.3 18.3 8 17.9 8 17.5Z"),
+            pathData = parseNodes("M2 12C3.8 7.5 7.6 4.5 12 4.5C16.4 4.5 20.2 7.5 22 12C20.2 16.5 16.4 19.5 12 19.5C7.6 19.5 3.8 16.5 2 12ZM12 8.5C10.07 8.5 8.5 10.07 8.5 12C8.5 13.93 10.07 15.5 12 15.5C13.93 15.5 15.5 13.93 15.5 12C15.5 10.07 13.93 8.5 12 8.5ZM12 10.5C12.83 10.5 13.5 11.17 13.5 12C13.5 12.83 12.83 13.5 12 13.5C11.17 13.5 10.5 12.83 10.5 12C10.5 11.17 11.17 10.5 12 10.5Z"),
             pathFillType = PathFillType.EvenOdd,
             fill = SolidColor(Color.White),
         ).build()
     }
 
     // -------------------------------------------------------------------------
-    // 5. Spam (SPAM): Shield with diagonal prohibition slash (Blocked / Spam)
+    // 5. Spam (SPAM): Stop / Alert Octagon with Exclamation Mark
     // -------------------------------------------------------------------------
 
     val SpamOutlined: ImageVector by lazy {
@@ -272,26 +230,26 @@ object DockIcons {
             viewportWidth = 24f,
             viewportHeight = 24f,
         ).apply {
-            // Shield boundary
+            // Octagon boundary
             addPath(
-                pathData = parseNodes("M12 2L4 5.5V11C4 16.5 7.4 20.8 12 22C16.6 20.8 20 16.5 20 11V5.5L12 2Z"),
+                pathData = parseNodes("M8.2 2.5H15.8L21.5 8.2V15.8L15.8 21.5H8.2L2.5 15.8V8.2L8.2 2.5Z"),
                 stroke = SolidColor(Color.White),
                 strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
-            // Prohibition circle
+            // Exclamation stem
             addPath(
-                pathData = parseNodes("M12 7.2C14.65 7.2 16.8 9.35 16.8 12C16.8 14.65 14.65 16.8 12 16.8C9.35 16.8 7.2 14.65 7.2 12C7.2 9.35 9.35 7.2 12 7.2Z"),
+                pathData = parseNodes("M12 7V13"),
                 stroke = SolidColor(Color.White),
-                strokeLineWidth = 1.6f,
-            )
-            // Diagonal slash
-            addPath(
-                pathData = parseNodes("M8.8 8.8L15.2 15.2"),
-                stroke = SolidColor(Color.White),
-                strokeLineWidth = 1.8f,
+                strokeLineWidth = 2f,
                 strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            // Exclamation dot
+            addPath(
+                pathData = parseNodes("M12 16C12.55 16 13 16.45 13 17C13 17.55 12.55 18 12 18C11.45 18 11 17.55 11 17C11 16.45 11.45 16 12 16Z"),
+                fill = SolidColor(Color.White),
             )
         }.build()
     }
@@ -304,7 +262,7 @@ object DockIcons {
             viewportWidth = 24f,
             viewportHeight = 24f,
         ).addPath(
-            pathData = parseNodes("M12 2L4 5.5V11C4 16.5 7.4 20.8 12 22C16.6 20.8 20 16.5 20 11V5.5L12 2ZM7.2 12C7.2 9.35 9.35 7.2 12 7.2C13.2 7.2 14.3 7.64 15.15 8.38L8.38 15.15C7.64 14.3 7.2 13.2 7.2 12ZM8.85 15.62L15.62 8.85C16.36 9.7 16.8 10.8 16.8 12C16.8 14.65 14.65 16.8 12 16.8C10.8 16.8 9.7 16.36 8.85 15.62Z"),
+            pathData = parseNodes("M8.2 2.5H15.8L21.5 8.2V15.8L15.8 21.5H8.2L2.5 15.8V8.2L8.2 2.5ZM11 7H13V13.5H11V7ZM12 15.8C12.66 15.8 13.2 16.34 13.2 17C13.2 17.66 12.66 18.2 12 18.2C11.34 18.2 10.8 17.66 10.8 17C10.8 16.34 11.34 15.8 12 15.8Z"),
             pathFillType = PathFillType.EvenOdd,
             fill = SolidColor(Color.White),
         ).build()

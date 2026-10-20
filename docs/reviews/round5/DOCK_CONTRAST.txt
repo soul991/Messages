@@ -1,0 +1,18 @@
+=== DOCK CONTRAST ANALYSIS (WCAG 2.1) ===
+Requirement: Graphical objects / UI components contrast >= 3.0:1
+
+[Light Theme] Background: #F2EEE9
+  - Active tab pill: #E2DCE7 (over #F2EEE9)
+  - Active icon (#5A41DD) on pill (#E2DCE7): 4.83:1 (pass >= 3.0: True)
+  - Inactive icon (#655F6D) on bg (#F2EEE9): 5.33:1 (pass >= 3.0: True)
+
+[Dark Theme] Background: #26232D
+  - Active tab pill: #413B4E (over #26232D)
+  - Active icon (#D1BBFD) on pill (#413B4E): 6.24:1 (pass >= 3.0: True)
+  - Inactive icon (#B0A9BA) on bg (#26232D): 6.78:1 (pass >= 3.0: True)
+
+[AMOLED Dark Theme] Background: #161320
+  - Active icon (#D1BBFD) on pill (#332D43): 7.66:1 (pass >= 3.0: True)
+  - Inactive icon (#B0A9BA) on bg (#161320): 8.04:1 (pass >= 3.0: True)
+
+OVERALL RESULT: PASS (All ratios >= 3.0:1)
