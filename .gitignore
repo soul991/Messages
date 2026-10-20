@@ -54,3 +54,7 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Future screen recordings over 1 MB kept outside git (see docs/reviews/README_EVIDENCE.md)
+docs/reviews/_recordings/
+docs/reviews/_recordings/*.mp4
+

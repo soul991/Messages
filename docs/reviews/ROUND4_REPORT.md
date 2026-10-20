@@ -7,14 +7,14 @@ This report documents the resolution and verification of all nine post-v2.1.2 ma
 | Issue | Description | Root Cause | Fix Commit | Before Evidence | After Evidence | Result |
 |---|---|---|---|---|---|---|
 | **Issue 1** | Chat bottom overscroll and blank-chat bug | `AnimatedContent` keyed on message list count combined with unkeyed reload placeholders at end-of-list, causing recomposition flash and blank message area on read-only alphanumeric threads (`JK-PNBSMS-S`). | `35d18dd` | `docs/reviews/round4/before/chat_overscroll_before.mp4`, `chat_blank_before.mp4`, `chat_blank_screen.png` | `docs/reviews/round4/after/chat_08_overscroll_curve.png`, `chat_09_readonly_sender.png` | Curved overscroll arc with spring rebound; zero blank-thread flicker. |
-| **Issue 2** | Telegram-style bottom dock | Previous dock lacked Figma-specified dimensions, selection pill animation, and Telegram-style outlined/filled glyph pairings. | `de612c5` | `docs/reviews/round4/before/dock_before.png`, `home_dock_before.png` | `docs/reviews/round4/after/dock_01_all.png` through `dock_06_spam.png` | 56dp height, 28dp pill corner radius, animated background selection pill, vector glyph pairings, Figma badge offsets. |
+| **Issue 2** | Telegram-style bottom dock | Previous dock lacked Figma-specified dimensions, selection pill animation, and Telegram-style outlined/filled glyph pairings. | `de612c5` | `docs/reviews/round4/before/dock_before.png`, `home_dock_before.png` | `docs/reviews/round4/after/dock_01_all.png` through `dock_06_spam.png` | Full-width bar (52dp height plus navigation-bar inset, equal tabs, hairline top divider), animated background selection pill, vector glyph pairings, Figma badge offsets. |
 | **Issue 3** | Telegram-style swipe actions on chat list | Chat rows lacked directional swipe gestures (archive on swipe right, delete on swipe left) with threshold snap and spring return. | `2427f93` | `docs/reviews/round4/before/swipe_before.mp4` | `docs/reviews/round4/after/swipe_archive_mid.png`, `swipe_archive_threshold.png`, `swipe_archive_committed.png`, `swipe_delete_mid.png`, `swipe_delete_threshold.png`, `swipe_delete_committed.png`, `swipe_after.mp4` | Left-to-right green Archive and right-to-left red Delete gestures, 72dp commit threshold, spring return physics. |
 | **Issue 4** | Back transitions inventory & fixes | Asymmetric transitions in `NavHost`; missing `popEnterTransition` and `popExitTransition` across secondary/tertiary routes; missing predictive back handlers. | `c78a391` | `docs/reviews/round4/before/settings_back_before.mp4` | `docs/reviews/round4/after/back_chat.mp4`, `back_settings.mp4`, `back_subscreens.mp4`, `docs/reviews/round4/proof_transitions.mp4` | Symmetric transition pairs across all 25 navigation routes; existing forward transitions and springs preserved. |
 | **Issue 5** | Privacy Policy & Terms of Service rewrite | `AboutScreen` contained generic placeholder copy with unverified third-party claims not reflecting the actual codebase architecture. | `5eab7ca` | `docs/reviews/round4/before/privacy_before.png`, `terms_before.png` | `docs/reviews/round4/after/abt_05_privacy_policy.png`, `abt_06_terms_of_service.png`, `policy_top_light.png`, `policy_top_dark.png`, `terms_top_light.png`, `terms_top_dark.png` | 12-section Privacy Policy and 11-section Terms of Service matching app code; unverified claims eliminated. |
 | **Issue 6** | Vault screens redesign | Vault passcode and setup screens did not follow Figma frame 1:305 (`VaultLockBadge`, 4 PIN dots, 3x4 numeric keypad, error container above keypad). | `7be071c` | `docs/reviews/round4/before/vault_setup_before.png` | `docs/reviews/round4/after/vault_unlock_pin_light.png`, `vault_unlock_pin_dark.png`, `vault_unlock_pattern_light.png`, `vault_unlock_pattern_dark.png`, `vault_pattern_light.png`, `vault_pattern_dark.png`, `vault_reset_dialog_dark.png`, `vault_unlock_setup.mp4` | Passcode UI anchored to Figma 1:305; `FLAG_SECURE` enforced; zero credential leaks. |
 | **Issue 7** | Full-app test plan & condition matrix | Requirement for complete verification across all 25 navigation routes, settings rows, actions, and device condition matrices. | `b5105d3`, `fe851f2` | N/A (Baseline test suite) | `docs/reviews/round4/TEST_PLAN.md`, 67 screenshots/recordings in `docs/reviews/round4/after/` | 101 test rows: 97 PASS, 0 FAIL, 4 NOT RUN; 0 FATAL EXCEPTION, 0 ANR in logcat. |
 | **Issue 8** | Integration and version bump to 2.1.3 | Version numbers and release documentation needed updating for release 2.1.3. | `475013b`, PR #41 merged (`62a1249`) | N/A | `docs/releases/2.1.3.md`, GitHub PR #41 | `versionCode = 25`, `versionName = "2.1.3"`; clean CI build and test execution. |
-| **Issue 9** | Animation preservation proof & release APK | Verification that liked forward transitions and springs in `Motion.kt` were untouched; assembly and verification of signed release APK. | PR #41 (`62a1249`) | N/A | `docs/reviews/round4/proof_transitions.mp4`, `app/build/outputs/apk/release/Messages.apk` | `git diff` on `Motion.kt` is empty; release APK signed with production key, verified with `apksigner`, Rule 6 passed, in-place upgrade tested over 2.1.2. |
+| **Issue 9** | Animation preservation proof & release APK | Verification that liked forward transitions and springs in `Motion.kt` were preserved (5 added lines for overscrollSpring, no existing motion value changed); assembly and verification of signed release APK. | PR #41 (`62a1249`) | N/A | `docs/reviews/round4/proof_transitions.mp4`, `app/build/outputs/apk/release/Messages.apk` | Motion.kt changed by 5 added lines (overscrollSpring); no existing motion value changed; release APK signed with production key, verified with `apksigner`, Rule 6 passed, in-place upgrade tested over 2.1.2. |
 
 ---
 
@@ -38,7 +38,10 @@ Full execution details are documented in [`docs/reviews/round4/TEST_PLAN.md`](fi
 Documented in [`docs/reviews/round4/NAV_TRANSITION_TABLE.md`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/reviews/round4/NAV_TRANSITION_TABLE.md).
 
 All 25 navigation routes in `MainActivity.kt` now have explicit symmetric transition specifications:
-- **Forward transitions (Enter/Exit)**: Kept identical to pre-round implementation. Forward slide-in and shared-axis timings and spring curves in `Motion.kt` were untouched.
+- **Forward transitions (Enter/Exit)**: Kept identical to pre-round implementation.
+  - **Motion.kt**: five lines were ADDED (new function `overscrollSpring`, used by the chat overscroll). No existing spring, duration or easing value was changed or removed.
+  - **Transitions.kt**: the shared-element helpers `sharedThreadAvatar` and `sharedThreadName` gained an optional `alwaysActive` parameter (default `false`) and an `isSeeking` check (`!transition.isSeeking`), added for the predictive back gesture. The only call sites passing `alwaysActive = true` are in `ChatScreen.kt` (lines 738 and 751) for the top bar avatar and title during predictive back seeking. All callers in `HomeScreen.kt` use the default (`false`). With the default (`false`) the forward behaviour is unchanged; no forward path passes `true`.
+  - **Dock.kt**: about 329 lines changed. The layout was restructured from a floating rounded pill (64dp high, 32dp corners, expanding active tab with weight 1.75) to a full-width bar (52dp high plus navigation-bar inset, equal tabs, hairline top divider) to match the Telegram dock reference. The pill slide spring (dampingRatio 0.82, stiffness 380) is unchanged.
 - **Back transitions (popEnter/popExit)**: Added matching reverse transitions with `Motion.screenSpring()` and `Motion.effectsDefault()`.
 - **Predictive back handling**: Back handlers hooked into `AnimatedContent` and sub-screens (e.g. `SettingsScreen` page navigation, `VaultSetupScreen` sub-views, and `ChatScreen` details).
 
@@ -48,10 +51,12 @@ All 25 navigation routes in `MainActivity.kt` now have explicit symmetric transi
 
 Documented in [`docs/reviews/round4/DOCK_SPEC.md`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/reviews/round4/DOCK_SPEC.md).
 
+`Dock.kt` changed by about 329 lines. The layout was restructured from a floating rounded pill (64dp high, 32dp corners, expanding active tab with weight 1.75) to a full-width bar (52dp high plus navigation-bar inset, equal tabs, hairline top divider) to match the Telegram dock reference. The pill slide spring (dampingRatio 0.82, stiffness 380) is unchanged.
+
 Measurements were derived from Figma reference frames (`0:3677` and `0:7424`):
-- **Bar Height**: 56dp
-- **Bar Shape**: Rounded corner rectangle with 28dp corner radius
-- **Tab Layout**: 5 slots distributed equally across available width
+- **Bar Height**: 52dp content height plus navigation-bar inset
+- **Bar Shape**: Full-width bottom dock with hairline top divider (0.5dp)
+- **Tab Layout**: 5 slots distributed equally across available width (`Modifier.weight(1f)`)
 - **Active Tab Pill**: Subtle primary tint indicator sliding with spring physics (`dampingRatio = 0.82f, stiffness = 380f`)
 - **Icon Sizing**: 24dp optical balance
 - **Glyph Pairings**: Outlined when inactive, filled when active, drawn with custom vector graphics (Material Symbols Apache-2.0 open-license basis)
@@ -76,7 +81,7 @@ The Privacy Policy (12 sections) and Terms of Service (11 sections) were audited
 Documented in [`docs/reviews/round4/FIGMA_ACCESS.md`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/reviews/round4/FIGMA_ACCESS.md).
 
 - **Passcode Page**: Anchored directly to owner's pre-designed Figma frame `1:305` (`docs/reviews/round4/vault_compare/figma_passcode_1_305.png`).
-- **Telegram Dock Reference**: Measured from Figma community reference `0:3677` / `0:7424` for bar height (56dp), pill radius (28dp), and tab spacing.
+- **Telegram Dock Reference**: Measured from Figma community reference `0:3677` / `0:7424` for bar height (52dp plus navigation-bar inset), full-width dock with hairline divider, and equal tab spacing.
 - **Swipe Actions**: Measured from Telegram reference for 72dp commit threshold and icon badge proportions.
 - **Remaining Vault Screens**: Generated design frames committed to `docs/reviews/round4/vault_designs/` following the visual system established in frame `1:305`.
 
@@ -88,7 +93,7 @@ Documented in [`docs/reviews/round4/FIGMA_ACCESS.md`](file:///d:/Istak/Messages/
 |---|---|---|---|
 | **HARD-01** | Hardware | Real carrier cellular SMS reception over baseband | The test environment is an Android emulator (`emulator-5554`) running in headless QEMU without a physical SIM card or baseband radio chip. Simulated SMS injection was verified via ADB. |
 | **HARD-02** | OS Security | System default-SMS role CTS dialog handover | Android OS default role prompt requires physical human touch confirmation on an out-of-process OS system modal dialog that cannot be confirmed via automated app sandboxing. |
-| **HARD-03** | Cloud Service | Real push notifications from cloud remote backend | The repository contains client code only and lacks external Google FCM backend server configuration or live push routing. Local notification delivery was verified via notification channels. |
+| **HARD-03** | Hardware | Notifications for messages received from another real device or carrier | Needs a real SIM and carrier network (emulator limit). Local notification delivery was verified via notification channels. |
 | **HARD-04** | Hardware | Physical biometric fingerprint sensor unlock | The Android emulator lacks an enrolled physical secure enclave biometric hardware scanner. Alternative authentication (PIN, pattern, password) was verified in the test suite. |
 
 ---
