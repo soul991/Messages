@@ -113,5 +113,5 @@ Executed on Android Emulator `emulator-5554` (API 34, `sdk_gphone64_x86_64`) on 
 | COND-13 | Conditions | Fling scroll and pull bottom overscroll in 1,000+ message thread | List scrolls smoothly at 60fps, jump-to-bottom navigates instantly, overscroll curve springs back cleanly | PASS | docs/reviews/round4/after/cond_13_1000_msgs_thread.png | None |
 | HARD-01 | Hardware | Real carrier cellular SMS reception over baseband | Requires physical SIM card, cellular carrier network registration, and baseband radio chip | NOT RUN | N/A (Emulator constraint) | None |
 | HARD-02 | Hardware | System default-SMS role CTS system dialog handover | Requires physical human touch confirmation on Android OS system modal outside app sandboxing | NOT RUN | N/A (Emulator constraint) | None |
-| HARD-03 | Hardware | Real push notifications from cloud remote backend | Requires external Google FCM backend server configuration and live Internet routing | NOT RUN | N/A (Emulator constraint) | None |
+| HARD-03 | Hardware | Notifications for messages received from another real device or carrier | Needs a real SIM and carrier network | NOT RUN | emulator limit | None |
 | HARD-04 | Hardware | Physical biometric fingerprint hardware sensor unlock | Android emulator environment lacks enrolled physical secure enclave biometric sensor | NOT RUN | N/A (Emulator constraint) | None |
