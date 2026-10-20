@@ -179,6 +179,9 @@ import com.messages.designsystem.DockIcons
 import com.messages.designsystem.Haptics
 import com.messages.designsystem.Motion
 import com.messages.designsystem.categoryPalette
+import com.messages.designsystem.SwipeIcons
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import kotlinx.coroutines.launch
 import androidx.annotation.StringRes
 import androidx.compose.ui.platform.LocalContext
@@ -1133,6 +1136,7 @@ private fun FolderPane(
                                         // A vertical list drag may carry a small horizontal wobble.
                                         // Do not let that in-flight scroll commit a row action.
                                         canCommitSwipe = { !folderListState.isScrollInProgress },
+                                        cardShape = cardShape,
                                     )
                                     // Inset divider starting at the text column (plan
                                     // §1 prototype) — never after the last row.
@@ -1841,12 +1845,19 @@ private fun SwipeableConversationRow(
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     canCommitSwipe: () -> Boolean = { true },
+    cardShape: androidx.compose.ui.graphics.Shape = androidx.compose.ui.graphics.RectangleShape,
 ) {
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val rightEnabled = rightAction != SwipeActions.NONE && !selectionActive
     val leftEnabled = leftAction != SwipeActions.NONE && !selectionActive
 
     if (selectionActive || (!rightEnabled && !leftEnabled)) {
-        Box(modifier.background(MaterialTheme.colorScheme.groupCard)) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(cardShape)
+                .background(MaterialTheme.colorScheme.groupCard),
+        ) {
             ConversationRow(
                 conv = conv, draft = draft, onClick = onClick,
                 badge = badge, onBadgeTap = onBadgeTap,
@@ -1865,12 +1876,12 @@ private fun SwipeableConversationRow(
     val liveOffset = remember { mutableFloatStateOf(0f) }
     val rowWidthPx = remember { mutableFloatStateOf(0f) }
 
-    val direction by remember(rightEnabled, leftEnabled) {
+    val direction by remember(rightEnabled, leftEnabled, isRtl) {
         derivedStateOf {
             val tx = liveOffset.floatValue + returnOffset.value
             when {
-                tx > 0f && rightEnabled -> 1
-                tx < 0f && leftEnabled -> -1
+                tx > 0f -> if (isRtl) (if (leftEnabled) -1 else 0) else (if (rightEnabled) 1 else 0)
+                tx < 0f -> if (isRtl) (if (rightEnabled) 1 else 0) else (if (leftEnabled) -1 else 0)
                 else -> 0
             }
         }
@@ -1887,12 +1898,16 @@ private fun SwipeableConversationRow(
     val willCommit by remember(rightAction, leftAction) {
         derivedStateOf {
             val tx = liveOffset.floatValue + returnOffset.value
-            val threshold = rowWidthPx.floatValue * 0.42f
+            val threshold = rowWidthPx.floatValue * 0.36f
             swipeAction != null && kotlin.math.abs(tx) >= threshold
         }
     }
 
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(cardShape),
+    ) {
         val currentAction = swipeAction
         if (currentAction != null && rowWidthPx.floatValue > 0f) {
             SwipeActionBackground(
@@ -1903,34 +1918,49 @@ private fun SwipeableConversationRow(
                     if (w > 0f) (kotlin.math.abs(liveOffset.floatValue + returnOffset.value) / w).coerceIn(0f, 1f) else 0f
                 },
                 willDismiss = willCommit,
+                modifier = Modifier.matchParentSize(),
             )
         }
         Box(
             Modifier
                 .fillMaxWidth()
                 .graphicsLayer { translationX = liveOffset.floatValue + returnOffset.value }
+                .clip(cardShape)
                 .background(MaterialTheme.colorScheme.groupCard)
-                .pointerInput(conv.threadId, rightAction, leftAction, selectionActive) {
+                .pointerInput(conv.threadId, rightAction, leftAction, selectionActive, isRtl) {
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
                             val next = liveOffset.floatValue + dragAmount
-                            val minOffset = if (leftEnabled) -size.width.toFloat() else 0f
-                            val maxOffset = if (rightEnabled) size.width.toFloat() else 0f
+                            val minOffset = if (isRtl) {
+                                if (rightEnabled) -size.width.toFloat() else 0f
+                            } else {
+                                if (leftEnabled) -size.width.toFloat() else 0f
+                            }
+                            val maxOffset = if (isRtl) {
+                                if (leftEnabled) size.width.toFloat() else 0f
+                            } else {
+                                if (rightEnabled) size.width.toFloat() else 0f
+                            }
                             liveOffset.floatValue = next.coerceIn(minOffset, maxOffset)
                         },
                         onDragEnd = {
                             val released = liveOffset.floatValue
-                            val threshold = rowWidthPx.floatValue * 0.42f
+                            val threshold = rowWidthPx.floatValue * 0.36f
                             val action = when {
-                                released >= threshold && rightEnabled -> rightAction
-                                released <= -threshold && leftEnabled -> leftAction
-                                else -> null
+                                isRtl -> when {
+                                    released <= -threshold && rightEnabled -> rightAction
+                                    released >= threshold && leftEnabled -> leftAction
+                                    else -> null
+                                }
+                                else -> when {
+                                    released >= threshold && rightEnabled -> rightAction
+                                    released <= -threshold && leftEnabled -> leftAction
+                                    else -> null
+                                }
                             }
                             scope.launch {
                                 returnOffset.snapTo(released)
-                                // Hand the live drag to the spring with the same offset so the
-                                // action reveal never flashes closed for a frame on finger-up.
                                 liveOffset.floatValue = 0f
                                 if (action != null && canCommitSwipe()) onAction(action, conv)
                                 returnOffset.animateTo(0f, Motion.butterSpring())
@@ -1966,7 +1996,8 @@ private fun SwipeableConversationRow(
 }
 
 private data class SwipeVisuals(
-    val icon: ImageVector,
+    val outlinedIcon: ImageVector,
+    val filledIcon: ImageVector,
     val container: Color,
     val tint: Color,
     val label: String,
@@ -1978,6 +2009,7 @@ private fun SwipeActionBackground(
     fromStart: Boolean,
     progress: () -> Float,
     willDismiss: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
     val colorScheme = MaterialTheme.colorScheme
@@ -1991,46 +2023,51 @@ private fun SwipeActionBackground(
 
     val visuals = when (action) {
         SwipeActions.ARCHIVE -> SwipeVisuals(
-            icon = Icons.Outlined.Archive,
-            container = categoryPalette("TRANSACTIONS")?.container ?: colorScheme.primaryContainer,
-            tint = categoryPalette("TRANSACTIONS")?.onContainer ?: colorScheme.onPrimaryContainer,
+            outlinedIcon = SwipeIcons.ArchiveOutlined,
+            filledIcon = SwipeIcons.ArchiveFilled,
+            container = colorScheme.secondaryContainer,
+            tint = colorScheme.onSecondaryContainer,
             label = stringResource(R.string.home_archive),
         )
         SwipeActions.DELETE -> SwipeVisuals(
-            icon = Icons.Outlined.Delete,
-            container = categoryPalette("SPAM")?.container ?: colorScheme.errorContainer,
-            tint = categoryPalette("SPAM")?.onContainer ?: colorScheme.onErrorContainer,
+            outlinedIcon = SwipeIcons.DeleteOutlined,
+            filledIcon = SwipeIcons.DeleteFilled,
+            container = colorScheme.errorContainer,
+            tint = colorScheme.onErrorContainer,
             label = stringResource(R.string.action_delete),
         )
         SwipeActions.PIN -> SwipeVisuals(
-            icon = Icons.Outlined.PushPin,
-            container = MaterialTheme.colorScheme.primaryContainer,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            outlinedIcon = SwipeIcons.PinOutlined,
+            filledIcon = SwipeIcons.PinFilled,
+            container = colorScheme.primaryContainer,
+            tint = colorScheme.onPrimaryContainer,
             label = stringResource(R.string.home_pinned),
         )
         SwipeActions.READ -> SwipeVisuals(
-            icon = Icons.Outlined.MarkChatRead,
-            container = MaterialTheme.colorScheme.tertiaryContainer,
-            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            outlinedIcon = SwipeIcons.ReadOutlined,
+            filledIcon = SwipeIcons.ReadFilled,
+            container = colorScheme.tertiaryContainer,
+            tint = colorScheme.onTertiaryContainer,
             label = stringResource(R.string.home_mark_read),
         )
         SwipeActions.MUTE -> SwipeVisuals(
-            icon = Icons.Outlined.NotificationsOff,
-            container = MaterialTheme.colorScheme.surfaceContainerHighest,
-            tint = MaterialTheme.colorScheme.onSurface,
+            outlinedIcon = SwipeIcons.MuteOutlined,
+            filledIcon = SwipeIcons.MuteFilled,
+            container = colorScheme.surfaceContainerHighest,
+            tint = colorScheme.onSurface,
             label = stringResource(R.string.action_mute),
         )
         else -> return
     }
 
     val willDismissScale by animateFloatAsState(
-        targetValue = if (willDismiss) 1.22f else 1.0f,
+        targetValue = if (willDismiss) 1.25f else 1.0f,
         animationSpec = Motion.spatialDefault(),
-        label = "gmail-swipe-scale",
+        label = "swipe-action-scale",
     )
 
     Row(
-        Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(visuals.container)
             .padding(horizontal = 24.dp),
@@ -2039,36 +2076,48 @@ private fun SwipeActionBackground(
     ) {
         if (fromStart) {
             Icon(
-                imageVector = visuals.icon,
+                imageVector = if (willDismiss) visuals.filledIcon else visuals.outlinedIcon,
                 contentDescription = null,
                 tint = visuals.tint,
                 modifier = Modifier
                     .size(24.dp)
                     .graphicsLayer {
                         val p = progress()
-                        val s = if (willDismiss) willDismissScale else (0.72f + p * 0.35f).coerceIn(0.72f, 1.05f)
+                        val s = if (willDismiss) willDismissScale else (0.80f + p * 0.40f).coerceIn(0.80f, 1.05f)
                         scaleX = s
                         scaleY = s
-                        alpha = (p * 3.5f).coerceIn(0.45f, 1.0f)
+                        alpha = (p * 4.0f).coerceIn(0.40f, 1.0f)
                     },
             )
-            Spacer(Modifier.width(10.dp))
-            SwipeActionLabel(visuals.label, visuals.tint, fromStart = true, progress = progress, willDismiss = willDismiss)
+            Spacer(Modifier.width(8.dp))
+            SwipeActionLabel(
+                label = visuals.label,
+                tint = visuals.tint,
+                fromStart = true,
+                progress = progress,
+                willDismiss = willDismiss,
+            )
         } else {
-            SwipeActionLabel(visuals.label, visuals.tint, fromStart = false, progress = progress, willDismiss = willDismiss)
-            Spacer(Modifier.width(10.dp))
+            SwipeActionLabel(
+                label = visuals.label,
+                tint = visuals.tint,
+                fromStart = false,
+                progress = progress,
+                willDismiss = willDismiss,
+            )
+            Spacer(Modifier.width(8.dp))
             Icon(
-                imageVector = visuals.icon,
+                imageVector = if (willDismiss) visuals.filledIcon else visuals.outlinedIcon,
                 contentDescription = null,
                 tint = visuals.tint,
                 modifier = Modifier
                     .size(24.dp)
                     .graphicsLayer {
                         val p = progress()
-                        val s = if (willDismiss) willDismissScale else (0.72f + p * 0.35f).coerceIn(0.72f, 1.05f)
+                        val s = if (willDismiss) willDismissScale else (0.80f + p * 0.40f).coerceIn(0.80f, 1.05f)
                         scaleX = s
                         scaleY = s
-                        alpha = (p * 3.5f).coerceIn(0.45f, 1.0f)
+                        alpha = (p * 4.0f).coerceIn(0.40f, 1.0f)
                     },
             )
         }
@@ -2084,22 +2133,24 @@ private fun SwipeActionLabel(
     willDismiss: Boolean,
 ) {
     val isVisible by remember(progress) {
-        derivedStateOf { progress() >= 0.20f }
+        derivedStateOf { progress() >= 0.16f }
     }
     AnimatedVisibility(
         visible = isVisible,
-        enter = scaleIn(Motion.bouncySpring(), initialScale = 0.68f) + fadeIn(Motion.effectsFast()),
-        exit = scaleOut(Motion.bouncySpring(), targetScale = 0.76f) + fadeOut(Motion.effectsFast()),
+        enter = scaleIn(Motion.bouncySpring(), initialScale = 0.70f) + fadeIn(Motion.effectsFast()),
+        exit = scaleOut(Motion.bouncySpring(), targetScale = 0.75f) + fadeOut(Motion.effectsFast()),
     ) {
         val density = androidx.compose.ui.platform.LocalDensity.current
         Text(
             text = label,
             color = tint,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.graphicsLayer {
                 val p = progress()
-                val slidePx = if (willDismiss) 0f else (1f - p.coerceIn(0f, 1f)) * with(density) { 14.dp.toPx() }
+                val slidePx = if (willDismiss) 0f else (1f - p.coerceIn(0f, 1f)) * with(density) { 12.dp.toPx() }
                 translationX = if (fromStart) slidePx else -slidePx
             },
         )
