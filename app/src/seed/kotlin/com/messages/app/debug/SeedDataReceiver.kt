@@ -45,7 +45,7 @@ class SeedDataReceiver : BroadcastReceiver() {
                     .apply()
                 seedFictionalData(repo)
                 setResultCode(Activity.RESULT_OK)
-                resultData = "Seeded 500 conversations across 5 categories and 100 messages in thread 1"
+                resultData = "Seeded 500 conversations across 5 categories, 100 messages in thread 1, and 1000 messages in thread 2"
             } catch (e: Exception) {
                 android.util.Log.e("SeedDataReceiver", "Seed failed", e)
                 setResultCode(Activity.RESULT_CANCELED)
@@ -68,23 +68,33 @@ class SeedDataReceiver : BroadcastReceiver() {
         // 1. Seed 500 conversations across 5 categories (100 in each)
         for (i in 1..500) {
             val threadId = i.toLong()
-            val address = "+1555" + String.format(Locale.US, "%07d", i)
             val catIndex = (i - 1) / 100
             val category = categories[catIndex]
-            val contactName = when (category) {
-                "INBOX" -> "${inboxNames[(i - 1) % inboxNames.size]} $i"
-                "TRANSACTIONS" -> "${bankNames[(i - 1) % bankNames.size]} $i"
-                "PROMOTIONS" -> "${promoNames[(i - 1) % promoNames.size]} $i"
-                "REVIEW" -> "${reviewNames[(i - 1) % reviewNames.size]} $i"
-                "SPAM" -> "${spamNames[(i - 1) % spamNames.size]} $i"
-                else -> "Generic Contact $i"
+            val address = when (i) {
+                101 -> "JK-PNBSMS-S"
+                102 -> "VM-SBIUPI-S"
+                else -> "+1555" + String.format(Locale.US, "%07d", i)
+            }
+            val contactName = when (i) {
+                101 -> "JK-PNBSMS-S"
+                102 -> "VM-SBIUPI-S"
+                else -> when (category) {
+                    "INBOX" -> "${inboxNames[(i - 1) % inboxNames.size]} $i"
+                    "TRANSACTIONS" -> "${bankNames[(i - 1) % bankNames.size]} $i"
+                    "PROMOTIONS" -> "${promoNames[(i - 1) % promoNames.size]} $i"
+                    "REVIEW" -> "${reviewNames[(i - 1) % reviewNames.size]} $i"
+                    "SPAM" -> "${spamNames[(i - 1) % spamNames.size]} $i"
+                    else -> "Generic Contact $i"
+                }
             }
             val timestamp = baseTime + i * 60_000L
-            val lastBody = when (category) {
-                "TRANSACTIONS" -> "Rs.1,250.00 debited from A/c XX4321 on 15-10-26. Avl Bal Rs.9,870.55"
-                "PROMOTIONS" -> "Save 20% on your next order with code DEMO20 at https://example.com/deals"
-                "REVIEW" -> "Verification code 849201 requested for device login."
-                "SPAM" -> "You won a $1000 gift card! Claim now at https://example.com/claim"
+            val lastBody = when {
+                i == 101 -> "Rs.2,500.00 debited from A/c XX1234 on 18-10-26. UPI Ref: 329104829104. Avl Bal Rs.18,450.00"
+                i == 102 -> "Rs.750.00 credited to A/c XX5678 on 19-10-26 via UPI from merchant. Avl Bal Rs.12,300.20"
+                category == "TRANSACTIONS" -> "Rs.1,250.00 debited from A/c XX4321 on 15-10-26. Avl Bal Rs.9,870.55"
+                category == "PROMOTIONS" -> "Save 20% on your next order with code DEMO20 at https://example.com/deals"
+                category == "REVIEW" -> "Verification code 849201 requested for device login."
+                category == "SPAM" -> "You won a $1000 gift card! Claim now at https://example.com/claim"
                 else -> "Hey, let's catch up later today!"
             }
 
@@ -104,15 +114,16 @@ class SeedDataReceiver : BroadcastReceiver() {
             )
             repo.db.conversations().upsert(conv)
 
-            // Thread 1 messages are inserted in the 100-message loop below to ensure exactly 100 messages
-            if (i > 1) {
+            // Thread 1 and 2 messages are inserted in dedicated loops below
+            if (i > 2) {
+                val isOut = if (i == 101 || i == 102) false else (i % 2 == 0)
                 val msg = MessageEntity(
                     threadId = threadId,
                     address = address,
                     body = lastBody,
                     normalizedBody = lastBody.lowercase(Locale.US),
                     timestamp = timestamp,
-                    isOutgoing = (i % 2 == 0),
+                    isOutgoing = isOut,
                     read = (i % 7 != 0),
                     category = category,
                     space = Spaces.NORMAL,
@@ -178,6 +189,37 @@ class SeedDataReceiver : BroadcastReceiver() {
                 conv1.copy(
                     contactName = "Alex Morgan 1",
                     lastMessage = "Benchmark conversation test message 100 for thread 1 performance verification.",
+                    lastTimestamp = now,
+                )
+            )
+        }
+
+        // 3. Seed 1,000 messages in thread 2 for 1,000+ message scroll, jump-to-bottom & overscroll verification
+        val thread2Address = "+15550000002"
+        val thread2BaseTime = now - 1000 * 10_000L
+        for (m in 1..1000) {
+            val mTimestamp = thread2BaseTime + m * 10_000L
+            val isOut = (m % 2 == 0)
+            val mBody = "Message $m in 1000-message thread: scroll and jump-to-bottom stress testing."
+            val msg = MessageEntity(
+                threadId = 2L,
+                address = thread2Address,
+                body = mBody,
+                normalizedBody = mBody.lowercase(Locale.US),
+                timestamp = mTimestamp,
+                isOutgoing = isOut,
+                read = true,
+                category = "INBOX",
+                space = Spaces.NORMAL,
+            )
+            repo.db.messages().insert(msg)
+        }
+        val conv2 = repo.db.conversations().byThreadId(2L, Spaces.NORMAL)
+        if (conv2 != null) {
+            repo.db.conversations().upsert(
+                conv2.copy(
+                    contactName = "Taylor Lee 2",
+                    lastMessage = "Message 1000 in 1000-message thread: scroll and jump-to-bottom stress testing.",
                     lastTimestamp = now,
                 )
             )

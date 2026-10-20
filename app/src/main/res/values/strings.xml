@@ -1269,6 +1269,8 @@
     <string name="secret_start_over">Start over</string>
     <string name="secret_patterns_dont_match">Patterns don\'t match — try again</string>
     <string name="secret_codes_dont_match">Codes don\'t match — try again</string>
+    <string name="secret_pin_progress">%1$d of %2$d digits entered</string>
+    <string name="secret_use_password_instead">Use password instead</string>
     <string name="secret_hide_password">Hide password</string>
     <string name="secret_show_password">Show password</string>
     <string name="secret_tap_to_type_pin">Tap to type your PIN</string>
@@ -1742,5 +1744,116 @@ This application is provided as-is for personal use. By using it you accept that
     <string name="settings_link_previews_footer">Never for filtered folders or dangerous messages; no cookies are sent.</string>
     <string name="settings_summary_cards_short_sub">Extract key details from bank and bill messages</string>
     <string name="settings_summary_cards_footer">Read on this phone, from the message itself. Never shown on spam or suspected fraud.</string>
+
+
+    <!-- Structured Legal Document Strings (Privacy Policy & Terms) -->
+    <string name="legal_bullet_dot">•</string>
+
+    <!-- Privacy Policy Strings -->
+    <string name="privacy_last_updated">Last updated: October 20, 2026</string>
+    <string name="privacy_summary_box_title">At a glance</string>
+    <string name="privacy_summary_bullet_1">Messages and contacts stay on your device by default.</string>
+    <string name="privacy_summary_bullet_2">Data leaves only if you turn on optional backups, previews, or update checks.</string>
+    <string name="privacy_summary_bullet_3">Questions or audits can be reported on GitHub.</string>
+
+    <string name="privacy_sec_1_title">1. Summary</string>
+    <string name="privacy_sec_1_bullet_1">Messages is designed to keep your personal communications private and entirely under your control.</string>
+    <string name="privacy_sec_1_bullet_2">Core features require no external servers, user accounts, or cloud processing to operate.</string>
+
+    <string name="privacy_sec_2_title">2. What stays on your device</string>
+    <string name="privacy_sec_2_bullet_1">All SMS and MMS messages are stored in an app-private local database on your phone.</string>
+    <string name="privacy_sec_2_bullet_2">Contact information is read locally to display names and photos and never leaves the device.</string>
+    <string name="privacy_sec_2_bullet_3">Vault items are encrypted using AES-256-GCM with keys derived solely on-device.</string>
+    <string name="privacy_sec_2_bullet_4">Spam and scam protection rules evaluate incoming messages entirely on your device.</string>
+    <string name="privacy_sec_2_bullet_5">On-device machine learning scoring is currently disabled (AI_LAYER_ENABLED is false).</string>
+    <string name="privacy_sec_2_bullet_6">Android cloud backup is blocked so unencrypted messages cannot leak to cloud storage.</string>
+
+    <string name="privacy_sec_3_title">3. Permissions we ask for and why</string>
+    <string name="privacy_sec_3_bullet_1">SMS and MMS: to receive, display, compose, and send text and multimedia messages.</string>
+    <string name="privacy_sec_3_bullet_2">Contacts: to show names and avatars for your conversations and simplify recipient selection.</string>
+    <string name="privacy_sec_3_bullet_3">Phone: to identify your active SIM cards and route outgoing messages over the right network.</string>
+    <string name="privacy_sec_3_bullet_4">Notifications: to alert you when new text messages arrive.</string>
+    <string name="privacy_sec_3_bullet_5">Biometrics: to securely unlock App Lock and the private Vault space using your fingerprint.</string>
+    <string name="privacy_sec_3_bullet_6">Internet: to perform user-initiated encrypted backups, link previews, and check for updates.</string>
+    <string name="privacy_sec_3_bullet_7">Install Packages: to install APK updates you explicitly download from GitHub releases.</string>
+
+    <string name="privacy_sec_4_title">4. What can leave your device, only if you turn it on</string>
+    <string name="privacy_sec_4_bullet_1">Google Drive Backup (Google LLC): Encrypted backup files are uploaded to your private Google Drive app storage.</string>
+    <string name="privacy_sec_4_bullet_2">Link Previews (Target Web Server): HTTPS requests fetch page titles and thumbnails over port 443 with SSRF protection.</string>
+    <string name="privacy_sec_4_bullet_3">Spam Reports (Carrier / TRAI): You can forward spam texts to short codes 1909 or 7726 via standard SMS.</string>
+    <string name="privacy_sec_4_bullet_4">Update Checks (GitHub, Inc.): The app queries GitHub API to check if a newer release is available.</string>
+
+    <string name="privacy_sec_5_title">5. What we never do</string>
+    <string name="privacy_sec_5_bullet_1">No accounts: you never need to register, provide an email, or sign in to use Messages.</string>
+    <string name="privacy_sec_5_bullet_2">No analytics: we do not collect telemetry, app usage statistics, or user behavior metrics.</string>
+    <string name="privacy_sec_5_bullet_3">No crash reporters: no third-party SDKs monitor crashes or capture stack traces remotely.</string>
+    <string name="privacy_sec_5_bullet_4">No advertising: the app contains no ads, ad networks, tracking pixels, or marketing SDKs.</string>
+    <string name="privacy_sec_5_bullet_5">No sale of data: we never sell, rent, monetize, or trade your personal information.</string>
+    <string name="privacy_sec_5_bullet_6">No message upload for AI: your messages are never transmitted to external AI models or servers.</string>
+
+    <string name="privacy_sec_6_title">6. Your controls</string>
+    <string name="privacy_sec_6_bullet_1">Turn off link previews anytime in Settings to stop all preview-related web requests.</string>
+    <string name="privacy_sec_6_bullet_2">Disconnect Google Drive and delete cloud backups directly through the Backup settings.</string>
+    <string name="privacy_sec_6_bullet_3">Disable automatic update check notifications in Update settings at any time.</string>
+    <string name="privacy_sec_6_bullet_4">Revoke any runtime permission through your device Android system settings whenever you wish.</string>
+
+    <string name="privacy_sec_7_title">7. Children</string>
+    <string name="privacy_sec_7_bullet_1">Messages does not knowingly collect, store, or solicit personal data from children under 13.</string>
+    <string name="privacy_sec_7_bullet_2">Because no data is gathered on servers, parents retain full control over device usage.</string>
+
+    <string name="privacy_sec_8_title">8. Changes to this policy</string>
+    <string name="privacy_sec_8_bullet_1">Any future changes to this policy will be documented in release notes and in this document.</string>
+    <string name="privacy_sec_8_bullet_2">The Last Updated date at the top of this document indicates when changes took effect.</string>
+
+    <string name="privacy_sec_9_title">9. Contact</string>
+    <string name="privacy_sec_9_bullet_1">For questions, concerns, or privacy audits, open an issue on our GitHub repository.</string>
+    <string name="privacy_sec_9_bullet_2">You can inspect and verify our open-source codebase at https://github.com/soul991/Messages.</string>
+
+    <!-- Terms and Conditions Strings -->
+    <string name="terms_last_updated">Last updated: October 20, 2026</string>
+    <string name="terms_summary_box_title">Key points</string>
+    <string name="terms_summary_bullet_1">Messages is provided free and open source under the GNU General Public License v3.</string>
+    <string name="terms_summary_bullet_2">The software is provided as-is without warranty; you maintain your own data backups.</string>
+    <string name="terms_summary_bullet_3">Source code and issue reports are available on GitHub.</string>
+
+    <string name="terms_sec_1_title">1. Acceptance of Terms</string>
+    <string name="terms_sec_1_bullet_1">By installing or using Messages, you agree to these Terms and Conditions.</string>
+    <string name="terms_sec_1_bullet_2">If you do not agree to all terms, do not install or use this application.</string>
+
+    <string name="terms_sec_2_title">2. What the app does</string>
+    <string name="terms_sec_2_bullet_1">Messages is an on-device SMS, MMS, and conversation manager for Android.</string>
+    <string name="terms_sec_2_bullet_2">The app organizes threads, flags potential spam, and provides an encrypted Vault space.</string>
+
+    <string name="terms_sec_3_title">3. Your responsibilities</string>
+    <string name="terms_sec_3_bullet_1">You are responsible for keeping your phone, App Lock PIN, and Vault credentials secure.</string>
+    <string name="terms_sec_3_bullet_2">You are responsible for regularly backing up your conversation data to avoid data loss.</string>
+    <string name="terms_sec_3_bullet_3">You must not use the application to violate applicable laws, transmit malware, or send spam.</string>
+
+    <string name="terms_sec_4_title">4. Spam and scam filter limits</string>
+    <string name="terms_sec_4_bullet_1">Spam and scam classifications are automated heuristics and may produce errors or false positives.</string>
+    <string name="terms_sec_4_bullet_2">Never rely on filtering as a guarantee against fraud, financial loss, or malicious links.</string>
+    <string name="terms_sec_4_bullet_3">Always verify sensitive bank, payment, or security messages directly with the sender.</string>
+
+    <string name="terms_sec_5_title">5. No warranty</string>
+    <string name="terms_sec_5_bullet_1">The application is provided "as is" and "as available", without warranty of any kind.</string>
+    <string name="terms_sec_5_bullet_2">We disclaim all warranties, express or implied, including merchantability and fitness for a particular purpose.</string>
+    <string name="terms_sec_5_bullet_3">We do not guarantee uninterrupted, secure, or error-free operation of telephony functions.</string>
+
+    <string name="terms_sec_6_title">6. Limitation of liability</string>
+    <string name="terms_sec_6_bullet_1">To the maximum extent permitted by law, authors and contributors are not liable for damages.</string>
+    <string name="terms_sec_6_bullet_2">This includes loss of messages, lost profits, device malfunction, or security breaches.</string>
+
+    <string name="terms_sec_7_title">7. Open-source licence and source code</string>
+    <string name="terms_sec_7_bullet_1">Messages is licensed under the GNU General Public License v3 (GPLv3).</string>
+    <string name="terms_sec_7_bullet_2">You may review, audit, copy, modify, and redistribute the source code under the GPLv3 license terms.</string>
+    <string name="terms_sec_7_bullet_3">The complete source code is hosted on GitHub at https://github.com/soul991/Messages.</string>
+
+    <string name="terms_sec_8_title">8. Changes to terms</string>
+    <string name="terms_sec_8_bullet_1">We may revise these Terms and Conditions periodically to reflect new features or laws.</string>
+    <string name="terms_sec_8_bullet_2">Continued use of the app after revisions constitute your acceptance of the updated terms.</string>
+
+    <string name="terms_sec_9_title">9. Contact</string>
+    <string name="terms_sec_9_bullet_1">For questions regarding these terms, submit an issue on our GitHub repository.</string>
+    <string name="terms_sec_9_bullet_2">Visit https://github.com/soul991/Messages/issues to submit feedback or report issues.</string>
 
 </resources>

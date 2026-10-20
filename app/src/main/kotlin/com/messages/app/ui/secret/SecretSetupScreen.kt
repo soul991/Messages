@@ -104,12 +104,14 @@ fun SecretSetupScreen(
             Modifier
                 .padding(padding)
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = SecretScreenSpacing,
         ) {
             if (chosen == null) {
                 Spacer(Modifier.height(8.dp))
-                VaultLockMark(size = 56.dp)
+                VaultLockBadge(size = 72.dp, iconSize = 34.dp)
                 // The one shared choose→enter→confirm flow (also used by the
                 // in-space "change secret code" — fix: full type re-pick).
                 CredentialCreationSteps(
