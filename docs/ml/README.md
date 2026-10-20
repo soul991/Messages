@@ -98,4 +98,4 @@ setting is unavailable in Settings. In 2.1.1, a user could switch it on from Set
 Keep the model as an offline experiment until the owner supplies an independent,
 human-labeled evaluation set with real, de-identified examples across the
 languages and message types the app supports. Never train from users' SMS or
-upload their messages.
+upload their messages. Intermediate candidate models were removed to keep the repo small; regenerate with the cycle scripts under protection-engine/tools/.

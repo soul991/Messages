@@ -37,7 +37,7 @@
    - Status: Reverted after compile failure
    - Error output:
 ```
-e: file:///C:/Users/hyper/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-json-jvm/1.11.0/e7e045e99e56f07599bb9ccb708c2190e2af0606/kotlinx-serialization-json-jvm-1.11.0.jar!/META-INF/kotlinx-serialization-json.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.3.0, expected version is 2.0.0.
+e: C:/Users/hyper/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-json-jvm/1.11.0/e7e045e99e56f07599bb9ccb708c2190e2af0606/kotlinx-serialization-json-jvm-1.11.0.jar!/META-INF/kotlinx-serialization-json.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.3.0, expected version is 2.0.0.
 
 > Task :protection-engine:compileKotlin FAILED
 
@@ -219,14 +219,14 @@ index 12549cc..f17653b 100644
  ### 2.3 Emulator In-Place Upgrade Test
  1. Installed debug build of `8cf1e53` (`v2.1.0`) on `emulator-5554`:
     - Launched and observed synthetic thread generation ("Elena Rostova", thread ID 100).
--   - Screenshot: [01_v2_1_0_with_fake_thread.png](file:///D:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/reviews/upgrade_test/01_v2_1_0_with_fake_thread.png)
+-   - Screenshot: [01_v2_1_0_with_fake_thread.png](upgrade_test/01_v2_1_0_with_fake_thread.png)
 +   - Screenshot: [01_v2_1_0_with_fake_thread.png](upgrade_test/01_v2_1_0_with_fake_thread.png)
  2. In-place upgrade with debug build of `origin/hotfix/2.1.1`:
     - Launched and captured cleanup logcat:
  ```
  10-19 02:49:08.725  5004  5042 I MessagesApp: cleaned up 96 synthetic message(s)
  ```
--   - Screenshot after hotfix: [02_after_hotfix.png](file:///D:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/reviews/upgrade_test/02_after_hotfix.png)
+-   - Screenshot after hotfix: [02_after_hotfix.png](upgrade_test/02_after_hotfix.png)
 +   - Screenshot after hotfix: [02_after_hotfix.png](upgrade_test/02_after_hotfix.png)
  3. Relaunch test:
     - Force-stopped app and relaunched.

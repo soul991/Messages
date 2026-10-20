@@ -1,4 +1,4 @@
-﻿Starting a Gradle Daemon, 1 busy and 1 incompatible and 4 stopped Daemons could not be reused, use --status for details
+Starting a Gradle Daemon, 1 busy and 1 incompatible and 4 stopped Daemons could not be reused, use --status for details
 Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
 WARNING: We recommend using a newer Android Gradle plugin to use compileSdk = 35
 
@@ -208,7 +208,7 @@ FAILURE: Build failed with an exception.
 
 * What went wrong:
 Execution failed for task ':macrobenchmark:connectedBenchmarkAndroidTest'.
-> There were failing tests. See the report at: file:///D:/Istak/Messages/Messages%20App/01_active_codebase/messages/macrobenchmark/build/reports/androidTests/connected/benchmark/index.html
+> There were failing tests. See the report at: macrobenchmark/build/reports/androidTests/connected/benchmark/index.html
 
 * Try:
 > Run with --stacktrace option to get the stack trace.

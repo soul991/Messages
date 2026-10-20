@@ -3,9 +3,17 @@
 - **Candidate SHA-256**: `9a4ddf6934c0bab5fb7a002d08cbef01e5661ea01efbe80d774e8cd113f9e961`
 - **Candidate Prefix**: `9a4ddf6934c0bab5`
 - **Evaluation Date**: 2026-10-20
-- **Governing Criteria**: [Scope and Numerical Acceptance Criteria](file:///docs/ml/scope-and-acceptance-criteria.md)
+- **Governing Criteria**: [Scope and Numerical Acceptance Criteria](scope-and-acceptance-criteria.md)
 - **Dataset Manifest SHA-256**: `76c8aedd77853cf606c3a4998847a4613e5c1e41f80b812033f4f65fa2d3e2f0`
 - **Release Recommendation**: **`DO NOT MERGE / DO NOT ENABLE`**
+
+---
+
+## How to read these numbers
+
+- All gate numbers in section 2 are measured on dev_challenge.jsonl, and seven development cycles (cycle 01 to 07) were tuned against that same set. The roadmap forbids tuning on the set you report on, so these numbers are optimistic and are development evidence only, not a release estimate.
+- The real false-positive rate on unseen messages is unknown and is expected to be higher than 20.00%.
+- No independent human-labeled acceptance set exists, so release certification is not possible yet.
 
 ---
 
@@ -22,7 +30,7 @@
 
 ## 2. Release Gates Scorecard (Failing Gates First)
 
-All numbers are measured on the development challenge split `dev_challenge.jsonl` ($N = 559$: 269 scams, 290 hams) and committed in [`docs/ml/cycles/cycle_07_multilingual_advisory.json`](file:///docs/ml/cycles/cycle_07_multilingual_advisory.json). 95% confidence intervals are computed using the Wilson score interval with continuity correction.
+All numbers are measured on the development challenge split `dev_challenge.jsonl` ($N = 559$: 269 scams, 290 hams) and committed in [`docs/ml/cycles/cycle_07_multilingual_advisory.json`](cycles/cycle_07_multilingual_advisory.json). 95% confidence intervals are computed using the Wilson score interval with continuity correction.
 
 | Gate Dimension | Gate Requirement (Stage 1) | Measured Value | Wilson 95% Confidence Interval | Status |
 |---|---|---|---|---|
@@ -56,7 +64,7 @@ All numbers are measured on the development challenge split `dev_challenge.jsonl
    - Consequently, the linear classifier for Devanagari assigns positive weights to ordinary Hindi words (*"गए"*, *"को"*, *"रहा"*, *"नहीं"*), causing non-scam personal messages to exceed the detection threshold unless gated by strict vector rules.
 
 3. **High Challenge Set Difficulty**:
-   - The frozen development challenge (`dev_challenge.jsonl`) consists of adversarial and tricky samples: bank advisories, ambiguous promotional messages, transliterated Hinglish/Banglish SMS, and utility notices. On standard random validation splits, the model achieves **98.7% recall** at **0.06% FPR**, but on out-of-distribution adversarial SMS, the FPR rises to **20.00%**.
+   - The frozen development challenge (`dev_challenge.jsonl`) consists of adversarial and tricky samples: bank advisories, ambiguous promotional messages, transliterated Hinglish/Banglish SMS, and utility notices. On standard random validation splits, the model achieves **98.7% recall** at **0.06% FPR**, but on out-of-distribution adversarial SMS, the FPR rises to **20.00%**. This is on a random validation split from the same sources as training; it is not comparable to the challenge-set numbers and must not be used as an estimate of real-world performance.
 
 ---
 
@@ -68,7 +76,7 @@ All numbers are measured on the development challenge split `dev_challenge.jsonl
   - Multilingual Transliterated Advisory Filter: Identifies consumer protection notices and warning idioms (`RE_ADVISORY`).
 - **Feature Extraction**: Sublinear TF-IDF over character word-boundary n-grams ($n \in [2, 5]$), capped at 5,000 features per script.
 - **Runtime Representation**: Stored as a pure JSON lookup table (`model.json`, 971.8 KB) containing sparse weights and IDF multipliers. Requires no external C++ / PyTorch runtime and evaluates via simple dot-product and sigmoid activation.
-- **Parity Fixtures**: 50 verified input-output samples across Latin, Devanagari, and Bengali scripts committed in [`ml/candidates/9a4ddf6934c0bab5/score_sample.json`](file:///ml/candidates/9a4ddf6934c0bab5/score_sample.json).
+- **Parity Fixtures**: 235 verified input-output samples across Latin, Devanagari, and Bengali scripts committed in [`../../ml/candidates/9a4ddf6934c0bab5/score_sample.json`](../../ml/candidates/9a4ddf6934c0bab5/score_sample.json).
 
 ---
 
