@@ -1,0 +1,112 @@
+{
+  "cycle": 7,
+  "hypothesis": "Scam awareness and public advisories in India frequently use Hindi/Hinglish/Bengali advisory patterns. Expanding the pre-filter to detect transliterated Hinglish/Banglish warning patterns combined with multi-script calibrated linear expert models drastically reduces false positives on hard negative advisories while preserving >= 80% scam recall and 0.00% protected traffic FPR.",
+  "candidate_sha256": "9a4ddf6934c0bab5fb7a002d08cbef01e5661ea01efbe80d774e8cd113f9e961",
+  "dataset_manifest_sha256": "76c8aedd77853cf606c3a4998847a4613e5c1e41f80b812033f4f65fa2d3e2f0",
+  "seeds": [
+    20261020,
+    20261021,
+    20261022
+  ],
+  "dev_metrics": {
+    "n": 559,
+    "scam_n": 269,
+    "ham_n": 290,
+    "tp": 216,
+    "fp": 58,
+    "fn": 53,
+    "tn": 232,
+    "recall": 0.803,
+    "recall_ci95": [
+      0.7513,
+      0.8461
+    ],
+    "fpr": 0.2,
+    "fpr_ci95": [
+      0.158,
+      0.2498
+    ],
+    "precision": 0.7883,
+    "f1": 0.7956,
+    "brier": 0.1432,
+    "ece": 0.0917,
+    "inconclusive": false
+  },
+  "per_language": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 121,
+      "fp": 15,
+      "fn": 27,
+      "tn": 133,
+      "recall": 0.8176,
+      "recall_ci95": [
+        0.7476,
+        0.8715
+      ],
+      "fpr": 0.1014,
+      "fpr_ci95": [
+        0.0624,
+        0.1605
+      ],
+      "precision": 0.8897,
+      "f1": 0.8521,
+      "brier": 0.1261,
+      "ece": 0.0609,
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 55,
+      "fp": 33,
+      "fn": 16,
+      "tn": 59,
+      "recall": 0.7746,
+      "recall_ci95": [
+        0.6648,
+        0.8563
+      ],
+      "fpr": 0.3587,
+      "fpr_ci95": [
+        0.2682,
+        0.4605
+      ],
+      "precision": 0.625,
+      "f1": 0.6918,
+      "brier": 0.156,
+      "ece": 0.1211,
+      "inconclusive": false
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 40,
+      "fp": 10,
+      "fn": 10,
+      "tn": 40,
+      "recall": 0.8,
+      "recall_ci95": [
+        0.6696,
+        0.8876
+      ],
+      "fpr": 0.2,
+      "fpr_ci95": [
+        0.1124,
+        0.3304
+      ],
+      "precision": 0.8,
+      "f1": 0.8,
+      "brier": 0.1734,
+      "ece": 0.217,
+      "inconclusive": false
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "keep",
+  "notes": "Cycle 07: Overall dev FPR dropped to 20.00% with recall 80.30%. Protected FPR is 0.00%. Brier is 0.1432, ECE is 0.0917. Latency P95 is 0.81 ms."
+}
