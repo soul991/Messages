@@ -92,6 +92,11 @@ object Motion {
     fun <T> sendIconMorphSpec(): FiniteAnimationSpec<T> =
         if (animationsEnabled()) spring(dampingRatio = 0.80f, stiffness = 600f)
         else snap()
+
+    /** Overscroll rebound spring: soft, critically damped rebound for curved overscroll. */
+    fun <T> overscrollSpring(): FiniteAnimationSpec<T> =
+        if (animationsEnabled()) spring(dampingRatio = 0.85f, stiffness = 300f)
+        else snap()
 }
 
 /** Haptics on key actions (§9) — thin wrappers over view feedback constants. */
