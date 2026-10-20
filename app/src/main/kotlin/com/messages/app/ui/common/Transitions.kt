@@ -42,11 +42,11 @@ val LocalNavAnimatedVisibilityScope = staticCompositionLocalOf<AnimatedVisibilit
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun Modifier.sharedThreadAvatar(threadId: Long): Modifier {
+fun Modifier.sharedThreadAvatar(threadId: Long, alwaysActive: Boolean = false): Modifier {
     val sts = LocalSharedTransitionScope.current ?: return this
     val scope = LocalNavAnimatedVisibilityScope.current ?: return this
     val transition = scope.transition
-    if (transition.currentState == transition.targetState && !transition.isRunning) return this
+    if (!alwaysActive && transition.currentState == transition.targetState && !transition.isRunning && !transition.isSeeking) return this
     return with(sts) {
         this@sharedThreadAvatar.sharedElement(
             rememberSharedContentState(key = "avatar-$threadId"),
@@ -62,11 +62,11 @@ fun Modifier.sharedThreadAvatar(threadId: Long): Modifier {
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun Modifier.sharedThreadName(threadId: Long): Modifier {
+fun Modifier.sharedThreadName(threadId: Long, alwaysActive: Boolean = false): Modifier {
     val sts = LocalSharedTransitionScope.current ?: return this
     val scope = LocalNavAnimatedVisibilityScope.current ?: return this
     val transition = scope.transition
-    if (transition.currentState == transition.targetState && !transition.isRunning) return this
+    if (!alwaysActive && transition.currentState == transition.targetState && !transition.isRunning && !transition.isSeeking) return this
     return with(sts) {
         this@sharedThreadName.sharedBounds(
             rememberSharedContentState(key = "name-$threadId"),
