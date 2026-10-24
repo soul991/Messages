@@ -31,18 +31,43 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 ROOT = Path(__file__).resolve().parents[2]
 
-RE_LINK = re.compile(r'https?://\S+|www\.\S+|bit\.ly/\S+|tinyurl\.com/\S+|wa\.me/\S+|\.apk\b', re.I)
-RE_PHONE = re.compile(r'(?:\+?91[\s-]?)?[6-9]\d{9}\b')
-RE_PROT = re.compile(r'\b(?:otp|one time password|credited|debited|a/c|account no|avl bal|जमा किए|निकाले गए|क्रेडिट|डेबिट|ओटीपी|खाता संख्या|জমা হয়েছে|ডেবিট)\b', re.I)
+RE_LINK = re.compile(r"https?://\S+|www\.\S+|bit\.ly/\S+|tinyurl\.com/\S+|wa\.me/\S+|\.apk\b", re.I)
+RE_PHONE = re.compile(r"(?:\+?91[\s-]?)?[6-9]\d{9}\b")
+RE_PROT = re.compile(
+    r"(?:"
+    r"\b(?:otp|one time password|credited|debited|a/c|account no|avl bal|"
+    r"paid via|monthly membership fee|bill of rs|electricity bill|delivery partner|pack kiya ja raha|"
+    r"online class hai)\b|"
+    r"जमा किए|निकाले गए|क्रेडिट|डेबिट|ओटीपी|खाता संख्या|জমা হয়েছে|ডেবিট|"
+    r"जोड़े गए|शेष राशि|कुल शेष|"
+    r"সফলভাবে|সফল হয়েছে|সম্পন্ন হয়েছে|সফলভাবে সম্পন্ন|নিশ্চিত করা হয়েছে|"
+    r"ডেলিভারি করা হয়েছে|প্যাক করা হচ্ছে|"
+    r"सफलतापूर्वक|सफल रहा|सफल हुआ"
+    r")",
+    re.I
+)
 RE_ADVISORY = re.compile(
-    r'(?:\bnever share\b|\bdo not share\b|\bkisi ko na (?:dein|batao)\b|\bsavdhan rahein\b|\bsatark rahein\b|'
-    r'\bbeware of\b|\bfraud awareness\b|\bcaution\b|\bsafety tip\b|\bsharthoko thakun\b|\bbank never asks\b|'
-    r'जन सूचना|सावधान|सतर्क|चेतावनी|सतर्कता|सचेत रहें|ध्यान रखें|झांसे में न|भरोसा न करें|सलाह दी जाती|केवल आधिकारिक|'
-    r'সতর্কতা|সতর্ক থাকুন|প্রতারিত হবেন না|বিশ্বাস করবেন না|সাবধান থাকুন|'
-    r'\bbe cautious\b|\bdo not trust\b|\bnever send\b|\bno consultant\b|\bno private agent\b|\bno one can\b|'
-    r'\bshould be verified\b|\bverify every\b|\bred flag\b|\bdo not rely\b|\bgenuine .* requires\b|\bofficial decisions\b|'
-    r'fraud (?:hota hai|pattern|signal|ka risk)|suspicious hoti|mat karein|na karein|sirf official|bina proof|'
-    r'bina verification|bharosemand nahi)',
+    r"(?:"
+    r"\bnever share\b|\bdo not share\b|\bkisi ko na (?:dein|batao)\b|\bsavdhan rahein\b|\bsatark rahein\b|"
+    r"\bbeware of\b|\bfraud awareness\b|\bcaution\b|\bsafety tip\b|\bsharthoko thakun\b|\bbank never asks\b|"
+    r"जन सूचना|सावधान|सतर्क|चेतावनी|सतर्कता|सचेत रहें|ध्यान रखें|झांसे में न|भरोसा न करें|सलाह दी जाती|केवल आधिकारिक|"
+    r"সতর্কতা|সতর্ক থাকুন|প্রতারিত হবেন না|বিশ্বাস করবেন না|সাবধান থাকুন|"
+    r"\bbe cautious\b|\bdo not trust\b|\bnever send\b|\bno consultant\b|\bno private agent\b|\bno one can\b|"
+    r"\bshould be verified\b|\bverify every\b|\bred flag\b|\bdo not rely\b|\bgenuine .* requires\b|\bofficial decisions\b|"
+    r"fraud (?:hota hai|pattern|signal|ka risk)|suspicious hoti|mat karein|na karein|sirf official|bina proof|"
+    r"bina verification|bharosemand nahi|"
+    r"public notice|जन सूचना|জন বিজ্ঞপ্তি|"
+    r"(?:are not|is not) (?:released|collected|asked|demanded)|"
+    r"(?:dene se pehle|karne se pehle|making any payment|before making any payment)|"
+    r"(?:independently verify|verify everything yourself|verify on the official)|"
+    r"(?:nahi|नहीं)\s*(?:ja sakta|जा सकता|hota|होता|dein|दें|karein|करें)|"
+    r"(?:dhyan|ध्यान)\s*se\s*(?:check|padhein|verify|dekhein|देखें|पढ़ें)|"
+    r"(?:bharosemand|भरोसेमंद)\s*(?:nahi|नहीं)|"
+    r"(?:kabhi bhi|कभी भी)\s*[\w\s]{1,30}?\s*(?:nahi|नहीं)|"
+    r"(?:keval|केवल)\s*(?:official|adhikarik|आधिकारिक|prakriya|प्रक्रिया)|"
+    r"badla nahi\s*(?:ja sakta|जा सकता)|"
+    r"न भेजें|दावा कर रहा|zaruri hota|ज़रूरी होता"
+    r")",
     re.I
 )
 
