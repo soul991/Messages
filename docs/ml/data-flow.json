@@ -100,9 +100,67 @@
       "excluded_notes": "Frozen multi-language challenge subset (100 rows each for bn, hi, hi-latn, en). Never fitted on."
     }
   },
-  "partition_totals": {
-    "train": 9890,
-    "validation": 2305,
-    "dev": 559
+  "round2_data_flow": {
+    "total_raw_candidates": 38372,
+    "unique_deduped_pool": 24151,
+    "partitions": {
+      "train": {
+        "total_rows": 19603,
+        "buckets": {
+          "en_latin": 9650,
+          "hi_latn": 4998,
+          "hi_deva": 3551,
+          "bn_beng": 854,
+          "bn_latn": 550
+        },
+        "labels": {
+          "NOT_SCAM": 15004,
+          "SCAM_FRAUD": 4599
+        },
+        "synthetic_rows": 1203,
+        "synthetic_ratio": 0.0614,
+        "bangladesh_bengali_rows": 427,
+        "bangladesh_bengali_ratio": 0.5000
+      },
+      "validation": {
+        "total_rows": 2200,
+        "buckets": {
+          "en_latin": 1200,
+          "hi_deva": 400,
+          "hi_latn": 300,
+          "bn_beng": 300
+        },
+        "labels": {
+          "NOT_SCAM": 1790,
+          "SCAM_FRAUD": 410
+        },
+        "synthetic_rows": 0,
+        "bangladesh_rows": 0
+      },
+      "lockbox": {
+        "total_rows": 1800,
+        "buckets": {
+          "en_latin": 600,
+          "hi_deva": 400,
+          "hi_latn": 300,
+          "bn_beng": 300,
+          "bn_latn": 200
+        },
+        "labels": {
+          "NOT_SCAM": 1285,
+          "SCAM_FRAUD": 515
+        },
+        "synthetic_rows": 0,
+        "evaluation_rule": "Max 3 evaluations round-wide on frozen candidates only"
+      },
+      "dev_challenge": {
+        "total_rows": 559,
+        "labels": {
+          "NOT_SCAM": 290,
+          "SCAM_FRAUD": 269
+        },
+        "evaluation_rule": "Max 1 evaluation per 3 training cycles"
+      }
+    }
   }
 }

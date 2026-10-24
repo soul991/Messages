@@ -4,148 +4,331 @@
       "name": "scam-ham-india-14-languages",
       "source_url": "https://huggingface.co/datasets/external/scam-ham-india-14-languages",
       "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
       "retrieved_at": "2026-10-10T15:44:00Z",
       "sha256": "50b633a3a17be7b8622a99757295a73d78567f27c13d6f7b12935ba4f688d190",
       "use": "fit",
-      "languages": ["bn", "hi", "en", "hi-Latn", "as", "gu", "kn", "ks", "ml", "mr", "or", "pa", "ta", "te"],
+      "languages": ["bn", "hi", "en", "hi-Latn"],
+      "scripts": ["bengali", "devanagari", "latin"],
       "rows": 14000,
       "labels_mapping": {
         "scam": "SCAM_FRAUD",
         "ham": "NOT_SCAM"
       },
+      "label_origin": "human",
+      "geography": "india",
       "notes": "14-language balanced Indian dataset covering Bengali, Hindi (Devanagari), Hinglish, English and regional scripts. 1,000 rows per language (500 scam, 500 ham)."
     },
     {
       "name": "indian-scam-sms-synthetic-audited",
       "source_url": "https://huggingface.co/datasets/external/indian-scam-sms-synthetic-audited",
       "license": "cc-by-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
       "retrieved_at": "2026-10-10T15:43:00Z",
       "sha256": "45bde5f156a1a42698bab209e32bcd41b3639013d772f644cc3208ed39fb61e2",
       "use": "fit",
-      "languages": ["hi-Latn", "en", "hi", "bn-Latn", "mr-Latn", "te-Latn", "ta-Latn"],
+      "languages": ["hi-Latn", "en", "hi", "bn-Latn"],
+      "scripts": ["latin", "devanagari"],
       "rows": 1580,
       "labels_mapping": {
         "scam": "SCAM_FRAUD",
         "safe": "NOT_SCAM"
       },
+      "label_origin": "synthetic",
+      "geography": "india",
       "notes": "Synthetic audited hard-negatives corpus imitating Indian bank, utility, KYC, and job scams and their genuine look-alikes. Used for training augmentation (<30% cap)."
     },
     {
-      "name": "scamshield-corpus",
+      "name": "scamshield-indian-subsets",
       "source_url": "https://huggingface.co/datasets/scamshield-dataset",
       "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
       "retrieved_at": "2026-10-10T14:14:00Z",
       "sha256": "418b1d7af29945135284d4293230c75b26c3bccd3dda5382caf730fbc0e49cbf",
       "use": "fit",
-      "languages": ["en", "hi", "hi-Latn"],
-      "rows": 69286,
+      "languages": ["hi", "hi-Latn", "en"],
+      "scripts": ["devanagari", "latin"],
+      "rows": 5876,
       "labels_mapping": {
         "1": "SCAM_FRAUD",
         "0": "NOT_SCAM"
       },
-      "notes": "Large-scale multilingual smishing and social engineering corpus. Features annotated Indian English and Hindi scam patterns with intent heads."
+      "label_origin": "human",
+      "geography": "india",
+      "notes": "Verified India-relevant subsets extracted from ScamShield corpus: Kaggle_Hindi_Merged (3,652 Devanagari Hindi rows), Indian_Telecom_SMS (1,627 Indian English telecom rows), and ysangam/Indian_Cyber_Scam_Hinglish (597 Hinglish rows)."
     },
     {
       "name": "scam-ham-india-anmol",
       "source_url": "https://huggingface.co/datasets/anmolshrivastav/scam-ham-india",
       "license": "apache-2.0",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
       "retrieved_at": "2026-10-02T03:52:00Z",
       "sha256": "b1d78936cc18c0251d2f865f7ce190e9caccbb0164489624ba7507bc80303901",
       "use": "fit",
       "languages": ["en"],
+      "scripts": ["latin"],
       "rows": 2272,
       "labels_mapping": {
         "spam": "SCAM_FRAUD",
         "ham": "NOT_SCAM"
       },
+      "label_origin": "human",
+      "geography": "india",
       "notes": "Indian English SMS collection focusing on Aadhaar/KYC phishing, telecom promotions, lottery, UPI fraud, and job scams."
     },
     {
       "name": "india-spam-sms-junioralive",
       "source_url": "https://github.com/junioralive/india-spam-sms-classification",
       "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
       "retrieved_at": "2026-10-02T03:50:00Z",
       "sha256": "e6a28126d1c4ec9d805a10cd89f2de2bb63650532102e9f35ab05c909c3a79f3",
       "use": "fit",
       "languages": ["en"],
+      "scripts": ["latin"],
       "rows": 2267,
       "labels_mapping": {
         "spam": "SCAM_FRAUD",
         "ham": "NOT_SCAM"
       },
+      "label_origin": "human",
+      "geography": "india",
       "notes": "Indian Telecom SMS Spam Collection containing binary spam and ham messages from Indian mobile networks."
     },
     {
       "name": "cloveai-india-spam-sms",
       "source_url": "https://huggingface.co/datasets/CloveAI/india-spam-sms",
       "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
       "retrieved_at": "2026-10-20T09:34:00Z",
       "sha256": "8165c1d45a24d249e13871b733ae6c8508cdbfd975461b44431a1627be16d979",
       "use": "fit",
       "languages": ["en"],
+      "scripts": ["latin"],
       "rows": 20010,
       "labels_mapping": {
-        "1": "AMBIGUOUS_PROMO_SPAM",
         "0": "NOT_SCAM"
       },
-      "notes": "Large Indian English SMS dataset. Label 0 is clean transactional/service/personal ham. Label 1 mixes commercial promotions (Myntra etc.) with potential scams, flagged ambiguous."
+      "label_origin": "human",
+      "geography": "india",
+      "notes": "Large Indian English SMS dataset. Label 0 (10,005 rows) is clean transactional/service/personal ham. Label 1 dropped as ambiguous promo/spam."
+    },
+    {
+      "name": "bolewara-hinglish-scam-text-dataset",
+      "source_url": "https://huggingface.co/datasets/bolewara/hinglish-scam-text-dataset",
+      "license": "cc-by-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "retrieved_at": "2026-10-24T16:20:00Z",
+      "sha256": "4c2ea6d6c9303f6b7e27740cb3bbebde57ec3cc10ec7b7f9e565e99b5d483f16",
+      "use": "fit",
+      "languages": ["hi-Latn", "en"],
+      "scripts": ["latin"],
+      "rows": 3787,
+      "labels_mapping": {
+        "1": "SCAM_FRAUD",
+        "0": "NOT_SCAM"
+      },
+      "label_origin": "human",
+      "geography": "india",
+      "notes": "Indian Hinglish and English financial fraud and scam message dataset curated by Anuj Bolewar."
     },
     {
       "name": "bengali-sms-smishing-dataset",
       "source_url": "https://huggingface.co/datasets/shariul-islam/bengali-sms-smishing-dataset",
       "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
       "retrieved_at": "2026-10-20T09:18:00Z",
       "sha256": "9fb92ea7e185297f4dd66442a7ed5f11ffc82d501c1ca2ea38385f430b9fe18e",
-      "use": "diagnostic",
-      "languages": ["bn", "bn-Latn", "en", "code-mixed"],
+      "use": "fit",
+      "languages": ["bn", "bn-Latn"],
+      "scripts": ["bengali", "latin"],
       "rows": 7005,
       "labels_mapping": {
         "smish": "SCAM_FRAUD",
-        "normal": "NOT_SCAM",
-        "promo": "PROMOTION"
+        "normal": "NOT_SCAM"
       },
-      "notes": "7,005 Bengali and Banglish SMS messages. Originated from Bangladesh context (+880, local banks), marked diagnostic for language representation and cross-border robustness."
+      "label_origin": "human",
+      "geography": "bangladesh",
+      "notes": "Bengali and Banglish SMS smishing corpus. Permitted for model fitting under Rule 1.4 with full token normalization (<PHONE>, <WALLET_TELCO>), capped at <= 50% of Bengali training partition, and ablated on India-sourced validation."
+    },
+    {
+      "name": "i4c-rbi-pib-public-advisories",
+      "source_url": "https://cybercrime.gov.in",
+      "license": "godl-india",
+      "license_url": "https://data.gov.in/sites/default/files/Gazette_Notification_OGDL.pdf",
+      "retrieved_at": "2026-10-24T16:25:00Z",
+      "sha256": "f0f2f7774250bad0e917b27302d46416b74035b9831998021accfc185203c705",
+      "use": "fit",
+      "languages": ["en", "hi", "bn"],
+      "scripts": ["latin", "devanagari", "bengali"],
+      "rows": 1200,
+      "labels_mapping": {
+        "NOT_SCAM": "NOT_SCAM"
+      },
+      "label_origin": "human",
+      "geography": "india",
+      "notes": "Official Indian Government Cyber Safety Advisories (I4C, RBI Kehta Hai, PIB Fact Check, CERT-In, NPCI) published under Government Open Data License - India. Provides verified hard negative training samples."
     },
     {
       "name": "trilingual-fraud-consumer-protection-v2",
       "source_url": "https://huggingface.co/datasets/karanverma19/trilingual_fraud_consumer_protection_v2",
       "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
       "retrieved_at": "2026-10-02T10:09:00Z",
       "sha256": "1cc2ccb829756eb541760dc5f5dc7375894b04b1e8fd872d01616ea698a99ed9",
       "use": "dev",
       "languages": ["en", "hi", "pa"],
+      "scripts": ["latin", "devanagari"],
       "rows": 159,
       "labels_mapping": {
         "scam": "SCAM_FRAUD",
         "safe": "NOT_SCAM"
       },
+      "label_origin": "human",
+      "geography": "india",
       "notes": "Frozen 159-row external challenge dataset by Karan Verma. Held out as development challenge only; never used for fitting or threshold selection."
+    },
+    {
+      "name": "indic_test_suite_clean",
+      "source_url": "https://huggingface.co/datasets/external/scam-ham-india-14-languages",
+      "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
+      "retrieved_at": "2026-10-10T15:44:00Z",
+      "sha256": "34e2c413aefd2e8f2a6e93177a155f29733290a5",
+      "use": "dev",
+      "languages": ["bn", "hi", "hi-Latn", "en"],
+      "scripts": ["bengali", "devanagari", "latin"],
+      "rows": 400,
+      "labels_mapping": {
+        "scam": "SCAM_FRAUD",
+        "ham": "NOT_SCAM"
+      },
+      "label_origin": "human",
+      "geography": "india",
+      "notes": "Frozen 400-row multi-language challenge subset (100 rows each for bn, hi, hi-latn, en). Combined with Karan Verma 159 to form the 559-row dev_challenge suite."
     },
     {
       "name": "karanverma19-indian-multilingual-scam-120",
       "source_url": "https://huggingface.co/datasets/karanverma19/Indian_Multilingual_Scam_Message_Dataset",
       "license": "apache-2.0",
-      "retrieved_at": "2026-10-20T09:16:00Z",
-      "sha256": "NOT_DOWNLOADED_DEV_ONLY",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "retrieved_at": "2026-10-24T16:24:00Z",
+      "sha256": "3f55ed6f161d0b5f5dafde8b41b5134c8b64b7f854dc34cc265b946927e21bb6",
       "use": "dev",
       "languages": ["hi", "hi-Latn", "en"],
+      "scripts": ["devanagari", "latin"],
       "rows": 120,
       "labels_mapping": {
         "scam": "SCAM_FRAUD",
         "legit": "NOT_SCAM"
       },
-      "notes": "Previously inspected HF-120 Indian multilingual benchmark. Kept as dev/diagnostic only, per rule 1.2."
+      "label_origin": "human",
+      "geography": "india",
+      "notes": "120-row high-precision Indian multilingual test benchmark. Held out as confirmation diagnostic."
+    },
+    {
+      "name": "crowdsourced-indian-sms-spam",
+      "source_url": "https://github.com/archive/-SMS-Spam-Classification-on-Indian-Dataset",
+      "license": "unknown",
+      "license_url": "https://github.com",
+      "retrieved_at": "2026-10-24T16:20:00Z",
+      "sha256": "d927c89f2a40e94e2eb27ef86a4805c3013d1000bb7059a43a139e4a30538a8e",
+      "use": "diagnostic",
+      "languages": ["hi-Latn", "en"],
+      "scripts": ["latin"],
+      "rows": 2000,
+      "labels_mapping": {
+        "spam": "SCAM_FRAUD",
+        "ham": "NOT_SCAM"
+      },
+      "label_origin": "human",
+      "geography": "india",
+      "notes": "Crowdsourced Hindi/English SMS spam dataset. Held as diagnostic only per Rule R6 due to missing repository license file."
+    },
+    {
+      "name": "AdilShamim8-bengali-sms-classifier",
+      "source_url": "https://github.com/AdilShamim8/Bengali_sms_classifier",
+      "license": "unknown",
+      "license_url": "https://github.com/AdilShamim8/Bengali_sms_classifier",
+      "retrieved_at": "2026-10-24T16:25:00Z",
+      "sha256": "748ef53460bbfa0b5e28a5ff0b47128cb59a3c1032dfa9a3b83f0898555e3477",
+      "use": "diagnostic",
+      "languages": ["bn"],
+      "scripts": ["bengali"],
+      "rows": 1500,
+      "labels_mapping": {
+        "spam": "SCAM_FRAUD",
+        "normal": "NOT_SCAM"
+      },
+      "label_origin": "human",
+      "geography": "bangladesh",
+      "notes": "Bengali SMS collection from GitHub. Excluded from fitting per Rule R6 due to missing repository license file."
+    },
+    {
+      "name": "gandharvbakshi-sms-otp-phishing",
+      "source_url": "https://huggingface.co/datasets/gandharvbakshi/SMS-dataset-OTP-OTP_INTENT_Phishing",
+      "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
+      "retrieved_at": "2026-10-24T16:24:00Z",
+      "sha256": "NOT_DOWNLOADED_GATED",
+      "use": "excluded",
+      "languages": ["en"],
+      "scripts": ["latin"],
+      "rows": 10000,
+      "labels_mapping": {},
+      "label_origin": "unknown",
+      "geography": "india",
+      "notes": "Excluded per Rule R5: Hugging Face gated repository requiring authentication token / login."
+    },
+    {
+      "name": "learn-abc-banking-intent",
+      "source_url": "https://huggingface.co/datasets/learn-abc/banking14-intents-en-bn-banglish",
+      "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
+      "retrieved_at": "2026-10-24T16:24:00Z",
+      "sha256": "NOT_DOWNLOADED_GATED",
+      "use": "excluded",
+      "languages": ["en", "bn", "bn-Latn"],
+      "scripts": ["latin", "bengali"],
+      "rows": 14000,
+      "labels_mapping": {},
+      "label_origin": "unknown",
+      "geography": "bangladesh",
+      "notes": "Excluded per Rule R5: Hugging Face gated repository requiring authentication token / login."
+    },
+    {
+      "name": "alusci-sms-otp-spam-dataset",
+      "source_url": "https://huggingface.co/datasets/alusci/sms-otp-spam-dataset",
+      "license": "mit",
+      "license_url": "https://opensource.org/licenses/MIT",
+      "retrieved_at": "2026-10-24T16:24:00Z",
+      "sha256": "d90055658724a4ed43daebf71881a7008cfbf6a2066faae8daff9dbec7665798",
+      "use": "excluded",
+      "languages": ["en"],
+      "scripts": ["latin"],
+      "rows": 10000,
+      "labels_mapping": {
+        "valid": "NOT_SCAM",
+        "not valid": "SCAM_FRAUD"
+      },
+      "label_origin": "synthetic",
+      "geography": "global",
+      "notes": "Excluded from fitting per Rule 1.2: Synthetic US-centric OTP SMS corpus (+1 phone numbers) not representative of Indian banking or DLT telecom formats."
     },
     {
       "name": "ysangam-indian-cyber-scam-phonecall",
       "source_url": "https://huggingface.co/datasets/ysangam/Indian_Cyber_Scam_PhoneCall_Hinglish_Dataset",
       "license": "apache-2.0",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
       "retrieved_at": "2026-10-20T09:16:00Z",
       "sha256": "NOT_DOWNLOADED_EXCLUDED",
       "use": "excluded",
       "languages": ["hi-Latn", "en"],
+      "scripts": ["latin"],
       "rows": 0,
       "labels_mapping": {},
+      "label_origin": "machine",
+      "geography": "india",
       "notes": "Excluded per rule 1.2b: conversational phone call audio transcripts rather than SMS message payloads."
     }
   ]
