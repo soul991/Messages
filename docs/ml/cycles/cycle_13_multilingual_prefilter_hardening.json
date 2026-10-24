@@ -217,5 +217,69 @@
       ],
       "inconclusive": true
     }
-  }
+  },
+  "per_language": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 115,
+      "fp": 0,
+      "fn": 33,
+      "tn": 148,
+      "recall": 0.777,
+      "recall_ci95": [
+        0.7034,
+        0.8366
+      ],
+      "fpr": 0.0,
+      "fpr_ci95": [
+        0.0,
+        0.0253
+      ],
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 48,
+      "fp": 2,
+      "fn": 23,
+      "tn": 90,
+      "recall": 0.6761,
+      "recall_ci95": [
+        0.5606,
+        0.7734
+      ],
+      "fpr": 0.0217,
+      "fpr_ci95": [
+        0.006,
+        0.0758
+      ],
+      "inconclusive": true
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 39,
+      "fp": 0,
+      "fn": 11,
+      "tn": 50,
+      "recall": 0.78,
+      "recall_ci95": [
+        0.6476,
+        0.8725
+      ],
+      "fpr": 0.0,
+      "fpr_ci95": [
+        0.0,
+        0.0713
+      ],
+      "inconclusive": true
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "iterate"
 }
