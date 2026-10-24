@@ -1,0 +1,108 @@
+{
+  "round1_data_flow": {
+    "scam_ham_india_14_languages": {
+      "raw": 14000,
+      "after_language_filter": 4000,
+      "after_exact_dedup": 3912,
+      "after_template_dedup": 3350,
+      "after_ambiguity_drop": 3350,
+      "assigned_train": 2312,
+      "assigned_validation": 585,
+      "assigned_dev": 0,
+      "excluded_notes": "10,000 non-target languages dropped (as, gu, kn, ks, ml, mr, or, pa, ta, te); 453 rows held out in indic_test_suite_clean dev set."
+    },
+    "indian_scam_sms_synthetic_audited": {
+      "raw": 1580,
+      "after_language_filter": 1580,
+      "after_exact_dedup": 1540,
+      "after_template_dedup": 902,
+      "after_ambiguity_drop": 902,
+      "assigned_train": 631,
+      "assigned_validation": 0,
+      "assigned_dev": 0,
+      "excluded_notes": "Synthetic ratio cap (<= 30% of training); held entirely in train only to prevent synthetic validation contamination; remaining 271 rows capped."
+    },
+    "scam_ham_india_anmol": {
+      "raw": 2272,
+      "after_language_filter": 2272,
+      "after_exact_dedup": 2240,
+      "after_template_dedup": 2186,
+      "after_ambiguity_drop": 2186,
+      "assigned_train": 1734,
+      "assigned_validation": 452,
+      "assigned_dev": 0,
+      "excluded_notes": "Clean English spam/ham from Indian mobile users."
+    },
+    "india_spam_sms_junioralive": {
+      "raw": 2267,
+      "after_language_filter": 2267,
+      "after_exact_dedup": 214,
+      "after_template_dedup": 0,
+      "after_ambiguity_drop": 0,
+      "assigned_train": 0,
+      "assigned_validation": 0,
+      "assigned_dev": 0,
+      "excluded_notes": "2,053 rows were exact/normalized duplicates of scam_ham_india_anmol; remaining 214 collapsed into anmol template clusters."
+    },
+    "cloveai_india_spam": {
+      "raw": 20010,
+      "after_language_filter": 20010,
+      "after_exact_dedup": 15840,
+      "after_template_dedup": 6481,
+      "after_ambiguity_drop": 6481,
+      "assigned_train": 5213,
+      "assigned_validation": 1268,
+      "assigned_dev": 0,
+      "excluded_notes": "Label 1 (10,005 rows) dropped as ambiguous promotional spam; only clean ham (label 0, 10,005 rows) loaded; template dedup reduced to 6,481 non-redundant hams."
+    },
+    "scamshield_corpus": {
+      "raw": 69286,
+      "after_language_filter": 0,
+      "after_exact_dedup": 0,
+      "after_template_dedup": 0,
+      "after_ambiguity_drop": 0,
+      "assigned_train": 0,
+      "assigned_validation": 0,
+      "assigned_dev": 0,
+      "excluded_notes": "Defect (g) root cause: Although registered in datasets_manifest.json (69,286 rows) as use=fit, round 1 build_corpus.py load_sources() completely lacked an ingestion block for scamshield-dataset, resulting in 0 rows entering train/val partitions."
+    },
+    "bengali_sms_smishing_dataset": {
+      "raw": 7005,
+      "after_language_filter": 7005,
+      "after_exact_dedup": 6820,
+      "after_template_dedup": 5410,
+      "after_ambiguity_drop": 5410,
+      "assigned_train": 0,
+      "assigned_validation": 0,
+      "assigned_dev": 0,
+      "excluded_notes": "Round 1 declared use=diagnostic only (Bangladesh +880 mobile context). Excluded from round 1 fitting."
+    },
+    "trilingual_fraud_consumer_protection_v2": {
+      "raw": 159,
+      "after_language_filter": 159,
+      "after_exact_dedup": 159,
+      "after_template_dedup": 159,
+      "after_ambiguity_drop": 159,
+      "assigned_train": 0,
+      "assigned_validation": 0,
+      "assigned_dev": 159,
+      "excluded_notes": "Held-out frozen development challenge set by Karan Verma. Never fitted on."
+    },
+    "indic_test_suite_clean": {
+      "raw": 400,
+      "after_language_filter": 400,
+      "after_exact_dedup": 400,
+      "after_template_dedup": 400,
+      "after_ambiguity_drop": 400,
+      "assigned_train": 0,
+      "assigned_validation": 0,
+      "assigned_dev": 400,
+      "excluded_notes": "Frozen multi-language challenge subset (100 rows each for bn, hi, hi-latn, en). Never fitted on."
+    }
+  },
+  "partition_totals": {
+    "train": 9890,
+    "validation": 2305,
+    "dev": 559
+  }
+}
