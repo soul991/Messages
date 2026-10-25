@@ -1,0 +1,36 @@
+{
+  "model_name": "CalibratedRound2MultilingualLinear",
+  "sha256": "c98c5500a14e379953395369835b35f2ff157ed0a28e132eeeb0eb363e3cdfbb",
+  "size_bytes": 1025713,
+  "size_kib": 1001.67,
+  "created_at": "2026-10-24T17:03:22.476956+00:00",
+  "cycle": 15,
+  "license": "Apache-2.0",
+  "data_sources": [
+    "karanverma19/trilingual_fraud_consumer_protection_v2",
+    "SMS-shield-mini-raw",
+    "kaggle/sms-spam-collection-dataset",
+    "HinSpam"
+  ],
+  "environment": "host JVM",
+  "memory": {
+    "environment": "host JVM",
+    "jvm_version": "17.0.19",
+    "pid": 4024,
+    "heap_before_bytes": 5097312,
+    "heap_after_load_bytes": 7749592,
+    "heap_delta_bytes": 2652280,
+    "heap_delta_mb": 2.5294,
+    "heap_during_1000_scores_bytes": 7852760,
+    "heap_during_1000_scores_mb": 7.489,
+    "resident_bytes": 114196480,
+    "resident_mb": 108.9062,
+    "scores_evaluated": 1000,
+    "checksum_sink": 0.0,
+    "device": "NOT MEASURED"
+  },
+  "latency_p50_ms": 0.175,
+  "latency_p95_ms": 0.417,
+  "release_gate_status": "UNPROVEN",
+  "release_recommendation": "DO NOT MERGE / DO NOT ENABLE \u2014 Release gates unproven on Bengali negative subset"
+}

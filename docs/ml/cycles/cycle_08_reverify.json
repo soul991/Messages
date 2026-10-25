@@ -1,0 +1,112 @@
+{
+  "cycle": 8,
+  "hypothesis": "Phase 0 Re-verification of round-1 candidate artifact as committed on disk. Evaluates the physical model.json (sha256 378472fe650be5e6a81f0b3cdbcda422664361be27a532ab41120e275cc14598, size 965,142 bytes) on the identical dev_challenge split across seeds [20261020, 20261021, 20261022] to audit provenance, hash integrity, and numerical reproducibility.",
+  "candidate_sha256": "378472fe650be5e6a81f0b3cdbcda422664361be27a532ab41120e275cc14598",
+  "dataset_manifest_sha256": "76c8aedd77853cf606c3a4998847a4613e5c1e41f80b812033f4f65fa2d3e2f0",
+  "seeds": [
+    20261020,
+    20261021,
+    20261022
+  ],
+  "dev_metrics": {
+    "n": 559,
+    "scam_n": 269,
+    "ham_n": 290,
+    "tp": 217,
+    "fp": 58,
+    "fn": 52,
+    "tn": 232,
+    "recall": 0.8067,
+    "recall_ci95": [
+      0.7553,
+      0.8494
+    ],
+    "fpr": 0.2,
+    "fpr_ci95": [
+      0.158,
+      0.2498
+    ],
+    "precision": 0.7891,
+    "f1": 0.7978,
+    "brier": 0.1416,
+    "ece": 0.0903,
+    "inconclusive": false
+  },
+  "per_language": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 121,
+      "fp": 15,
+      "fn": 27,
+      "tn": 133,
+      "recall": 0.8176,
+      "recall_ci95": [
+        0.7476,
+        0.8715
+      ],
+      "fpr": 0.1014,
+      "fpr_ci95": [
+        0.0624,
+        0.1605
+      ],
+      "precision": 0.8897,
+      "f1": 0.8521,
+      "brier": 0.1261,
+      "ece": 0.0594,
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 55,
+      "fp": 33,
+      "fn": 16,
+      "tn": 59,
+      "recall": 0.7746,
+      "recall_ci95": [
+        0.6648,
+        0.8563
+      ],
+      "fpr": 0.3587,
+      "fpr_ci95": [
+        0.2682,
+        0.4605
+      ],
+      "precision": 0.625,
+      "f1": 0.6918,
+      "brier": 0.1559,
+      "ece": 0.1211,
+      "inconclusive": false
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 41,
+      "fp": 10,
+      "fn": 9,
+      "tn": 40,
+      "recall": 0.82,
+      "recall_ci95": [
+        0.692,
+        0.9023
+      ],
+      "fpr": 0.2,
+      "fpr_ci95": [
+        0.1124,
+        0.3304
+      ],
+      "precision": 0.8039,
+      "f1": 0.8119,
+      "brier": 0.1641,
+      "ece": 0.2096,
+      "inconclusive": false
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "keep",
+  "notes": "Cycle 08 Re-verification: The model.json actually on disk has sha256 378472fe650be5e6a81f0b3cdbcda422664361be27a532ab41120e275cc14598 and size 965,142 bytes (LF endings). The recorded cycle_07 sha256 9a4ddf6934c0bab5... (995,087 bytes) was the pre-commit CRLF serialized export of the identical JSON dictionary. Re-evaluation on dev_challenge yields 80.67% overall recall (217/269, vs 80.30% in cycle 07 seed 0 due to Bengali tie-break 41/50 vs 40/50), identical 20.00% FPR (58/290), Latin recall 81.76% and FPR 10.14%, Devanagari recall 77.46% and FPR 35.87%, Bengali recall 82.00% and FPR 20.00%, and strictly 0.00% protected traffic FPR (0/48). Defect (d) root cause: cycle 03 handcrafted feature offsets (+2.0 to -3.5) were overwhelmed by raw Naive Bayes log-odds (-150 to +150), shifting 99.5th percentile thresholds by 0.0000 and leaving all dev predictions unchanged."
+}

@@ -1,24 +1,36 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-build_corpus.py — Deterministic, template-grouped corpus builder for India 3-language SMS classification.
+build_corpus.py — Deterministic, template-grouped corpus builder for India 3-language SMS classification (Round 2).
 
-Groups by source AND template skeleton / near-duplicate cluster.
-Ensures zero exact leakage, zero normalized leakage, and zero template leakage between train and validation.
-Applies R6 licensing constraints and synthetic data <= 30% ratio.
-Outputs strictly aggregate metrics.
+Integrates:
+- scam_ham_india_14_languages (MIT)
+- indian_scam_sms_synthetic_audited (CC-BY-4.0) (capped <= 30% train only)
+- scam_ham_india_anmol (Apache-2.0)
+- india_spam_sms_junioralive (MIT)
+- cloveai_india_spam (MIT, clean ham only)
+- scamshield-dataset Indian subsets (MIT: Kaggle_Hindi_Merged, Indian_Telecom_SMS, ysangam/Indian_Cyber_Scam_Hinglish)
+- bolewara-hinglish-scam-text-dataset (CC-BY-4.0)
+- bengali-sms-smishing-dataset (MIT, Rule 1.4 token normalized, capped at <= 50% of Bengali train)
+- i4c-rbi-pib-public-advisories (GODL-India)
+
+Partitions produced:
+- train.jsonl
+- validation.jsonl (untouched, strictly real India-sourced data)
+- dev_challenge.jsonl (frozen 559-row benchmark)
+- lockbox.jsonl (NEW untouched lockbox, >= 1,500 rows, >= 600 benign, all 3 languages and scripts)
 """
 
 import argparse
+from collections import Counter, defaultdict
 import hashlib
 import json
 import os
+from pathlib import Path
 import random
 import re
 import sys
 import unicodedata
-from collections import Counter, defaultdict
-from pathlib import Path
 import pandas as pd
 
 if hasattr(sys.stdout, 'reconfigure'):
@@ -27,8 +39,15 @@ if hasattr(sys.stdout, 'reconfigure'):
 ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = Path("D:/Istak/Messages/Datasets")
 SPLITS_DIR = DATA_ROOT / "splits"
+SPLITS_DIR.mkdir(parents=True, exist_ok=True)
 
 SEED = 20261020
+
+RE_LINK = re.compile(r"https?://\S+|www\.\S+|bit\.ly/\S+|tinyurl\.com/\S+|wa\.me/\S+|\.apk\b", re.I)
+RE_PHONE = re.compile(r"(?:\+?91[\s-]?)?[6-9]\d{9}\b")
+RE_BD_PHONE = re.compile(r"(?:\+?880[\s-]?)?0?1[3-9]\d{8}\b")
+RE_BD_BRANDS = re.compile(r"(?:বিকাশ|নগদ|রকেট|গ্রামীণফোন|বাংলালিংক|রবি|bkash|nagad|rocket|upay|grameenphone|banglalink|robi|teletalk|gp)", re.I)
+RE_PROT = re.compile(r"\b(?:otp|one time password|credited|debited|a/c|account no|avl bal|जमा किए|निकाले गए|क्रेडिट|डेबिट|ओटीपी|खाता संख्या|জমা হয়েছে|ডেবিট)\b", re.I)
 
 def normalize_text(text: str) -> str:
     text = unicodedata.normalize("NFKC", str(text)).casefold()
@@ -43,7 +62,7 @@ def template_skeleton(text: str) -> str:
     norm = normalize_text(text)
     tokens = []
     for tok in norm.split():
-        if tok in ("<URL>", "<PHONE>", "<CODE>", "<NUM>", "<CURR>"):
+        if tok in ("<URL>", "<PHONE>", "<CODE>", "<NUM>", "<CURR>", "<WALLET_TELCO>"):
             tokens.append(tok)
         else:
             cleaned = re.sub(r"[^\w]", "", tok)
@@ -55,23 +74,21 @@ def detect_language_bucket(text: str, source_lang: str = "") -> str:
     deva_chars = len(re.findall(r"[\u0900-\u097F]", text))
     beng_chars = len(re.findall(r"[\u0980-\u09FF]", text))
     latin_chars = len(re.findall(r"[a-zA-Z]", text))
-    total = deva_chars + beng_chars + latin_chars
 
     if beng_chars > 0 and beng_chars >= deva_chars and beng_chars >= latin_chars:
         return "bn_beng"
     if deva_chars > 0 and deva_chars >= latin_chars:
         return "hi_deva"
 
-    # Latin script
     s_lower = str(source_lang).lower()
-    if "hinglish" in s_lower or "hi-latn" in s_lower:
+    if "hinglish" in s_lower or "hi-latn" in s_lower or "hindi" in s_lower:
         return "hi_latn"
     if "banglish" in s_lower or "bn-latn" in s_lower or "bn_en" in s_lower:
         return "bn_latn"
         
     words = [w.lower() for w in re.findall(r"\b[a-zA-Z]+\b", text)]
-    hi_markers = {"aapka", "karein", "kare", "karo", "hai", "hain", "nahi", "khata", "paise", "turant"}
-    bn_markers = {"apnar", "korun", "kore", "hobe", "taka", "shob", "kichhu", "amader", "thik"}
+    hi_markers = {"aapka", "karein", "kare", "karo", "hai", "hain", "nahi", "khata", "paise", "turant", "kijiye"}
+    bn_markers = {"apnar", "korun", "kore", "hobe", "taka", "shob", "kichhu", "amader", "thik", "takar"}
     
     hi_hits = sum(1 for w in words if w in hi_markers)
     bn_hits = sum(1 for w in words if w in bn_markers)
@@ -84,14 +101,13 @@ def detect_language_bucket(text: str, source_lang: str = "") -> str:
 
 def load_sources():
     raw_records = []
-    
+
     # 1. scam-ham-india-14-languages (MIT)
     p_14 = DATA_ROOT / "external/scam-ham-india-14-languages/scam_ham_india_14_languages.csv"
     if p_14.exists():
         df = pd.read_csv(p_14)
         for _, r in df.iterrows():
             lang = str(r.get("language", "")).strip()
-            # Only Bengali, Hindi, Hinglish, English are in scope
             if lang in ("Bengali", "Hindi", "Hinglish", "English"):
                 text = str(r["text"]).strip()
                 label = "SCAM_FRAUD" if str(r["label"]).lower() in ("scam", "1") else "NOT_SCAM"
@@ -100,7 +116,8 @@ def load_sources():
                     "label": label,
                     "source": "scam_ham_india_14_languages",
                     "source_lang": lang,
-                    "is_synthetic": False
+                    "is_synthetic": False,
+                    "geography": "india"
                 })
 
     # 2. indian-scam-sms-synthetic-audited (CC-BY-4.0)
@@ -117,7 +134,8 @@ def load_sources():
                     "label": label,
                     "source": "indian_scam_sms_synthetic_audited",
                     "source_lang": lang,
-                    "is_synthetic": True
+                    "is_synthetic": True,
+                    "geography": "india"
                 })
 
     # 3. scam-ham-india-anmol (Apache-2.0)
@@ -132,7 +150,8 @@ def load_sources():
                 "label": label,
                 "source": "scam_ham_india_anmol",
                 "source_lang": "en",
-                "is_synthetic": False
+                "is_synthetic": False,
+                "geography": "india"
             })
 
     # 4. junioralive_india_spam (MIT)
@@ -147,10 +166,11 @@ def load_sources():
                 "label": label,
                 "source": "junioralive_india_spam",
                 "source_lang": "en",
-                "is_synthetic": False
+                "is_synthetic": False,
+                "geography": "india"
             })
 
-    # 5. cloveai_india_spam (MIT) - clean ham only (label 0), skip ambiguous label 1
+    # 5. cloveai_india_spam (MIT, clean ham only)
     p_clove = DATA_ROOT / "cloveai-india-spam-sms/data/train-00000-of-00001.parquet"
     if p_clove.exists():
         df = pd.read_parquet(p_clove)
@@ -161,8 +181,85 @@ def load_sources():
                 "label": "NOT_SCAM",
                 "source": "cloveai_india_spam",
                 "source_lang": "en",
-                "is_synthetic": False
+                "is_synthetic": False,
+                "geography": "india"
             })
+
+    # 6. scamshield-dataset Indian subsets (MIT)
+    p_ss = DATA_ROOT / "scamshield-dataset/train.jsonl"
+    if p_ss.exists():
+        with open(p_ss, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    item = json.loads(line)
+                    s_ds = item.get("source_dataset", "")
+                    if s_ds in ("Kaggle_Hindi_Merged", "Indian_Telecom_SMS", "ysangam/Indian_Cyber_Scam_Hinglish"):
+                        text = str(item.get("text", "")).strip()
+                        is_sc = bool(item.get("is_scam", 0) == 1)
+                        label = "SCAM_FRAUD" if is_sc else "NOT_SCAM"
+                        lang = "hi" if s_ds == "Kaggle_Hindi_Merged" else ("hi-Latn" if "Hinglish" in s_ds else "en")
+                        raw_records.append({
+                            "text": text,
+                            "label": label,
+                            "source": f"scamshield_{s_ds}",
+                            "source_lang": lang,
+                            "is_synthetic": False,
+                            "geography": "india"
+                        })
+
+    # 7. bolewara-hinglish-scam-text-dataset (CC-BY-4.0)
+    p_bol = DATA_ROOT / "bolewara-hinglish-scam-text-dataset/data.json"
+    if p_bol.exists():
+        d_bol = json.load(open(p_bol, encoding="utf-8")).get("rows", [])
+        for r in d_bol:
+            text = str(r.get("text", "")).strip()
+            label = "SCAM_FRAUD" if int(r.get("label", 0)) == 1 else "NOT_SCAM"
+            raw_records.append({
+                "text": text,
+                "label": label,
+                "source": "bolewara_hinglish",
+                "source_lang": "hi-Latn",
+                "is_synthetic": False,
+                "geography": "india"
+            })
+
+    # 8. bengali-sms-smishing-dataset (MIT, Rule 1.4 Normalized)
+    p_bn = DATA_ROOT / "bengali-sms-smishing-dataset/train-00000-of-00001.parquet"
+    if p_bn.exists():
+        df_bn = pd.read_parquet(p_bn)
+        for _, r in df_bn.iterrows():
+            raw_lbl = str(r.get("label", "")).lower()
+            if raw_lbl in ("smish", "normal"):
+                label = "SCAM_FRAUD" if raw_lbl == "smish" else "NOT_SCAM"
+                raw_text = str(r.get("text", "")).strip()
+                # Rule 1.4 normalization:
+                norm_text = RE_BD_PHONE.sub("<PHONE>", raw_text)
+                norm_text = RE_BD_BRANDS.sub("<WALLET_TELCO>", norm_text)
+                raw_records.append({
+                    "text": norm_text,
+                    "label": label,
+                    "source": "bengali_smishing_normalized",
+                    "source_lang": "bn",
+                    "is_synthetic": False,
+                    "geography": "bangladesh"
+                })
+
+    # 9. i4c-rbi-pib-public-advisories (GODL-India)
+    p_adv = DATA_ROOT / "external/i4c-rbi-advisories/advisories.jsonl"
+    if p_adv.exists():
+        with open(p_adv, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    item = json.loads(line)
+                    raw_records.append({
+                        "text": item["text"],
+                        "label": "NOT_SCAM",
+                        "source": "i4c_rbi_advisories",
+                        "source_lang": item.get("source_lang", "en"),
+                        "is_synthetic": False,
+                        "geography": "india",
+                        "is_advisory": True
+                    })
 
     return raw_records
 
@@ -180,8 +277,8 @@ def load_dev_challenge():
                 "label": label,
                 "source": "trilingual_challenge_v2",
                 "source_lang": str(r.get("language", "unknown")),
-                "context_type": str(r.get("contextType", "unknown")),
-                "is_synthetic": False
+                "is_synthetic": False,
+                "geography": "india"
             })
             
     # 2. indic_test_suite_clean (100 per language)
@@ -198,7 +295,8 @@ def load_dev_challenge():
                     "label": label,
                     "source": "indic_test_suite_clean",
                     "source_lang": lang,
-                    "is_synthetic": False
+                    "is_synthetic": False,
+                    "geography": "india"
                 })
                 
     return dev_records
@@ -207,116 +305,161 @@ def build_partitions():
     random.seed(SEED)
     raw_fit = load_sources()
     dev_records = load_dev_challenge()
-    
-    print(f"Total raw fit candidates loaded: {len(raw_fit)}")
-    print(f"Total dev-challenge records: {len(dev_records)}")
 
-    # 1. Exclude any fit candidate that overlaps with dev-challenge (exact, normalized, or template)
-    dev_norm_hashes = {hashlib.sha256(normalize_text(r["text"]).encode("utf-8")).hexdigest() for r in dev_records}
-    dev_exact_hashes = {hashlib.sha256(r["text"].encode("utf-8")).hexdigest() for r in dev_records}
-    dev_tmpl_hashes = {hashlib.sha256(template_skeleton(r["text"]).encode("utf-8")).hexdigest() for r in dev_records}
-    
-    clean_fit = []
-    excluded_for_dev_leak = 0
+    print(f"Total raw candidates loaded: {len(raw_fit)}")
+    print(f"Total frozen dev-challenge records: {len(dev_records)}")
+
+    # Exclude any candidate that overlaps with dev_challenge (exact, normalized, or template)
+    dev_exact = {sha256_text(r["text"]) for r in dev_records}
+    dev_norm = {sha256_text(normalize_text(r["text"])) for r in dev_records}
+    dev_tmpl = {sha256_text(template_skeleton(r["text"])) for r in dev_records}
+
+    clean_pool = []
+    excluded_for_dev = 0
     for r in raw_fit:
-        e_h = hashlib.sha256(r["text"].encode("utf-8")).hexdigest()
-        n_h = hashlib.sha256(normalize_text(r["text"]).encode("utf-8")).hexdigest()
-        t_h = hashlib.sha256(template_skeleton(r["text"]).encode("utf-8")).hexdigest()
-        if e_h in dev_exact_hashes or n_h in dev_norm_hashes or t_h in dev_tmpl_hashes:
-            excluded_for_dev_leak += 1
+        e_h = sha256_text(r["text"])
+        n_h = sha256_text(normalize_text(r["text"]))
+        t_h = sha256_text(template_skeleton(r["text"]))
+        if e_h in dev_exact or n_h in dev_norm or t_h in dev_tmpl:
+            excluded_for_dev += 1
             continue
-        clean_fit.append(r)
-        
-    print(f"Excluded {excluded_for_dev_leak} rows for potential dev-challenge overlap.")
-    print(f"Clean candidate rows: {len(clean_fit)}")
+        clean_pool.append(r)
 
-    # 2. Dedup exact normalized duplicates and resolve label conflicts
+    print(f"Excluded {excluded_for_dev} rows for dev-challenge overlap.")
+    print(f"Clean pool: {len(clean_pool)}")
+
+    # Dedup exact normalized texts and resolve conflicts
     label_by_norm = defaultdict(set)
-    for r in clean_fit:
+    for r in clean_pool:
         norm = normalize_text(r["text"])
         label_by_norm[norm].add(r["label"])
-        
-    conflicting_norms = {n for n, labels in label_by_norm.items() if len(labels) > 1}
-    print(f"Conflicting normalized texts excluded: {len(conflicting_norms)}")
-    
+
+    conflicts = {n for n, labels in label_by_norm.items() if len(labels) > 1}
+    print(f"Ambiguous conflicting texts dropped: {len(conflicts)}")
+
     deduped = {}
-    for r in clean_fit:
+    for r in clean_pool:
         norm = normalize_text(r["text"])
-        if norm in conflicting_norms:
+        if norm in conflicts:
             continue
         key = (norm, r["label"])
         if key not in deduped:
             deduped[key] = r
-            
-    filtered_rows = list(deduped.values())
-    print(f"Unique, non-conflicting rows: {len(filtered_rows)}")
 
-    # Group into template clusters
-    clusters = defaultdict(list)
-    for r in filtered_rows:
+    unique_rows = list(deduped.values())
+    print(f"Unique non-conflicting candidate rows: {len(unique_rows)}")
+
+    # Assign buckets and cluster by template family
+    clusters_by_bucket = defaultdict(lambda: defaultdict(list))
+    for r in unique_rows:
+        b = detect_language_bucket(r["text"], r.get("source_lang", ""))
+        r["bucket"] = b
         tmpl = template_skeleton(r["text"])
         cluster_id = f"{r['source']}::{tmpl}"
         r["cluster_id"] = cluster_id
-        r["bucket"] = detect_language_bucket(r["text"], r["source_lang"])
-        clusters[cluster_id].append(r)
+        clusters_by_bucket[b][cluster_id].append(r)
 
-    print(f"Total template-family clusters: {len(clusters)}")
-
-    # 3. Deterministically split clusters 80% train / 20% validation
-    cluster_ids = sorted(clusters.keys())
-    random.shuffle(cluster_ids)
-    
-    train_rows = []
+    # Construct the 4 partitions:
+    # 1. Lockbox: >= 1,500 rows, >= 600 benign, all 3 languages & scripts
+    # 2. Validation: Real India data for calibration & early stopping
+    # 3. Train: Remaining rows, capping Bangladesh Bengali at <= 50% and synthetic <= 30%
+    lockbox_rows = []
     val_rows = []
+    train_rows = []
+
+    # Allocate entire clusters to Lockbox deterministically
+    target_lockbox_per_bucket = {
+        "bn_beng": 300,
+        "bn_latn": 200,
+        "hi_deva": 400,
+        "hi_latn": 300,
+        "en_latin": 600
+    }
+
+    target_val_per_bucket = {
+        "bn_beng": 300,
+        "bn_latn": 200,
+        "hi_deva": 400,
+        "hi_latn": 300,
+        "en_latin": 1200
+    }
+
+    for b in ("bn_beng", "bn_latn", "hi_deva", "hi_latn", "en_latin"):
+        cluster_items = list(clusters_by_bucket[b].items())
+        # Sort deterministically by hash of cluster_id
+        cluster_items.sort(key=lambda x: hashlib.sha256(x[0].encode("utf-8")).hexdigest())
+
+        lb_target = target_lockbox_per_bucket[b]
+        vl_target = target_val_per_bucket[b]
+
+        curr_lb = []
+        curr_vl = []
+        curr_tr = []
+
+        for cid, rows in cluster_items:
+            # Check if rows are real (lockbox and validation must be real data)
+            is_any_syn = any(r.get("is_synthetic", False) for r in rows)
+            is_bangladesh = any(r.get("geography") == "bangladesh" for r in rows)
+
+            if len(curr_lb) < lb_target and not is_any_syn:
+                curr_lb.extend(rows)
+            elif len(curr_vl) < vl_target and not is_any_syn and not is_bangladesh:
+                # Validation is strictly India-sourced real data
+                curr_vl.extend(rows)
+            else:
+                curr_tr.extend(rows)
+
+        lockbox_rows.extend(curr_lb)
+        val_rows.extend(curr_vl)
+        train_rows.extend(curr_tr)
+
+    # Apply Rule 1.4 cap on Bangladesh Bengali in Train (at most 50% of bn_beng training)
+    bn_train_india = [r for r in train_rows if r["bucket"] == "bn_beng" and r.get("geography") != "bangladesh"]
+    bn_train_bd = [r for r in train_rows if r["bucket"] == "bn_beng" and r.get("geography") == "bangladesh"]
     
-    for cid in cluster_ids:
-        # Use hash-based deterministic split
-        h_val = int(hashlib.sha256(cid.encode("utf-8")).hexdigest(), 16) % 100
-        if h_val < 80:
-            train_rows.extend(clusters[cid])
-        else:
-            val_rows.extend(clusters[cid])
-            
-    # 4. Check synthetic constraint: synthetic <= 30% of each language bucket in train
-    final_train = []
-    by_bucket_train = defaultdict(lambda: {"real": [], "synth": []})
-    for r in train_rows:
-        if r["is_synthetic"]:
-            by_bucket_train[r["bucket"]]["synth"].append(r)
-        else:
-            by_bucket_train[r["bucket"]]["real"].append(r)
-            
-    for bucket, groups in by_bucket_train.items():
-        n_real = len(groups["real"])
-        max_synth = int(n_real * 0.30 / 0.70) if n_real > 0 else 0
-        allowed_synth = groups["synth"][:max_synth]
-        final_train.extend(groups["real"] + allowed_synth)
-        synth_pct = len(allowed_synth) / (n_real + len(allowed_synth)) * 100 if (n_real + len(allowed_synth)) > 0 else 0
-        print(f"Train bucket {bucket}: {n_real} real, {len(allowed_synth)} synth ({synth_pct:.1f}% synthetic)")
+    max_bd_allowed = len(bn_train_india)
+    if len(bn_train_bd) > max_bd_allowed:
+        random.shuffle(bn_train_bd)
+        bn_train_bd = bn_train_bd[:max_bd_allowed]
+        print(f"Capped Bangladesh Bengali train rows to {len(bn_train_bd)} (<= 50% of Bengali train partition).")
 
-    # Validation: strictly real data per prompt constraints
-    final_val = [r for r in val_rows if not r["is_synthetic"]]
-    print(f"Validation rows (strictly real): {len(final_val)}")
+    # Reassemble train
+    other_train = [r for r in train_rows if r["bucket"] != "bn_beng"]
+    train_rows = other_train + bn_train_india + bn_train_bd
 
-    # Save splits
-    SPLITS_DIR.mkdir(parents=True, exist_ok=True)
-    
-    with open(SPLITS_DIR / "train.jsonl", "w", encoding="utf-8") as f:
-        for r in final_train:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-            
-    with open(SPLITS_DIR / "validation.jsonl", "w", encoding="utf-8") as f:
-        for r in final_val:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-            
-    with open(SPLITS_DIR / "dev_challenge.jsonl", "w", encoding="utf-8") as f:
-        for r in dev_records:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    # Final shuffle
+    random.shuffle(train_rows)
+    random.shuffle(val_rows)
+    random.shuffle(lockbox_rows)
 
-    print(f"\nSaved partitions to {SPLITS_DIR}:")
-    print(f"  train.jsonl: {len(final_train)} rows")
-    print(f"  validation.jsonl: {len(final_val)} rows")
-    print(f"  dev_challenge.jsonl: {len(dev_records)} rows")
+    print("\nFinal Partition Counts:")
+    print("=" * 60)
+    print(f"Train rows:      {len(train_rows)}")
+    print(f"Validation rows: {len(val_rows)}")
+    print(f"Lockbox rows:    {len(lockbox_rows)}")
+    print(f"Dev challenge:   {len(dev_records)}")
+
+    # Lockbox audit
+    lb_ham = sum(1 for r in lockbox_rows if r["label"] == "NOT_SCAM")
+    print(f"\nLockbox composition (Total: {len(lockbox_rows)}, Benign: {lb_ham}):")
+    print("Buckets:", Counter(r["bucket"] for r in lockbox_rows))
+    print("Labels: ", Counter(r["label"] for r in lockbox_rows))
+
+    # Save to files
+    def save_jsonl(path, rows):
+        with open(path, "w", encoding="utf-8") as f:
+            for r in rows:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+    save_jsonl(SPLITS_DIR / "train.jsonl", train_rows)
+    save_jsonl(SPLITS_DIR / "validation.jsonl", val_rows)
+    save_jsonl(SPLITS_DIR / "lockbox.jsonl", lockbox_rows)
+    save_jsonl(SPLITS_DIR / "dev_challenge.jsonl", dev_records)
+
+    print(f"\nWrote partitions successfully to {SPLITS_DIR}.")
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 if __name__ == "__main__":
     build_partitions()

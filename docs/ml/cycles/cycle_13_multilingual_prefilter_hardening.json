@@ -1,0 +1,285 @@
+{
+  "cycle": 13,
+  "timestamp": "2026-10-24T16:56:20Z",
+  "hypothesis": "Integrating Unicode-compliant Bengali and Hindi transactional confirmation protection with expanded multi-script fraud advisory matching will drastically suppress hard-negative false positives across Bengali, Devanagari, and Latin, while preserving >= 89% recall on validation and reducing dev challenge FPR to <= 1.5%.",
+  "candidate_sha256": "8605f382cbe29b4c630c0e03c4d70ab804a1b6564ea607bdc7ad941fe2109e99",
+  "dataset_manifest_sha256": "3143428a38c0882ae3c1116e45c827a956b45d1513909bca65c685b1df9fc472",
+  "seeds": [
+    20261020,
+    20261021,
+    20261022
+  ],
+  "parameters": {
+    "c_params": {
+      "latin": 2.5,
+      "devanagari": 1.5,
+      "bengali": 1.0
+    },
+    "max_features": {
+      "latin": 8000,
+      "devanagari": 5000,
+      "bengali": 4000
+    },
+    "use_translit_norm": false,
+    "use_vector_split": true,
+    "target_fpr_vec": 0.005,
+    "target_fpr_no": 0.005
+  },
+  "validation_metrics": {
+    "n": 2200,
+    "scam_n": 410,
+    "ham_n": 1790,
+    "tp": 368,
+    "fp": 10,
+    "fn": 42,
+    "tn": 1780,
+    "recall": 0.8976,
+    "recall_ci95": [
+      0.8644,
+      0.9233
+    ],
+    "fpr": 0.0056,
+    "fpr_ci95": [
+      0.003,
+      0.0103
+    ],
+    "precision": 0.9735,
+    "f1": 0.934,
+    "brier": 0.0269,
+    "ece": 0.0271,
+    "inconclusive": false
+  },
+  "per_language_validation": {
+    "latin": {
+      "n": 1487,
+      "scam_n": 257,
+      "ham_n": 1230,
+      "tp": 228,
+      "fp": 7,
+      "fn": 29,
+      "tn": 1223,
+      "recall": 0.8872,
+      "recall_ci95": [
+        0.8426,
+        0.9203
+      ],
+      "fpr": 0.0057,
+      "fpr_ci95": [
+        0.0028,
+        0.0117
+      ],
+      "precision": 0.9702,
+      "f1": 0.9268,
+      "brier": 0.0246,
+      "ece": 0.0217,
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 413,
+      "scam_n": 26,
+      "ham_n": 387,
+      "tp": 23,
+      "fp": 2,
+      "fn": 3,
+      "tn": 385,
+      "recall": 0.8846,
+      "recall_ci95": [
+        0.7102,
+        0.96
+      ],
+      "fpr": 0.0052,
+      "fpr_ci95": [
+        0.0014,
+        0.0186
+      ],
+      "precision": 0.92,
+      "f1": 0.902,
+      "brier": 0.0125,
+      "ece": 0.0423,
+      "inconclusive": true
+    },
+    "bengali": {
+      "n": 300,
+      "scam_n": 127,
+      "ham_n": 173,
+      "tp": 117,
+      "fp": 1,
+      "fn": 10,
+      "tn": 172,
+      "recall": 0.9213,
+      "recall_ci95": [
+        0.8611,
+        0.9567
+      ],
+      "fpr": 0.0058,
+      "fpr_ci95": [
+        0.001,
+        0.032
+      ],
+      "precision": 0.9915,
+      "f1": 0.9551,
+      "brier": 0.058,
+      "ece": 0.1092,
+      "inconclusive": false
+    }
+  },
+  "protected_traffic_fpr": 0.0,
+  "advisory_fpr": 0.0,
+  "latency_ms": {
+    "p50": 0.583,
+    "p95": 0.854
+  },
+  "lockbox_evaluated": false,
+  "dev_evaluated": true,
+  "notes": "multilingual_prefilter_hardening",
+  "dev_metrics": {
+    "n": 559,
+    "scam_n": 269,
+    "ham_n": 290,
+    "tp": 202,
+    "fp": 2,
+    "fn": 67,
+    "tn": 288,
+    "recall": 0.7509,
+    "recall_ci95": [
+      0.696,
+      0.7988
+    ],
+    "fpr": 0.0069,
+    "fpr_ci95": [
+      0.0019,
+      0.0248
+    ],
+    "precision": 0.9902,
+    "f1": 0.8541,
+    "brier": 0.1166,
+    "ece": 0.1131,
+    "inconclusive": false
+  },
+  "per_language_dev": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 115,
+      "fp": 0,
+      "fn": 33,
+      "tn": 148,
+      "recall": 0.777,
+      "recall_ci95": [
+        0.7034,
+        0.8366
+      ],
+      "fpr": 0.0,
+      "fpr_ci95": [
+        0.0,
+        0.0253
+      ],
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 48,
+      "fp": 2,
+      "fn": 23,
+      "tn": 90,
+      "recall": 0.6761,
+      "recall_ci95": [
+        0.5606,
+        0.7734
+      ],
+      "fpr": 0.0217,
+      "fpr_ci95": [
+        0.006,
+        0.0758
+      ],
+      "inconclusive": true
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 39,
+      "fp": 0,
+      "fn": 11,
+      "tn": 50,
+      "recall": 0.78,
+      "recall_ci95": [
+        0.6476,
+        0.8725
+      ],
+      "fpr": 0.0,
+      "fpr_ci95": [
+        0.0,
+        0.0713
+      ],
+      "inconclusive": true
+    }
+  },
+  "per_language": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 115,
+      "fp": 0,
+      "fn": 33,
+      "tn": 148,
+      "recall": 0.777,
+      "recall_ci95": [
+        0.7034,
+        0.8366
+      ],
+      "fpr": 0.0,
+      "fpr_ci95": [
+        0.0,
+        0.0253
+      ],
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 48,
+      "fp": 2,
+      "fn": 23,
+      "tn": 90,
+      "recall": 0.6761,
+      "recall_ci95": [
+        0.5606,
+        0.7734
+      ],
+      "fpr": 0.0217,
+      "fpr_ci95": [
+        0.006,
+        0.0758
+      ],
+      "inconclusive": true
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 39,
+      "fp": 0,
+      "fn": 11,
+      "tn": 50,
+      "recall": 0.78,
+      "recall_ci95": [
+        0.6476,
+        0.8725
+      ],
+      "fpr": 0.0,
+      "fpr_ci95": [
+        0.0,
+        0.0713
+      ],
+      "inconclusive": true
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "iterate"
+}

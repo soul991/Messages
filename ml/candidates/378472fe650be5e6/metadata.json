@@ -1,0 +1,36 @@
+{
+  "model_name": "CalibratedMultilingualAdvisoryLinear",
+  "sha256": "378472fe650be5e6a81f0b3cdbcda422664361be27a532ab41120e275cc14598",
+  "size_bytes": 965142,
+  "size_kib": 942.52,
+  "created_at": "2026-10-24T16:17:49.194055+00:00",
+  "cycle": 8,
+  "license": "Apache-2.0",
+  "data_sources": [
+    "karanverma19/trilingual_fraud_consumer_protection_v2",
+    "SMS-shield-mini-raw",
+    "kaggle/sms-spam-collection-dataset",
+    "HinSpam"
+  ],
+  "environment": "host JVM",
+  "memory": {
+    "environment": "host JVM",
+    "jvm_version": "17.0.19",
+    "pid": 20292,
+    "heap_before_bytes": 3993544,
+    "heap_after_load_bytes": 12370448,
+    "heap_delta_bytes": 8376904,
+    "heap_delta_mb": 7.9888,
+    "heap_during_1000_scores_bytes": 24657152,
+    "heap_during_1000_scores_mb": 23.5149,
+    "resident_bytes": 112742400,
+    "resident_mb": 107.5195,
+    "scores_evaluated": 1000,
+    "checksum_sink": 82689.68550563838,
+    "device": "NOT MEASURED"
+  },
+  "latency_p50_ms": 0.179,
+  "latency_p95_ms": 0.496,
+  "release_gate_status": "FAILED",
+  "release_recommendation": "DO NOT MERGE / DO NOT ENABLE"
+}

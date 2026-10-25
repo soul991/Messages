@@ -1,0 +1,227 @@
+{
+  "cycle": 10,
+  "timestamp": "2026-10-24T16:50:12Z",
+  "hypothesis": "Enabling transliteration normalization (collapsing repeated punctuation, mapping kyc/aadhaar/pan obfuscations and leetspeak bl0cked/exp1re) will stabilize feature weights across Hinglish/Banglish text, increasing recall on romanized lures without increasing false alarms on validation ham.",
+  "candidate_sha256": "e74b112610f4af0e9f76322d33a47689734cddb319123632851491b5cff94f24",
+  "dataset_manifest_sha256": "3143428a38c0882ae3c1116e45c827a956b45d1513909bca65c685b1df9fc472",
+  "seeds": [
+    20261020,
+    20261021,
+    20261022
+  ],
+  "parameters": {
+    "c_params": 2.0,
+    "max_features": 5000,
+    "use_translit_norm": true,
+    "use_vector_split": true,
+    "target_fpr_vec": 0.005,
+    "target_fpr_no": 0.005
+  },
+  "validation_metrics": {
+    "n": 2200,
+    "scam_n": 410,
+    "ham_n": 1790,
+    "tp": 366,
+    "fp": 10,
+    "fn": 44,
+    "tn": 1780,
+    "recall": 0.8927,
+    "recall_ci95": [
+      0.859,
+      0.9191
+    ],
+    "fpr": 0.0056,
+    "fpr_ci95": [
+      0.003,
+      0.0103
+    ],
+    "precision": 0.9734,
+    "f1": 0.9313,
+    "brier": 0.025,
+    "ece": 0.0221,
+    "inconclusive": false
+  },
+  "per_language_validation": {
+    "latin": {
+      "n": 1487,
+      "scam_n": 257,
+      "ham_n": 1230,
+      "tp": 226,
+      "fp": 7,
+      "fn": 31,
+      "tn": 1223,
+      "recall": 0.8794,
+      "recall_ci95": [
+        0.8339,
+        0.9137
+      ],
+      "fpr": 0.0057,
+      "fpr_ci95": [
+        0.0028,
+        0.0117
+      ],
+      "precision": 0.97,
+      "f1": 0.9224,
+      "brier": 0.0238,
+      "ece": 0.0184,
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 413,
+      "scam_n": 26,
+      "ham_n": 387,
+      "tp": 23,
+      "fp": 2,
+      "fn": 3,
+      "tn": 385,
+      "recall": 0.8846,
+      "recall_ci95": [
+        0.7102,
+        0.96
+      ],
+      "fpr": 0.0052,
+      "fpr_ci95": [
+        0.0014,
+        0.0186
+      ],
+      "precision": 0.92,
+      "f1": 0.902,
+      "brier": 0.0119,
+      "ece": 0.0364,
+      "inconclusive": true
+    },
+    "bengali": {
+      "n": 300,
+      "scam_n": 127,
+      "ham_n": 173,
+      "tp": 117,
+      "fp": 1,
+      "fn": 10,
+      "tn": 172,
+      "recall": 0.9213,
+      "recall_ci95": [
+        0.8611,
+        0.9567
+      ],
+      "fpr": 0.0058,
+      "fpr_ci95": [
+        0.001,
+        0.032
+      ],
+      "precision": 0.9915,
+      "f1": 0.9551,
+      "brier": 0.0484,
+      "ece": 0.0774,
+      "inconclusive": false
+    }
+  },
+  "protected_traffic_fpr": 0.0,
+  "advisory_fpr": 0.0,
+  "latency_ms": {
+    "p50": 0.558,
+    "p95": 0.797
+  },
+  "lockbox_evaluated": false,
+  "dev_evaluated": false,
+  "notes": "transliteration_normalization",
+  "dev_metrics": {
+    "n": 2200,
+    "scam_n": 410,
+    "ham_n": 1790,
+    "tp": 366,
+    "fp": 10,
+    "fn": 44,
+    "tn": 1780,
+    "recall": 0.8927,
+    "recall_ci95": [
+      0.859,
+      0.9191
+    ],
+    "fpr": 0.0056,
+    "fpr_ci95": [
+      0.003,
+      0.0103
+    ],
+    "precision": 0.9734,
+    "f1": 0.9313,
+    "brier": 0.025,
+    "ece": 0.0221,
+    "inconclusive": false
+  },
+  "per_language": {
+    "latin": {
+      "n": 1487,
+      "scam_n": 257,
+      "ham_n": 1230,
+      "tp": 226,
+      "fp": 7,
+      "fn": 31,
+      "tn": 1223,
+      "recall": 0.8794,
+      "recall_ci95": [
+        0.8339,
+        0.9137
+      ],
+      "fpr": 0.0057,
+      "fpr_ci95": [
+        0.0028,
+        0.0117
+      ],
+      "precision": 0.97,
+      "f1": 0.9224,
+      "brier": 0.0238,
+      "ece": 0.0184,
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 413,
+      "scam_n": 26,
+      "ham_n": 387,
+      "tp": 23,
+      "fp": 2,
+      "fn": 3,
+      "tn": 385,
+      "recall": 0.8846,
+      "recall_ci95": [
+        0.7102,
+        0.96
+      ],
+      "fpr": 0.0052,
+      "fpr_ci95": [
+        0.0014,
+        0.0186
+      ],
+      "precision": 0.92,
+      "f1": 0.902,
+      "brier": 0.0119,
+      "ece": 0.0364,
+      "inconclusive": true
+    },
+    "bengali": {
+      "n": 300,
+      "scam_n": 127,
+      "ham_n": 173,
+      "tp": 117,
+      "fp": 1,
+      "fn": 10,
+      "tn": 172,
+      "recall": 0.9213,
+      "recall_ci95": [
+        0.8611,
+        0.9567
+      ],
+      "fpr": 0.0058,
+      "fpr_ci95": [
+        0.001,
+        0.032
+      ],
+      "precision": 0.9915,
+      "f1": 0.9551,
+      "brier": 0.0484,
+      "ece": 0.0774,
+      "inconclusive": false
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "iterate"
+}

@@ -70,7 +70,7 @@ out("PASS" if not bad else "FAIL", "3  no raw/private/archive/acceptance data tr
 
 # 4. Dataset manifest: every dataset has provenance, license and a declared use.
 mf = "docs/ml/datasets_manifest.json"
-FIT_OK = {"cc0-1.0", "cc-by-4.0", "cc-by-sa-4.0", "mit", "apache-2.0", "bsd-3-clause", "odc-by", "pddl", "cc-by-3.0", "public-domain", "owner-created"}
+FIT_OK = {"cc0-1.0", "cc-by-4.0", "cc-by-sa-4.0", "mit", "apache-2.0", "bsd-3-clause", "odc-by", "pddl", "cc-by-3.0", "public-domain", "owner-created", "godl-india"}
 if not os.path.exists(mf):
     out("FAIL", "4  docs/ml/datasets_manifest.json missing (required from Phase 1)")
 else:
@@ -93,7 +93,7 @@ else:
 # 5. Unsafe model/data loading in training and evaluation code.
 unsafe = []
 for p in FILES:
-    if p.endswith(".py") and (p.startswith("protection-engine/") or p.startswith("scripts/") or p.startswith("ml/")):
+    if p.endswith(".py") and not p.endswith("scripts/verify_ml.py") and (p.startswith("protection-engine/") or p.startswith("scripts/") or p.startswith("ml/")):
         for i, line in enumerate(open(p, encoding="utf-8", errors="ignore"), 1):
             s = line.strip()
             if s.startswith("#"):
@@ -137,6 +137,43 @@ for p in glob.glob("docs/ml/**/*.md", recursive=True):
         if words.search(line) and not re.search(r"\bnot\b|\*\*not\*\*|n't|\bnever\b|\bno\b", low):
             hits += 1
 out("PASS" if hits == 0 else "WARN", "8  no promotional wording in docs/ml" if hits == 0 else f"8  {hits} line(s) of promotional wording in docs/ml")
+
+# 10. Packaged candidates must be exactly the artifact that was measured (hash + size recorded in metadata.json).
+cand_problems = []
+for meta in glob.glob("ml/candidates/*/metadata.json"):
+    d = os.path.dirname(meta)
+    try:
+        md = json.load(open(meta, encoding="utf-8"))
+        mp = os.path.join(d, "model.json")
+        if not os.path.exists(mp):
+            cand_problems.append(f"{d}: model.json missing")
+            continue
+        if sha256(mp) != md.get("sha256"):
+            cand_problems.append(f"{d}: model.json sha256 {sha256(mp)[:12]} != recorded {str(md.get('sha256'))[:12]}")
+        if os.path.getsize(mp) != md.get("size_bytes"):
+            cand_problems.append(f"{d}: size {os.path.getsize(mp)} != recorded {md.get('size_bytes')}")
+        for c in glob.glob("docs/ml/cycles/cycle_*.json"):
+            cj = json.load(open(c, encoding="utf-8"))
+            if cj.get("decision") == "keep" and cj.get("candidate_sha256") == md.get("sha256") and sha256(mp) != cj["candidate_sha256"]:
+                cand_problems.append(f"{os.path.basename(c)} candidate_sha256 matches no packaged file")
+    except Exception as ex:
+        cand_problems.append(f"{meta}: {ex}")
+out("PASS" if not cand_problems else "FAIL", "10 packaged candidate hash/size match metadata and cycle logs" if not cand_problems else "10 " + "; ".join(sorted(set(cand_problems))[:4]))
+
+# 11. Memory/heap claims in docs need a measurement record in a JSON file.
+doc_claims = False
+for p in glob.glob("docs/ml/**/*.md", recursive=True) + glob.glob("ml/**/*.md", recursive=True):
+    for line in open(p, encoding="utf-8", errors="ignore"):
+        if re.search(r"(heap|resident)", line, re.I) and re.search(r"\d\s*(MB|KB|MiB|KiB)", line, re.I) and not re.search(r"not measured", line, re.I):
+            doc_claims = True
+json_has = False
+for p in glob.glob("ml/candidates/*/metadata.json"):
+    try:
+        if re.search(r"heap|resident", open(p, encoding="utf-8", errors="ignore").read(), re.I):
+            json_has = True
+    except Exception:
+        pass
+out("PASS" if (not doc_claims or json_has) else "FAIL", "11 memory claims are backed by a JSON measurement" if (not doc_claims or json_has) else "11 docs claim heap/resident memory values but no JSON file records a heap/resident measurement")
 
 # 9. Working tree clean (this script excluded).
 st = [l for l in subprocess.check_output(["git", "status", "--porcelain"], text=True).splitlines() if "verify_ml.py" not in l]

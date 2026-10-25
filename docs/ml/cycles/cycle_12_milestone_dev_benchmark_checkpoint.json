@@ -1,0 +1,285 @@
+{
+  "cycle": 12,
+  "timestamp": "2026-10-24T16:52:18Z",
+  "hypothesis": "Milestone checkpoint evaluating the script-capacity-tuned candidate on dev_challenge.jsonl (dev_eval_count = 2) to test whether expanded training data and calibrated thresholds resolve Round 1's Devanagari (35.87%) and Bengali (20.00%) FPR defects on the frozen benchmark while maintaining >= 80% recall.",
+  "candidate_sha256": "c61e03817ef24e74e246a01de43ffdf6194135c6d852220a3f9b7b8c46885fcb",
+  "dataset_manifest_sha256": "3143428a38c0882ae3c1116e45c827a956b45d1513909bca65c685b1df9fc472",
+  "seeds": [
+    20261020,
+    20261021,
+    20261022
+  ],
+  "parameters": {
+    "c_params": {
+      "latin": 2.5,
+      "devanagari": 1.5,
+      "bengali": 1.0
+    },
+    "max_features": {
+      "latin": 8000,
+      "devanagari": 5000,
+      "bengali": 4000
+    },
+    "use_translit_norm": false,
+    "use_vector_split": true,
+    "target_fpr_vec": 0.005,
+    "target_fpr_no": 0.005
+  },
+  "validation_metrics": {
+    "n": 2200,
+    "scam_n": 410,
+    "ham_n": 1790,
+    "tp": 370,
+    "fp": 10,
+    "fn": 40,
+    "tn": 1780,
+    "recall": 0.9024,
+    "recall_ci95": [
+      0.8699,
+      0.9275
+    ],
+    "fpr": 0.0056,
+    "fpr_ci95": [
+      0.003,
+      0.0103
+    ],
+    "precision": 0.9737,
+    "f1": 0.9367,
+    "brier": 0.0262,
+    "ece": 0.027,
+    "inconclusive": false
+  },
+  "per_language_validation": {
+    "latin": {
+      "n": 1487,
+      "scam_n": 257,
+      "ham_n": 1230,
+      "tp": 230,
+      "fp": 7,
+      "fn": 27,
+      "tn": 1223,
+      "recall": 0.8949,
+      "recall_ci95": [
+        0.8515,
+        0.9268
+      ],
+      "fpr": 0.0057,
+      "fpr_ci95": [
+        0.0028,
+        0.0117
+      ],
+      "precision": 0.9705,
+      "f1": 0.9312,
+      "brier": 0.0234,
+      "ece": 0.021,
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 413,
+      "scam_n": 26,
+      "ham_n": 387,
+      "tp": 23,
+      "fp": 2,
+      "fn": 3,
+      "tn": 385,
+      "recall": 0.8846,
+      "recall_ci95": [
+        0.7102,
+        0.96
+      ],
+      "fpr": 0.0052,
+      "fpr_ci95": [
+        0.0014,
+        0.0186
+      ],
+      "precision": 0.92,
+      "f1": 0.902,
+      "brier": 0.0132,
+      "ece": 0.0443,
+      "inconclusive": true
+    },
+    "bengali": {
+      "n": 300,
+      "scam_n": 127,
+      "ham_n": 173,
+      "tp": 117,
+      "fp": 1,
+      "fn": 10,
+      "tn": 172,
+      "recall": 0.9213,
+      "recall_ci95": [
+        0.8611,
+        0.9567
+      ],
+      "fpr": 0.0058,
+      "fpr_ci95": [
+        0.001,
+        0.032
+      ],
+      "precision": 0.9915,
+      "f1": 0.9551,
+      "brier": 0.058,
+      "ece": 0.1092,
+      "inconclusive": false
+    }
+  },
+  "protected_traffic_fpr": 0.0,
+  "advisory_fpr": 0.0,
+  "latency_ms": {
+    "p50": 0.567,
+    "p95": 0.825
+  },
+  "lockbox_evaluated": false,
+  "dev_evaluated": true,
+  "notes": "milestone_dev_benchmark_checkpoint",
+  "dev_metrics": {
+    "n": 559,
+    "scam_n": 269,
+    "ham_n": 290,
+    "tp": 208,
+    "fp": 27,
+    "fn": 61,
+    "tn": 263,
+    "recall": 0.7732,
+    "recall_ci95": [
+      0.7196,
+      0.8192
+    ],
+    "fpr": 0.0931,
+    "fpr_ci95": [
+      0.0648,
+      0.1321
+    ],
+    "precision": 0.8851,
+    "f1": 0.8254,
+    "brier": 0.1232,
+    "ece": 0.0912,
+    "inconclusive": false
+  },
+  "per_language_dev": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 118,
+      "fp": 10,
+      "fn": 30,
+      "tn": 138,
+      "recall": 0.7973,
+      "recall_ci95": [
+        0.7254,
+        0.8542
+      ],
+      "fpr": 0.0676,
+      "fpr_ci95": [
+        0.0371,
+        0.1199
+      ],
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 50,
+      "fp": 8,
+      "fn": 21,
+      "tn": 84,
+      "recall": 0.7042,
+      "recall_ci95": [
+        0.5898,
+        0.7977
+      ],
+      "fpr": 0.087,
+      "fpr_ci95": [
+        0.0447,
+        0.1623
+      ],
+      "inconclusive": true
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 40,
+      "fp": 9,
+      "fn": 10,
+      "tn": 41,
+      "recall": 0.8,
+      "recall_ci95": [
+        0.6696,
+        0.8876
+      ],
+      "fpr": 0.18,
+      "fpr_ci95": [
+        0.0977,
+        0.308
+      ],
+      "inconclusive": true
+    }
+  },
+  "per_language": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 118,
+      "fp": 10,
+      "fn": 30,
+      "tn": 138,
+      "recall": 0.7973,
+      "recall_ci95": [
+        0.7254,
+        0.8542
+      ],
+      "fpr": 0.0676,
+      "fpr_ci95": [
+        0.0371,
+        0.1199
+      ],
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 50,
+      "fp": 8,
+      "fn": 21,
+      "tn": 84,
+      "recall": 0.7042,
+      "recall_ci95": [
+        0.5898,
+        0.7977
+      ],
+      "fpr": 0.087,
+      "fpr_ci95": [
+        0.0447,
+        0.1623
+      ],
+      "inconclusive": true
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 40,
+      "fp": 9,
+      "fn": 10,
+      "tn": 41,
+      "recall": 0.8,
+      "recall_ci95": [
+        0.6696,
+        0.8876
+      ],
+      "fpr": 0.18,
+      "fpr_ci95": [
+        0.0977,
+        0.308
+      ],
+      "inconclusive": true
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "iterate"
+}
