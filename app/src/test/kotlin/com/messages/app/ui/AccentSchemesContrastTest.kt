@@ -77,4 +77,17 @@ class AccentSchemesContrastTest {
         val dark = schemeForSeed(AccentSeed.BLUE, dark = true)
         assertTrue("blue dark primary should be a light blue", dark.primary.luminance() > 0.4)
     }
+
+    @Test
+    fun `orchid seed reproduces the orchid brand scheme family and passes contrast`() {
+        val light = schemeForSeed(AccentSeed.ORCHID, dark = false)
+        val dark = schemeForSeed(AccentSeed.ORCHID, dark = true)
+        checkScheme(AccentSeed.ORCHID, dark = false, s = light)
+        checkScheme(AccentSeed.ORCHID, dark = true, s = dark)
+        // Coral tertiary spark assertions (T40 light, T80 dark)
+        assertAa(AccentSeed.ORCHID, false, "coral onTertiary/tertiary", light.onTertiary, light.tertiary)
+        assertAa(AccentSeed.ORCHID, true, "coral onTertiary/tertiary", dark.onTertiary, dark.tertiary)
+        assertAa(AccentSeed.ORCHID, false, "coral container", light.onTertiaryContainer, light.tertiaryContainer)
+        assertAa(AccentSeed.ORCHID, true, "coral container", dark.onTertiaryContainer, dark.tertiaryContainer)
+    }
 }

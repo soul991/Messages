@@ -12,13 +12,13 @@
 
 | Parameter | Figma Measurement / Value | Compose Implementation Value | Notes / WCAG / Rules |
 |---|---|---|---|
-| **Shape** | Bottom-docked bar spanning full width (`bounds.width: 375`, `bounds.height: 83`) | Bottom-docked edge-to-edge bar with `navigationBarsPadding()` | Bottom-docked per Telegram reference (`x: 0, y: 729`). Zero bottom float margin. |
-| **Height** | Content height `49px` + Home Indicator `34px` = `83px` | Content height `52.dp` + `navigationBarsPadding()` | Standard bottom dock content height |
-| **Corner Radius** | `0` (bottom docked) | `0.dp` bottom, `0.dp` top (or hairline border top) | In rule 5 set `{4,8,12,20,24,28,32}` or `0.dp` |
-| **Elevation** | Drop shadow `0 -0.33px` (hairline divider) | `0.dp` surface elevation with 0.5.dp top hairline border | Border stroke `outlineVariant.copy(alpha = 0.35f)` |
-| **Container Fill (Light)** | `#f6f6f6` (100% opacity) | `MaterialTheme.colorScheme.surfaceContainer` | Matches Figma `0:7425` fill `#f6f6f6` |
-| **Container Fill (Dark)** | `#1c1c1d` (100% opacity) | `MaterialTheme.colorScheme.surfaceContainer` | Matches Figma `0:3678` fill `#1c1c1d` |
-| **Top Hairline Divider** | `#a6a6aa` (light), `#3d3d3f` (dark), height 0.33px | `BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))` | Top border matching Figma drop shadow effect |
+| **Shape** | Floating capsule bar with side margins and lift | Floating capsule: `padding(horizontal = 12.dp, bottom = 8.dp)` above nav bar | Floating capsule per Orchid 2026 refresh |
+| **Height** | Content height `60px` | `60.dp` content height | Expanded comfort height for liquid-glass indicator |
+| **Corner Radius** | Full round capsule (`CircleShape`) | `CircleShape` | **Explicit Design System Exception**: The dock floating capsule is the one permitted full-round (`CircleShape`) exception to the standard radius set `{4, 8, 12, 20, 24, 28, 32}`. |
+| **Elevation** | Soft drop shadow | `shadowElevation = 6.dp` | Soft shadow elevation |
+| **Container Fill (Light)** | `#F2EEE9` at 92% alpha | `MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f)` | Retinted Pearl neutral surface container |
+| **Container Fill (Dark)** | `#1B1820` at 92% alpha | `MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f)` | Tinted Ink neutral surface container |
+| **Hairline Outline** | Subtle outline border | `BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)` | Hairline container definition |
 
 ---
 
@@ -33,15 +33,17 @@
 
 ---
 
-## 3. Active Tab Indicator & Pill / Tint
-
+## 3. Active Tab Indicator & Liquid-Glass Pill
+ 
 | Parameter | Figma Measurement / Value | Compose Implementation Value | Notes |
 |---|---|---|---|
-| **Indicator Style** | Tint on active icon & label + subtle sliding container tint | Sliding active background tint with spring transition | Preserves liked dock tab selection animation (Rule 4) |
-| **Pill Shape** | Rounded capsule | `RoundedCornerShape(12.dp)` | Value within `{4,8,12,20,24,28,32}` (Rule 5) |
-| **Pill Fill (Light)** | Semi-transparent primary container `#037ee5` at 12% alpha | `MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)` | Subtle tint highlighting active tab slot |
-| **Pill Fill (Dark)** | Semi-transparent white/primary container at 14% alpha | `MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)` | High contrast dark mode tint |
-| **Pill Dimensions** | Width: tab slot width minus 8dp margin; Height: 44dp | Width: `fillMaxWidth(0.85f)`, Height: `44.dp` | Centered within tab slot |
+| **Indicator Style** | Liquid-glass floating capsule with lift & glide physics | `GlassIndicator` driven by `Animatable(x)` and `Animatable(lift)` | Physical lift on press (1.2x wide, 1.1x tall), glide, settle back to rest |
+| **Spring Constants** | Reference recording (~56 fps, 300-350ms switch) | x: `spring(1f, 290f)`; lift up: `spring(1f, 420f)`; lift down: `spring(1f, 210f)` | Critically damped horizontal glide; lift and settle |
+| **Pill Shape** | Rounded capsule | Full capsule (`r = height / 2`) | **Explicit Exception**: Capsule full-round exception to `{4,8,12,20,24,28,32}` |
+| **Pill Fill (Light)** | Translucent primary fill | `primary` at 0.18 alpha rest, 0.10 while lifted | Retains >= 3:1 contrast against pale canvas |
+| **Pill Fill (Dark)** | Translucent primary fill | `primary` at 0.14 alpha rest, 0.06 while lifted | High contrast dark mode tint |
+| **Glass Highlights & Rims** | Zero blur/gradient audit compliance | Dark: 1dp onSurface rim (0.22 alpha) + top highlight (0.50 alpha); Light: 1dp pure white top highlight (0.90 alpha) + lower rim (0.12 alpha) | Layered canvas drawing without AGSL/RenderEffect |
+| **Drag & Retargeting** | Fluid finger tracking | Pointer drag with `x.snapTo`, release to nearest tab, re-targets mid-glide without jump | Emits `Haptics.tick(view)` on tab crossing |
 
 ---
 
@@ -52,10 +54,10 @@
 | **Icon Size** | `25x25` to `29x29` bounding box | `24.dp` | Standard Android / Telegram navigation icon size |
 | **Active Icon Variant** | Filled solid vector shape | `DockItem.filledIcon` | From `Dock Category Logos - Redesign [1223:2]` |
 | **Inactive Icon Variant** | Outlined stroke vector shape (stroke 1.8f - 2.0f, rounded caps) | `DockItem.outlinedIcon` | From `Dock Category Logos - Redesign [1223:2]` |
-| **Active Icon Color (Light)** | `#037ee5` | `MaterialTheme.colorScheme.primary` | Contrast > 4.5:1 against `#f6f6f6` |
-| **Active Icon Color (Dark)** | `#ffffff` / `#007aff` | `MaterialTheme.colorScheme.primary` | Contrast > 4.5:1 against `#1c1c1d` |
-| **Inactive Icon Color (Light)**| `#545458` (65% opacity) | `MaterialTheme.colorScheme.onSurfaceVariant` | Contrast > 3.0:1 for icons |
-| **Inactive Icon Color (Dark)** | `#ffffff` (45% opacity) | `MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)` | Contrast > 3.0:1 for icons |
+| **Active Icon Color (Light)** | `#8939AC` | `MaterialTheme.colorScheme.primary` | Contrast > 4.5:1 against canvas |
+| **Active Icon Color (Dark)** | `#EAB2FF` | `MaterialTheme.colorScheme.primary` | Contrast > 4.5:1 against dark surface |
+| **Inactive Icon Color (Light)**| `#675F6F` | `MaterialTheme.colorScheme.onSurfaceVariant` | Contrast > 3.0:1 for icons |
+| **Inactive Icon Color (Dark)** | `#B4ABBD` | `MaterialTheme.colorScheme.onSurfaceVariant` | Contrast > 3.0:1 for icons |
 
 ---
 
@@ -68,10 +70,10 @@
 | **Font Weight** | `500` (Medium) | `FontWeight.Medium` | Clear readability at 10sp |
 | **Letter Spacing** | `0.1px` | `0.1.sp` | Tight, legible navigation label tracking |
 | **Spacing from Icon** | `2px` - `4px` | `2.dp` Spacer | Compact vertical rhythm |
-| **Active Label Color (Light)** | `#037ee5` | `MaterialTheme.colorScheme.primary` | Contrast > 4.5:1 |
-| **Active Label Color (Dark)** | `#ffffff` | `MaterialTheme.colorScheme.onSurface` | Contrast > 4.5:1 |
-| **Inactive Label Color (Light)**| `#545458` (65% opacity) | `MaterialTheme.colorScheme.onSurfaceVariant` | Contrast > 4.5:1 |
-| **Inactive Label Color (Dark)** | `#ffffff` (45% opacity) | `MaterialTheme.colorScheme.onSurfaceVariant` | Contrast > 4.5:1 |
+| **Active Label Color (Light)** | `#8939AC` | `MaterialTheme.colorScheme.primary` | Contrast > 4.5:1 |
+| **Active Label Color (Dark)** | `#EDE6F2` | `MaterialTheme.colorScheme.onSurface` | Contrast > 4.5:1 |
+| **Inactive Label Color (Light)**| `#675F6F` | `MaterialTheme.colorScheme.onSurfaceVariant` | Contrast > 4.5:1 |
+| **Inactive Label Color (Dark)** | `#B4ABBD` | `MaterialTheme.colorScheme.onSurfaceVariant` | Contrast > 4.5:1 |
 
 ---
 
@@ -79,12 +81,10 @@
 
 | Parameter | Figma Measurement / Value | Compose Implementation Value | Notes |
 |---|---|---|---|
-| **Badge Height** | `18px` | `18.dp` | Matches `0:3693` & `0:7441` |
+| **Badge Height** | `18px` | `18.dp` | Standard badge height |
 | **Badge Min-Width** | `18px` | `18.dp` | Circular for 1 digit, capsule for 2+ digits |
 | **Corner Radius** | Oval / Circle (half height = 9px) | `RoundedCornerShape(8.dp)` | Within `{4,8,12,20,24,28,32}` (Rule 5) |
 | **Position Offset** | Anchor: top-right of icon (`x: 54, y: 2` relative to tab) | `offset(x = 10.dp, y = (-4).dp)` | Anchored to icon top-right |
-| **Background (Light)** | `#fe3b30` (Red badge) / Category container | `MaterialTheme.colorScheme.error` or Category Palette | Matches Figma `0:7442` `#fe3b30` |
-| **Background (Dark)** | `#ffffff` (White badge) / Category container | `MaterialTheme.colorScheme.surface` or Category Palette | Matches Figma `0:3694` `#ffffff` |
-| **Text Color (Light)** | `#fefffe` (White text) | `MaterialTheme.colorScheme.onError` | Contrast > 4.5:1 |
-| **Text Color (Dark)** | `#1c1c1d` (Dark text) | `MaterialTheme.colorScheme.onSurface` | Contrast > 4.5:1 |
-| **Font Size & Weight** | `11px - 13px`, Weight `400` / `600` | `10.sp`, `FontWeight.SemiBold` | Clear legibility inside 18dp badge |
+| **Background (Light & Dark)** | Coral warm tertiary spark | `MaterialTheme.colorScheme.tertiary` (#A43B30 light / #FFB4A7 dark) | Dedicated tertiary accent |
+| **Text Color (Light & Dark)** | High contrast on-tertiary | `MaterialTheme.colorScheme.onTertiary` (white light / #510073 dark) | Contrast > 4.5:1 |
+| **Font Size & Weight** | `10sp`, Weight `600` | `10.sp`, `FontWeight.SemiBold`, tabular `tnum` figures | Clear legibility inside 18dp badge |
