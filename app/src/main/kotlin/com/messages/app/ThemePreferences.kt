@@ -30,8 +30,8 @@ object ThemePreferences {
         val version = prefs.getInt(KEY_THEME_VERSION, 0)
         if (version < CURRENT_THEME_VERSION) {
             val saved = prefs.getString(KEY_ACCENT_SEED, null)
-            // Migrate users from previous Violet default (or Green/unset) to 2026 Orchid identity
-            if (saved == null || saved == AccentSeed.VIOLET.name || saved == AccentSeed.GREEN.name) {
+            // Migrate users from previous Violet default (or unset) to Orchid identity
+            if (saved == null || saved == AccentSeed.VIOLET.name) {
                 prefs.edit()
                     .putString(KEY_ACCENT_SEED, AccentSeed.ORCHID.name)
                     .putInt(KEY_THEME_VERSION, CURRENT_THEME_VERSION)
