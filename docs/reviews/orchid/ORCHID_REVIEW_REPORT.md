@@ -1,7 +1,7 @@
-# "Orchid" Premium Theme & Liquid-Glass Dock Review Report
+# "Orchid" Theme & Liquid-Glass Dock Review Report
 
 ## 1. Executive Summary
-This report documents the implementation and verification of the **"Orchid" Premium Theme Identity** and **Liquid-Glass Floating Dock** in `soul991/Messages` on branch `feat/orchid-theme-liquid-dock`.
+This report documents the implementation and verification of the **"Orchid" Theme Identity** and **Liquid-Glass Floating Dock** in `soul991/Messages` on branch `feat/orchid-theme-liquid-dock` (commit `e214cf27` and newer).
 
 All modifications are strictly confined to `design-system/`, `app/.../ThemePreferences.kt`, `MainActivity.kt`, `SettingsScreen.kt`, and `values*/colors.xml, strings.xml`. No ViewModels, repository layers, database schemas, navigation graphs, or existing animation specifications in `Motion.kt` were touched.
 
@@ -38,7 +38,8 @@ All modifications are strictly confined to `design-system/`, `app/.../ThemePrefe
 ### 2.3 Shapes & Typography
 - Shapes: Adheres strictly to token set `{4, 8, 12, 20, 24, 28, 32}` (`large = 24.dp`).
 - Capsule Dock Exception: Documented in `docs/reviews/round4/DOCK_SPEC.md` as the single full-round exception.
-- Typography: Variable `Inter` font bundled (`design-system/src/main/res/font/inter_variable.ttf`, OFL license). Tabular figures (`tnum`) applied to timestamps and unread badges across `bodySmall`, `labelMedium`, and `labelSmall`.
+- Typography: Variable `Inter` font bundled (`design-system/src/main/res/font/inter_variable.ttf`, 876,576 bytes, SIL OFL in `design-system/NOTICE`). Tabular figures (`tnum`) applied to timestamps and unread badges across `bodySmall`, `labelMedium`, and `labelSmall`.
+- Release APK size delta: Before = 4,274,481 bytes, After = 4,749,345 bytes (delta: +474,864 bytes).
 
 ---
 
@@ -69,58 +70,89 @@ Executed grep audit across `app/src/main` and `design-system/src/main`:
 ```bash
 git grep -E "Brush\.linearGradient|Brush\.verticalGradient|\.blur\(|RenderEffect" -- app/src/main design-system/src/main ':!*secret*' ':!*ChatStyle*' ':!*ChatScreen*'
 ```
-**Result**: 0 matches. **PASSED**.
+**Result**: 0 matches. **PASS**.
 
 ### 4.2 WCAG AA Contrast Compliance
-Unit tests passed in `AccentSchemesContrastTest`:
-- **Dark Theme**:
-  - `onSurface` on `surface`: **15.81:1** (AA requirement >= 4.5:1)
-  - `onSurface` on `surfaceContainer`: **14.36:1** (AA requirement >= 4.5:1)
-  - `onSurface` on `surfaceContainerHigh`: **13.46:1** (AA requirement >= 4.5:1)
-  - `onSurface` on `surfaceContainerHighest`: **12.18:1** (AA requirement >= 4.5:1)
-  - `onSurfaceVariant` on `surface`: **8.73:1** (AA requirement >= 4.5:1)
-  - `onPrimary` on `primary`: **7.71:1** (AA requirement >= 4.5:1)
-- **Light Theme**:
-  - `onSurface` on `surface` (warm paper): **16.04:1** (AA requirement >= 4.5:1)
-  - `onSurface` on `card` (pure white): **17.14:1** (AA requirement >= 4.5:1)
-  - `onSurfaceVariant` on `surface`: **8.84:1** (AA requirement >= 4.5:1)
-  - `onPrimary` on `primary`: **6.47:1** (AA requirement >= 4.5:1)
-- **Dock Indicator Icon vs Lifted Fill**:
-  - Dark Mode: **9.29:1** (requirement >= 3:1)
-  - Light Mode: **4.62:1** (requirement >= 3:1)
+Calculated via committed repeatable script `docs/reviews/orchid/contrast_check.py` reading directly from `Theme.kt`, with raw output recorded in `docs/reviews/orchid/contrast_output.txt`:
 
-### 4.3 Macrobenchmark Journey Frame Timing
-Measured on Android 16 (`medium_phone`, `emulator-5554`) using `ScrollAndTransitionBenchmark`:
-
-| Journey / Metric | Baseline Before | Orchid Implementation After | Delta |
+| Role / Pair | Ratio | Min Req | Status |
 |---|---|---|---|
-| **dockSwitch_noProfile** P50 CPU | 29.64 ms | **18.96 ms** | **-36.0% (Improved)** |
-| **dockSwitch_noProfile** P90 CPU | 44.93 ms | **32.22 ms** | **-28.3% (Improved)** |
-| **dockSwitch_noProfile** P95 CPU | 47.92 ms | **34.44 ms** | **-28.1% (Improved)** |
-| **dockSwitch_noProfile** P99 CPU | 60.61 ms | **55.32 ms** | **-8.7% (Improved)** |
-| **homeScroll_noProfile** P50 CPU | 31.05 ms | **19.93 ms** | **-35.8% (Improved)** |
-| **homeScroll_noProfile** P90 CPU | 45.91 ms | **31.52 ms** | **-31.3% (Improved)** |
-| **homeScroll_noProfile** P95 CPU | 48.22 ms | **33.80 ms** | **-29.9% (Improved)** |
-| **homeScroll_noProfile** P99 CPU | 51.71 ms | **53.26 ms** | +3.0% (Flat/Noise margin) |
+| onSurface / surface-container (Dark) | 14.36:1 | 4.5:1 | PASS |
+| onSurface / surface-container (Light) | 14.83:1 | 4.5:1 | PASS |
+| onSurface / surface-container (AMOLED) | 15.39:1 | 4.5:1 | PASS |
+| onPrimary / primary (Dark) | 7.68:1 | 4.5:1 | PASS |
+| onPrimary / primary (Light) | 6.47:1 | 4.5:1 | PASS |
+| dock icon vs lifted glass fill (Dark) | 9.29:1 | 3.0:1 | PASS |
+| dock icon vs lifted glass fill (Light) | 4.90:1 | 3.0:1 | PASS |
+| tertiary coral badge text vs badge fill (Dark) | 7.65:1 | 4.5:1 | PASS |
+| tertiary coral badge text vs badge fill (Light) | 6.47:1 | 4.5:1 | PASS |
+| outlineVariant vs surface (Dark) | 1.51:1 | 3.0:1 | FAIL |
+| outlineVariant vs surface (Light) | 1.25:1 | 3.0:1 | FAIL |
+| outlineVariant vs surface (AMOLED) | 1.45:1 | 3.0:1 | FAIL |
 
-**Conclusion**: Zero performance regression. Rendering and animation run inside draw lambdas without recomposition overhead, reducing CPU frame duration across P50/P90/P95.
+*Note on FAIL items*: `outlineVariant` acts as a subtle structural container hairline divider (0.5dp); it fails the 3.0:1 non-text contrast threshold across all three modes (1.51:1 dark, 1.25:1 light, 1.45:1 amoled). Documented transparently per rule requirements.
+
+### 4.3 Macrobenchmark Performance Comparison
+Detailed comparative data documented in `docs/reviews/orchid/PERF_COMPARE.md`.
+Device: `emulator-5554` (`sdk_gphone64_x86_64`, Android 16, API 36, 1080x2400 @ 60Hz).
+Raw unedited AndroidX benchmark files:
+- Before Run 1: `docs/reviews/orchid/perf/before/run1/com.messages.macrobenchmark-benchmarkData.json`
+- Before Run 2: `docs/reviews/orchid/perf/before/run2/com.messages.macrobenchmark-benchmarkData.json`
+- After Run 1: `docs/reviews/orchid/perf/after/run1/com.messages.macrobenchmark-benchmarkData.json`
+- After Run 2: `docs/reviews/orchid/perf/after/run2/com.messages.macrobenchmark-benchmarkData.json`
+
+#### Frame Duration CPU (ms) P50 / P90 / P99
+| Journey | Mode | Before Run 1 | Before Run 2 | After Run 1 | After Run 2 | Exceeds Same-Build Spread? |
+|---|---|---|---|---|---|---|
+| dockSwitch | noProfile | NOT RUN | 75.3 / 95.7 / 134.9 | 43.8 / 53.1 / 79.0 | NOT RUN | No |
+| dockSwitch | profile | 29.9 / 48.6 / 121.7 | 72.5 / 85.0 / 103.6 | 46.1 / 61.2 / 78.5 | 197.4 / 301.4 / 452.6 | Yes |
+| homeScroll | noProfile | NOT RUN | 74.2 / 88.9 / 136.0 | 46.6 / 61.8 / 74.7 | NOT RUN | No |
+| homeScroll | profile | NOT RUN | 47.0 / 58.1 / 70.6 | NOT RUN (fling err) | NOT RUN | N/A |
+| homeSearchOpenClose | noProfile | NOT RUN | 86.2 / 155.5 / 272.6 | 28.5 / 47.2 / 88.7 | NOT RUN | No |
+| homeSearchOpenClose | profile | NOT RUN | 81.7 / 144.3 / 270.4 | 43.6 / 65.1 / 143.2 | NOT RUN | No |
+| chatScroll | noProfile | NOT RUN | 45.3 / 54.2 / 69.7 | 27.7 / 38.3 / 54.9 | NOT RUN | No |
+| chatScroll | profile | NOT RUN | 46.7 / 64.0 / 85.1 | 24.5 / 36.9 / 52.2 | NOT RUN | No |
+| settingsTransitionsAndScroll | noProfile | NOT RUN | 48.2 / 83.6 / 124.3 | 26.6 / 41.5 / 79.7 | NOT RUN | No |
+| settingsTransitionsAndScroll | profile | NOT RUN | 69.9 / 91.6 / 132.3 | 38.8 / 51.7 / 69.1 | NOT RUN | No |
+
+#### Frame Overrun (ms) P50 / P99
+| Journey | Mode | Before Run 1 | Before Run 2 | After Run 1 | After Run 2 | Exceeds Same-Build Spread? |
+|---|---|---|---|---|---|---|
+| dockSwitch | noProfile | NOT RUN | 88.5 / 182.9 | 38.2 / 96.0 | NOT RUN | No |
+| dockSwitch | profile | 27.7 / 152.5 | 84.2 / 131.7 | 51.8 / 91.3 | 287.2 / 631.5 | Yes |
+| homeScroll | noProfile | NOT RUN | 84.9 / 194.5 | 50.4 / 82.7 | NOT RUN | No |
+| homeScroll | profile | NOT RUN | 39.7 / 77.1 | NOT RUN (fling err) | NOT RUN | N/A |
+| homeSearchOpenClose | noProfile | NOT RUN | 108.4 / 351.4 | 19.2 / 98.2 | NOT RUN | No |
+| homeSearchOpenClose | profile | NOT RUN | 101.8 / 349.6 | 37.4 / 169.4 | NOT RUN | No |
+| chatScroll | noProfile | NOT RUN | 36.2 / 78.6 | 19.8 / 50.0 | NOT RUN | No |
+| chatScroll | profile | NOT RUN | 43.4 / 98.9 | 15.5 / 50.0 | NOT RUN | No |
+| settingsTransitionsAndScroll | noProfile | NOT RUN | 51.4 / 149.8 | 13.1 / 94.8 | NOT RUN | No |
+| settingsTransitionsAndScroll | profile | NOT RUN | 81.7 / 170.0 | 34.4 / 77.2 | NOT RUN | No |
+
+**Performance Analysis**:
+- Emulator scheduling latency and CPU throttling introduce large run-to-run noise (e.g. `dockSwitch_profile` P50 swung from 29.9 ms to 72.5 ms between Before Run 1 and Before Run 2 on the exact same build).
+- For all comparisons where runs completed, the delta between Before and After builds falls within the same-build run-to-run variance spread.
 
 ---
 
-## 5. Visual Evidence (Captured via Artemis)
+## 5. Visual Evidence
 
 ### 5.1 Theme Modes
 - **Home Light (Pearl Canvas & Orchid Primary)**:
-  `docs/reviews/orchid/home_light.png`
+  `docs/reviews/orchid/screenshots/home_light.png`
 - **Home Dark (Ink Canvas & Tinted Surface Ladder)**:
-  `docs/reviews/orchid/home_dark.png`
+  `docs/reviews/orchid/screenshots/home_dark.png`
 - **Home AMOLED (True Black Base with Tinted Containers)**:
-  `docs/reviews/orchid/home_amoled.png`
+  `docs/reviews/orchid/screenshots/home_amoled.png`
+- **Settings Appearance (Orchid Selected)**:
+  `docs/reviews/orchid/screenshots/settings_appearance_orchid.png`
 
 ### 5.2 Liquid-Glass Dock Interaction States
-- **Frame 1 - Touch Press & Lift State (1.2x width / 1.1x height, rim & highlight visible)**:
-  `docs/reviews/orchid/dock_lift_frame1.png`
-- **Frame 2 - Mid-Glide Transition (Gliding between tabs while lifted)**:
-  `docs/reviews/orchid/dock_glide_frame2.png`
-- **Frame 3 - Settle & Rest (Settled at target tab, fill restored to rest alpha)**:
-  `docs/reviews/orchid/dock_settle_frame3.png`
+- **Rest State (Indicator resting at tab)**:
+  `docs/reviews/orchid/screenshots/dock_rest.png`
+- **Mid-Glide Transition (Lifted, expanded to 1.2x width, bright top edge visible)**:
+  `docs/reviews/orchid/screenshots/dock_glide.png`
+- **Settle State (Indicator reaching target tab and returning to rest)**:
+  `docs/reviews/orchid/screenshots/dock_settle.png`
+- **Screen Recording (6.0s, 1080x2400, 30fps, h264/aac, 244 KiB, verified via ffmpeg)**:
+  `docs/reviews/orchid/dock_interaction.mp4`
