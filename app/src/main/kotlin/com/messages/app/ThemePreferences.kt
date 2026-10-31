@@ -22,26 +22,26 @@ object ThemePreferences {
     }
 
     private const val KEY_THEME_VERSION = "theme_version"
-    private const val CURRENT_THEME_VERSION = 2 // v1: green default (v1.4.1), v2: violet 2026 refresh (v1.5.1)
+    private const val CURRENT_THEME_VERSION = 3 // v1: green (v1.4.1), v2: violet (v1.5.1), v3: orchid 2026 identity
 
-    /** App accent — Violet by default (2026 identity), Dynamic and 8 more seeds selectable. */
+    /** App accent — Orchid by default (2026 identity), Dynamic and 9 more seeds selectable. */
     fun currentAccent(context: Context): AccentSeed {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val version = prefs.getInt(KEY_THEME_VERSION, 0)
         if (version < CURRENT_THEME_VERSION) {
             val saved = prefs.getString(KEY_ACCENT_SEED, null)
-            // Migrate users from previous Green default (or unset) to 2026 Violet identity
-            if (saved == null || saved == AccentSeed.GREEN.name) {
+            // Migrate users from previous Violet default (or unset) to Orchid identity
+            if (saved == null || saved == AccentSeed.VIOLET.name) {
                 prefs.edit()
-                    .putString(KEY_ACCENT_SEED, AccentSeed.VIOLET.name)
+                    .putString(KEY_ACCENT_SEED, AccentSeed.ORCHID.name)
                     .putInt(KEY_THEME_VERSION, CURRENT_THEME_VERSION)
                     .apply()
-                return AccentSeed.VIOLET
+                return AccentSeed.ORCHID
             }
             prefs.edit().putInt(KEY_THEME_VERSION, CURRENT_THEME_VERSION).apply()
         }
-        val saved = prefs.getString(KEY_ACCENT_SEED, AccentSeed.VIOLET.name)
-        return AccentSeed.values().firstOrNull { it.name == saved } ?: AccentSeed.VIOLET
+        val saved = prefs.getString(KEY_ACCENT_SEED, AccentSeed.ORCHID.name)
+        return AccentSeed.values().firstOrNull { it.name == saved } ?: AccentSeed.ORCHID
     }
 
     fun setAccent(context: Context, accent: AccentSeed) {

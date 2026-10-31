@@ -1,14 +1,14 @@
 package com.messages.designsystem
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,20 +35,30 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
@@ -99,9 +109,14 @@ data class DockItem(
 }
 
 /**
- * Bottom Dock styled after Telegram's tab bar (Figma reference 0:3677 / 0:7424).
- * Bottom-docked bar, full width, 52dp content height + navigation bar inset,
- * subtle top hairline divider, 5 labeled tabs with active pill/tint.
+ * Bottom Dock styled as a floating liquid-glass capsule (Phase 5 / Orchid Refresh).
+ *
+ * Floating capsule: 12dp side margin, 8dp above navigation bar inset, 60dp height,
+ * full-round capsule shape, surfaceContainer at 0.92 alpha with 0.5dp outlineVariant hairline,
+ * and 6dp soft shadow elevation.
+ *
+ * Indicator is ONE composable (GlassIndicator) driven by Animatable<Float> position and lift,
+ * with critically damped glide, lift spring dynamics, drag tracking, and reduced motion fallback.
  */
 @Composable
 fun BottomDock(
@@ -111,65 +126,141 @@ fun BottomDock(
     modifier: Modifier = Modifier,
 ) {
     val isDark = LocalDarkTheme.current
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 0.dp,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+    val view = LocalView.current
+    val coroutineScope = rememberCoroutineScope()
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+        contentAlignment = Alignment.BottomCenter,
     ) {
-        Column(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding(),
+                .height(60.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
+            shadowElevation = 6.dp,
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             BoxWithConstraints(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
+                    .fillMaxSize()
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             ) {
                 val totalWidthPx = constraints.maxWidth.toFloat()
-                val density = androidx.compose.ui.platform.LocalDensity.current
+                val density = LocalDensity.current
                 val itemCount = items.size.coerceAtLeast(1)
                 val tabWidthPx = totalWidthPx / itemCount
+                val tabWidthDp = with(density) { tabWidthPx.toDp() }
                 val selectedIndex = items.indexOfFirst { it.key == selectedKey }.coerceAtLeast(0)
 
-                val targetLeftPx = selectedIndex * tabWidthPx
-                val tabWidthDp = with(density) { tabWidthPx.toDp() }
+                val xAnim = remember { Animatable(selectedIndex * tabWidthPx) }
+                val liftAnim = remember { Animatable(0f) }
+                var glideJob by remember { mutableStateOf<Job?>(null) }
+                var isDragging by remember { mutableStateOf(false) }
+                var dragTabIndex by remember { mutableIntStateOf(selectedIndex) }
 
-                val animLeftPx = animateFloatAsState(
-                    targetValue = targetLeftPx,
-                    animationSpec = if (Motion.animationsEnabled()) spring(dampingRatio = 0.82f, stiffness = 380f) else snap(),
-                    label = "dock-pill-slide",
-                )
-
-                // Active tab tint indicator: subtle rounded pill behind the active tab (Figma active tab indicator)
-                Box(
-                    modifier = Modifier
-                        .offset { IntOffset(animLeftPx.value.roundToInt(), 0) }
-                        .width(tabWidthDp)
-                        .fillMaxHeight()
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (isDark) {
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                            } else {
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                // Synchronize target position when selectedKey changes externally
+                LaunchedEffect(selectedIndex, tabWidthPx) {
+                    if (!isDragging) {
+                        val targetPx = selectedIndex * tabWidthPx
+                        if (kotlin.math.abs(xAnim.value - targetPx) > 1f) {
+                            glideJob?.cancel()
+                            glideJob = launch {
+                                if (Motion.animationsEnabled()) {
+                                    launch {
+                                        liftAnim.animateTo(1f, spring(dampingRatio = 1f, stiffness = 420f))
+                                    }
+                                    xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
+                                    liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
+                                } else {
+                                    xAnim.snapTo(targetPx)
+                                    liftAnim.snapTo(0f)
+                                }
                             }
-                        ),
+                        }
+                    }
+                }
+
+                // Reusable Liquid-Glass Indicator (0 recompositions per frame)
+                GlassIndicator(
+                    xAnim = xAnim,
+                    liftAnim = liftAnim,
+                    widthDp = tabWidthDp,
                 )
 
-                // Tab slots
+                // Tab slots with drag gesture detector
                 Row(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(itemCount, tabWidthPx) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { offset ->
+                                    isDragging = true
+                                    dragTabIndex = (offset.x / tabWidthPx).toInt().coerceIn(0, itemCount - 1)
+                                    glideJob?.cancel()
+                                    coroutineScope.launch {
+                                        if (Motion.animationsEnabled()) {
+                                            liftAnim.animateTo(1f, spring(dampingRatio = 1f, stiffness = 420f))
+                                        } else {
+                                            liftAnim.snapTo(1f)
+                                        }
+                                    }
+                                },
+                                onHorizontalDrag = { change, dragAmount ->
+                                    change.consume()
+                                    coroutineScope.launch {
+                                        val newX = (xAnim.value + dragAmount).coerceIn(0f, (itemCount - 1) * tabWidthPx)
+                                        xAnim.snapTo(newX)
+                                        val nearest = (newX / tabWidthPx).roundToInt().coerceIn(0, itemCount - 1)
+                                        if (nearest != dragTabIndex) {
+                                            dragTabIndex = nearest
+                                            Haptics.tick(view)
+                                        }
+                                    }
+                                },
+                                onDragEnd = {
+                                    isDragging = false
+                                    val finalIndex = dragTabIndex
+                                    onItemSelected(items[finalIndex].key)
+                                    glideJob?.cancel()
+                                    glideJob = coroutineScope.launch {
+                                        val targetPx = finalIndex * tabWidthPx
+                                        if (Motion.animationsEnabled()) {
+                                            xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
+                                            liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
+                                        } else {
+                                            xAnim.snapTo(targetPx)
+                                            liftAnim.snapTo(0f)
+                                        }
+                                    }
+                                },
+                                onDragCancel = {
+                                    isDragging = false
+                                    glideJob?.cancel()
+                                    glideJob = coroutineScope.launch {
+                                        val targetPx = selectedIndex * tabWidthPx
+                                        if (Motion.animationsEnabled()) {
+                                            xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
+                                            liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
+                                        } else {
+                                            xAnim.snapTo(targetPx)
+                                            liftAnim.snapTo(0f)
+                                        }
+                                    }
+                                },
+                            )
+                        },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     items.forEachIndexed { index, item ->
                         val selected = index == selectedIndex
-                        val iconScale = animateFloatAsState(
+                        val iconScale by animateFloatAsState(
                             targetValue = if (selected) 1.0f else 0.92f,
-                            animationSpec = if (Motion.animationsEnabled()) spring(dampingRatio = 0.82f, stiffness = 380f) else snap(),
+                            animationSpec = Motion.spatialFast(),
                             label = "dock-icon-scale",
                         )
 
@@ -178,14 +269,32 @@ fun BottomDock(
                                 .testTag("dock_${item.key}")
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(CircleShape)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = ripple(
                                         bounded = true,
                                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                     ),
-                                    onClick = { onItemSelected(item.key) },
+                                    onClick = {
+                                        if (!selected) {
+                                            onItemSelected(item.key)
+                                            glideJob?.cancel()
+                                            glideJob = coroutineScope.launch {
+                                                val targetPx = index * tabWidthPx
+                                                if (Motion.animationsEnabled()) {
+                                                    launch {
+                                                        liftAnim.animateTo(1f, spring(dampingRatio = 1f, stiffness = 420f))
+                                                    }
+                                                    xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
+                                                    liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
+                                                } else {
+                                                    xAnim.snapTo(targetPx)
+                                                    liftAnim.snapTo(0f)
+                                                }
+                                            }
+                                        }
+                                    },
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -197,7 +306,7 @@ fun BottomDock(
                                 Box(contentAlignment = Alignment.TopEnd) {
                                     Crossfade(
                                         targetState = selected,
-                                        animationSpec = tween(durationMillis = 120),
+                                        animationSpec = Motion.effectsDefault(),
                                         label = "dock-icon-crossfade",
                                     ) { isSelected ->
                                         val icon = if (isSelected) item.filledIcon else item.outlinedIcon
@@ -213,24 +322,16 @@ fun BottomDock(
                                             modifier = Modifier
                                                 .size(24.dp)
                                                 .graphicsLayer {
-                                                    scaleX = iconScale.value
-                                                    scaleY = iconScale.value
+                                                    scaleX = iconScale
+                                                    scaleY = iconScale
                                                 },
                                         )
                                     }
 
-                                    // Notification Badge (Figma 0:3693 & 0:7441)
+                                    // Notification Badge (Coral tertiary spark)
                                     if (item.unreadCount > 0) {
-                                        val badgeBg = if (isDark) {
-                                            MaterialTheme.colorScheme.surface
-                                        } else {
-                                            MaterialTheme.colorScheme.error
-                                        }
-                                        val badgeText = if (isDark) {
-                                            MaterialTheme.colorScheme.onSurface
-                                        } else {
-                                            MaterialTheme.colorScheme.onError
-                                        }
+                                        val badgeBg = MaterialTheme.colorScheme.tertiary
+                                        val badgeText = MaterialTheme.colorScheme.onTertiary
                                         val ringColor = MaterialTheme.colorScheme.surfaceContainer
 
                                         Box(
@@ -263,7 +364,7 @@ fun BottomDock(
                                         val dotColor = if (item.category == "SPAM" || item.key == "SPAM") {
                                             MaterialTheme.colorScheme.error
                                         } else {
-                                            MaterialTheme.colorScheme.primary
+                                            MaterialTheme.colorScheme.tertiary
                                         }
                                         val ringColor = MaterialTheme.colorScheme.surfaceContainer
 

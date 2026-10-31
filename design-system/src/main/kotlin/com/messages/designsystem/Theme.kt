@@ -16,6 +16,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
@@ -77,9 +79,9 @@ object CategoryColors {
     val ReviewContainer = Color(0xFFD9E3F8)
 }
 
-// ---- Curated accent seeds (Phase 5 §4, Violet added in 2026 visual refresh)
+// ---- Curated accent seeds (Phase 5 §4, Orchid added as 2026 default identity)
 //
-// Violet is the default identity; Dynamic and eight further curated seeds
+// Orchid is the default identity; Dynamic and nine further curated seeds
 // remain fully selectable choices in Settings. Colors are generated at exact
 // CIELAB tones — tone == L*, the same axis M3's HCT uses — so every
 // on/container pair lands at the tone distances that make WCAG AA hold by
@@ -90,10 +92,12 @@ object CategoryColors {
 enum class AccentSeed(val displayName: String, internal val hue: Double, internal val chroma: Double) {
     DYNAMIC("Dynamic", 0.0, 0.0),
     /**
-     * App identity (2026 visual refresh): an unclaimed hue in this category
-     * — every major messenger sits on blue or green — chosen clear of the
-     * fraud/promo/protected/review category hues below. Hue/chroma land at
-     * Tone 40 == #5A41DD.
+     * App identity (2026 Orchid refresh): a rich, distinctive orchid hue
+     * with an explicit coral tertiary spark. Hue/chroma land at Tone 40 == #8939AC.
+     */
+    ORCHID("Orchid", 318.0, 70.0),
+    /**
+     * Previous 2026 identity: kept fully selectable. Hue/chroma land at Tone 40 == #5A41DD.
      */
     VIOLET("Violet", 304.5, 92.0),
     BLUE("Blue", 262.0, 36.0),
@@ -149,8 +153,8 @@ fun schemeForSeed(seed: AccentSeed, dark: Boolean): ColorScheme {
     val h = seed.hue
     val c = seed.chroma
     val sec = c / 3.0          // M3: secondary is the seed hue at a third chroma
-    val terH = (h + 60.0) % 360.0
-    val terC = c * 0.6
+    val terH = if (seed == AccentSeed.ORCHID) 35.0 else (h + 60.0) % 360.0
+    val terC = if (seed == AccentSeed.ORCHID) 52.0 else c * 0.6
     fun t(chroma: Double, tone: Double, hue: Double = h) = accentTone(hue, chroma, tone)
     return if (!dark) LightBase.copy(
         primary = t(c, 40.0), onPrimary = Color.White,
@@ -174,22 +178,20 @@ fun schemeForSeed(seed: AccentSeed, dark: Boolean): ColorScheme {
 // Shared neutral surfaces — accents restyle the color roles, not the canvas,
 // so switching accents never shifts the app's background feel.
 private val LightBase = lightColorScheme(
-    primary = Color(0xFF5A41DD),
+    primary = Color(0xFF8939AC),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFE8DEFF),
-    onPrimaryContainer = Color(0xFF1E0060),
-    secondary = Color(0xFF605A71),
-    secondaryContainer = Color(0xFFE6DFF9),
-    // 2026 visual refresh: warm paper canvas replaces the cooler blue-gray —
-    // reads calmer and softer, per the 2026 visual spec.
+    primaryContainer = Color(0xFFF5D9FF),
+    onPrimaryContainer = Color(0xFF310048),
+    secondary = Color(0xFF6B5872),
+    secondaryContainer = Color(0xFFF3DCFA),
+    // 2026 visual refresh: warm paper canvas (#FAF7F2 / #FFFFFF cards).
     surface = Color(0xFFFAF7F2),
-    surfaceVariant = Color(0xFFE8E2D6),
+    // Retint surfaceVariant, outlineVariant, and onSurfaceVariant ~2% toward orchid
+    surfaceVariant = Color(0xFFE8E1E6),
     background = Color(0xFFFAF7F2),
-    // Redesign (Oct 2026): warm neutral container ladder used by grouped
-    // cards, search pills, chips and the floating dock.
-    onSurface = Color(0xFF1E1B24),
-    onSurfaceVariant = Color(0xFF655F6D),
-    outlineVariant = Color(0xFFE4DED8),
+    onSurface = Color(0xFF1E1A22),
+    onSurfaceVariant = Color(0xFF675F6F),
+    outlineVariant = Color(0xFFE3DDE3),
     surfaceContainerLowest = Color(0xFFFFFFFF),
     surfaceContainerLow = Color(0xFFF7F3EE),
     surfaceContainer = Color(0xFFF2EEE9),
@@ -198,25 +200,24 @@ private val LightBase = lightColorScheme(
 )
 
 private val DarkBase = darkColorScheme(
-    primary = Color(0xFFD1BBFD),
-    onPrimary = Color(0xFF381E72),
-    primaryContainer = Color(0xFF4F378B),
-    onPrimaryContainer = Color(0xFFE8DEFF),
-    secondary = Color(0xFFCBC2DB),
-    secondaryContainer = Color(0xFF484358),
-    // 2026 visual refresh: warm violet-tinted charcoal, ties the "Dark"
-    // tier to the new accent without touching the "AMOLED" tier below.
-    surface = Color(0xFF17151F),
-    surfaceVariant = Color(0xFF4A4450),
-    background = Color(0xFF17151F),
-    onSurface = Color(0xFFEAE6F0),
-    onSurfaceVariant = Color(0xFFB0A9BA),
-    outlineVariant = Color(0xFF35313D),
-    surfaceContainerLowest = Color(0xFF110F17),
-    surfaceContainerLow = Color(0xFF1E1B24),
-    surfaceContainer = Color(0xFF26232D),
-    surfaceContainerHigh = Color(0xFF302C38),
-    surfaceContainerHighest = Color(0xFF3A3644),
+    primary = Color(0xFFEAB2FF),
+    onPrimary = Color(0xFF510073),
+    primaryContainer = Color(0xFF6D1E91),
+    onPrimaryContainer = Color(0xFFF5D9FF),
+    secondary = Color(0xFFD6BFDF),
+    secondaryContainer = Color(0xFF4E3D56),
+    // Ink neutral surfaces tinted toward hue 305, chroma ~6
+    surface = Color(0xFF110C16),
+    surfaceVariant = Color(0xFF45404B),
+    background = Color(0xFF110C16),
+    onSurface = Color(0xFFEDE6F2),
+    onSurfaceVariant = Color(0xFFB4ABBD),
+    outlineVariant = Color(0xFF34313A),
+    surfaceContainerLowest = Color(0xFF0D0912),
+    surfaceContainerLow = Color(0xFF15121A),
+    surfaceContainer = Color(0xFF1B1820),
+    surfaceContainerHigh = Color(0xFF211E26),
+    surfaceContainerHighest = Color(0xFF29262F),
 )
 
 // The pre-accent static schemes were the BLUE seed's values; BLUE reproduces
@@ -229,23 +230,59 @@ private val AmoledScheme = DarkScheme.copy(
     background = Color.Black,
 )
 
+val InterFontFamily = FontFamily(Font(R.font.inter_variable))
+
 /**
- * §9 craft bar: clear hierarchy on the default (correct-for-M3) Roboto —
+ * §9 craft bar: clear hierarchy on bundled Inter variable font —
  * headlines carry weight and tight tracking; titles are semi-bold so
  * conversation names read as anchors; labels are calm, never shouty.
+ * Tabular figures ("tnum") applied on bodySmall, labelMedium, and labelSmall
+ * for stable timestamps, metrics, and unread counts.
  */
 private val MessagesTypography = Typography().let { base ->
-    base.copy(
+    Typography(
+        displayLarge = base.displayLarge.copy(fontFamily = InterFontFamily),
+        displayMedium = base.displayMedium.copy(fontFamily = InterFontFamily),
+        displaySmall = base.displaySmall.copy(fontFamily = InterFontFamily),
         headlineLarge = base.headlineLarge.copy(
+            fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp,
         ),
         headlineMedium = base.headlineMedium.copy(
+            fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold, letterSpacing = (-0.25).sp,
         ),
-        headlineSmall = base.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
-        titleLarge = base.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-        titleMedium = base.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        labelLarge = base.labelLarge.copy(fontWeight = FontWeight.Medium),
+        headlineSmall = base.headlineSmall.copy(
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.SemiBold,
+        ),
+        titleLarge = base.titleLarge.copy(
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.SemiBold,
+        ),
+        titleMedium = base.titleMedium.copy(
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.SemiBold,
+        ),
+        titleSmall = base.titleSmall.copy(fontFamily = InterFontFamily),
+        bodyLarge = base.bodyLarge.copy(fontFamily = InterFontFamily),
+        bodyMedium = base.bodyMedium.copy(fontFamily = InterFontFamily),
+        bodySmall = base.bodySmall.copy(
+            fontFamily = InterFontFamily,
+            fontFeatureSettings = "tnum",
+        ),
+        labelLarge = base.labelLarge.copy(
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.Medium,
+        ),
+        labelMedium = base.labelMedium.copy(
+            fontFamily = InterFontFamily,
+            fontFeatureSettings = "tnum",
+        ),
+        labelSmall = base.labelSmall.copy(
+            fontFamily = InterFontFamily,
+            fontFeatureSettings = "tnum",
+        ),
     )
 }
 
@@ -261,7 +298,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 @Composable
 fun MessagesTheme(
     mode: ThemeMode = ThemeMode.SYSTEM,
-    accent: AccentSeed = AccentSeed.VIOLET,
+    accent: AccentSeed = AccentSeed.ORCHID,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = when (mode) {
@@ -278,17 +315,18 @@ fun MessagesTheme(
         else -> schemeForSeed(accent, darkTheme)
     }
     // AMOLED tier (deliberate differentiator — refs' dark is #1C1C1E, ours is
-    // true black) overlays every accent path identically.
+    // true black) overlays every accent path identically. Container ladder is
+    // tinted toward hue 305.
     val scheme = if (mode == ThemeMode.AMOLED) {
         base.copy(
             surface = Color.Black,
             background = Color.Black,
             surfaceContainerLowest = Color.Black,
-            surfaceContainerLow = Color(0xFF0E0C15),
-            surfaceContainer = Color(0xFF161320),
-            surfaceContainerHigh = Color(0xFF1E1B29),
-            surfaceContainerHighest = Color(0xFF282436),
-            outlineVariant = Color(0xFF2B2638),
+            surfaceContainerLow = Color(0xFF0D0A11),
+            surfaceContainer = Color(0xFF141019),
+            surfaceContainerHigh = Color(0xFF1B1621),
+            surfaceContainerHighest = Color(0xFF231E2A),
+            outlineVariant = Color(0xFF2C2734),
         )
     } else base
     CompositionLocalProvider(

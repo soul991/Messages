@@ -1,0 +1,11 @@
+ro.product.model=sdk_gphone64_x86_64
+ro.build.version.sdk=36
+ro.build.fingerprint=google/sdk_gphone64_x86_64/emu64xa:16/BE2A.250530.026.D1/13818094:user/release-keys
+ro.product.cpu.abi=x86_64
+display_render_frame_rate=60.000004
+display_resolution=1080x2400
+display_density=420
+emulator_avd=medium_phone
+emulator_launch_cmd=D:\Android\Sdk\emulator\emulator.exe -avd medium_phone
+dumpsys_display:
+DisplayDeviceInfo{"Built-in Screen": uniqueId="local:4619827259835644672", 1080 x 2400, modeId 1, renderFrameRate 60.000004, hasArrSupport false, frameRateCategoryRate FrameRateCategoryRate {normal=60.0, high=90.0}, supportedRefreshRates [60.000004], defaultModeId 1, userPreferredModeId -1, supportedModes [{id=1, width=1080, height=2400, fps=60.000004, vsync=60.000004, synthetic=false, alternativeRefreshRates=[], supportedHdrTypes=[]}]}
