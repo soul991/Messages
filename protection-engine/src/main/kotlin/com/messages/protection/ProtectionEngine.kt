@@ -161,6 +161,10 @@ class ProtectionEngine(
             score += 5.0
             matchedIds += "sender-dlt-p"
             explanations += "Sender uses a registered promotional (-P) header"
+        } else if (sender.type == SenderType.COMMERCIAL_PROMOTIONAL) {
+            score += 4.0
+            matchedIds += "sender-commercial"
+            explanations += "Sender is an identified commercial entity"
         }
         // "dear customer" from a numeric sender + threat/link (§5.4 last row)
         if (Regex("""(?i)dear (customer|user|consumer)""").containsMatchIn(msg.normalizedText) &&
@@ -185,6 +189,20 @@ class ProtectionEngine(
                 explanations = explanations, notify = false,
             )
         }
+
+        // Promotional routing: messages matching promo patterns from commercial senders route directly to PROMOTIONS
+        val promoPatternIds = setOf("promo-offer-words", "promo-discount", "promo-sale", "promo-generic-offer")
+        val matchesPromoPattern = patternMatches.any { it.pattern.id in promoPatternIds || it.pattern.family == Families.PROMO } ||
+            Regex("""(?i)\b(offers?|discounts?|flat\s+\d+|cashbacks?|deals?|sales?|recharge|coupons?|vouchers?|save\s+\d+%?)\b""").containsMatchIn(msg.normalizedText)
+        val isCommercial = SenderAnalyzer.isCommercialSender(sender)
+
+        if (matchesPromoPattern && isCommercial && fraudCombos.isEmpty()) {
+            return Verdict(
+                Category.PROMOTIONS, score = finalScore, matchedPatternIds = matchedIds,
+                matchedComboIds = comboIds, explanations = explanations, notify = false,
+            )
+        }
+
         // Non-dangerous combos can still force a category (C5 → Spam, C10 → Promotions)
         combos.firstOrNull { it.category == Category.SPAM }?.let {
             return Verdict(
@@ -198,8 +216,10 @@ class ProtectionEngine(
                 matchedComboIds = comboIds, explanations = explanations, notify = false,
             )
         }
-        val hasPromo = patternMatches.any { it.pattern.family == Families.PROMO } ||
-            combos.any { it.id == "C10" } || sender.type == SenderType.REGISTERED_PROMOTIONAL
+
+        val hasPromo = matchesPromoPattern ||
+            combos.any { it.id == "C10" } || sender.type == SenderType.REGISTERED_PROMOTIONAL ||
+            sender.type == SenderType.COMMERCIAL_PROMOTIONAL
         if (finalScore >= sensitivity.reviewAt) {
             return if (hasPromo) {
                 Verdict(

@@ -43,6 +43,7 @@
       "ids": [
         "GHSA-574f-3g2m-x479",
         "GHSA-9pwp-9qqc-pr26",
+        "GHSA-p93r-85wp-75v3",
         "GHSA-qp49-qgx5-5m26"
       ],
       "coordinate": "org.bouncycastle:*",

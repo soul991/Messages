@@ -23,6 +23,8 @@ class MessagesApp : Application() {
         FtsBackfill.ensureScheduled(this)
         com.messages.app.drive.DriveBackup.reschedule(this)
         com.messages.core.contacts.ContactSync.ensureObserver(this)
+        com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
+        com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
         releaseStaleScheduledClaims()
         settleAbandonedMmsTransactions()
         sealLockedBacklog()

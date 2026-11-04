@@ -16,6 +16,53 @@ object SenderAnalyzer {
     private val SHORT_CODE = Regex("""^\d{4,6}$""")
     private val INTERNATIONAL = Regex("""^\+(?!91)\d{7,15}$""")
 
+    private val COMMERCIAL_ENTITIES = setOf(
+        "AIRTEL", "AIRTELX", "AIRTELB", "AIRTL", "JIO", "JIOMART", "JIOFIB", "JIOMOB", "JIOINF",
+        "VI", "VODA", "IDEA", "BSNL", "FLIPKT", "FLIPKART", "FLPKRT", "SWIGGY", "SWIGY", "ZOMATO", "ZMTO",
+        "AMAZON", "AMZN", "AMAZN", "PAYTM", "PAYTMB", "PAYTMM", "MYNTRA", "MYNTR",
+        "TATASK", "TATASKY", "TATANEW", "TATACQ", "TATA1MG", "TATAPL", "TATAMOT",
+        "UBER", "UBERIN", "DOMINO", "DOMINOS", "MEESHO", "NYKAA", "BIGBSK", "BLINKIT",
+        "ZEPTO", "KFC", "PIZZA", "MAKEMYTRIP", "MMT", "YATRA", "CLEARTAX", "CRED",
+        "LENSKART", "PHARMEASY", "APOLLO", "1MG", "AJIO", "SNAPDL", "SNAPDEAL",
+        "BOAT", "NOISE", "CASHIFY", "CULT", "NETFLIX", "HOTSTAR", "PRIME",
+        "BOOKMYSHOW", "BMS", "INDIGO", "SPICEJET", "AIRINDIA", "AKASA", "IRCTC",
+        "RAPIDO", "OLA", "DUNZO", "GROFERS", "ACTNET", "HATHWAY", "DISHTV", "SUNDIR", "D2H"
+    )
+
+    fun extractEntity(rawAddress: String): String {
+        val clean = rawAddress.trim().uppercase()
+        if (!clean.contains('-')) return clean
+        val parts = clean.split('-').filter { it.isNotBlank() }
+        if (parts.isEmpty()) return clean
+        // If 2-char prefix like AD-AIRTEL or AD-AIRTEL-P, entity is at index 1
+        if (parts.size >= 2 && parts[0].length == 2 && parts[1].length > 1) {
+            return parts[1]
+        }
+        // If hyphenated brand like AMAZON-IN or AIRTEL-5G, first non-empty part
+        return parts[0]
+    }
+
+    fun isCommercialEntity(addr: String): Boolean {
+        val clean = addr.trim().uppercase()
+        if (clean.isBlank()) return false
+        if (COMMERCIAL_ENTITIES.contains(clean)) return true
+        if (clean.contains('-')) {
+            val parts = clean.split('-').filter { it.isNotBlank() }
+            for (p in parts) {
+                // Ignore single-character TRAI DLT suffixes like P, T, S, G
+                if (p.length > 1 && COMMERCIAL_ENTITIES.contains(p)) {
+                    return true
+                }
+            }
+        }
+        val entity = extractEntity(addr)
+        return entity.isNotBlank() && COMMERCIAL_ENTITIES.contains(entity)
+    }
+
+    fun isCommercialSender(info: SenderInfo): Boolean =
+        info.type == SenderType.COMMERCIAL_PROMOTIONAL ||
+            info.type == SenderType.REGISTERED_PROMOTIONAL
+
     fun analyze(
         rawAddress: String,
         isContact: Boolean,
@@ -30,11 +77,13 @@ object SenderAnalyzer {
             dltSuffix(addr) == 'P' -> SenderType.REGISTERED_PROMOTIONAL
             dltSuffix(addr) == 'G' -> SenderType.REGISTERED_GOVERNMENT
             dltSuffix(addr) in listOf('S', 'T') -> SenderType.REGISTERED_TRANSACTIONAL
+            DLT_HEADER.matches(addr) && isCommercialEntity(addr) -> SenderType.COMMERCIAL_PROMOTIONAL
             DLT_HEADER.matches(addr) -> SenderType.REGISTERED_TRANSACTIONAL
             SHORT_CODE.matches(addr) -> SenderType.SHORT_CODE
             INTERNATIONAL.matches(addr.replace(" ", "")) &&
                 !addr.replace(" ", "").startsWith(homeCountryCode) -> SenderType.INTERNATIONAL_NUMBER
             INDIAN_MOBILE.matches(addr.replace(Regex("[\\s-]"), "")) -> SenderType.PERSONAL_NUMBER
+            ALPHA_HEADER.matches(addr) && isCommercialEntity(addr) -> SenderType.COMMERCIAL_PROMOTIONAL
             ALPHA_HEADER.matches(addr) -> SenderType.ALPHANUMERIC_UNKNOWN
             else -> SenderType.ALPHANUMERIC_UNKNOWN
         }
@@ -55,6 +104,7 @@ object SenderAnalyzer {
                 if (family in Families.SCAM) 2.0 else 1.0
             SenderType.EMAIL_GATEWAY -> 1.5
             SenderType.REGISTERED_TRANSACTIONAL, SenderType.REGISTERED_GOVERNMENT -> 0.75
+            SenderType.REGISTERED_PROMOTIONAL, SenderType.COMMERCIAL_PROMOTIONAL -> 1.0
             else -> 1.0
         }
         // Local reputation: marked-spam-twice senders get heavier weights,
@@ -80,7 +130,8 @@ object SenderAnalyzer {
     fun isRegisteredHeader(info: SenderInfo): Boolean = when (info.type) {
         SenderType.REGISTERED_TRANSACTIONAL,
         SenderType.REGISTERED_GOVERNMENT,
-        SenderType.REGISTERED_PROMOTIONAL -> true
+        SenderType.REGISTERED_PROMOTIONAL,
+        SenderType.COMMERCIAL_PROMOTIONAL -> true
         else -> false
     }
 
