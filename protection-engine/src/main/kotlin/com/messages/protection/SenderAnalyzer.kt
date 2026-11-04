@@ -63,6 +63,13 @@ object SenderAnalyzer {
         info.type == SenderType.COMMERCIAL_PROMOTIONAL ||
             info.type == SenderType.REGISTERED_PROMOTIONAL
 
+    fun isDltFormattedHeader(rawAddress: String): Boolean =
+        DLT_HEADER.matches(rawAddress.trim())
+
+    fun isDltCommercialHeader(sender: SenderInfo): Boolean =
+        sender.type == SenderType.REGISTERED_PROMOTIONAL ||
+            (isCommercialSender(sender) && (isDltFormattedHeader(sender.rawAddress) || dltSuffix(sender.rawAddress) != null))
+
     fun analyze(
         rawAddress: String,
         isContact: Boolean,

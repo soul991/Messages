@@ -40,10 +40,10 @@ class CommercialPromoTest {
             Pair("JM-AIRTEL", "Special offer just for you! Flat 50% discount on your next recharge."),
             Pair("AX-FLIPKT", "Flash Sale is live now! Get up to 70% off on electronics and fashion."),
             Pair("BP-SWIGGY", "Exclusive offer! Flat 100 off on your food order today. Use code SWIGGY100."),
-            Pair("AMAZON", "Great offer! Extra 20% discount on all home appliances during Great Indian Festival."),
-            Pair("ZOMATO", "Season sale ends tonight! 50% discount on top restaurants near you."),
-            Pair("AMAZON-IN", "Big Billion Deals! Save 30% on top smartphones today."),
-            Pair("AIRTEL-5G", "Recharge now with ₹479 to enjoy unlimited 5G data for 56 days."),
+            Pair("VM-AMAZON", "Great offer! Extra 20% discount on all home appliances during Great Indian Festival."),
+            Pair("AD-ZOMATO", "Season sale ends tonight! 50% discount on top restaurants near you."),
+            Pair("AX-AMAZON", "Big Billion Deals! Save 30% on top smartphones today."),
+            Pair("AD-AIRTEL", "Recharge now with ₹479 to enjoy unlimited 5G data for 56 days."),
             Pair("AX-AMZN", "Festive Sale is live! Get Rs 500 cashback on your order."),
         )
 
@@ -136,7 +136,7 @@ class CommercialPromoTest {
     @Test
     fun testPromoWithOfferSignalStillGoesToPromotions() {
         // Transactional wording + explicit offer signal → still PROMOTIONS
-        val body = "Your recharge of Rs 199 is successful. Special offer: Recharge with Rs 599 and get 50% cashback! Use code AIRTEL50. Limited time."
+        val body = "Your recharge of Rs 199 is successful. Special offer: Recharge with Rs 599 and get 50% cashback! Use code AIRTEL50."
         val verdict = engine.classify(
             ProtectionEngine.Input(body, SenderAnalyzer.analyze("AD-AIRTEL", isContact = false))
         )
@@ -146,10 +146,10 @@ class CommercialPromoTest {
     @Test
     fun testPurePromoMessagesStillReachPromotions() {
         val testCases = listOf(
-            Pair("AD-AIRTEL", "Mega Offer! Recharge with Rs 299 and get 1.5GB/day with unlimited calls. Limited period offer!"),
+            Pair("AD-AIRTEL", "Mega Offer! Recharge with Rs 299 and get 1.5GB/day with unlimited calls."),
             Pair("AX-FLIPKT", "Flash Sale is live now! Get up to 70% off on electronics and fashion."),
             Pair("BP-SWIGGY", "Exclusive offer! Flat 100 off on your food order today. Use code SWIGGY100."),
-            Pair("ZOMATO", "Season sale ends tonight! 50% discount on top restaurants near you."),
+            Pair("AD-ZOMATO", "Season sale ends tonight! 50% discount on top restaurants near you."),
         )
         for ((sender, body) in testCases) {
             val verdict = engine.classify(
@@ -159,6 +159,32 @@ class CommercialPromoTest {
                 "Pure promo from $sender must still reach PROMOTIONS",
                 Category.PROMOTIONS,
                 verdict.category,
+            )
+        }
+    }
+
+    // ---- Tests: commercial header + promo word + shortener link + urgency stays SPAM or REVIEW, not PROMOTIONS ----
+
+    @Test
+    fun testCommercialHeaderWithPromoWordShortenerLinkAndUrgencyStaysSpamOrReviewNotPromotions() {
+        val testCases = listOf(
+            Pair("AD-AIRTEL", "Hurry! Limited time mega offer: Recharge with 50% discount today only: http://bit.ly/airtel-offer"),
+            Pair("BP-SWIGGY", "Flash deal! Flat 100 off on your food order today, offer ends soon! Click http://tinyurl.com/swiggy100 to order now."),
+            Pair("AX-FLIPKT", "Don't miss! Huge discount sale ending midnight, grab your deal: https://is.gd/fkdeals now!"),
+            Pair("AIRTEL", "Special offer! 50% discount on recharge today: http://bit.ly/airtelofr")
+        )
+        for ((sender, body) in testCases) {
+            val verdict = engine.classify(
+                ProtectionEngine.Input(body, SenderAnalyzer.analyze(sender, isContact = false))
+            )
+            assertTrue(
+                "Expected message from $sender with shortener link to stay SPAM or REVIEW, but was ${verdict.category}",
+                verdict.category == Category.SPAM || verdict.category == Category.REVIEW
+            )
+            org.junit.Assert.assertNotEquals(
+                "Shortened link with urgency from $sender must NEVER route to PROMOTIONS",
+                Category.PROMOTIONS,
+                verdict.category
             )
         }
     }

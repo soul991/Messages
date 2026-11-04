@@ -162,7 +162,7 @@ class ProtectionEngine(
             matchedIds += "sender-dlt-p"
             explanations += "Sender uses a registered promotional (-P) header"
         } else if (sender.type == SenderType.COMMERCIAL_PROMOTIONAL) {
-            score += 4.0
+            score += 2.0
             matchedIds += "sender-commercial"
             explanations += "Sender is an identified commercial entity"
         }
@@ -180,15 +180,27 @@ class ProtectionEngine(
         combos.forEach { explanations += it.description }
         val finalScore = score.toInt()
 
-        val hasScamPattern = patternMatches.any { it.pattern.family in Families.SCAM }
+        // Stage 5 — verdict thresholds
+        // Fraud combo triggered OR score ≥ dangerous threshold
+        if (fraudCombos.isNotEmpty() || finalScore >= sensitivity.dangerousAt) {
+            return Verdict(
+                Category.SPAM, dangerous = true, score = finalScore,
+                matchedPatternIds = matchedIds, matchedComboIds = comboIds,
+                explanations = explanations, notify = false,
+            )
+        }
 
-        // Promotional routing: messages matching promo patterns from commercial senders route directly to PROMOTIONS
-        // Guard: transactional wording (recharge success, order delivered, etc.) from a commercial sender stays
-        // in INBOX unless the body also contains an explicit offer/discount/cashback signal.
+        // Promotional routing: messages matching promo patterns from commercial DLT senders route to PROMOTIONS
+        // Guard 1: Must be a DLT-formatted header (XX-NAME) or known suffix; plain alphanumeric names (e.g. "AIRTEL")
+        // do not take this direct lane.
+        // Guard 2: Shortener/phishy links disqualify from direct promo lane.
+        // Guard 3: Transactional wording (recharge success, order delivered, etc.) stays in INBOX unless
+        // accompanied by an explicit offer/discount/cashback/coupon/sale signal.
         val promoPatternIds = setOf("promo-offer-words", "promo-discount", "promo-sale", "promo-generic-offer")
         val matchesPromoPattern = patternMatches.any { it.pattern.id in promoPatternIds || it.pattern.family == Families.PROMO } ||
             Regex("""(?i)\b(offers?|discounts?|flat\s+\d+|cashbacks?|deals?|sales?|recharge|coupons?|vouchers?|save\s+\d+%?)\b""").containsMatchIn(msg.normalizedText)
-        val isCommercial = SenderAnalyzer.isCommercialSender(sender)
+        val isDltCommercial = SenderAnalyzer.isDltCommercialHeader(sender)
+        val hasShortenerOrPhishyLink = linkSignals.any { it.isShortener || it.isPhishy }
 
         val transactionalGuard = Regex(
             """(?i)\b(recharge\s+(successful|done|confirmed|completed|processed)|payment\s+(successful|received|done|confirmed|processed)|order\s+(delivered|confirmed|shipped|dispatched|placed|cancelled)|booking\s+(confirmed|cancelled)|refund\s+(processed|initiated|credited|successful)|delivery\s+(confirmed|completed|scheduled|arriving|delivered|attempted)|pnr|ticket\s+(booked|confirmed|cancelled)|trip\s+(completed|receipt|summary)|successful(ly)?|credited|debited|confirmed)\b"""
@@ -199,7 +211,7 @@ class ProtectionEngine(
         val isTransactionalBody = transactionalGuard.containsMatchIn(msg.normalizedText)
         val hasExplicitOffer = explicitOfferSignal.containsMatchIn(msg.normalizedText)
 
-        if (matchesPromoPattern && isCommercial && fraudCombos.isEmpty() && !hasScamPattern) {
+        if (matchesPromoPattern && isDltCommercial && !hasShortenerOrPhishyLink) {
             // If the body reads like a transactional notification (recharge success, order
             // delivered, trip receipt…), it must stay in INBOX and notify — unless it also
             // carries an explicit offer/discount/coupon, in which case it is still a promo.
@@ -212,16 +224,6 @@ class ProtectionEngine(
             return Verdict(
                 Category.PROMOTIONS, score = finalScore, matchedPatternIds = matchedIds,
                 matchedComboIds = comboIds, explanations = explanations, notify = false,
-            )
-        }
-
-        // Stage 5 — verdict thresholds
-        // Fraud combo triggered OR score ≥ dangerous threshold
-        if (fraudCombos.isNotEmpty() || finalScore >= sensitivity.dangerousAt) {
-            return Verdict(
-                Category.SPAM, dangerous = true, score = finalScore,
-                matchedPatternIds = matchedIds, matchedComboIds = comboIds,
-                explanations = explanations, notify = false,
             )
         }
 
@@ -243,7 +245,7 @@ class ProtectionEngine(
             combos.any { it.id == "C10" } || sender.type == SenderType.REGISTERED_PROMOTIONAL ||
             sender.type == SenderType.COMMERCIAL_PROMOTIONAL
         if (finalScore >= sensitivity.reviewAt) {
-            return if (hasPromo) {
+            return if (hasPromo && !hasShortenerOrPhishyLink) {
                 Verdict(
                     Category.PROMOTIONS, score = finalScore, matchedPatternIds = matchedIds,
                     matchedComboIds = comboIds, explanations = explanations, notify = false,
@@ -256,7 +258,7 @@ class ProtectionEngine(
             }
         }
         // C10 fires even when the raw score stays under the review threshold
-        if (combos.any { it.id == "C10" }) {
+        if (combos.any { it.id == "C10" } && !hasShortenerOrPhishyLink) {
             return Verdict(
                 Category.PROMOTIONS, score = finalScore, matchedPatternIds = matchedIds,
                 matchedComboIds = comboIds, explanations = explanations, notify = false,
