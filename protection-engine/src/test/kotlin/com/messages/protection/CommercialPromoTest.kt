@@ -78,4 +78,88 @@ class CommercialPromoTest {
             assertEquals("Expected $header to be REGISTERED_TRANSACTIONAL", SenderType.REGISTERED_TRANSACTIONAL, info.type)
         }
     }
+
+    // ---- Transactional-guard tests: commercial sender, transactional wording → INBOX ----
+
+    @Test
+    fun testJioRechargeSuccessfulStaysInInbox() {
+        val body = "Your recharge of Rs 239 is successful. Your new validity is till 28-Dec-2026. Enjoy unlimited calls and 1.5GB/day data."
+        val verdict = engine.classify(
+            ProtectionEngine.Input(body, SenderAnalyzer.analyze("VK-JIO", isContact = false))
+        )
+        assertEquals("Jio recharge successful must stay in INBOX", Category.INBOX, verdict.category)
+        assertTrue("Jio recharge successful must notify", verdict.notify)
+    }
+
+    @Test
+    fun testAirtelRechargeSuccessfulStaysInInbox() {
+        val body = "Recharge successful! Rs 299 recharge done for 9876543210. Validity: 28 days. Thank you for choosing Airtel."
+        val verdict = engine.classify(
+            ProtectionEngine.Input(body, SenderAnalyzer.analyze("AD-AIRTEL", isContact = false))
+        )
+        assertEquals("Airtel recharge successful must stay in INBOX", Category.INBOX, verdict.category)
+        assertTrue("Airtel recharge successful must notify", verdict.notify)
+    }
+
+    @Test
+    fun testSwiggyOrderDeliveredStaysInInbox() {
+        val body = "Your order #SW-87234 has been delivered. Thank you for ordering with Swiggy! Rate your experience."
+        val verdict = engine.classify(
+            ProtectionEngine.Input(body, SenderAnalyzer.analyze("BP-SWIGGY", isContact = false))
+        )
+        assertEquals("Swiggy order delivered must stay in INBOX", Category.INBOX, verdict.category)
+        assertTrue("Swiggy order delivered must notify", verdict.notify)
+    }
+
+    @Test
+    fun testIrctcTicketBookedStaysInInbox() {
+        val body = "Ticket booked successfully! PNR: 2847193650, Train: 12301 Rajdhani Exp, 15-Dec-2026, SL, NDLS to HWH. Boarding at NDLS."
+        val verdict = engine.classify(
+            ProtectionEngine.Input(body, SenderAnalyzer.analyze("AX-IRCTC", isContact = false))
+        )
+        assertEquals("IRCTC ticket booked must stay in INBOX", Category.INBOX, verdict.category)
+        assertTrue("IRCTC ticket booked must notify", verdict.notify)
+    }
+
+    @Test
+    fun testUberTripReceiptStaysInInbox() {
+        val body = "Trip completed. Your Uber trip from Koramangala to Indiranagar cost Rs 142. Payment debited from Paytm wallet. Thank you for riding with us."
+        val verdict = engine.classify(
+            ProtectionEngine.Input(body, SenderAnalyzer.analyze("UBER", isContact = false))
+        )
+        assertEquals("Uber trip receipt must stay in INBOX", Category.INBOX, verdict.category)
+        assertTrue("Uber trip receipt must notify", verdict.notify)
+    }
+
+    // ---- Verify promos with explicit offer signals still go to PROMOTIONS ----
+
+    @Test
+    fun testPromoWithOfferSignalStillGoesToPromotions() {
+        // Transactional wording + explicit offer signal → still PROMOTIONS
+        val body = "Your recharge of Rs 199 is successful. Special offer: Recharge with Rs 599 and get 50% cashback! Use code AIRTEL50. Limited time."
+        val verdict = engine.classify(
+            ProtectionEngine.Input(body, SenderAnalyzer.analyze("AD-AIRTEL", isContact = false))
+        )
+        assertEquals("Recharge confirmation with offer must still go to PROMOTIONS", Category.PROMOTIONS, verdict.category)
+    }
+
+    @Test
+    fun testPurePromoMessagesStillReachPromotions() {
+        val testCases = listOf(
+            Pair("AD-AIRTEL", "Mega Offer! Recharge with Rs 299 and get 1.5GB/day with unlimited calls. Limited period offer!"),
+            Pair("AX-FLIPKT", "Flash Sale is live now! Get up to 70% off on electronics and fashion."),
+            Pair("BP-SWIGGY", "Exclusive offer! Flat 100 off on your food order today. Use code SWIGGY100."),
+            Pair("ZOMATO", "Season sale ends tonight! 50% discount on top restaurants near you."),
+        )
+        for ((sender, body) in testCases) {
+            val verdict = engine.classify(
+                ProtectionEngine.Input(body, SenderAnalyzer.analyze(sender, isContact = false))
+            )
+            assertEquals(
+                "Pure promo from $sender must still reach PROMOTIONS",
+                Category.PROMOTIONS,
+                verdict.category,
+            )
+        }
+    }
 }

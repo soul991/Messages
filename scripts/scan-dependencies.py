@@ -78,7 +78,6 @@ import json
 import math
 import re
 import sys
-import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -87,7 +86,7 @@ OSV_BATCH = "https://api.osv.dev/v1/querybatch"
 OSV_VULN = "https://api.osv.dev/v1/vulns/"
 BATCH_SIZE = 500
 TIMEOUT = 90
-DETAIL_WORKERS = 4
+DETAIL_WORKERS = 8
 
 SEVERITIES = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"]
 # Unrated sorts with the worst on purpose: an advisory nobody has scored is not
@@ -238,15 +237,8 @@ def query_osv(coordinates: list[str]) -> dict[str, list[str]]:
 
 def fetch_details(ids: set[str]) -> dict[str, dict]:
     def one(vuln_id: str) -> tuple[str, dict]:
-        for attempt in range(3):
-            try:
-                with urllib.request.urlopen(OSV_VULN + vuln_id, timeout=20) as response:
-                    return vuln_id, json.load(response)
-            except Exception:
-                if attempt == 2:
-                    raise
-                time.sleep(0.5 * (attempt + 1))
-        raise RuntimeError("unreachable")
+        with urllib.request.urlopen(OSV_VULN + vuln_id, timeout=TIMEOUT) as response:
+            return vuln_id, json.load(response)
 
     out: dict[str, dict] = {}
     with concurrent.futures.ThreadPoolExecutor(DETAIL_WORKERS) as pool:

@@ -199,7 +199,7 @@ fun OfferCard(
         modifier = modifier
             .widthIn(max = maxWidth)
             .padding(top = 4.dp, bottom = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = cardBg,
         border = cardBorder,
         tonalElevation = 1.dp,
@@ -219,7 +219,7 @@ fun OfferCard(
                     Box(
                         modifier = Modifier
                             .size(24.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(tint.copy(alpha = 0.18f)),
                         contentAlignment = Alignment.Center,
                     ) {

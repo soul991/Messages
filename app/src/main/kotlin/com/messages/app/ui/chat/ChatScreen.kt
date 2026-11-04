@@ -2320,7 +2320,7 @@ private fun MessageBubble(
 
         if (reactions.isNotEmpty()) {
             Surface(
-                shape = CircleShape,
+                shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                 shadowElevation = 2.dp,
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),

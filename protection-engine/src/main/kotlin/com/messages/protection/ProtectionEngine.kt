@@ -180,6 +180,41 @@ class ProtectionEngine(
         combos.forEach { explanations += it.description }
         val finalScore = score.toInt()
 
+        val hasScamPattern = patternMatches.any { it.pattern.family in Families.SCAM }
+
+        // Promotional routing: messages matching promo patterns from commercial senders route directly to PROMOTIONS
+        // Guard: transactional wording (recharge success, order delivered, etc.) from a commercial sender stays
+        // in INBOX unless the body also contains an explicit offer/discount/cashback signal.
+        val promoPatternIds = setOf("promo-offer-words", "promo-discount", "promo-sale", "promo-generic-offer")
+        val matchesPromoPattern = patternMatches.any { it.pattern.id in promoPatternIds || it.pattern.family == Families.PROMO } ||
+            Regex("""(?i)\b(offers?|discounts?|flat\s+\d+|cashbacks?|deals?|sales?|recharge|coupons?|vouchers?|save\s+\d+%?)\b""").containsMatchIn(msg.normalizedText)
+        val isCommercial = SenderAnalyzer.isCommercialSender(sender)
+
+        val transactionalGuard = Regex(
+            """(?i)\b(recharge\s+(successful|done|confirmed|completed|processed)|payment\s+(successful|received|done|confirmed|processed)|order\s+(delivered|confirmed|shipped|dispatched|placed|cancelled)|booking\s+(confirmed|cancelled)|refund\s+(processed|initiated|credited|successful)|delivery\s+(confirmed|completed|scheduled|arriving|delivered|attempted)|pnr|ticket\s+(booked|confirmed|cancelled)|trip\s+(completed|receipt|summary)|successful(ly)?|credited|debited|confirmed)\b"""
+        )
+        val explicitOfferSignal = Regex(
+            """(?i)\b(offers?|discounts?|cashbacks?|coupons?|sales?|flat\s+\d+\s*%?\s*off|save\s+\d+%?|deal|promo\s*code|voucher|free(?:bie)?|buy\s+\d+\s+get)\b"""
+        )
+        val isTransactionalBody = transactionalGuard.containsMatchIn(msg.normalizedText)
+        val hasExplicitOffer = explicitOfferSignal.containsMatchIn(msg.normalizedText)
+
+        if (matchesPromoPattern && isCommercial && fraudCombos.isEmpty() && !hasScamPattern) {
+            // If the body reads like a transactional notification (recharge success, order
+            // delivered, trip receipt…), it must stay in INBOX and notify — unless it also
+            // carries an explicit offer/discount/coupon, in which case it is still a promo.
+            if (isTransactionalBody && !hasExplicitOffer) {
+                return Verdict(
+                    Category.INBOX, score = finalScore, matchedPatternIds = matchedIds,
+                    matchedComboIds = comboIds, explanations = explanations + "Transactional message from commercial sender — not a promotion", notify = true,
+                )
+            }
+            return Verdict(
+                Category.PROMOTIONS, score = finalScore, matchedPatternIds = matchedIds,
+                matchedComboIds = comboIds, explanations = explanations, notify = false,
+            )
+        }
+
         // Stage 5 — verdict thresholds
         // Fraud combo triggered OR score ≥ dangerous threshold
         if (fraudCombos.isNotEmpty() || finalScore >= sensitivity.dangerousAt) {
@@ -187,19 +222,6 @@ class ProtectionEngine(
                 Category.SPAM, dangerous = true, score = finalScore,
                 matchedPatternIds = matchedIds, matchedComboIds = comboIds,
                 explanations = explanations, notify = false,
-            )
-        }
-
-        // Promotional routing: messages matching promo patterns from commercial senders route directly to PROMOTIONS
-        val promoPatternIds = setOf("promo-offer-words", "promo-discount", "promo-sale", "promo-generic-offer")
-        val matchesPromoPattern = patternMatches.any { it.pattern.id in promoPatternIds || it.pattern.family == Families.PROMO } ||
-            Regex("""(?i)\b(offers?|discounts?|flat\s+\d+|cashbacks?|deals?|sales?|recharge|coupons?|vouchers?|save\s+\d+%?)\b""").containsMatchIn(msg.normalizedText)
-        val isCommercial = SenderAnalyzer.isCommercialSender(sender)
-
-        if (matchesPromoPattern && isCommercial && fraudCombos.isEmpty()) {
-            return Verdict(
-                Category.PROMOTIONS, score = finalScore, matchedPatternIds = matchedIds,
-                matchedComboIds = comboIds, explanations = explanations, notify = false,
             )
         }
 
