@@ -58,9 +58,15 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE smsId = :smsId LIMIT 1")
     suspend fun bySmsId(smsId: Long): MessageEntity?
 
+    @Query("SELECT MAX(smsId) FROM messages")
+    suspend fun maxSmsId(): Long?
+
     /** V2-25: dedupe key for the MMS half of the historical backfill. */
     @Query("SELECT * FROM messages WHERE mmsId = :mmsId LIMIT 1")
     suspend fun byMmsId(mmsId: Long): MessageEntity?
+
+    @Query("SELECT MAX(mmsId) FROM messages")
+    suspend fun maxMmsId(): Long?
 
     @Query("SELECT * FROM messages WHERE mmsTransactionId = :transactionId LIMIT 1")
     suspend fun byMmsTransactionId(transactionId: String): MessageEntity?

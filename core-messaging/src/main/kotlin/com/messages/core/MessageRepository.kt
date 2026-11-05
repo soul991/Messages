@@ -367,12 +367,13 @@ class MessageRepository private constructor(private val context: Context) {
         timestamp: Long,
         isOutgoing: Boolean,
         read: Boolean,
+        bumpUnread: Boolean = false,
     ): Boolean = withContext(Dispatchers.IO) {
         if (db.messages().bySmsId(smsId) != null) return@withContext false
         indexHistoricalRow(
             smsId = smsId, mmsId = null, threadId = threadId, address = address, body = body,
             timestamp = timestamp, isOutgoing = isOutgoing, read = read,
-            mediaRef = null, mediaMimeType = null,
+            mediaRef = null, mediaMimeType = null, bumpUnread = bumpUnread,
         )
     }
 
@@ -397,12 +398,13 @@ class MessageRepository private constructor(private val context: Context) {
         read: Boolean,
         mediaRef: String?,
         mediaMimeType: String?,
+        bumpUnread: Boolean = false,
     ): Boolean = withContext(Dispatchers.IO) {
         if (db.messages().byMmsId(mmsId) != null) return@withContext false
         indexHistoricalRow(
             smsId = null, mmsId = mmsId, threadId = threadId, address = address, body = body,
             timestamp = timestamp, isOutgoing = isOutgoing, read = read,
-            mediaRef = mediaRef, mediaMimeType = mediaMimeType,
+            mediaRef = mediaRef, mediaMimeType = mediaMimeType, bumpUnread = bumpUnread,
         )
     }
 
@@ -417,6 +419,7 @@ class MessageRepository private constructor(private val context: Context) {
         read: Boolean,
         mediaRef: String?,
         mediaMimeType: String?,
+        bumpUnread: Boolean = false,
     ): Boolean {
         // Same never-lose fallback as onIncomingSms: a broken classifier must
         // not keep history out of the index (it made the whole backfill vanish
@@ -451,6 +454,7 @@ class MessageRepository private constructor(private val context: Context) {
             // rows already claimed by the locked space are skipped above by
             // their smsId/mmsId). New arrivals route through onIncomingSms instead.
             val existing = db.conversations().byThreadId(threadId)
+            val unreadDelta = if (bumpUnread && !read && !isOutgoing) 1 else 0
             if (existing == null || timestamp > existing.lastTimestamp) {
                 db.conversations().upsert(
                     ConversationEntity(
@@ -463,7 +467,7 @@ class MessageRepository private constructor(private val context: Context) {
                         // instead of an empty Home row.
                         lastMessage = body.ifBlank { mediaPreview(mediaMimeType) },
                         lastTimestamp = timestamp,
-                        unreadCount = existing?.unreadCount ?: 0,
+                        unreadCount = (existing?.unreadCount ?: 0) + unreadDelta,
                         category = verdict?.category?.name ?: existing?.category ?: "INBOX",
                         pinned = existing?.pinned ?: false,
                         archived = existing?.archived ?: false,
@@ -471,6 +475,10 @@ class MessageRepository private constructor(private val context: Context) {
                         locked = existing?.locked ?: false,
                         preferredSubId = existing?.preferredSubId,
                     )
+                )
+            } else if (unreadDelta > 0) {
+                db.conversations().upsert(
+                    existing.copy(unreadCount = existing.unreadCount + unreadDelta)
                 )
             }
         }

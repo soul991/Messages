@@ -48,9 +48,10 @@ object SenderBadges {
             SenderType.REGISTERED_GOVERNMENT,
             -> Badge.VERIFIED
 
-            // DLT -P: registered, but a marketing route — business, not
+            // DLT -P / Commercial promotional headers: registered/commercial marketing route — business, not
             // "verified" trust chrome.
-            SenderType.REGISTERED_PROMOTIONAL -> Badge.BUSINESS
+            SenderType.REGISTERED_PROMOTIONAL,
+            SenderType.COMMERCIAL_PROMOTIONAL -> Badge.BUSINESS
 
             SenderType.ALPHANUMERIC_UNKNOWN -> when {
                 // The classifier's else-branch also catches odd numeric

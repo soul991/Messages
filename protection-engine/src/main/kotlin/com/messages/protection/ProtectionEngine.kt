@@ -161,6 +161,10 @@ class ProtectionEngine(
             score += 5.0
             matchedIds += "sender-dlt-p"
             explanations += "Sender uses a registered promotional (-P) header"
+        } else if (sender.type == SenderType.COMMERCIAL_PROMOTIONAL) {
+            score += 2.0
+            matchedIds += "sender-commercial"
+            explanations += "Sender is an identified commercial entity"
         }
         // "dear customer" from a numeric sender + threat/link (§5.4 last row)
         if (Regex("""(?i)dear (customer|user|consumer)""").containsMatchIn(msg.normalizedText) &&
@@ -185,6 +189,44 @@ class ProtectionEngine(
                 explanations = explanations, notify = false,
             )
         }
+
+        // Promotional routing: messages matching promo patterns from commercial DLT senders route to PROMOTIONS
+        // Guard 1: Must be a DLT-formatted header (XX-NAME) or known suffix; plain alphanumeric names (e.g. "AIRTEL")
+        // do not take this direct lane.
+        // Guard 2: Shortener/phishy links disqualify from direct promo lane.
+        // Guard 3: Transactional wording (recharge success, order delivered, etc.) stays in INBOX unless
+        // accompanied by an explicit offer/discount/cashback/coupon/sale signal.
+        val promoPatternIds = setOf("promo-offer-words", "promo-discount", "promo-sale", "promo-generic-offer")
+        val matchesPromoPattern = patternMatches.any { it.pattern.id in promoPatternIds || it.pattern.family == Families.PROMO } ||
+            Regex("""(?i)\b(offers?|discounts?|flat\s+\d+|cashbacks?|deals?|sales?|recharge|coupons?|vouchers?|save\s+\d+%?)\b""").containsMatchIn(msg.normalizedText)
+        val isDltCommercial = SenderAnalyzer.isDltCommercialHeader(sender)
+        val hasShortenerOrPhishyLink = linkSignals.any { it.isShortener || it.isPhishy }
+
+        val transactionalGuard = Regex(
+            """(?i)\b(recharge\s+(successful|done|confirmed|completed|processed)|payment\s+(successful|received|done|confirmed|processed)|order\s+(delivered|confirmed|shipped|dispatched|placed|cancelled)|booking\s+(confirmed|cancelled)|refund\s+(processed|initiated|credited|successful)|delivery\s+(confirmed|completed|scheduled|arriving|delivered|attempted)|pnr|ticket\s+(booked|confirmed|cancelled)|trip\s+(completed|receipt|summary)|successful(ly)?|credited|debited|confirmed)\b"""
+        )
+        val explicitOfferSignal = Regex(
+            """(?i)\b(offers?|discounts?|cashbacks?|coupons?|sales?|flat\s+\d+\s*%?\s*off|save\s+\d+%?|deal|promo\s*code|voucher|free(?:bie)?|buy\s+\d+\s+get)\b"""
+        )
+        val isTransactionalBody = transactionalGuard.containsMatchIn(msg.normalizedText)
+        val hasExplicitOffer = explicitOfferSignal.containsMatchIn(msg.normalizedText)
+
+        if (matchesPromoPattern && isDltCommercial && !hasShortenerOrPhishyLink) {
+            // If the body reads like a transactional notification (recharge success, order
+            // delivered, trip receipt…), it must stay in INBOX and notify — unless it also
+            // carries an explicit offer/discount/coupon, in which case it is still a promo.
+            if (isTransactionalBody && !hasExplicitOffer) {
+                return Verdict(
+                    Category.INBOX, score = finalScore, matchedPatternIds = matchedIds,
+                    matchedComboIds = comboIds, explanations = explanations + "Transactional message from commercial sender — not a promotion", notify = true,
+                )
+            }
+            return Verdict(
+                Category.PROMOTIONS, score = finalScore, matchedPatternIds = matchedIds,
+                matchedComboIds = comboIds, explanations = explanations, notify = false,
+            )
+        }
+
         // Non-dangerous combos can still force a category (C5 → Spam, C10 → Promotions)
         combos.firstOrNull { it.category == Category.SPAM }?.let {
             return Verdict(
@@ -198,10 +240,12 @@ class ProtectionEngine(
                 matchedComboIds = comboIds, explanations = explanations, notify = false,
             )
         }
-        val hasPromo = patternMatches.any { it.pattern.family == Families.PROMO } ||
-            combos.any { it.id == "C10" } || sender.type == SenderType.REGISTERED_PROMOTIONAL
+
+        val hasPromo = matchesPromoPattern ||
+            combos.any { it.id == "C10" } || sender.type == SenderType.REGISTERED_PROMOTIONAL ||
+            sender.type == SenderType.COMMERCIAL_PROMOTIONAL
         if (finalScore >= sensitivity.reviewAt) {
-            return if (hasPromo) {
+            return if (hasPromo && !hasShortenerOrPhishyLink) {
                 Verdict(
                     Category.PROMOTIONS, score = finalScore, matchedPatternIds = matchedIds,
                     matchedComboIds = comboIds, explanations = explanations, notify = false,
@@ -214,7 +258,7 @@ class ProtectionEngine(
             }
         }
         // C10 fires even when the raw score stays under the review threshold
-        if (combos.any { it.id == "C10" }) {
+        if (combos.any { it.id == "C10" } && !hasShortenerOrPhishyLink) {
             return Verdict(
                 Category.PROMOTIONS, score = finalScore, matchedPatternIds = matchedIds,
                 matchedComboIds = comboIds, explanations = explanations, notify = false,

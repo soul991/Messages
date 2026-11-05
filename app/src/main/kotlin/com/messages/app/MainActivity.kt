@@ -173,7 +173,11 @@ class MainActivity : FragmentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
         // First-run backfill: classify existing history once we can read it (§10).
-        if (grants[android.Manifest.permission.READ_SMS] == true) Backfill.ensureScheduled(this)
+        if (grants[android.Manifest.permission.READ_SMS] == true) {
+            Backfill.ensureScheduled(this)
+            com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
+            com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -816,6 +820,8 @@ class MainActivity : FragmentActivity() {
         super.onResume()
         applyScreenBrightness(customBrightnessEnabled, brightnessLevel)
         refreshDefaultState()
+        com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
+        com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
     }
 
     override fun onDestroy() {
@@ -909,7 +915,11 @@ class MainActivity : FragmentActivity() {
             if (!wasDefault) {
                 requestCorePermissions()
                 Backfill.ensureScheduled(this)
+                com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
+                com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
             }
+        } else if (wasDefault) {
+            com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
         }
     }
 

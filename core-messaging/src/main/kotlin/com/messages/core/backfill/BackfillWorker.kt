@@ -72,14 +72,21 @@ class BackfillWorker(
         val failedIds = readFailedIds(prefs).toMutableSet()
         val failedMmsIds = readFailedMmsIds(prefs).toMutableSet()
 
+        val syncPrefs = ctx.getSharedPreferences(
+            com.messages.core.telephony.TelephonySyncManager.PREFS_NAME,
+            Context.MODE_PRIVATE
+        )
+
         // ---- Phase 1: SMS ----
         var checkpointDate = prefs.getLong(KEY_CHECKPOINT_DATE, Long.MAX_VALUE)
         var checkpointId = prefs.getLong(KEY_CHECKPOINT_ID, Long.MAX_VALUE)
+        var maxSmsId = syncPrefs.getLong(com.messages.core.telephony.TelephonySyncManager.KEY_LAST_KNOWN_SMS_ID, 0L)
         try {
             while (true) {
                 val batch = queryBatch(ctx, checkpointDate, checkpointId)
                 if (batch.isEmpty()) break
                 for (row in batch) {
+                    if (row.id > maxSmsId) maxSmsId = row.id
                     if (row.address.isNotBlank() && row.body.isNotBlank()) {
                         try {
                             repo.indexHistorical(
@@ -110,6 +117,7 @@ class BackfillWorker(
                     .putLong(KEY_CHECKPOINT_ID, checkpointId)
                     .putInt(KEY_PROCESSED, processed)
                     .apply()
+                syncPrefs.edit().putLong(com.messages.core.telephony.TelephonySyncManager.KEY_LAST_KNOWN_SMS_ID, maxSmsId).apply()
                 setProgress(workDataOf(KEY_PROCESSED to processed, KEY_TOTAL to total))
             }
         } catch (t: Throwable) {
@@ -125,11 +133,13 @@ class BackfillWorker(
         // ---- Phase 2: MMS (V2-25) ----
         var mmsCheckpointDate = prefs.getLong(KEY_MMS_CHECKPOINT_DATE, Long.MAX_VALUE)
         var mmsCheckpointId = prefs.getLong(KEY_MMS_CHECKPOINT_ID, Long.MAX_VALUE)
+        var maxMmsId = syncPrefs.getLong(com.messages.core.telephony.TelephonySyncManager.KEY_LAST_KNOWN_MMS_ID, 0L)
         try {
             while (true) {
                 val batch = queryMmsBatch(ctx, mmsCheckpointDate, mmsCheckpointId)
                 if (batch.isEmpty()) break
                 for (row in batch) {
+                    if (row.id > maxMmsId) maxMmsId = row.id
                     try {
                         indexMms(ctx, repo, row)
                     } catch (t: Throwable) {
@@ -146,6 +156,7 @@ class BackfillWorker(
                     .putLong(KEY_MMS_CHECKPOINT_ID, mmsCheckpointId)
                     .putInt(KEY_PROCESSED, processed)
                     .apply()
+                syncPrefs.edit().putLong(com.messages.core.telephony.TelephonySyncManager.KEY_LAST_KNOWN_MMS_ID, maxMmsId).apply()
                 setProgress(workDataOf(KEY_PROCESSED to processed, KEY_TOTAL to total))
             }
         } catch (t: Throwable) {
@@ -248,7 +259,7 @@ class BackfillWorker(
     )
 
     /** The text body and first real attachment of one MMS. */
-    private data class MmsContent(
+    internal data class MmsContent(
         val body: String,
         val mediaRef: String?,
         val mediaMimeType: String?,
@@ -321,92 +332,6 @@ class BackfillWorker(
         )
     }
 
-    /**
-     * The other party's number, from `content://mms/<id>/addr`. For a received
-     * message that is the FROM address; for a sent one, the first recipient.
-     * Devices are inconsistent enough here that a wrong-typed-but-real address
-     * beats none at all, so an unmatched row is kept as a fallback.
-     */
-    private fun mmsAddress(ctx: Context, mmsId: Long, isOutgoing: Boolean): String {
-        val wanted = if (isOutgoing) PDU_ADDR_TO else PDU_ADDR_FROM
-        var fallback = ""
-        val uri = Telephony.Mms.CONTENT_URI.buildUpon()
-            .appendPath(mmsId.toString()).appendPath("addr").build()
-        runCatching {
-            ctx.contentResolver.query(
-                uri,
-                arrayOf(Telephony.Mms.Addr.ADDRESS, Telephony.Mms.Addr.TYPE),
-                null, null, null,
-            )?.use { c ->
-                while (c.moveToNext()) {
-                    val addr = c.getString(0)?.trim().orEmpty()
-                    // The provider stores this literal placeholder for "this
-                    // device" in sent messages; it is not a phone number.
-                    if (addr.isBlank() || addr.equals(SELF_ADDRESS_TOKEN, ignoreCase = true)) continue
-                    if (c.getInt(1) == wanted) return addr
-                    if (fallback.isBlank()) fallback = addr
-                }
-            }
-        }
-        return fallback
-    }
-
-    /**
-     * Concatenate the `text/plain` parts and pick the first displayable
-     * attachment. SMIL and HTML parts are presentation scaffolding, not
-     * content, so they are dropped rather than shown as an attachment.
-     *
-     * The attachment is stored as a `content://mms/part/<id>` reference — see
-     * `MediaRef` and the class doc for why the bytes are not copied.
-     */
-    private fun mmsContent(ctx: Context, mmsId: Long): MmsContent {
-        val text = StringBuilder()
-        var mediaRef: String? = null
-        var mediaMimeType: String? = null
-        runCatching {
-            ctx.contentResolver.query(
-                android.net.Uri.parse(PART_URI),
-                arrayOf(PART_ID, PART_CONTENT_TYPE, PART_TEXT),
-                "$PART_MSG_ID = ?", arrayOf(mmsId.toString()),
-                "$PART_ID ASC",
-            )?.use { c ->
-                while (c.moveToNext()) {
-                    val partId = c.getLong(0)
-                    val ct = c.getString(1)?.trim()?.lowercase().orEmpty()
-                    when {
-                        ct == "text/plain" -> {
-                            if (text.length >= MAX_BODY_CHARS) continue
-                            // The `text` column holds the decoded body on
-                            // virtually every device; when it doesn't, the
-                            // bytes are behind the part URI. Read that through
-                            // the bounded reader — a carrier-supplied part is
-                            // not to be trusted with its own size.
-                            val part = c.getString(2)
-                                ?: readTextPart(ctx, partId)
-                                ?: continue
-                            if (part.isBlank()) continue
-                            if (text.isNotEmpty()) text.append('\n')
-                            text.append(part.trim())
-                        }
-                        // Layout/scaffolding parts, and rows with no declared
-                        // type at all: nothing a user would call an attachment.
-                        ct.isBlank() || ct.startsWith("application/smil") || ct == "text/html" -> Unit
-                        mediaRef == null -> {
-                            mediaRef = "$PART_URI/$partId"
-                            mediaMimeType = ct
-                        }
-                    }
-                }
-            }
-        }
-        return MmsContent(text.toString().trim().take(MAX_BODY_CHARS), mediaRef, mediaMimeType)
-    }
-
-    private fun readTextPart(ctx: Context, partId: Long): String? =
-        com.messages.core.io.BoundedRead
-            .readUri(ctx, android.net.Uri.parse("$PART_URI/$partId"), MAX_TEXT_PART_BYTES)
-            ?.toString(Charsets.UTF_8)
-
     companion object {
         private const val TAG = "BackfillWorker"
         const val PREFS = "backfill"
@@ -470,6 +395,92 @@ class BackfillWorker(
             if (date > MMS_DATE_MILLIS_THRESHOLD) date else date * 1000L
 
         private const val MMS_DATE_MILLIS_THRESHOLD = 100_000_000_000L
+
+        /**
+         * The other party's number, from `content://mms/<id>/addr`. For a received
+         * message that is the FROM address; for a sent one, the first recipient.
+         * Devices are inconsistent enough here that a wrong-typed-but-real address
+         * beats none at all, so an unmatched row is kept as a fallback.
+         */
+        internal fun mmsAddress(ctx: Context, mmsId: Long, isOutgoing: Boolean): String {
+            val wanted = if (isOutgoing) PDU_ADDR_TO else PDU_ADDR_FROM
+            var fallback = ""
+            val uri = Telephony.Mms.CONTENT_URI.buildUpon()
+                .appendPath(mmsId.toString()).appendPath("addr").build()
+            runCatching {
+                ctx.contentResolver.query(
+                    uri,
+                    arrayOf(Telephony.Mms.Addr.ADDRESS, Telephony.Mms.Addr.TYPE),
+                    null, null, null,
+                )?.use { c ->
+                    while (c.moveToNext()) {
+                        val addr = c.getString(0)?.trim().orEmpty()
+                        // The provider stores this literal placeholder for "this
+                        // device" in sent messages; it is not a phone number.
+                        if (addr.isBlank() || addr.equals(SELF_ADDRESS_TOKEN, ignoreCase = true)) continue
+                        if (c.getInt(1) == wanted) return addr
+                        if (fallback.isBlank()) fallback = addr
+                    }
+                }
+            }
+            return fallback
+        }
+
+        /**
+         * Concatenate the `text/plain` parts and pick the first displayable
+         * attachment. SMIL and HTML parts are presentation scaffolding, not
+         * content, so they are dropped rather than shown as an attachment.
+         *
+         * The attachment is stored as a `content://mms/part/<id>` reference — see
+         * `MediaRef` and the class doc for why the bytes are not copied.
+         */
+        internal fun mmsContent(ctx: Context, mmsId: Long): MmsContent {
+            val text = StringBuilder()
+            var mediaRef: String? = null
+            var mediaMimeType: String? = null
+            runCatching {
+                ctx.contentResolver.query(
+                    android.net.Uri.parse(PART_URI),
+                    arrayOf(PART_ID, PART_CONTENT_TYPE, PART_TEXT),
+                    "$PART_MSG_ID = ?", arrayOf(mmsId.toString()),
+                    "$PART_ID ASC",
+                )?.use { c ->
+                    while (c.moveToNext()) {
+                        val partId = c.getLong(0)
+                        val ct = c.getString(1)?.trim()?.lowercase().orEmpty()
+                        when {
+                            ct == "text/plain" -> {
+                                if (text.length >= MAX_BODY_CHARS) continue
+                                // The `text` column holds the decoded body on
+                                // virtually every device; when it doesn't, the
+                                // bytes are behind the part URI. Read that through
+                                // the bounded reader — a carrier-supplied part is
+                                // not to be trusted with its own size.
+                                val part = c.getString(2)
+                                    ?: readTextPart(ctx, partId)
+                                    ?: continue
+                                if (part.isBlank()) continue
+                                if (text.isNotEmpty()) text.append('\n')
+                                text.append(part.trim())
+                            }
+                            // Layout/scaffolding parts, and rows with no declared
+                            // type at all: nothing a user would call an attachment.
+                            ct.isBlank() || ct.startsWith("application/smil") || ct == "text/html" -> Unit
+                            mediaRef == null -> {
+                                mediaRef = "$PART_URI/$partId"
+                                mediaMimeType = ct
+                            }
+                        }
+                    }
+                }
+            }
+            return MmsContent(text.toString().trim().take(MAX_BODY_CHARS), mediaRef, mediaMimeType)
+        }
+
+        private fun readTextPart(ctx: Context, partId: Long): String? =
+            com.messages.core.io.BoundedRead
+                .readUri(ctx, android.net.Uri.parse("$PART_URI/$partId"), MAX_TEXT_PART_BYTES)
+                ?.toString(Charsets.UTF_8)
     }
 }
 

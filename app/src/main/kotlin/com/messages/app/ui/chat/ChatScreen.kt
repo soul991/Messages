@@ -335,7 +335,12 @@ fun ChatScreen(
     val exportedMessage = stringResource(R.string.chat_conversation_exported)
     val exportFailedMessage = stringResource(R.string.chat_export_failed)
 
-    val items = remember(messages) { buildChatItems(messages) }
+    val consumedReactionIds = remember(messages) { RcsReactionParser.findConsumedReactionIds(messages) }
+    val items = remember(messages, consumedReactionIds) {
+        val displayMessages = if (consumedReactionIds.isEmpty()) messages else messages.filter { it.id !in consumedReactionIds }
+        buildChatItems(displayMessages)
+    }
+    val messageReactions = remember(messages) { RcsReactionParser.buildReactionsMap(messages) }
 
     // Attachment sources: gallery (photo picker) and camera (FileProvider target).
     val galleryPicker = rememberLauncherForActivityResult(
@@ -1045,6 +1050,7 @@ fun ChatScreen(
                                 firstInGroup = item.first,
                                 lastInGroup = item.last,
                                 outBubbleColors = outBubbleColors,
+                                reactions = messageReactions[item.m.id].orEmpty(),
                                 highlightTerms = if (chatSearchActive) searchTerms else emptyList(),
                                 onWhy = { onWhy(item.m.id) },
                                 onNotSpam = {
@@ -1906,6 +1912,7 @@ private fun MessageBubble(
     lastInGroup: Boolean,
     /** Outgoing bubble container/on pair — per-chat customizable (§8.2). */
     outBubbleColors: Pair<Color, Color>,
+    reactions: List<String> = emptyList(),
     highlightTerms: List<String> = emptyList(),
     onWhy: () -> Unit,
     onNotSpam: () -> Unit,
@@ -1987,6 +1994,12 @@ private fun MessageBubble(
     val isEmoji = isEmojiOnly(msg.body) && msg.mediaUri == null
     val reply = remember(msg.body) { parseReply(msg.body) }
     val voiceNote = remember(msg.body) { parseVoiceNote(msg.body) }
+    val tapback = remember(msg.body) { RcsReactionParser.parse(msg.body) }
+    val offer = remember(msg.body, msg.category) {
+        if (!isOut && (msg.category == "PROMOTIONS" || msg.body.contains(Regex("""(?i)\b(offer|discount|recharge|coupon|sale)\b""")))) {
+            OfferExtractor.extract(msg.body)
+        } else null
+    }
     val rawBody = reply?.cleanBody ?: msg.body
 
     Column(
@@ -2045,6 +2058,48 @@ private fun MessageBubble(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 2.dp),
                 )
+            }
+        } else if (offer != null) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = maxBubbleWidth)
+                    .combinedClickable(
+                        onClick = { if (selectionMode) onToggleSelect() },
+                        onLongClick = {
+                            Haptics.longPress(view)
+                            if (selectionMode) onToggleSelect() else showMenu = true
+                        },
+                    ),
+                horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
+            ) {
+                OfferCard(
+                    offer = offer,
+                    body = rawBody,
+                    maxWidth = maxBubbleWidth,
+                    onCopyCode = { code ->
+                        clipboard.setText(AnnotatedString(code))
+                    },
+                    onOpenUrl = { url ->
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(url),
+                                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    },
+                    selected = selected,
+                )
+                if (!isScheduled) {
+                    BubbleMetaRow(
+                        msg = msg, isOut = isOut,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(end = 4.dp, top = 2.dp),
+                    )
+                }
             }
         } else {
             val bubbleBorder = if (selected) {
@@ -2145,6 +2200,48 @@ private fun MessageBubble(
                                 )
                             }
                         }
+                    } else if (tapback != null) {
+                        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = tapback.emoji,
+                                    fontSize = 24.sp,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = tapback.actionText,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                    color = if (isOut) outBubbleColors.second else MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isOut) outBubbleColors.second.copy(alpha = 0.15f)
+                                       else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    text = "“${tapback.quotedSnippet}”",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                                    color = if (isOut) outBubbleColors.second.copy(alpha = 0.9f)
+                                           else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    maxLines = 2,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                )
+                            }
+                            if (!isScheduled) {
+                                Spacer(Modifier.height(2.dp))
+                                BubbleMetaRow(
+                                    msg = msg, isOut = isOut,
+                                    color = if (isOut) outBubbleColors.second
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.align(Alignment.End),
+                                )
+                            }
+                        }
                     } else if (rawBody.isNotBlank()) {
                         // §8.5.3: in-conversation search highlights terms inside the bubble.
                         val highlighted = if (highlightTerms.isEmpty()) AnnotatedString(rawBody)
@@ -2219,6 +2316,35 @@ private fun MessageBubble(
                 }
             }
 
+        }
+
+        if (reactions.isNotEmpty()) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                shadowElevation = 2.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier
+                    .padding(
+                        start = if (isOut) 0.dp else 8.dp,
+                        end = if (isOut) 8.dp else 0.dp,
+                        top = (-6).dp,
+                        bottom = 2.dp,
+                    )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    reactions.forEach { emoji ->
+                        Text(
+                            text = emoji,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 2.dp),
+                        )
+                    }
+                }
+            }
         }
 
             // Long-press actions: copy, select, star, pin, snooze, info, delete
@@ -2390,6 +2516,29 @@ private fun MessageBubble(
                 onHideCard = { MessageCards.dismissCard(context, msg.id); cardTick++ },
                 onTurnOff = { MessageCards.setEnabled(context, false); cardTick++ },
             )
+        }
+
+        // Promotional offer card for commercial / promotional messages
+        if ((msg.category == "PROMOTIONS" || msg.category == "REVIEW") && !msg.dangerous && !msg.fraudWarning) {
+            val offer = remember(msg.body) { OfferExtractor.extract(msg.body) }
+            if (offer != null) {
+                OfferCard(
+                    offer = offer,
+                    body = msg.body,
+                    maxWidth = maxBubbleWidth,
+                    onCopyCode = { code ->
+                        clipboard.setText(AnnotatedString(code))
+                    },
+                    onOpenUrl = { url ->
+                        runCatching {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        }
+                    },
+                )
+            }
         }
 
         // One-tap OTP copy chip (§8.2); same extractor as the notification action.
