@@ -43,7 +43,7 @@ Smoothness and rendering latencies were measured using `adb shell dumpsys gfxinf
 | **Slow Issue Draw Commands** | 3 | 44 | 33 | 32 |
 
 ### 2.2 Performance Analysis & Engineering Insights
-1. **Google Messages Release Optimization**: Google Messages operates as an AOT-compiled release build pre-optimized with Google Cloud Baseline Profiles. During high-velocity fling scrolls, it achieved **1.2% jank** and a near-perfect **22 ms p95**, with zero missed Vsync pulses.
+1. **Google Messages Release Optimization**: Google Messages operates as an AOT-compiled release build pre-optimized with Google Cloud Baseline Profiles. During high-velocity fling scrolls, it achieved **1.2% jank** and a **22 ms p95**, with zero missed Vsync pulses.
 2. **Our Messages Debug vs. Release Dichotomy**: Our app was benchmarked under an un-obfuscated `debug` build with Compose inspection tooling enabled and JIT compilation over emulator CPU translation. The measured high frame times reflect debug runtime overhead and active layout recomposition tracking rather than architectural limits.
 3. **Search Animation Pipeline**: Both applications showed increased frame render times during search expansion due to window surface clipping and keyboard IME layout transitions (Google Messages experienced 20.4% jank during search animation). Our app's `butterSpring` provides fluid spatial continuity, but requires release R8 compilation and Baseline Profile warm-up to eliminate the first-draw compilation jank.
 
