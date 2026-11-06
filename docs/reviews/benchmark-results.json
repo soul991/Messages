@@ -1,0 +1,58 @@
+{
+  "our_app_scroll": {
+    "total_frames": 45,
+    "janky_frames": 45,
+    "janky_pct": 100.0,
+    "p50_ms": 150,
+    "p90_ms": 500,
+    "p95_ms": 600,
+    "p99_ms": 1150,
+    "missed_vsync": 29,
+    "slow_ui_thread": 29,
+    "slow_bitmap_uploads": 0,
+    "slow_draw_commands": 44,
+    "frame_deadline_missed": 45
+  },
+  "google_messages_scroll": {
+    "total_frames": 250,
+    "janky_frames": 3,
+    "janky_pct": 1.2,
+    "p50_ms": 18,
+    "p90_ms": 21,
+    "p95_ms": 22,
+    "p99_ms": 24,
+    "missed_vsync": 0,
+    "slow_ui_thread": 0,
+    "slow_bitmap_uploads": 0,
+    "slow_draw_commands": 3,
+    "frame_deadline_missed": 3
+  },
+  "our_app_search": {
+    "total_frames": 33,
+    "janky_frames": 33,
+    "janky_pct": 100.0,
+    "p50_ms": 300,
+    "p90_ms": 800,
+    "p95_ms": 950,
+    "p99_ms": 1100,
+    "missed_vsync": 26,
+    "slow_ui_thread": 31,
+    "slow_bitmap_uploads": 1,
+    "slow_draw_commands": 32,
+    "frame_deadline_missed": 33
+  },
+  "google_messages_search": {
+    "total_frames": 186,
+    "janky_frames": 38,
+    "janky_pct": 20.43,
+    "p50_ms": 18,
+    "p90_ms": 44,
+    "p95_ms": 69,
+    "p99_ms": 133,
+    "missed_vsync": 10,
+    "slow_ui_thread": 15,
+    "slow_bitmap_uploads": 0,
+    "slow_draw_commands": 33,
+    "frame_deadline_missed": 38
+  }
+}
