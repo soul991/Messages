@@ -43,7 +43,7 @@
 | **Pill Fill (Light)** | Translucent primary fill | `primary` at 0.18 alpha rest, 0.10 while lifted | Retains >= 3:1 contrast against pale canvas |
 | **Pill Fill (Dark)** | Translucent primary fill | `primary` at 0.14 alpha rest, 0.06 while lifted | High contrast dark mode tint |
 | **Glass Highlights & Rims** | Zero blur/gradient audit compliance | Dark: 1dp onSurface rim (0.22 alpha) + top highlight (0.50 alpha); Light: 1dp pure white top highlight (0.90 alpha) + lower rim (0.12 alpha) | Layered canvas drawing without AGSL/RenderEffect |
-| **Drag & Retargeting** | Fluid finger tracking | Pointer drag with `x.snapTo`, release to nearest tab, re-targets mid-glide without jump | Emits `Haptics.tick(view)` on tab crossing |
+| **Drag & Retargeting** | Tap re-targeting | Drag removed in PR #57; tap re-targeting mid-glide remains | Tab selection is tap-only |
 
 ---
 
