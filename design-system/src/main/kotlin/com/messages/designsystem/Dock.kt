@@ -8,7 +8,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,7 +47,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -160,26 +158,22 @@ fun BottomDock(
                 val xAnim = remember { Animatable(selectedIndex * tabWidthPx) }
                 val liftAnim = remember { Animatable(0f) }
                 var glideJob by remember { mutableStateOf<Job?>(null) }
-                var isDragging by remember { mutableStateOf(false) }
-                var dragTabIndex by remember { mutableIntStateOf(selectedIndex) }
 
-                // Synchronize target position when selectedKey changes externally
+                // Synchronize target position when selectedKey changes externally or via clicks
                 LaunchedEffect(selectedIndex, tabWidthPx) {
-                    if (!isDragging) {
-                        val targetPx = selectedIndex * tabWidthPx
-                        if (kotlin.math.abs(xAnim.value - targetPx) > 1f) {
-                            glideJob?.cancel()
-                            glideJob = launch {
-                                if (Motion.animationsEnabled()) {
-                                    launch {
-                                        liftAnim.animateTo(1f, spring(dampingRatio = 1f, stiffness = 420f))
-                                    }
-                                    xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
-                                    liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
-                                } else {
-                                    xAnim.snapTo(targetPx)
-                                    liftAnim.snapTo(0f)
+                    val targetPx = selectedIndex * tabWidthPx
+                    if (kotlin.math.abs(xAnim.value - targetPx) > 1f) {
+                        glideJob?.cancel()
+                        glideJob = launch {
+                            if (Motion.animationsEnabled()) {
+                                launch {
+                                    liftAnim.animateTo(1f, spring(dampingRatio = 1f, stiffness = 420f))
                                 }
+                                xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
+                                liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
+                            } else {
+                                xAnim.snapTo(targetPx)
+                                liftAnim.snapTo(0f)
                             }
                         }
                     }
@@ -192,68 +186,9 @@ fun BottomDock(
                     widthDp = tabWidthDp,
                 )
 
-                // Tab slots with drag gesture detector
+                // Tab slots
                 Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(itemCount, tabWidthPx) {
-                            detectHorizontalDragGestures(
-                                onDragStart = { offset ->
-                                    isDragging = true
-                                    dragTabIndex = (offset.x / tabWidthPx).toInt().coerceIn(0, itemCount - 1)
-                                    glideJob?.cancel()
-                                    coroutineScope.launch {
-                                        if (Motion.animationsEnabled()) {
-                                            liftAnim.animateTo(1f, spring(dampingRatio = 1f, stiffness = 420f))
-                                        } else {
-                                            liftAnim.snapTo(1f)
-                                        }
-                                    }
-                                },
-                                onHorizontalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    coroutineScope.launch {
-                                        val newX = (xAnim.value + dragAmount).coerceIn(0f, (itemCount - 1) * tabWidthPx)
-                                        xAnim.snapTo(newX)
-                                        val nearest = (newX / tabWidthPx).roundToInt().coerceIn(0, itemCount - 1)
-                                        if (nearest != dragTabIndex) {
-                                            dragTabIndex = nearest
-                                            Haptics.tick(view)
-                                        }
-                                    }
-                                },
-                                onDragEnd = {
-                                    isDragging = false
-                                    val finalIndex = dragTabIndex
-                                    onItemSelected(items[finalIndex].key)
-                                    glideJob?.cancel()
-                                    glideJob = coroutineScope.launch {
-                                        val targetPx = finalIndex * tabWidthPx
-                                        if (Motion.animationsEnabled()) {
-                                            xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
-                                            liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
-                                        } else {
-                                            xAnim.snapTo(targetPx)
-                                            liftAnim.snapTo(0f)
-                                        }
-                                    }
-                                },
-                                onDragCancel = {
-                                    isDragging = false
-                                    glideJob?.cancel()
-                                    glideJob = coroutineScope.launch {
-                                        val targetPx = selectedIndex * tabWidthPx
-                                        if (Motion.animationsEnabled()) {
-                                            xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
-                                            liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
-                                        } else {
-                                            xAnim.snapTo(targetPx)
-                                            liftAnim.snapTo(0f)
-                                        }
-                                    }
-                                },
-                            )
-                        },
+                    modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     items.forEachIndexed { index, item ->
@@ -279,20 +214,6 @@ fun BottomDock(
                                     onClick = {
                                         if (!selected) {
                                             onItemSelected(item.key)
-                                            glideJob?.cancel()
-                                            glideJob = coroutineScope.launch {
-                                                val targetPx = index * tabWidthPx
-                                                if (Motion.animationsEnabled()) {
-                                                    launch {
-                                                        liftAnim.animateTo(1f, spring(dampingRatio = 1f, stiffness = 420f))
-                                                    }
-                                                    xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
-                                                    liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
-                                                } else {
-                                                    xAnim.snapTo(targetPx)
-                                                    liftAnim.snapTo(0f)
-                                                }
-                                            }
                                         }
                                     },
                                 ),

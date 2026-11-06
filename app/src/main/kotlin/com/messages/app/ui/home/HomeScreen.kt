@@ -250,8 +250,8 @@ private val FOLDERS = listOf(
     "INBOX" to R.string.category_inbox,
     "TRANSACTIONS" to R.string.category_transactions,
     "PROMOTIONS" to R.string.category_promotions,
-    "SPAM" to R.string.category_spam,
     "REVIEW" to R.string.category_review,
+    "SPAM" to R.string.category_spam,
     "BLOCKED" to R.string.home_folder_blocked,
 )
 
@@ -268,6 +268,7 @@ private val SEARCH_LABELS = listOf(
 fun HomeScreen(
     isDefaultSmsApp: Boolean,
     initialFolder: String?,
+    onFolderConsumed: () -> Unit = {},
     onRequestDefault: () -> Unit,
     onOpenThread: (Long) -> Unit,
     /** Open a chat at a specific matched message with terms highlighted (§8.5.3). */
@@ -285,7 +286,12 @@ fun HomeScreen(
     onOpenDefaultApps: () -> Unit = {},
     vm: HomeViewModel = viewModel(),
 ) {
-    LaunchedEffect(initialFolder) { if (initialFolder != null) vm.setFolder(initialFolder) }
+    LaunchedEffect(initialFolder) {
+        if (initialFolder != null) {
+            vm.setFolder(initialFolder)
+            onFolderConsumed()
+        }
+    }
 
     val view = LocalView.current
     val scope = rememberCoroutineScope()
@@ -956,12 +962,14 @@ private fun FolderPane(
                 val from = FOLDERS.indexOfFirst { it.first == initialState }
                 val to = FOLDERS.indexOfFirst { it.first == targetState }
                 val dir = if (to >= from) 1 else -1
-                (slideInHorizontally(Motion.butterSpring()) { it / 3 * dir } +
+                ((slideInHorizontally(Motion.butterSpring()) { it / 3 * dir } +
                     fadeIn(Motion.effectsDefault()) +
                     scaleIn(Motion.butterSpring(), initialScale = 0.96f)) togetherWith
                     (slideOutHorizontally(Motion.butterSpring()) { -it / 3 * dir } +
                         fadeOut(Motion.effectsFast()) +
-                        scaleOut(Motion.butterSpring(), targetScale = 0.96f))
+                        scaleOut(Motion.butterSpring(), targetScale = 0.96f))).apply {
+                    targetContentZIndex = 1f
+                }
             },
             label = "folder-switch",
         ) { targetFolder ->
@@ -1053,7 +1061,7 @@ private fun FolderPane(
                             item(key = "pinned_carousel") {
                                 PinnedConversationsRow(
                                     pinnedList = pinnedList,
-                                    onOpenThread = onOpenThread,
+                                    onOpenThread = { if (targetFolder == folder) onOpenThread(it) },
                                 )
                             }
                         }
@@ -1122,8 +1130,10 @@ private fun FolderPane(
                                         onAction = onSwipeAction,
                                         accessibilityActionsEnabled = !selectionActive,
                                         onClick = {
-                                            if (selectionActive) vm.toggleSelected(conv.threadId)
-                                            else onOpenThread(conv.threadId)
+                                            if (targetFolder == folder) {
+                                                if (selectionActive) vm.toggleSelected(conv.threadId)
+                                                else onOpenThread(conv.threadId)
+                                            }
                                         },
                                         badge = badge,
                                         onBadgeTap = { badgeSheet = it },

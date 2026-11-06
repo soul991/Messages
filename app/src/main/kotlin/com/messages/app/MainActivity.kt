@@ -359,6 +359,7 @@ class MainActivity : FragmentActivity() {
                         HomeScreen(
                             isDefaultSmsApp = isDefaultSmsApp,
                             initialFolder = folderRequest,
+                            onFolderConsumed = { folderRequest = null },
                             onRequestDefault = ::requestDefaultRole,
                             roleRequestFailed = roleRequestFailed,
                             onOpenAppSettings = { openAppSettings(this@MainActivity) },
