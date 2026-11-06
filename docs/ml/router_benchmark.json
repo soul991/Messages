@@ -1,0 +1,32 @@
+{
+  "total_samples": 250,
+  "total_correct": 246,
+  "overall_accuracy": 0.984,
+  "per_bucket": {
+    "hi_deva": {
+      "n": 50,
+      "correct": 50,
+      "accuracy": 1.0
+    },
+    "bn_beng": {
+      "n": 50,
+      "correct": 50,
+      "accuracy": 1.0
+    },
+    "en_latin": {
+      "n": 50,
+      "correct": 50,
+      "accuracy": 1.0
+    },
+    "hi_latn": {
+      "n": 50,
+      "correct": 48,
+      "accuracy": 0.96
+    },
+    "bn_latn": {
+      "n": 50,
+      "correct": 48,
+      "accuracy": 0.96
+    }
+  }
+}

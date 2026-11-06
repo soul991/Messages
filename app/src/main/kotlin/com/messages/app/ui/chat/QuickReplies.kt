@@ -58,6 +58,8 @@ object QuickReplies {
 
     fun remove(ctx: Context, text: String) = save(ctx, load(ctx) - text)
 
+    fun setAll(ctx: Context, list: List<String>) = save(ctx, list.distinct())
+
     private fun save(ctx: Context, list: List<String>) {
         prefs(ctx).edit().putString(KEY, encode(list)).apply()
         templates.value = list

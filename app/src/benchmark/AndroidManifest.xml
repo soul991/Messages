@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sharedUserId="com.messages.app.benchmark.uid">
+
+    <permission
+        android:name="com.messages.app.permission.DEBUG_HARNESS"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.messages.app.permission.DEBUG_HARNESS" />
+
+    <application>
+        <!-- BENCHMARK-ONLY: test data seeder for automated UI motion and performance benchmarks -->
+        <receiver
+            android:name="com.messages.app.debug.SeedDataReceiver"
+            android:exported="true"
+            android:permission="com.messages.app.permission.DEBUG_HARNESS">
+            <intent-filter>
+                <action android:name="com.messages.app.debug.SEED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

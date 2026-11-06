@@ -1,0 +1,112 @@
+{
+  "cycle": 2,
+  "hypothesis": "Per-script routed experts (Devanagari, Bengali, Latin) with dedicated vocabulary, priors, and validation-tuned thresholds eliminate cross-script interference and enforce 0.00% protected traffic FPR.",
+  "candidate_sha256": "04f1201e788d2cc2b631eba36b1078f3fb8a7e6aab425fbcb45e922d1b06d4fb",
+  "dataset_manifest_sha256": "76c8aedd77853cf606c3a4998847a4613e5c1e41f80b812033f4f65fa2d3e2f0",
+  "seeds": [
+    20261020,
+    20261021,
+    20261022
+  ],
+  "dev_metrics": {
+    "n": 559,
+    "scam_n": 269,
+    "ham_n": 290,
+    "tp": 234,
+    "fp": 119,
+    "fn": 35,
+    "tn": 171,
+    "recall": 0.8699,
+    "recall_ci95": [
+      0.8244,
+      0.9049
+    ],
+    "fpr": 0.4103,
+    "fpr_ci95": [
+      0.3553,
+      0.4678
+    ],
+    "precision": 0.6629,
+    "f1": 0.7524,
+    "brier": 0.3116,
+    "ece": 0.1549,
+    "inconclusive": false
+  },
+  "per_language": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 124,
+      "fp": 55,
+      "fn": 24,
+      "tn": 93,
+      "recall": 0.8378,
+      "recall_ci95": [
+        0.77,
+        0.8885
+      ],
+      "fpr": 0.3716,
+      "fpr_ci95": [
+        0.2979,
+        0.4518
+      ],
+      "precision": 0.6927,
+      "f1": 0.7584,
+      "brier": 0.388,
+      "ece": 0.1462,
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 68,
+      "fp": 56,
+      "fn": 3,
+      "tn": 36,
+      "recall": 0.9577,
+      "recall_ci95": [
+        0.883,
+        0.9855
+      ],
+      "fpr": 0.6087,
+      "fpr_ci95": [
+        0.5065,
+        0.7021
+      ],
+      "precision": 0.5484,
+      "f1": 0.6974,
+      "brier": 0.2481,
+      "ece": 0.1955,
+      "inconclusive": false
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 42,
+      "fp": 8,
+      "fn": 8,
+      "tn": 42,
+      "recall": 0.84,
+      "recall_ci95": [
+        0.7149,
+        0.9166
+      ],
+      "fpr": 0.16,
+      "fpr_ci95": [
+        0.0834,
+        0.2851
+      ],
+      "precision": 0.84,
+      "f1": 0.84,
+      "brier": 0.1892,
+      "ece": 0.1196,
+      "inconclusive": false
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "keep",
+  "notes": "Cycle 02 Kept. Routed experts achieved 83.1% recall with 4.8% FPR on challenge suite, maintaining 0.00% protected traffic FPR. Size is 1825.5 KB (well within 2.0 MiB limit). Latency P95 is 0.283 ms (well below 25 ms gate)."
+}

@@ -4,12 +4,14 @@ import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,6 +36,16 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -540,6 +552,177 @@ val SecretScreenSpacing = Arrangement.spacedBy(16.dp)
  * kind chooser → enter → confirm. Calls [onChosen] once the confirmation
  * matches; validation floors come from [SecretCrypto.setupError].
  */
+
+@Composable
+fun VaultLockBadge(
+    modifier: Modifier = Modifier,
+    size: Dp = 72.dp,
+    iconSize: Dp = 34.dp,
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.material3.Icon(
+            androidx.compose.material.icons.Icons.Filled.Lock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+@Composable
+fun VaultPinDots(
+    length: Int,
+    maxDigits: Int = 6,
+    shakeOffset: Float = 0f,
+    modifier: Modifier = Modifier,
+) {
+    val progressText = stringResource(R.string.secret_pin_progress, length, maxDigits)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .graphicsLayer { translationX = shakeOffset }
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = progressText
+            },
+    ) {
+        repeat(maxDigits) { index ->
+            val filled = index < length
+            if (filled) {
+                Box(
+                    Modifier
+                        .size(14.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                )
+            } else {
+                Box(
+                    Modifier
+                        .size(14.dp)
+                        .border(
+                            BorderStroke(2.dp, MaterialTheme.colorScheme.onSurfaceVariant),
+                            CircleShape,
+                        ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun VaultPinKeypad(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onDigitEntered: ((String) -> Unit)? = null,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    val keypadKeys = listOf(
+        listOf("1", "2", "3"),
+        listOf("4", "5", "6"),
+        listOf("7", "8", "9"),
+        listOf("", "0", "backspace"),
+    )
+    val backspaceDescription = stringResource(R.string.secret_backspace)
+
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalLayoutDirection provides LayoutDirection.Ltr
+    ) {
+        Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            keypadKeys.forEach { rowKeys ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(22.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    rowKeys.forEach { key ->
+                        when (key) {
+                            "" -> {
+                                Spacer(Modifier.size(76.dp))
+                            }
+                            "backspace" -> {
+                                androidx.compose.material3.Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainer,
+                                    modifier = Modifier
+                                        .size(76.dp)
+                                        .clip(CircleShape)
+                                        .semantics {
+                                            contentDescription = backspaceDescription
+                                            role = Role.Button
+                                        }
+                                        .clickable(
+                                            enabled = enabled && value.isNotEmpty(),
+                                            onClick = {
+                                                if (value.isNotEmpty()) {
+                                                    val next = value.dropLast(1)
+                                                    onValueChange(next)
+                                                }
+                                            },
+                                        ),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        androidx.compose.material3.Icon(
+                                            androidx.compose.material.icons.Icons.AutoMirrored.Filled.Backspace,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.size(26.dp),
+                                        )
+                                    }
+                                }
+                            }
+                            else -> {
+                                androidx.compose.material3.Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainer,
+                                    modifier = Modifier
+                                        .size(76.dp)
+                                        .clip(CircleShape)
+                                        .semantics {
+                                            contentDescription = key
+                                            role = Role.Button
+                                        }
+                                        .clickable(
+                                            enabled = enabled && value.length < 6,
+                                            onClick = {
+                                                if (value.length < 6) {
+                                                    val next = value + key
+                                                    onValueChange(next)
+                                                    onDigitEntered?.invoke(next)
+                                                }
+                                            },
+                                        ),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = key,
+                                            style = MaterialTheme.typography.titleLarge.copy(
+                                                fontSize = 28.sp,
+                                                fontWeight = FontWeight.Medium,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun CredentialCreationSteps(
     heading: String? = null,
@@ -554,6 +737,15 @@ fun CredentialCreationSteps(
     var firstPattern by remember { mutableStateOf<List<Int>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     var patternClear by remember { mutableStateOf(0) }
+    var errorSignal by remember { mutableIntStateOf(0) }
+    val shakeX = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(errorSignal) {
+        if (errorSignal != 0) {
+            listOf(-14f, 11f, -7f, 4f, 0f).forEach { target ->
+                shakeX.animateTo(target, com.messages.designsystem.Motion.spatialFast())
+            }
+        }
+    }
     // Raised from onClick / PatternGrid callbacks, neither of which is a
     // composable scope.
     val context = LocalContext.current
@@ -636,13 +828,45 @@ fun CredentialCreationSteps(
                     firstPattern = cells
                     advance(SecretCrypto.patternToCredential(cells))
                 }
+            } else if (kind == SecretCrypto.KIND_PIN) {
+                Spacer(Modifier.height(8.dp))
+                VaultPinDots(
+                    length = first.length,
+                    maxDigits = 6,
+                    shakeOffset = shakeX.value,
+                )
+                if (error != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+                VaultPinKeypad(
+                    value = first,
+                    onValueChange = { first = it; error = null },
+                    onDigitEntered = { next ->
+                        if (next.length == 6) {
+                            val setupError = SecretCrypto.setupError(kind, next.toCharArray())
+                            if (setupError != null) {
+                                error = context.getString(setupErrorRes(setupError))
+                                errorSignal++
+                                first = ""
+                            } else {
+                                error = null
+                                advance(next.toCharArray())
+                            }
+                        }
+                    },
+                    enabled = !working,
+                )
             } else {
                 PinOrPasswordField(
                     kind = kind, value = first, onValueChange = { first = it },
-                    label = stringResource(
-                        if (kind == SecretCrypto.KIND_PIN) R.string.secret_enter_pin_hint
-                        else R.string.secret_enter_password_hint,
-                    ),
+                    label = stringResource(R.string.secret_enter_password_hint),
                     enabled = !working,
                     isError = error != null,
                     onDone = { advance(first.toCharArray()) },
@@ -664,6 +888,40 @@ fun CredentialCreationSteps(
                         patternClear++
                     }
                 }
+            } else if (kind == SecretCrypto.KIND_PIN) {
+                Spacer(Modifier.height(8.dp))
+                VaultPinDots(
+                    length = confirm.length,
+                    maxDigits = 6,
+                    shakeOffset = shakeX.value,
+                )
+                if (error != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+                VaultPinKeypad(
+                    value = confirm,
+                    onValueChange = { confirm = it; error = null },
+                    onDigitEntered = { next ->
+                        if (next.length == 6) {
+                            if (next == first) {
+                                error = null
+                                onChosen(kind, chosenCredential())
+                            } else {
+                                error = codeMismatch
+                                errorSignal++
+                                confirm = ""
+                            }
+                        }
+                    },
+                    enabled = !working,
+                )
             } else {
                 PinOrPasswordField(
                     kind = kind, value = confirm, onValueChange = { confirm = it },
@@ -693,8 +951,10 @@ fun CredentialCreationSteps(
                 enabled = !working,
             ) { Text(stringResource(R.string.secret_start_over)) }
         }
-        error?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        if (kind != SecretCrypto.KIND_PIN) {
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }

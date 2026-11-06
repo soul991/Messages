@@ -185,20 +185,7 @@ fun SecretPromptScreen(
             Spacer(Modifier.height(24.dp))
 
             // 72dp circle, primaryContainer, lock icon 34dp onPrimaryContainer, centered, 24dp below top bar
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(34.dp),
-                )
-            }
+            VaultLockBadge(size = 72.dp, iconSize = 34.dp)
 
             Spacer(Modifier.height(16.dp))
 
@@ -279,122 +266,24 @@ fun SecretPromptScreen(
                     ) { Text(stringResource(R.string.secret_unlock)) }
                 }
                 else -> {
-                    // 6 code dots, 14dp, 14dp gap; filled = primary, empty = 2dp onSurfaceVariant ring
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.graphicsLayer { translationX = shakeX.value },
-                    ) {
-                        repeat(6) { index ->
-                            val filled = index < entry.length
-                            if (filled) {
-                                Box(
-                                    Modifier
-                                        .size(14.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary),
-                                )
-                            } else {
-                                Box(
-                                    Modifier
-                                        .size(14.dp)
-                                        .border(
-                                            BorderStroke(2.dp, MaterialTheme.colorScheme.onSurfaceVariant),
-                                            CircleShape,
-                                        ),
-                                )
-                            }
-                        }
-                    }
+                    VaultPinDots(
+                        length = entry.length,
+                        maxDigits = 6,
+                        shakeOffset = shakeX.value,
+                    )
 
                     Spacer(Modifier.height(28.dp))
 
-                    // Keypad 3 columns × 4 rows, key = 76dp circle surfaceContainer, digit 28sp Medium;
-                    // 22dp horizontal gap, 14dp vertical; bottom row = empty, 0, backspace icon (26dp).
-                    val keypadKeys = listOf(
-                        listOf("1", "2", "3"),
-                        listOf("4", "5", "6"),
-                        listOf("7", "8", "9"),
-                        listOf("", "0", "backspace"),
-                    )
-
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        keypadKeys.forEach { rowKeys ->
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(22.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                rowKeys.forEach { key ->
-                                    when (key) {
-                                        "" -> {
-                                            Spacer(Modifier.size(76.dp))
-                                        }
-                                        "backspace" -> {
-                                            Surface(
-                                                shape = CircleShape,
-                                                color = MaterialTheme.colorScheme.surfaceContainer,
-                                                modifier = Modifier
-                                                    .size(76.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable(
-                                                        enabled = !coolingDown && !checking && entry.isNotEmpty(),
-                                                        onClick = {
-                                                            if (entry.isNotEmpty()) {
-                                                                entry = entry.dropLast(1)
-                                                            }
-                                                        },
-                                                    ),
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Icon(
-                                                        Icons.AutoMirrored.Filled.Backspace,
-                                                        contentDescription = stringResource(R.string.secret_backspace),
-                                                        tint = MaterialTheme.colorScheme.onSurface,
-                                                        modifier = Modifier.size(26.dp),
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        else -> {
-                                            Surface(
-                                                shape = CircleShape,
-                                                color = MaterialTheme.colorScheme.surfaceContainer,
-                                                modifier = Modifier
-                                                    .size(76.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable(
-                                                        enabled = !coolingDown && !checking && entry.length < 6,
-                                                        onClick = {
-                                                            if (entry.length < 6) {
-                                                                val newEntry = entry + key
-                                                                entry = newEntry
-                                                                if (newEntry.length == 6) {
-                                                                    submit(newEntry.toCharArray())
-                                                                }
-                                                            }
-                                                        },
-                                                    ),
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Text(
-                                                        text = key,
-                                                        style = MaterialTheme.typography.titleLarge.copy(
-                                                            fontSize = 28.sp,
-                                                            fontWeight = FontWeight.Medium,
-                                                        ),
-                                                        color = MaterialTheme.colorScheme.onSurface,
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                    VaultPinKeypad(
+                        value = entry,
+                        onValueChange = { entry = it; error = null },
+                        onDigitEntered = { next ->
+                            if (next.length == 6) {
+                                submit(next.toCharArray())
                             }
-                        }
-                    }
+                        },
+                        enabled = !coolingDown && !checking,
+                    )
 
                     Spacer(Modifier.height(16.dp))
 

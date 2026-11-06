@@ -94,8 +94,8 @@ android {
         applicationId = "com.messages.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 19
-        versionName = "1.6.1"
+        versionCode = 29
+        versionName = "2.3.1"
     }
 
     if (keystoreProps.isNotEmpty()) {
@@ -127,6 +127,25 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            matchingFallbacks += listOf("release")
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+            applicationIdSuffix = ".benchmark"
+            versionNameSuffix = "-benchmark"
+            resValue("string", "app_name", "Messages (bench)")
+            proguardFiles("benchmark-rules.pro")
+        }
+    }
+    sourceSets {
+        getByName("debug") {
+            kotlin.srcDir("src/seed/kotlin")
+        }
+        getByName("benchmark") {
+            kotlin.srcDir("src/seed/kotlin")
+            manifest.srcFile("src/benchmark/AndroidManifest.xml")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -147,6 +166,8 @@ android {
             if (output != null) {
                 if (variant.buildType.name == "release") {
                     output.outputFileName = "Messages.apk"
+                } else if (variant.buildType.name == "benchmark") {
+                    output.outputFileName = "Messages-benchmark.apk"
                 } else {
                     output.outputFileName = "Messages-debug.apk"
                 }

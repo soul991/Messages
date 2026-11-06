@@ -1,0 +1,52 @@
+{
+  "cycle": 0,
+  "hypothesis": "Baseline shipped character n-gram Naive Bayes model reproduction and verification on the frozen external challenge",
+  "candidate_sha256": "956cbc51f5a9f5e965ef629905d6000a7a71117b88e39ccafd6c5deb13905dd8",
+  "dataset_manifest_sha256": "NOT_CREATED_PHASE_0",
+  "seeds": [20261005],
+  "dev_metrics": {
+    "n": 159,
+    "scam_rows": 69,
+    "ham_rows": 90,
+    "tp": 57,
+    "fp": 70,
+    "fn": 12,
+    "tn": 20,
+    "scam_recall": 0.8261,
+    "ham_fpr": 0.7778,
+    "precision": 0.4488,
+    "f1": 0.5816
+  },
+  "per_language": {
+    "english": {
+      "rows": 59,
+      "scam_rows": 27,
+      "ham_rows": 32,
+      "tp": 26,
+      "fp": 24,
+      "fn": 1,
+      "tn": 8,
+      "recall": 0.963,
+      "fpr": 0.75
+    },
+    "hindi": {
+      "rows": 50,
+      "scam_rows": 21,
+      "ham_rows": 29,
+      "tp": 15,
+      "fp": 24,
+      "fn": 6,
+      "tn": 5,
+      "recall": 0.7143,
+      "fpr": 0.8276
+    },
+    "bengali": {
+      "rows": 0,
+      "status": "NOT MEASURED",
+      "notes": "No Bengali rows in trilingual-fraud-consumer-protection-v2 challenge"
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "baseline",
+  "notes": "Re-verified baseline numbers matching docs/ml/external-challenge-report.md exactly. The baseline exhibits high ham FPR (77.8% on challenge set) and fails Stage 1 release gates."
+}

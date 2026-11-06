@@ -58,9 +58,15 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE smsId = :smsId LIMIT 1")
     suspend fun bySmsId(smsId: Long): MessageEntity?
 
+    @Query("SELECT MAX(smsId) FROM messages")
+    suspend fun maxSmsId(): Long?
+
     /** V2-25: dedupe key for the MMS half of the historical backfill. */
     @Query("SELECT * FROM messages WHERE mmsId = :mmsId LIMIT 1")
     suspend fun byMmsId(mmsId: Long): MessageEntity?
+
+    @Query("SELECT MAX(mmsId) FROM messages")
+    suspend fun maxMmsId(): Long?
 
     @Query("SELECT * FROM messages WHERE mmsTransactionId = :transactionId LIMIT 1")
     suspend fun byMmsTransactionId(transactionId: String): MessageEntity?
@@ -317,6 +323,12 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun userDelete(id: Long)
 
+    @Query(
+        "DELETE FROM messages WHERE threadId = 100 AND address = '+1 (555) 019-2834' " +
+            "AND smsId BETWEEN 900001 AND 900100"
+    )
+    suspend fun deleteSyntheticRows(): Int
+
     // ---- Trash (§6.4) ----
 
     @Query("UPDATE messages SET trashed = 1, trashedAt = :at WHERE id = :id")
@@ -512,6 +524,8 @@ interface ConversationDao {
 
     @Query("SELECT * FROM conversations WHERE threadId = :threadId AND space = :space LIMIT 1")
     suspend fun byThreadId(threadId: Long, space: String = Spaces.NORMAL): ConversationEntity?
+    @Query("SELECT * FROM conversations WHERE address = :address AND space = :space LIMIT 1")
+    suspend fun byAddress(address: String, space: String = Spaces.NORMAL): ConversationEntity?
 
     @Query(
         "SELECT * FROM conversations WHERE category = :category AND archived = 0 " +

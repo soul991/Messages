@@ -160,12 +160,17 @@ class MessageRepository private constructor(private val context: Context) {
     }
 
     fun isAdvancedFilteringEnabled(): Boolean =
-        // The bundled model has not cleared the held-out false-positive gate.
-        // Keep its routing effect opt-in until that evaluation is complete.
-        settingsPrefs.getBoolean("advanced_message_filtering", false)
+        AiFeatureGate.allowsRouting(
+            settingsPrefs.getBoolean("advanced_message_filtering", false)
+        )
 
     fun setAdvancedFilteringEnabled(enabled: Boolean) {
-        settingsPrefs.edit().putBoolean("advanced_message_filtering", enabled).apply()
+        // Never retain a stale opt-in while the release gate is closed. If a
+        // future certified model enables the gate, every user must opt in again
+        // rather than silently inheriting a setting from research builds.
+        settingsPrefs.edit()
+            .putBoolean("advanced_message_filtering", enabled && AiLayer.AI_LAYER_ENABLED)
+            .apply()
     }
 
     // ---- Pattern-pack import (§7.5) ----
@@ -253,7 +258,8 @@ class MessageRepository private constructor(private val context: Context) {
             }
             val smsId = uri?.lastPathSegment?.toLongOrNull()
             val threadId = try {
-                Telephony.Threads.getOrCreateThreadId(context, address)
+                val tid = Telephony.Threads.getOrCreateThreadId(context, address)
+                if (tid <= 0L) syntheticThreadId(address) else tid
             } catch (_: Exception) {
                 syntheticThreadId(address) // R-16: never a 32-bit hash
             }
@@ -361,12 +367,13 @@ class MessageRepository private constructor(private val context: Context) {
         timestamp: Long,
         isOutgoing: Boolean,
         read: Boolean,
+        bumpUnread: Boolean = false,
     ): Boolean = withContext(Dispatchers.IO) {
         if (db.messages().bySmsId(smsId) != null) return@withContext false
         indexHistoricalRow(
             smsId = smsId, mmsId = null, threadId = threadId, address = address, body = body,
             timestamp = timestamp, isOutgoing = isOutgoing, read = read,
-            mediaRef = null, mediaMimeType = null,
+            mediaRef = null, mediaMimeType = null, bumpUnread = bumpUnread,
         )
     }
 
@@ -391,12 +398,13 @@ class MessageRepository private constructor(private val context: Context) {
         read: Boolean,
         mediaRef: String?,
         mediaMimeType: String?,
+        bumpUnread: Boolean = false,
     ): Boolean = withContext(Dispatchers.IO) {
         if (db.messages().byMmsId(mmsId) != null) return@withContext false
         indexHistoricalRow(
             smsId = null, mmsId = mmsId, threadId = threadId, address = address, body = body,
             timestamp = timestamp, isOutgoing = isOutgoing, read = read,
-            mediaRef = mediaRef, mediaMimeType = mediaMimeType,
+            mediaRef = mediaRef, mediaMimeType = mediaMimeType, bumpUnread = bumpUnread,
         )
     }
 
@@ -411,6 +419,7 @@ class MessageRepository private constructor(private val context: Context) {
         read: Boolean,
         mediaRef: String?,
         mediaMimeType: String?,
+        bumpUnread: Boolean = false,
     ): Boolean {
         // Same never-lose fallback as onIncomingSms: a broken classifier must
         // not keep history out of the index (it made the whole backfill vanish
@@ -445,6 +454,7 @@ class MessageRepository private constructor(private val context: Context) {
             // rows already claimed by the locked space are skipped above by
             // their smsId/mmsId). New arrivals route through onIncomingSms instead.
             val existing = db.conversations().byThreadId(threadId)
+            val unreadDelta = if (bumpUnread && !read && !isOutgoing) 1 else 0
             if (existing == null || timestamp > existing.lastTimestamp) {
                 db.conversations().upsert(
                     ConversationEntity(
@@ -457,7 +467,7 @@ class MessageRepository private constructor(private val context: Context) {
                         // instead of an empty Home row.
                         lastMessage = body.ifBlank { mediaPreview(mediaMimeType) },
                         lastTimestamp = timestamp,
-                        unreadCount = existing?.unreadCount ?: 0,
+                        unreadCount = (existing?.unreadCount ?: 0) + unreadDelta,
                         category = verdict?.category?.name ?: existing?.category ?: "INBOX",
                         pinned = existing?.pinned ?: false,
                         archived = existing?.archived ?: false,
@@ -465,6 +475,10 @@ class MessageRepository private constructor(private val context: Context) {
                         locked = existing?.locked ?: false,
                         preferredSubId = existing?.preferredSubId,
                     )
+                )
+            } else if (unreadDelta > 0) {
+                db.conversations().upsert(
+                    existing.copy(unreadCount = existing.unreadCount + unreadDelta)
                 )
             }
         }
@@ -737,13 +751,18 @@ class MessageRepository private constructor(private val context: Context) {
         address.split(';').map { it.trim() }.filter { it.isNotEmpty() }
 
     private suspend fun resolveThreadId(address: String): Long {
+        val existing = db.conversations().byAddress(address)
+        if (existing != null && existing.threadId != 0L) {
+            return existing.threadId
+        }
         val recipients = recipientsOf(address)
         return try {
-            if (recipients.size > 1) {
+            val tid = if (recipients.size > 1) {
                 Telephony.Threads.getOrCreateThreadId(context, recipients.toSet())
             } else {
                 Telephony.Threads.getOrCreateThreadId(context, address)
             }
+            if (tid <= 0L) syntheticThreadId(address) else tid
         } catch (_: Exception) {
             syntheticThreadId(address)
         }

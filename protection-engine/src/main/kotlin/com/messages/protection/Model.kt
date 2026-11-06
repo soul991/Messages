@@ -18,6 +18,7 @@ enum class SenderType {
     REGISTERED_TRANSACTIONAL,   // DLT suffix -S / -T
     REGISTERED_GOVERNMENT,      // DLT suffix -G
     REGISTERED_PROMOTIONAL,     // DLT suffix -P
+    COMMERCIAL_PROMOTIONAL,     // commercial DLT or brand entity without explicit suffix
     ALPHANUMERIC_UNKNOWN,       // alphanumeric header, no recognized suffix
     PERSONAL_NUMBER,            // random 10-digit mobile, not in contacts
     INTERNATIONAL_NUMBER,       // unexpected country code

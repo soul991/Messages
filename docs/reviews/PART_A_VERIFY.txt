@@ -1,0 +1,44 @@
+============================================================
+PART A VERIFICATION OUTPUT: HOTFIX 2.1.1
+============================================================
+
+1. Classes.dex String Verification:
+Command:
+unzip -p app/build/outputs/apk/release/*.apk 'classes*.dex' | strings | grep -ci "Rostova\|SyntheticStress\|ReactionStore"
+Output:
+0
+
+2. Test Suite Execution:
+Command:
+./gradlew test
+Output:
+BUILD SUCCESSFUL in 4m 5s
+158 actionable tasks: 44 executed, 26 from cache, 88 up-to-date
+
+3. SyntheticCleanupTest Unit Test:
+Command:
+./gradlew :core-messaging:testDebugUnitTest --tests com.messages.core.db.SyntheticCleanupTest
+Result:
+tests="1" skipped="0" failures="0" errors="0" time="5.168"
+PASS
+
+4. scripts/verify_round.sh Output:
+------------------------------------------------------------
+commit: 7aec848  branch: hotfix/2.1.1
+------------------------------------------------------------
+PASS  1  no synthetic/test-data/reaction code in app/src/main
+PASS  2  no seeding hooks in app/src/main
+PASS  3  every exported debug/benchmark receiver has android:permission
+PASS  4  no SeedDataReceiver in repo (nothing to confirm)
+PASS  5  no benchmark build type
+PASS  6  no hardcoded Color(0x...) in screens
+PASS  7  no gradients/blur outside Vault + chat wallpaper
+PASS  8  no literal strings in Text()
+FAIL  9  disallowed corner radii: 10 
+FAIL  10 baseline-prof.txt contains 55 wildcard rule(s)
+WARN  14 7 line(s) of self-praise wording in docs (remove)
+PASS  15 working tree clean
+------------------------------------------------------------
+FAIL: 2   WARN: 1
+Note: Checks 1 and 2 PASS.
+============================================================

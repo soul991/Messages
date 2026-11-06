@@ -22,6 +22,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -183,6 +186,15 @@ private fun ChangeCredentialFlow(
     var verifiedCurrent by remember { mutableStateOf<CharArray?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var patternClear by remember { mutableIntStateOf(0) }
+    var errorSignal by remember { mutableIntStateOf(0) }
+    val shakeX = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(errorSignal) {
+        if (errorSignal != 0) {
+            listOf(-14f, 11f, -7f, 4f, 0f).forEach { target ->
+                shakeX.animateTo(target, com.messages.designsystem.Motion.spatialFast())
+            }
+        }
+    }
     var working by remember { mutableStateOf(false) }
 
     fun verifyCurrent(credential: CharArray) {
@@ -195,7 +207,7 @@ private fun ChangeCredentialFlow(
             when (result) {
                 is SecretSpace.Attempt.Success -> verifiedCurrent = credential
                 is SecretSpace.Attempt.Wrong -> {
-                    current = ""; patternClear++
+                    current = ""; patternClear++; errorSignal++
                     error = if (result.cooldownMs > 0) {
                         context.getString(
                             R.string.secret_wrong_code_cooldown,
@@ -226,7 +238,7 @@ private fun ChangeCredentialFlow(
                 // Re-verification can only fail if state changed underneath —
                 // fall back to the verify step rather than guessing.
                 is SecretSpace.Attempt.Wrong -> {
-                    verifiedCurrent = null; current = ""; patternClear++
+                    verifiedCurrent = null; current = ""; patternClear++; errorSignal++
                     error = context.getString(R.string.secret_current_code_wrong)
                 }
                 is SecretSpace.Attempt.Cooldown ->
@@ -248,13 +260,28 @@ private fun ChangeCredentialFlow(
                 PatternGrid(enabled = !working, clearSignal = patternClear) { cells ->
                     verifyCurrent(SecretCrypto.patternToCredential(cells))
                 }
+            } else if (currentKind == SecretCrypto.KIND_PIN) {
+                Spacer(Modifier.height(8.dp))
+                VaultPinDots(
+                    length = current.length,
+                    maxDigits = 6,
+                    shakeOffset = shakeX.value,
+                )
+                Spacer(Modifier.height(20.dp))
+                VaultPinKeypad(
+                    value = current,
+                    onValueChange = { current = it; error = null },
+                    onDigitEntered = { next ->
+                        if (next.length == 6) {
+                            verifyCurrent(next.toCharArray())
+                        }
+                    },
+                    enabled = !working,
+                )
             } else {
                 PinOrPasswordField(
                     kind = currentKind, value = current, onValueChange = { current = it },
-                    label = stringResource(
-                        if (currentKind == SecretCrypto.KIND_PIN) R.string.secret_current_pin
-                        else R.string.secret_current_password,
-                    ),
+                    label = stringResource(R.string.secret_current_password),
                     enabled = !working,
                     isError = error != null,
                     onDone = { if (current.isNotEmpty()) verifyCurrent(current.toCharArray()) },

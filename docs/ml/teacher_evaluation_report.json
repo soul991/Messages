@@ -1,0 +1,1855 @@
+{
+  "generated_at": "2026-10-24T16:43:44Z",
+  "hardware": {
+    "device": "cuda",
+    "gpu_name": "NVIDIA GeForce RTX 3060",
+    "cuda_version": "12.8"
+  },
+  "splits": {
+    "train_rows": 19603,
+    "validation_rows": 2200,
+    "train_buckets": {
+      "en_latin": 9650,
+      "hi_latn": 4998,
+      "hi_deva": 3551,
+      "bn_beng": 854,
+      "bn_latn": 550
+    },
+    "val_buckets": {
+      "en_latin": 1200,
+      "hi_deva": 400,
+      "hi_latn": 300,
+      "bn_beng": 300
+    }
+  },
+  "teachers": {
+    "ai4bharat/IndicBERTv2-MLM-only": {
+      "model_type": "bert",
+      "vocab_size": 250000,
+      "hidden_size": 768,
+      "num_hidden_layers": 12,
+      "num_attention_heads": 12,
+      "total_parameters": 278042882,
+      "license": "mit",
+      "license_url": "https://huggingface.co/ai4bharat/IndicBERTv2-MLM-only",
+      "tokenizer_unk_stats": {
+        "validation": {
+          "en_latin": {
+            "total_tokens": 27334,
+            "unk_tokens": 2,
+            "unk_rate_pct": 0.0073,
+            "total_messages": 1200,
+            "messages_with_unk": 2,
+            "messages_with_unk_pct": 0.17
+          },
+          "hi_deva": {
+            "total_tokens": 8320,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 400,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "hi_latn": {
+            "total_tokens": 8187,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 300,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "bn_beng": {
+            "total_tokens": 7312,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 300,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "overall": {
+            "total_tokens": 51153,
+            "unk_tokens": 2,
+            "unk_rate_pct": 0.0039,
+            "total_messages": 2200,
+            "messages_with_unk": 2,
+            "messages_with_unk_pct": 0.09
+          }
+        },
+        "train": {
+          "en_latin": {
+            "total_tokens": 224085,
+            "unk_tokens": 33,
+            "unk_rate_pct": 0.0147,
+            "total_messages": 9650,
+            "messages_with_unk": 24,
+            "messages_with_unk_pct": 0.25
+          },
+          "hi_latn": {
+            "total_tokens": 131434,
+            "unk_tokens": 1,
+            "unk_rate_pct": 0.0008,
+            "total_messages": 4998,
+            "messages_with_unk": 1,
+            "messages_with_unk_pct": 0.02
+          },
+          "hi_deva": {
+            "total_tokens": 76430,
+            "unk_tokens": 4,
+            "unk_rate_pct": 0.0052,
+            "total_messages": 3551,
+            "messages_with_unk": 3,
+            "messages_with_unk_pct": 0.08
+          },
+          "bn_beng": {
+            "total_tokens": 19533,
+            "unk_tokens": 13,
+            "unk_rate_pct": 0.0666,
+            "total_messages": 854,
+            "messages_with_unk": 8,
+            "messages_with_unk_pct": 0.94
+          },
+          "bn_latn": {
+            "total_tokens": 21905,
+            "unk_tokens": 11,
+            "unk_rate_pct": 0.0502,
+            "total_messages": 550,
+            "messages_with_unk": 9,
+            "messages_with_unk_pct": 1.64
+          },
+          "overall": {
+            "total_tokens": 473387,
+            "unk_tokens": 62,
+            "unk_rate_pct": 0.0131,
+            "total_messages": 19603,
+            "messages_with_unk": 45,
+            "messages_with_unk_pct": 0.23
+          }
+        }
+      },
+      "validation_evaluation": {
+        "inference_time_sec": 9.31,
+        "total_evaluated": 2200,
+        "scam_count": 410,
+        "ham_count": 1790,
+        "brier_score": 0.0524,
+        "ece": 0.0557,
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "range": [
+              0.0,
+              0.1
+            ],
+            "count": 1566,
+            "confidence": 0.0045,
+            "accuracy": 0.0064
+          },
+          {
+            "bin": 1,
+            "range": [
+              0.1,
+              0.2
+            ],
+            "count": 61,
+            "confidence": 0.144,
+            "accuracy": 0.082
+          },
+          {
+            "bin": 2,
+            "range": [
+              0.2,
+              0.3
+            ],
+            "count": 27,
+            "confidence": 0.2458,
+            "accuracy": 0.0
+          },
+          {
+            "bin": 3,
+            "range": [
+              0.3,
+              0.4
+            ],
+            "count": 17,
+            "confidence": 0.3536,
+            "accuracy": 0.0
+          },
+          {
+            "bin": 4,
+            "range": [
+              0.4,
+              0.5
+            ],
+            "count": 12,
+            "confidence": 0.4469,
+            "accuracy": 0.0
+          },
+          {
+            "bin": 5,
+            "range": [
+              0.5,
+              0.6
+            ],
+            "count": 15,
+            "confidence": 0.5423,
+            "accuracy": 0.0667
+          },
+          {
+            "bin": 6,
+            "range": [
+              0.6,
+              0.7
+            ],
+            "count": 14,
+            "confidence": 0.663,
+            "accuracy": 0.4286
+          },
+          {
+            "bin": 7,
+            "range": [
+              0.7,
+              0.8
+            ],
+            "count": 24,
+            "confidence": 0.7459,
+            "accuracy": 0.25
+          },
+          {
+            "bin": 8,
+            "range": [
+              0.8,
+              0.9
+            ],
+            "count": 19,
+            "confidence": 0.8491,
+            "accuracy": 0.3684
+          },
+          {
+            "bin": 9,
+            "range": [
+              0.9,
+              1.0
+            ],
+            "count": 445,
+            "confidence": 0.9921,
+            "accuracy": 0.8427
+          }
+        ],
+        "operating_points": {
+          "fpr_0.5pct": {
+            "target_fpr": 0.005,
+            "threshold": 0.998614,
+            "tp": 231,
+            "fn": 179,
+            "fp": 8,
+            "tn": 1782,
+            "recall_pct": 56.34,
+            "recall_ci_95": [
+              51.5,
+              61.06
+            ],
+            "fpr_pct": 0.45,
+            "fpr_ci_95": [
+              0.23,
+              0.88
+            ],
+            "protected_traffic": {
+              "total": 168,
+              "fp": 6,
+              "fpr_pct": 3.57,
+              "ci_95": [
+                1.65,
+                7.57
+              ]
+            },
+            "advisories": {
+              "total": 5,
+              "fp": 2,
+              "fpr_pct": 40.0,
+              "ci_95": [
+                11.76,
+                76.93
+              ]
+            },
+            "buckets": {
+              "bn_beng": {
+                "scam_total": 127,
+                "tp": 77,
+                "fn": 50,
+                "recall_pct": 60.63,
+                "recall_ci": [
+                  51.94,
+                  68.7
+                ],
+                "ham_total": 173,
+                "fp": 2,
+                "tn": 171,
+                "fpr_pct": 1.16,
+                "fpr_ci": [
+                  0.32,
+                  4.12
+                ],
+                "conclusive": true
+              },
+              "en_latin": {
+                "scam_total": 164,
+                "tp": 66,
+                "fn": 98,
+                "recall_pct": 40.24,
+                "recall_ci": [
+                  33.04,
+                  47.89
+                ],
+                "ham_total": 1036,
+                "fp": 6,
+                "tn": 1030,
+                "fpr_pct": 0.58,
+                "fpr_ci": [
+                  0.27,
+                  1.26
+                ],
+                "conclusive": true
+              },
+              "hi_deva": {
+                "scam_total": 26,
+                "tp": 15,
+                "fn": 11,
+                "recall_pct": 57.69,
+                "recall_ci": [
+                  38.95,
+                  74.46
+                ],
+                "ham_total": 374,
+                "fp": 0,
+                "tn": 374,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.02
+                ],
+                "conclusive": false
+              },
+              "hi_latn": {
+                "scam_total": 93,
+                "tp": 73,
+                "fn": 20,
+                "recall_pct": 78.49,
+                "recall_ci": [
+                  69.1,
+                  85.62
+                ],
+                "ham_total": 207,
+                "fp": 0,
+                "tn": 207,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.82
+                ],
+                "conclusive": false
+              }
+            }
+          },
+          "fpr_1.0pct": {
+            "target_fpr": 0.01,
+            "threshold": 0.99836,
+            "tp": 241,
+            "fn": 169,
+            "fp": 17,
+            "tn": 1773,
+            "recall_pct": 58.78,
+            "recall_ci_95": [
+              53.96,
+              63.44
+            ],
+            "fpr_pct": 0.95,
+            "fpr_ci_95": [
+              0.59,
+              1.52
+            ],
+            "protected_traffic": {
+              "total": 168,
+              "fp": 14,
+              "fpr_pct": 8.33,
+              "ci_95": [
+                5.03,
+                13.5
+              ]
+            },
+            "advisories": {
+              "total": 5,
+              "fp": 3,
+              "fpr_pct": 60.0,
+              "ci_95": [
+                23.07,
+                88.24
+              ]
+            },
+            "buckets": {
+              "bn_beng": {
+                "scam_total": 127,
+                "tp": 79,
+                "fn": 48,
+                "recall_pct": 62.2,
+                "recall_ci": [
+                  53.53,
+                  70.16
+                ],
+                "ham_total": 173,
+                "fp": 3,
+                "tn": 170,
+                "fpr_pct": 1.73,
+                "fpr_ci": [
+                  0.59,
+                  4.97
+                ],
+                "conclusive": true
+              },
+              "en_latin": {
+                "scam_total": 164,
+                "tp": 73,
+                "fn": 91,
+                "recall_pct": 44.51,
+                "recall_ci": [
+                  37.12,
+                  52.16
+                ],
+                "ham_total": 1036,
+                "fp": 14,
+                "tn": 1022,
+                "fpr_pct": 1.35,
+                "fpr_ci": [
+                  0.81,
+                  2.26
+                ],
+                "conclusive": true
+              },
+              "hi_deva": {
+                "scam_total": 26,
+                "tp": 15,
+                "fn": 11,
+                "recall_pct": 57.69,
+                "recall_ci": [
+                  38.95,
+                  74.46
+                ],
+                "ham_total": 374,
+                "fp": 0,
+                "tn": 374,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.02
+                ],
+                "conclusive": false
+              },
+              "hi_latn": {
+                "scam_total": 93,
+                "tp": 74,
+                "fn": 19,
+                "recall_pct": 79.57,
+                "recall_ci": [
+                  70.28,
+                  86.51
+                ],
+                "ham_total": 207,
+                "fp": 0,
+                "tn": 207,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.82
+                ],
+                "conclusive": false
+              }
+            }
+          },
+          "fpr_2.0pct": {
+            "target_fpr": 0.02,
+            "threshold": 0.996123,
+            "tp": 281,
+            "fn": 129,
+            "fp": 35,
+            "tn": 1755,
+            "recall_pct": 68.54,
+            "recall_ci_95": [
+              63.89,
+              72.84
+            ],
+            "fpr_pct": 1.96,
+            "fpr_ci_95": [
+              1.41,
+              2.71
+            ],
+            "protected_traffic": {
+              "total": 168,
+              "fp": 31,
+              "fpr_pct": 18.45,
+              "ci_95": [
+                13.32,
+                25.0
+              ]
+            },
+            "advisories": {
+              "total": 5,
+              "fp": 3,
+              "fpr_pct": 60.0,
+              "ci_95": [
+                23.07,
+                88.24
+              ]
+            },
+            "buckets": {
+              "bn_beng": {
+                "scam_total": 127,
+                "tp": 93,
+                "fn": 34,
+                "recall_pct": 73.23,
+                "recall_ci": [
+                  64.93,
+                  80.16
+                ],
+                "ham_total": 173,
+                "fp": 4,
+                "tn": 169,
+                "fpr_pct": 2.31,
+                "fpr_ci": [
+                  0.9,
+                  5.79
+                ],
+                "conclusive": true
+              },
+              "en_latin": {
+                "scam_total": 164,
+                "tp": 92,
+                "fn": 72,
+                "recall_pct": 56.1,
+                "recall_ci": [
+                  48.45,
+                  63.47
+                ],
+                "ham_total": 1036,
+                "fp": 31,
+                "tn": 1005,
+                "fpr_pct": 2.99,
+                "fpr_ci": [
+                  2.12,
+                  4.22
+                ],
+                "conclusive": true
+              },
+              "hi_deva": {
+                "scam_total": 26,
+                "tp": 18,
+                "fn": 8,
+                "recall_pct": 69.23,
+                "recall_ci": [
+                  50.01,
+                  83.5
+                ],
+                "ham_total": 374,
+                "fp": 0,
+                "tn": 374,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.02
+                ],
+                "conclusive": false
+              },
+              "hi_latn": {
+                "scam_total": 93,
+                "tp": 78,
+                "fn": 15,
+                "recall_pct": 83.87,
+                "recall_ci": [
+                  75.08,
+                  89.97
+                ],
+                "ham_total": 207,
+                "fp": 0,
+                "tn": 207,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.82
+                ],
+                "conclusive": false
+              }
+            }
+          },
+          "fpr_5.0pct": {
+            "target_fpr": 0.05,
+            "threshold": 0.76697,
+            "tp": 382,
+            "fn": 28,
+            "fp": 89,
+            "tn": 1701,
+            "recall_pct": 93.17,
+            "recall_ci_95": [
+              90.31,
+              95.23
+            ],
+            "fpr_pct": 4.97,
+            "fpr_ci_95": [
+              4.06,
+              6.08
+            ],
+            "protected_traffic": {
+              "total": 168,
+              "fp": 65,
+              "fpr_pct": 38.69,
+              "ci_95": [
+                31.66,
+                46.23
+              ]
+            },
+            "advisories": {
+              "total": 5,
+              "fp": 3,
+              "fpr_pct": 60.0,
+              "ci_95": [
+                23.07,
+                88.24
+              ]
+            },
+            "buckets": {
+              "bn_beng": {
+                "scam_total": 127,
+                "tp": 117,
+                "fn": 10,
+                "recall_pct": 92.13,
+                "recall_ci": [
+                  86.11,
+                  95.67
+                ],
+                "ham_total": 173,
+                "fp": 5,
+                "tn": 168,
+                "fpr_pct": 2.89,
+                "fpr_ci": [
+                  1.24,
+                  6.59
+                ],
+                "conclusive": true
+              },
+              "en_latin": {
+                "scam_total": 164,
+                "tp": 154,
+                "fn": 10,
+                "recall_pct": 93.9,
+                "recall_ci": [
+                  89.14,
+                  96.65
+                ],
+                "ham_total": 1036,
+                "fp": 81,
+                "tn": 955,
+                "fpr_pct": 7.82,
+                "fpr_ci": [
+                  6.34,
+                  9.61
+                ],
+                "conclusive": true
+              },
+              "hi_deva": {
+                "scam_total": 26,
+                "tp": 22,
+                "fn": 4,
+                "recall_pct": 84.62,
+                "recall_ci": [
+                  66.47,
+                  93.85
+                ],
+                "ham_total": 374,
+                "fp": 2,
+                "tn": 372,
+                "fpr_pct": 0.53,
+                "fpr_ci": [
+                  0.15,
+                  1.93
+                ],
+                "conclusive": false
+              },
+              "hi_latn": {
+                "scam_total": 93,
+                "tp": 89,
+                "fn": 4,
+                "recall_pct": 95.7,
+                "recall_ci": [
+                  89.46,
+                  98.31
+                ],
+                "ham_total": 207,
+                "fp": 1,
+                "tn": 206,
+                "fpr_pct": 0.48,
+                "fpr_ci": [
+                  0.09,
+                  2.69
+                ],
+                "conclusive": false
+              }
+            }
+          }
+        },
+        "error_analysis_1pct_fpr": {
+          "total_fp": 17,
+          "total_fn": 169,
+          "fp_sources": {
+            "cloveai_india_spam": 14,
+            "i4c_rbi_advisories": 3
+          },
+          "fp_buckets": {
+            "en_latin": 14,
+            "bn_beng": 3
+          },
+          "fp_advisories": 3,
+          "fp_protected": 14,
+          "fn_sources": {
+            "scam_ham_india_14_languages": 93,
+            "scam_ham_india_anmol": 60,
+            "bolewara_hinglish": 15,
+            "scamshield_Kaggle_Hindi_Merged": 1
+          },
+          "fn_buckets": {
+            "en_latin": 91,
+            "hi_deva": 11,
+            "hi_latn": 19,
+            "bn_beng": 48
+          },
+          "sample_fps": [
+            {
+              "idx": 31,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9984,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX5217 for INR 9599 at 20706. Avl Bal INR Warrior."
+            },
+            {
+              "idx": 169,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9984,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX6036 for INR 7983 at 35000. Avl Bal INR Narula."
+            },
+            {
+              "idx": 239,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9986,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX9133 for INR 8183 at 35999. Avl Bal INR Warrior."
+            },
+            {
+              "idx": 250,
+              "source": "i4c_rbi_advisories",
+              "bucket": "bn_beng",
+              "prob": 0.9991,
+              "is_protected": false,
+              "is_advisory": true,
+              "text_snippet": "\u099c\u09a8\u09b8\u09cd\u09ac\u09be\u09b0\u09cd\u09a5\u09c7 \u09b8\u09a4\u09b0\u09cd\u0995\u09a4\u09be: \u09ac\u09bf\u09a6\u09cd\u09af\u09c1\u09ce \u09b8\u0982\u09af\u09cb\u0997 \u09ac\u09bf\u099a\u09cd\u099b\u09bf\u09a8\u09cd\u09a8 \u09b9\u0993\u09df\u09be\u09b0 \u09ad\u09c1\u09af\u09bc\u09cb \u098f\u09b8\u098f\u09ae\u098f\u09b8 \u09a5\u09c7\u0995\u09c7 \u09b8\u09be\u09ac\u09a7\u09be\u09a8 \u09a5\u09be\u0995\u09c1\u09a8\u0964 \u09ac\u09bf\u09a6\u09cd\u09af\u09c1\u09ce \u09ac\u09bf\u09ad\u09be\u0997 \u0995\u0996\u09a8\u09cb"
+            },
+            {
+              "idx": 311,
+              "source": "i4c_rbi_advisories",
+              "bucket": "bn_beng",
+              "prob": 0.9998,
+              "is_protected": false,
+              "is_advisory": true,
+              "text_snippet": "\u09ac\u09cd\u09af\u09be\u0982\u0995 \u09b8\u09a4\u09b0\u09cd\u0995\u09a4\u09be: \u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f \u09ac\u09cd\u09b2\u0995 \u09b9\u0993\u09af\u09bc\u09be\u09b0 \u09ad\u09c1\u09af\u09bc\u09cb \u09ae\u09c7\u09b8\u09c7\u099c\u09c7 \u0986\u09b8\u09be \u09b2\u09bf\u0982\u0995\u09c7 \u0995\u09cd\u09b2\u09bf\u0995 \u0995\u09b0\u09ac\u09c7\u09a8 \u09a8\u09be\u0964 \u09b8\u09b0\u09be\u09b8\u09b0\u09bf \u0986\u09aa\u09a8\u09be\u09b0 \u09b9\u09cb\u09ae \u09ac\u09cd\u09b0\u09be\u099e"
+            },
+            {
+              "idx": 343,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9987,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX8593 for INR 35756 at 78503. Avl Bal INR Kala."
+            },
+            {
+              "idx": 626,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9985,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX6736 for INR 4171 at 16000. Avl Bal INR Sathe."
+            },
+            {
+              "idx": 942,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9988,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX3402 for INR 45470 at 82936. Avl Bal INR Dhar."
+            },
+            {
+              "idx": 1205,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9984,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX6674 for INR 44764 at 60366. Avl Bal INR Kibe."
+            },
+            {
+              "idx": 1430,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9984,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX7687 for INR 44489 at 95140. Avl Bal INR Sridhar."
+            }
+          ],
+          "sample_fns": [
+            {
+              "idx": 9,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.9944,
+              "text_snippet": "ALERT: An amount of Rs.777 has been debited from your Bank of Baroda account. If not done by you, ca"
+            },
+            {
+              "idx": 13,
+              "source": "scam_ham_india_anmol",
+              "bucket": "en_latin",
+              "prob": 0.9953,
+              "text_snippet": "Your ICICI debit card is temporarily blocked. Call this number and share your card number and CVV to"
+            },
+            {
+              "idx": 21,
+              "source": "scam_ham_india_anmol",
+              "bucket": "en_latin",
+              "prob": 0.9983,
+              "text_snippet": "Your FREE access to Wynk Premium is ACTIVE. Enjoy Ad free music with unlimited downloads & unlimited"
+            },
+            {
+              "idx": 68,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.921,
+              "text_snippet": "Dear Priya, your child's school fee refund of Rs.777 is ready. Share your UPI PIN to receive the amo"
+            },
+            {
+              "idx": 71,
+              "source": "scam_ham_india_anmol",
+              "bucket": "en_latin",
+              "prob": 0.9813,
+              "text_snippet": "Congrats, Get Credit Limit up to Rs 4 lakh on American Express Membership Rewards(R) credit card. T&"
+            },
+            {
+              "idx": 72,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "hi_deva",
+              "prob": 0.199,
+              "text_snippet": "\u0928\u092e\u0938\u094d\u0924\u0947, \u092e\u0948\u0902 \u0906\u0908\u0921\u0940\u092c\u0940\u0906\u0908 \u092c\u0948\u0902\u0915 \u092c\u0948\u0902\u0915 \u0915\u0947 \u092b\u094d\u0930\u0949\u0921 \u092a\u094d\u0930\u093f\u0935\u0947\u0902\u0936\u0928 \u0935\u093f\u092d\u093e\u0917 \u0938\u0947 \u0915\u0930\u0923 \u092c\u094b\u0932 \u0930\u0939\u093e \u0939\u0942\u0902\u0964 \u0939\u092e\u0947\u0902 \u0905\u0938\u093e\u092e\u093e\u0928\u094d\u092f \u0917\u0924\u093f\u0935\u093f\u0927\u093f \u0926\u093f"
+            },
+            {
+              "idx": 74,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.6833,
+              "text_snippet": "Anjali, I am stuck in Dubai and lost my wallet. Please send Rs.499 urgently to this UPI ID: vikram90"
+            },
+            {
+              "idx": 98,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.9962,
+              "text_snippet": "Dear Rahul, this is regarding your recent Kotak Mahindra Bank loan application. To disburse Rs.2331,"
+            },
+            {
+              "idx": 133,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.9826,
+              "text_snippet": "Dear Divya, this is regarding your recent Yes Bank loan application. To disburse Rs.29997, kindly pa"
+            },
+            {
+              "idx": 142,
+              "source": "scam_ham_india_anmol",
+              "bucket": "en_latin",
+              "prob": 0.9976,
+              "text_snippet": "5 postpaid connections @ just Rs260/line! 300GB data, UL Calls, 3000SMS, Disney+ Hotstar Mobile, Ama"
+            }
+          ]
+        }
+      }
+    },
+    "google/muril-base-cased": {
+      "model_type": "bert",
+      "vocab_size": 197285,
+      "hidden_size": 768,
+      "num_hidden_layers": 12,
+      "num_attention_heads": 12,
+      "total_parameters": 237557762,
+      "license": "apache-2.0",
+      "license_url": "https://huggingface.co/google/muril-base-cased",
+      "tokenizer_unk_stats": {
+        "validation": {
+          "en_latin": {
+            "total_tokens": 28826,
+            "unk_tokens": 27,
+            "unk_rate_pct": 0.0937,
+            "total_messages": 1200,
+            "messages_with_unk": 21,
+            "messages_with_unk_pct": 1.75
+          },
+          "hi_deva": {
+            "total_tokens": 8734,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 400,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "hi_latn": {
+            "total_tokens": 8335,
+            "unk_tokens": 2,
+            "unk_rate_pct": 0.024,
+            "total_messages": 300,
+            "messages_with_unk": 2,
+            "messages_with_unk_pct": 0.67
+          },
+          "bn_beng": {
+            "total_tokens": 7564,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 300,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "overall": {
+            "total_tokens": 53459,
+            "unk_tokens": 29,
+            "unk_rate_pct": 0.0542,
+            "total_messages": 2200,
+            "messages_with_unk": 23,
+            "messages_with_unk_pct": 1.05
+          }
+        },
+        "train": {
+          "en_latin": {
+            "total_tokens": 234284,
+            "unk_tokens": 372,
+            "unk_rate_pct": 0.1588,
+            "total_messages": 9650,
+            "messages_with_unk": 207,
+            "messages_with_unk_pct": 2.15
+          },
+          "hi_latn": {
+            "total_tokens": 134253,
+            "unk_tokens": 83,
+            "unk_rate_pct": 0.0618,
+            "total_messages": 4998,
+            "messages_with_unk": 73,
+            "messages_with_unk_pct": 1.46
+          },
+          "hi_deva": {
+            "total_tokens": 80188,
+            "unk_tokens": 29,
+            "unk_rate_pct": 0.0362,
+            "total_messages": 3551,
+            "messages_with_unk": 24,
+            "messages_with_unk_pct": 0.68
+          },
+          "bn_beng": {
+            "total_tokens": 20085,
+            "unk_tokens": 60,
+            "unk_rate_pct": 0.2987,
+            "total_messages": 854,
+            "messages_with_unk": 20,
+            "messages_with_unk_pct": 2.34
+          },
+          "bn_latn": {
+            "total_tokens": 22714,
+            "unk_tokens": 46,
+            "unk_rate_pct": 0.2025,
+            "total_messages": 550,
+            "messages_with_unk": 20,
+            "messages_with_unk_pct": 3.64
+          },
+          "overall": {
+            "total_tokens": 491524,
+            "unk_tokens": 590,
+            "unk_rate_pct": 0.12,
+            "total_messages": 19603,
+            "messages_with_unk": 344,
+            "messages_with_unk_pct": 1.75
+          }
+        }
+      },
+      "validation_evaluation": {
+        "inference_time_sec": 5.02,
+        "total_evaluated": 2200,
+        "scam_count": 410,
+        "ham_count": 1790,
+        "brier_score": 0.0509,
+        "ece": 0.0537,
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "range": [
+              0.0,
+              0.1
+            ],
+            "count": 1639,
+            "confidence": 0.0026,
+            "accuracy": 0.0104
+          },
+          {
+            "bin": 1,
+            "range": [
+              0.1,
+              0.2
+            ],
+            "count": 13,
+            "confidence": 0.1417,
+            "accuracy": 0.0
+          },
+          {
+            "bin": 2,
+            "range": [
+              0.2,
+              0.3
+            ],
+            "count": 16,
+            "confidence": 0.2469,
+            "accuracy": 0.25
+          },
+          {
+            "bin": 3,
+            "range": [
+              0.3,
+              0.4
+            ],
+            "count": 14,
+            "confidence": 0.3423,
+            "accuracy": 0.0714
+          },
+          {
+            "bin": 4,
+            "range": [
+              0.4,
+              0.5
+            ],
+            "count": 14,
+            "confidence": 0.4544,
+            "accuracy": 0.1429
+          },
+          {
+            "bin": 5,
+            "range": [
+              0.5,
+              0.6
+            ],
+            "count": 15,
+            "confidence": 0.5452,
+            "accuracy": 0.0667
+          },
+          {
+            "bin": 6,
+            "range": [
+              0.6,
+              0.7
+            ],
+            "count": 15,
+            "confidence": 0.6588,
+            "accuracy": 0.0667
+          },
+          {
+            "bin": 7,
+            "range": [
+              0.7,
+              0.8
+            ],
+            "count": 19,
+            "confidence": 0.7449,
+            "accuracy": 0.0526
+          },
+          {
+            "bin": 8,
+            "range": [
+              0.8,
+              0.9
+            ],
+            "count": 19,
+            "confidence": 0.8641,
+            "accuracy": 0.5263
+          },
+          {
+            "bin": 9,
+            "range": [
+              0.9,
+              1.0
+            ],
+            "count": 436,
+            "confidence": 0.9925,
+            "accuracy": 0.8555
+          }
+        ],
+        "operating_points": {
+          "fpr_0.5pct": {
+            "target_fpr": 0.005,
+            "threshold": 0.997445,
+            "tp": 254,
+            "fn": 156,
+            "fp": 8,
+            "tn": 1782,
+            "recall_pct": 61.95,
+            "recall_ci_95": [
+              57.16,
+              66.52
+            ],
+            "fpr_pct": 0.45,
+            "fpr_ci_95": [
+              0.23,
+              0.88
+            ],
+            "protected_traffic": {
+              "total": 168,
+              "fp": 7,
+              "fpr_pct": 4.17,
+              "ci_95": [
+                2.03,
+                8.35
+              ]
+            },
+            "advisories": {
+              "total": 5,
+              "fp": 0,
+              "fpr_pct": 0.0,
+              "ci_95": [
+                0.0,
+                43.45
+              ]
+            },
+            "buckets": {
+              "bn_beng": {
+                "scam_total": 127,
+                "tp": 73,
+                "fn": 54,
+                "recall_pct": 57.48,
+                "recall_ci": [
+                  48.79,
+                  65.73
+                ],
+                "ham_total": 173,
+                "fp": 0,
+                "tn": 173,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  2.17
+                ],
+                "conclusive": true
+              },
+              "en_latin": {
+                "scam_total": 164,
+                "tp": 92,
+                "fn": 72,
+                "recall_pct": 56.1,
+                "recall_ci": [
+                  48.45,
+                  63.47
+                ],
+                "ham_total": 1036,
+                "fp": 8,
+                "tn": 1028,
+                "fpr_pct": 0.77,
+                "fpr_ci": [
+                  0.39,
+                  1.52
+                ],
+                "conclusive": true
+              },
+              "hi_deva": {
+                "scam_total": 26,
+                "tp": 16,
+                "fn": 10,
+                "recall_pct": 61.54,
+                "recall_ci": [
+                  42.53,
+                  77.57
+                ],
+                "ham_total": 374,
+                "fp": 0,
+                "tn": 374,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.02
+                ],
+                "conclusive": false
+              },
+              "hi_latn": {
+                "scam_total": 93,
+                "tp": 73,
+                "fn": 20,
+                "recall_pct": 78.49,
+                "recall_ci": [
+                  69.1,
+                  85.62
+                ],
+                "ham_total": 207,
+                "fp": 0,
+                "tn": 207,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.82
+                ],
+                "conclusive": false
+              }
+            }
+          },
+          "fpr_1.0pct": {
+            "target_fpr": 0.01,
+            "threshold": 0.995373,
+            "tp": 295,
+            "fn": 115,
+            "fp": 17,
+            "tn": 1773,
+            "recall_pct": 71.95,
+            "recall_ci_95": [
+              67.41,
+              76.08
+            ],
+            "fpr_pct": 0.95,
+            "fpr_ci_95": [
+              0.59,
+              1.52
+            ],
+            "protected_traffic": {
+              "total": 168,
+              "fp": 13,
+              "fpr_pct": 7.74,
+              "ci_95": [
+                4.58,
+                12.79
+              ]
+            },
+            "advisories": {
+              "total": 5,
+              "fp": 0,
+              "fpr_pct": 0.0,
+              "ci_95": [
+                0.0,
+                43.45
+              ]
+            },
+            "buckets": {
+              "bn_beng": {
+                "scam_total": 127,
+                "tp": 91,
+                "fn": 36,
+                "recall_pct": 71.65,
+                "recall_ci": [
+                  63.27,
+                  78.77
+                ],
+                "ham_total": 173,
+                "fp": 0,
+                "tn": 173,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  2.17
+                ],
+                "conclusive": true
+              },
+              "en_latin": {
+                "scam_total": 164,
+                "tp": 103,
+                "fn": 61,
+                "recall_pct": 62.8,
+                "recall_ci": [
+                  55.19,
+                  69.83
+                ],
+                "ham_total": 1036,
+                "fp": 16,
+                "tn": 1020,
+                "fpr_pct": 1.54,
+                "fpr_ci": [
+                  0.95,
+                  2.49
+                ],
+                "conclusive": true
+              },
+              "hi_deva": {
+                "scam_total": 26,
+                "tp": 20,
+                "fn": 6,
+                "recall_pct": 76.92,
+                "recall_ci": [
+                  57.95,
+                  88.97
+                ],
+                "ham_total": 374,
+                "fp": 1,
+                "tn": 373,
+                "fpr_pct": 0.27,
+                "fpr_ci": [
+                  0.05,
+                  1.5
+                ],
+                "conclusive": false
+              },
+              "hi_latn": {
+                "scam_total": 93,
+                "tp": 81,
+                "fn": 12,
+                "recall_pct": 87.1,
+                "recall_ci": [
+                  78.79,
+                  92.46
+                ],
+                "ham_total": 207,
+                "fp": 0,
+                "tn": 207,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.82
+                ],
+                "conclusive": false
+              }
+            }
+          },
+          "fpr_2.0pct": {
+            "target_fpr": 0.02,
+            "threshold": 0.985615,
+            "tp": 344,
+            "fn": 66,
+            "fp": 35,
+            "tn": 1755,
+            "recall_pct": 83.9,
+            "recall_ci_95": [
+              80.03,
+              87.14
+            ],
+            "fpr_pct": 1.96,
+            "fpr_ci_95": [
+              1.41,
+              2.71
+            ],
+            "protected_traffic": {
+              "total": 168,
+              "fp": 28,
+              "fpr_pct": 16.67,
+              "ci_95": [
+                11.79,
+                23.03
+              ]
+            },
+            "advisories": {
+              "total": 5,
+              "fp": 0,
+              "fpr_pct": 0.0,
+              "ci_95": [
+                0.0,
+                43.45
+              ]
+            },
+            "buckets": {
+              "bn_beng": {
+                "scam_total": 127,
+                "tp": 107,
+                "fn": 20,
+                "recall_pct": 84.25,
+                "recall_ci": [
+                  76.92,
+                  89.57
+                ],
+                "ham_total": 173,
+                "fp": 0,
+                "tn": 173,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  2.17
+                ],
+                "conclusive": true
+              },
+              "en_latin": {
+                "scam_total": 164,
+                "tp": 129,
+                "fn": 35,
+                "recall_pct": 78.66,
+                "recall_ci": [
+                  71.77,
+                  84.24
+                ],
+                "ham_total": 1036,
+                "fp": 34,
+                "tn": 1002,
+                "fpr_pct": 3.28,
+                "fpr_ci": [
+                  2.36,
+                  4.55
+                ],
+                "conclusive": true
+              },
+              "hi_deva": {
+                "scam_total": 26,
+                "tp": 23,
+                "fn": 3,
+                "recall_pct": 88.46,
+                "recall_ci": [
+                  71.02,
+                  96.0
+                ],
+                "ham_total": 374,
+                "fp": 1,
+                "tn": 373,
+                "fpr_pct": 0.27,
+                "fpr_ci": [
+                  0.05,
+                  1.5
+                ],
+                "conclusive": false
+              },
+              "hi_latn": {
+                "scam_total": 93,
+                "tp": 85,
+                "fn": 8,
+                "recall_pct": 91.4,
+                "recall_ci": [
+                  83.93,
+                  95.58
+                ],
+                "ham_total": 207,
+                "fp": 0,
+                "tn": 207,
+                "fpr_pct": 0.0,
+                "fpr_ci": [
+                  0.0,
+                  1.82
+                ],
+                "conclusive": false
+              }
+            }
+          },
+          "fpr_5.0pct": {
+            "target_fpr": 0.05,
+            "threshold": 0.712994,
+            "tp": 384,
+            "fn": 26,
+            "fp": 89,
+            "tn": 1701,
+            "recall_pct": 93.66,
+            "recall_ci_95": [
+              90.87,
+              95.64
+            ],
+            "fpr_pct": 4.97,
+            "fpr_ci_95": [
+              4.06,
+              6.08
+            ],
+            "protected_traffic": {
+              "total": 168,
+              "fp": 40,
+              "fpr_pct": 23.81,
+              "ci_95": [
+                18.0,
+                30.79
+              ]
+            },
+            "advisories": {
+              "total": 5,
+              "fp": 1,
+              "fpr_pct": 20.0,
+              "ci_95": [
+                3.62,
+                62.45
+              ]
+            },
+            "buckets": {
+              "bn_beng": {
+                "scam_total": 127,
+                "tp": 113,
+                "fn": 14,
+                "recall_pct": 88.98,
+                "recall_ci": [
+                  82.35,
+                  93.32
+                ],
+                "ham_total": 173,
+                "fp": 1,
+                "tn": 172,
+                "fpr_pct": 0.58,
+                "fpr_ci": [
+                  0.1,
+                  3.2
+                ],
+                "conclusive": true
+              },
+              "en_latin": {
+                "scam_total": 164,
+                "tp": 158,
+                "fn": 6,
+                "recall_pct": 96.34,
+                "recall_ci": [
+                  92.25,
+                  98.31
+                ],
+                "ham_total": 1036,
+                "fp": 84,
+                "tn": 952,
+                "fpr_pct": 8.11,
+                "fpr_ci": [
+                  6.6,
+                  9.93
+                ],
+                "conclusive": true
+              },
+              "hi_deva": {
+                "scam_total": 26,
+                "tp": 24,
+                "fn": 2,
+                "recall_pct": 92.31,
+                "recall_ci": [
+                  75.86,
+                  97.86
+                ],
+                "ham_total": 374,
+                "fp": 3,
+                "tn": 371,
+                "fpr_pct": 0.8,
+                "fpr_ci": [
+                  0.27,
+                  2.33
+                ],
+                "conclusive": false
+              },
+              "hi_latn": {
+                "scam_total": 93,
+                "tp": 89,
+                "fn": 4,
+                "recall_pct": 95.7,
+                "recall_ci": [
+                  89.46,
+                  98.31
+                ],
+                "ham_total": 207,
+                "fp": 1,
+                "tn": 206,
+                "fpr_pct": 0.48,
+                "fpr_ci": [
+                  0.09,
+                  2.69
+                ],
+                "conclusive": false
+              }
+            }
+          }
+        },
+        "error_analysis_1pct_fpr": {
+          "total_fp": 17,
+          "total_fn": 115,
+          "fp_sources": {
+            "cloveai_india_spam": 14,
+            "scam_ham_india_14_languages": 3
+          },
+          "fp_buckets": {
+            "en_latin": 16,
+            "hi_deva": 1
+          },
+          "fp_advisories": 0,
+          "fp_protected": 13,
+          "fn_sources": {
+            "scam_ham_india_anmol": 43,
+            "scam_ham_india_14_languages": 58,
+            "bolewara_hinglish": 11,
+            "scamshield_Kaggle_Hindi_Merged": 3
+          },
+          "fn_buckets": {
+            "en_latin": 61,
+            "hi_deva": 6,
+            "hi_latn": 12,
+            "bn_beng": 36
+          },
+          "sample_fps": [
+            {
+              "idx": 19,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9963,
+              "is_protected": false,
+              "is_advisory": false,
+              "text_snippet": "Swiggy: Order from 318403 delivered. Enjoy your meal! Bill amount: INR Magar-Kant"
+            },
+            {
+              "idx": 31,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9961,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX5217 for INR 9599 at 20706. Avl Bal INR Warrior."
+            },
+            {
+              "idx": 145,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.997,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX9675 for INR 3485 at 43709. Avl Bal INR Kar."
+            },
+            {
+              "idx": 192,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9985,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX6247 for INR 48426 at 18882. Avl Bal INR Wagle."
+            },
+            {
+              "idx": 239,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9965,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX9133 for INR 8183 at 35999. Avl Bal INR Warrior."
+            },
+            {
+              "idx": 343,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9975,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX8593 for INR 35756 at 78503. Avl Bal INR Kala."
+            },
+            {
+              "idx": 551,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.998,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX9523 for INR 34511 at 5577. Avl Bal INR Kara."
+            },
+            {
+              "idx": 883,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.9974,
+              "is_protected": false,
+              "is_advisory": false,
+              "text_snippet": "Your Amazon Pay payment of Rs.15000 to Rohan was successful. Txn ID 676355059385."
+            },
+            {
+              "idx": 1205,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.9954,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX6674 for INR 44764 at 60366. Avl Bal INR Kibe."
+            },
+            {
+              "idx": 1211,
+              "source": "cloveai_india_spam",
+              "bucket": "en_latin",
+              "prob": 0.998,
+              "is_protected": true,
+              "is_advisory": false,
+              "text_snippet": "Thank you for using your ICICI Bank Debit Card XX3672 for INR 40409 at 39710. Avl Bal INR Chacko."
+            }
+          ],
+          "sample_fns": [
+            {
+              "idx": 21,
+              "source": "scam_ham_india_anmol",
+              "bucket": "en_latin",
+              "prob": 0.9847,
+              "text_snippet": "Your FREE access to Wynk Premium is ACTIVE. Enjoy Ad free music with unlimited downloads & unlimited"
+            },
+            {
+              "idx": 72,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "hi_deva",
+              "prob": 0.0759,
+              "text_snippet": "\u0928\u092e\u0938\u094d\u0924\u0947, \u092e\u0948\u0902 \u0906\u0908\u0921\u0940\u092c\u0940\u0906\u0908 \u092c\u0948\u0902\u0915 \u092c\u0948\u0902\u0915 \u0915\u0947 \u092b\u094d\u0930\u0949\u0921 \u092a\u094d\u0930\u093f\u0935\u0947\u0902\u0936\u0928 \u0935\u093f\u092d\u093e\u0917 \u0938\u0947 \u0915\u0930\u0923 \u092c\u094b\u0932 \u0930\u0939\u093e \u0939\u0942\u0902\u0964 \u0939\u092e\u0947\u0902 \u0905\u0938\u093e\u092e\u093e\u0928\u094d\u092f \u0917\u0924\u093f\u0935\u093f\u0927\u093f \u0926\u093f"
+            },
+            {
+              "idx": 98,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.99,
+              "text_snippet": "Dear Rahul, this is regarding your recent Kotak Mahindra Bank loan application. To disburse Rs.2331,"
+            },
+            {
+              "idx": 129,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.9901,
+              "text_snippet": "Dear Customer, your Kotak Mahindra Bank A/C will be BLOCKED today. Update your KYC immediately by cl"
+            },
+            {
+              "idx": 133,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.9943,
+              "text_snippet": "Dear Divya, this is regarding your recent Yes Bank loan application. To disburse Rs.29997, kindly pa"
+            },
+            {
+              "idx": 142,
+              "source": "scam_ham_india_anmol",
+              "bucket": "en_latin",
+              "prob": 0.9948,
+              "text_snippet": "5 postpaid connections @ just Rs260/line! 300GB data, UL Calls, 3000SMS, Disney+ Hotstar Mobile, Ama"
+            },
+            {
+              "idx": 143,
+              "source": "bolewara_hinglish",
+              "bucket": "hi_latn",
+              "prob": 0.0024,
+              "text_snippet": "Money i have won wining number 946 wot do i do next"
+            },
+            {
+              "idx": 157,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.9857,
+              "text_snippet": "Rohan, I am stuck in London and lost my wallet. Please send Rs.25000 urgently to this UPI ID: sneha3"
+            },
+            {
+              "idx": 207,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "bn_beng",
+              "prob": 0.9676,
+              "text_snippet": "Indane: \u09b8\u09be\u09ac\u09b8\u09bf\u09a1\u09bf \u0995\u09cd\u09b2\u09c7\u0987\u09ae \u0995\u09b0\u09a4\u09c7 \u09ac\u09cd\u09af\u09be\u0999\u09cd\u0995 \u09a1\u09bf\u099f\u09c7\u0987\u09b2\u09b8 \u09ad\u09c7\u09b0\u09bf\u09ab\u09be\u0987 \u0995\u09b0\u09c1\u09a8 hdfc-verify-87.live/235\u0964 \u0986\u099c\u0987 \u09b6\u09c7\u09b7 \u09a4\u09be\u09b0\u09bf\u0996 \u09a8\u09be\u09b9\u09b2"
+            },
+            {
+              "idx": 211,
+              "source": "scam_ham_india_14_languages",
+              "bucket": "en_latin",
+              "prob": 0.6873,
+              "text_snippet": "Dear user, your IDBI Bank net banking has been disabled due to suspicious login. Click http://shortu"
+            }
+          ]
+        }
+      }
+    },
+    "xlm-roberta-base": {
+      "model_type": "xlm-roberta",
+      "vocab_size": 250002,
+      "hidden_size": 768,
+      "num_hidden_layers": 12,
+      "num_attention_heads": 12,
+      "total_parameters": 278043648,
+      "license": "mit",
+      "license_url": "https://huggingface.co/xlm-roberta-base",
+      "tokenizer_unk_stats": {
+        "validation": {
+          "en_latin": {
+            "total_tokens": 30669,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 1200,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "hi_deva": {
+            "total_tokens": 9036,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 400,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "hi_latn": {
+            "total_tokens": 8363,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 300,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "bn_beng": {
+            "total_tokens": 9499,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 300,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "overall": {
+            "total_tokens": 57567,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 2200,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          }
+        },
+        "train": {
+          "en_latin": {
+            "total_tokens": 247641,
+            "unk_tokens": 6,
+            "unk_rate_pct": 0.0024,
+            "total_messages": 9650,
+            "messages_with_unk": 5,
+            "messages_with_unk_pct": 0.05
+          },
+          "hi_latn": {
+            "total_tokens": 135470,
+            "unk_tokens": 4,
+            "unk_rate_pct": 0.003,
+            "total_messages": 4998,
+            "messages_with_unk": 4,
+            "messages_with_unk_pct": 0.08
+          },
+          "hi_deva": {
+            "total_tokens": 83657,
+            "unk_tokens": 0,
+            "unk_rate_pct": 0.0,
+            "total_messages": 3551,
+            "messages_with_unk": 0,
+            "messages_with_unk_pct": 0.0
+          },
+          "bn_beng": {
+            "total_tokens": 24249,
+            "unk_tokens": 7,
+            "unk_rate_pct": 0.0289,
+            "total_messages": 854,
+            "messages_with_unk": 5,
+            "messages_with_unk_pct": 0.59
+          },
+          "bn_latn": {
+            "total_tokens": 21540,
+            "unk_tokens": 8,
+            "unk_rate_pct": 0.0371,
+            "total_messages": 550,
+            "messages_with_unk": 7,
+            "messages_with_unk_pct": 1.27
+          },
+          "overall": {
+            "total_tokens": 512557,
+            "unk_tokens": 25,
+            "unk_rate_pct": 0.0049,
+            "total_messages": 19603,
+            "messages_with_unk": 21,
+            "messages_with_unk_pct": 0.11
+          }
+        }
+      }
+    }
+  }
+}

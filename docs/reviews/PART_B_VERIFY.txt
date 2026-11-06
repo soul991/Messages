@@ -1,0 +1,27 @@
+============================================================
+PART B VERIFICATION OUTPUT: PR #28 EVIDENCE FIX
+============================================================
+
+scripts/verify_round.sh Output:
+------------------------------------------------------------
+commit: 0450c15  branch: feat/ui-motion-round3
+------------------------------------------------------------
+PASS  1  no synthetic/test-data/reaction code in app/src/main
+PASS  2  no seeding hooks in app/src/main
+PASS  3  every exported debug/benchmark receiver has android:permission
+PASS  4  SeedDataReceiver requires confirm=WIPE_ALL_DATA
+PASS  5a benchmark build has applicationIdSuffix
+PASS  5b benchmark does not compile src/debug/kotlin
+PASS  6  no hardcoded Color(0x...) in screens
+PASS  7  no gradients/blur outside Vault + chat wallpaper
+PASS  8  no literal strings in Text()
+PASS  9  corner radii within {4,8,12,20,24,28,32}
+PASS  10 baseline-prof.txt has no wildcard rules (10158 lines)
+PASS  11 all perf JSON files are genuine androidx benchmark output (1)
+PASS  12 docs/reviews/perf/device.txt exists
+PASS  13 every ms value in PERF_REPORT.md is present in a genuine JSON file
+PASS  14 no self-praise wording in docs/reviews or docs/releases
+PASS  15 working tree clean
+------------------------------------------------------------
+FAIL: 0   WARN: 0
+============================================================

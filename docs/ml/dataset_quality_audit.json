@@ -1,0 +1,97 @@
+{
+  "scam_ham_india_14_languages": {
+    "total_rows": 14000,
+    "exact_duplicates": 1111,
+    "normalized_duplicates": 8539,
+    "script_distribution": {
+      "devanagari": 4000,
+      "latin": 4762,
+      "other": 3238,
+      "bengali": 2000
+    },
+    "class_distribution": {
+      "scam": 7000,
+      "ham": 7000
+    }
+  },
+  "synthetic_audited": {
+    "total_rows": 1580,
+    "exact_duplicates": 0,
+    "normalized_duplicates": 0,
+    "script_distribution": {
+      "latin": 1404,
+      "devanagari": 171,
+      "bengali": 5
+    },
+    "class_distribution": {
+      "safe": 783,
+      "scam": 797
+    }
+  },
+  "scam_ham_india_anmol": {
+    "total_rows": 2271,
+    "exact_duplicates": 0,
+    "normalized_duplicates": 97,
+    "script_distribution": {
+      "latin": 2245,
+      "other": 26
+    },
+    "class_distribution": {
+      "spam": 895,
+      "ham": 1377
+    }
+  },
+  "junioralive_india_spam": {
+    "total_rows": 2266,
+    "exact_duplicates": 204,
+    "normalized_duplicates": 279,
+    "script_distribution": {
+      "latin": 2215,
+      "other": 51
+    },
+    "class_distribution": {
+      "spam": 745,
+      "ham": 1522
+    }
+  },
+  "cloveai_india_spam": {
+    "total_rows": 20010,
+    "exact_duplicates": 780,
+    "normalized_duplicates": 14962,
+    "script_distribution": {
+      "latin": 20010
+    },
+    "class_distribution": {
+      "0": 14059,
+      "1": 5951
+    }
+  },
+  "bengali_smishing_train": {
+    "total_rows": 4903,
+    "exact_duplicates": 0,
+    "normalized_duplicates": 169,
+    "script_distribution": {
+      "bengali": 2406,
+      "latin": 2486,
+      "devanagari": 11
+    },
+    "class_distribution": {
+      "smish": 1966,
+      "normal": 1742,
+      "promo": 1195
+    }
+  },
+  "frozen_challenge": {
+    "total_rows": 159,
+    "exact_duplicates": 0,
+    "normalized_duplicates": 0,
+    "script_distribution": {
+      "latin": 96,
+      "devanagari": 63
+    },
+    "class_distribution": {
+      "scam": 69,
+      "safe": 90
+    }
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "cycle": 6,
+  "hypothesis": "Multi-script L2-regularized logistic regression over subword character n-grams and domain-specific actionable vector features, combined with multilingual Indic protected-traffic and advisory pre-filters and script-tailored vector-aware decision thresholds, will significantly suppress false positives compared to Naive Bayes while maintaining overall scam recall >= 80%, per-language recall >= 75%, and strictly 0.00% protected traffic FPR.",
+  "candidate_sha256": "cb20938fc8d0f3cf28a7590f50a5a9311d41317382b0e8a597378ef4d81dfd7a",
+  "dataset_manifest_sha256": "76c8aedd77853cf606c3a4998847a4613e5c1e41f80b812033f4f65fa2d3e2f0",
+  "seeds": [
+    20261020,
+    20261021,
+    20261022
+  ],
+  "dev_metrics": {
+    "n": 559,
+    "scam_n": 269,
+    "ham_n": 290,
+    "tp": 218,
+    "fp": 88,
+    "fn": 51,
+    "tn": 202,
+    "recall": 0.8104,
+    "recall_ci95": [
+      0.7593,
+      0.8528
+    ],
+    "fpr": 0.3034,
+    "fpr_ci95": [
+      0.2534,
+      0.3586
+    ],
+    "precision": 0.7124,
+    "f1": 0.7583,
+    "brier": 0.1629,
+    "ece": 0.0905,
+    "inconclusive": false
+  },
+  "per_language": {
+    "latin": {
+      "n": 296,
+      "scam_n": 148,
+      "ham_n": 148,
+      "tp": 121,
+      "fp": 40,
+      "fn": 27,
+      "tn": 108,
+      "recall": 0.8176,
+      "recall_ci95": [
+        0.7476,
+        0.8715
+      ],
+      "fpr": 0.2703,
+      "fpr_ci95": [
+        0.2052,
+        0.347
+      ],
+      "precision": 0.7516,
+      "f1": 0.7832,
+      "brier": 0.1661,
+      "ece": 0.078,
+      "inconclusive": false
+    },
+    "devanagari": {
+      "n": 163,
+      "scam_n": 71,
+      "ham_n": 92,
+      "tp": 56,
+      "fp": 38,
+      "fn": 15,
+      "tn": 54,
+      "recall": 0.7887,
+      "recall_ci95": [
+        0.6803,
+        0.8676
+      ],
+      "fpr": 0.413,
+      "fpr_ci95": [
+        0.3179,
+        0.5152
+      ],
+      "precision": 0.5957,
+      "f1": 0.6788,
+      "brier": 0.1566,
+      "ece": 0.114,
+      "inconclusive": false
+    },
+    "bengali": {
+      "n": 100,
+      "scam_n": 50,
+      "ham_n": 50,
+      "tp": 41,
+      "fp": 10,
+      "fn": 9,
+      "tn": 40,
+      "recall": 0.82,
+      "recall_ci95": [
+        0.692,
+        0.9023
+      ],
+      "fpr": 0.2,
+      "fpr_ci95": [
+        0.1124,
+        0.3304
+      ],
+      "precision": 0.8039,
+      "f1": 0.8119,
+      "brier": 0.1636,
+      "ece": 0.2083,
+      "inconclusive": false
+    }
+  },
+  "protected_fpr": 0.0,
+  "decision": "keep",
+  "notes": "Cycle 06: Overall dev FPR dropped to 30.34% with recall 81.04%. Protected FPR is 0.00%. Brier is 0.1629, ECE is 0.0905. Latency P95 is 0.785 ms."
+}

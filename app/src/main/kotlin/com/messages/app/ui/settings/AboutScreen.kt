@@ -1,5 +1,15 @@
 package com.messages.app.ui.settings
 
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
+
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -82,9 +92,194 @@ private const val REPO_URL = "https://github.com/soul991/Messages"
 private const val RELEASES_URL = "https://github.com/soul991/Messages/releases"
 private const val COMMITS_URL = "https://github.com/soul991/Messages/commits/main"
 
-private enum class LegalDoc(val titleRes: Int, val bodyRes: Int) {
-    PRIVACY(R.string.about_privacy_policy, R.string.about_privacy_policy_body),
-    TERMS(R.string.about_terms, R.string.about_terms_body),
+data class LegalSection(
+    val titleRes: Int,
+    val bullets: List<Int>,
+)
+
+data class LegalDocumentModel(
+    val lastUpdatedRes: Int,
+    val summaryTitleRes: Int,
+    val summaryBullets: List<Int>,
+    val sections: List<LegalSection>,
+)
+
+private enum class LegalDoc(val titleRes: Int, val model: LegalDocumentModel) {
+    PRIVACY(
+        titleRes = R.string.about_privacy_policy,
+        model = LegalDocumentModel(
+            lastUpdatedRes = R.string.privacy_last_updated,
+            summaryTitleRes = R.string.privacy_summary_box_title,
+            summaryBullets = listOf(
+                R.string.privacy_summary_bullet_1,
+                R.string.privacy_summary_bullet_2,
+                R.string.privacy_summary_bullet_3,
+            ),
+            sections = listOf(
+                LegalSection(
+                    titleRes = R.string.privacy_sec_1_title,
+                    bullets = listOf(
+                        R.string.privacy_sec_1_bullet_1,
+                        R.string.privacy_sec_1_bullet_2,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.privacy_sec_2_title,
+                    bullets = listOf(
+                        R.string.privacy_sec_2_bullet_1,
+                        R.string.privacy_sec_2_bullet_2,
+                        R.string.privacy_sec_2_bullet_3,
+                        R.string.privacy_sec_2_bullet_4,
+                        R.string.privacy_sec_2_bullet_5,
+                        R.string.privacy_sec_2_bullet_6,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.privacy_sec_3_title,
+                    bullets = listOf(
+                        R.string.privacy_sec_3_bullet_1,
+                        R.string.privacy_sec_3_bullet_2,
+                        R.string.privacy_sec_3_bullet_3,
+                        R.string.privacy_sec_3_bullet_4,
+                        R.string.privacy_sec_3_bullet_5,
+                        R.string.privacy_sec_3_bullet_6,
+                        R.string.privacy_sec_3_bullet_7,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.privacy_sec_4_title,
+                    bullets = listOf(
+                        R.string.privacy_sec_4_bullet_1,
+                        R.string.privacy_sec_4_bullet_2,
+                        R.string.privacy_sec_4_bullet_3,
+                        R.string.privacy_sec_4_bullet_4,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.privacy_sec_5_title,
+                    bullets = listOf(
+                        R.string.privacy_sec_5_bullet_1,
+                        R.string.privacy_sec_5_bullet_2,
+                        R.string.privacy_sec_5_bullet_3,
+                        R.string.privacy_sec_5_bullet_4,
+                        R.string.privacy_sec_5_bullet_5,
+                        R.string.privacy_sec_5_bullet_6,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.privacy_sec_6_title,
+                    bullets = listOf(
+                        R.string.privacy_sec_6_bullet_1,
+                        R.string.privacy_sec_6_bullet_2,
+                        R.string.privacy_sec_6_bullet_3,
+                        R.string.privacy_sec_6_bullet_4,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.privacy_sec_7_title,
+                    bullets = listOf(
+                        R.string.privacy_sec_7_bullet_1,
+                        R.string.privacy_sec_7_bullet_2,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.privacy_sec_8_title,
+                    bullets = listOf(
+                        R.string.privacy_sec_8_bullet_1,
+                        R.string.privacy_sec_8_bullet_2,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.privacy_sec_9_title,
+                    bullets = listOf(
+                        R.string.privacy_sec_9_bullet_1,
+                        R.string.privacy_sec_9_bullet_2,
+                    ),
+                ),
+            ),
+        ),
+    ),
+    TERMS(
+        titleRes = R.string.about_terms,
+        model = LegalDocumentModel(
+            lastUpdatedRes = R.string.terms_last_updated,
+            summaryTitleRes = R.string.terms_summary_box_title,
+            summaryBullets = listOf(
+                R.string.terms_summary_bullet_1,
+                R.string.terms_summary_bullet_2,
+                R.string.terms_summary_bullet_3,
+            ),
+            sections = listOf(
+                LegalSection(
+                    titleRes = R.string.terms_sec_1_title,
+                    bullets = listOf(
+                        R.string.terms_sec_1_bullet_1,
+                        R.string.terms_sec_1_bullet_2,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.terms_sec_2_title,
+                    bullets = listOf(
+                        R.string.terms_sec_2_bullet_1,
+                        R.string.terms_sec_2_bullet_2,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.terms_sec_3_title,
+                    bullets = listOf(
+                        R.string.terms_sec_3_bullet_1,
+                        R.string.terms_sec_3_bullet_2,
+                        R.string.terms_sec_3_bullet_3,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.terms_sec_4_title,
+                    bullets = listOf(
+                        R.string.terms_sec_4_bullet_1,
+                        R.string.terms_sec_4_bullet_2,
+                        R.string.terms_sec_4_bullet_3,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.terms_sec_5_title,
+                    bullets = listOf(
+                        R.string.terms_sec_5_bullet_1,
+                        R.string.terms_sec_5_bullet_2,
+                        R.string.terms_sec_5_bullet_3,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.terms_sec_6_title,
+                    bullets = listOf(
+                        R.string.terms_sec_6_bullet_1,
+                        R.string.terms_sec_6_bullet_2,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.terms_sec_7_title,
+                    bullets = listOf(
+                        R.string.terms_sec_7_bullet_1,
+                        R.string.terms_sec_7_bullet_2,
+                        R.string.terms_sec_7_bullet_3,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.terms_sec_8_title,
+                    bullets = listOf(
+                        R.string.terms_sec_8_bullet_1,
+                        R.string.terms_sec_8_bullet_2,
+                    ),
+                ),
+                LegalSection(
+                    titleRes = R.string.terms_sec_9_title,
+                    bullets = listOf(
+                        R.string.terms_sec_9_bullet_1,
+                        R.string.terms_sec_9_bullet_2,
+                    ),
+                ),
+            ),
+        ),
+    ),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -534,10 +729,17 @@ private fun AboutGlassRow(
     }
 }
 
-/** Full-screen scrollable reader for one legal document. */
+/** Full-screen scrollable reader for one legal document with structured sections. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LegalDocumentScreen(doc: LegalDoc, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val openUrl: (String) -> Unit = { url ->
+        runCatching {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -553,14 +755,131 @@ private fun LegalDocumentScreen(doc: LegalDoc, onBack: () -> Unit) {
             )
         },
     ) { padding ->
-        Text(
-            stringResource(doc.bodyRes),
-            style = MaterialTheme.typography.bodyMedium,
+        Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp),
+        ) {
+            Text(
+                text = stringResource(doc.model.lastUpdatedRes),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = stringResource(doc.model.summaryTitleRes),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    doc.model.summaryBullets.forEach { bulletRes ->
+                        LegalBulletRow(bulletRes = bulletRes, onOpenUrl = openUrl)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            doc.model.sections.forEach { section ->
+                Text(
+                    text = stringResource(section.titleRes),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .padding(top = 16.dp, bottom = 8.dp)
+                        .semantics { heading() },
+                )
+                section.bullets.forEach { bulletRes ->
+                    LegalBulletRow(bulletRes = bulletRes, onOpenUrl = openUrl)
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun LegalBulletRow(
+    bulletRes: Int,
+    onOpenUrl: (String) -> Unit,
+) {
+    val fullText = stringResource(bulletRes)
+    val urlRegex = Regex("""https://[^\s<>"')\]]+""")
+    val urlMatch = urlRegex.find(fullText)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            text = stringResource(R.string.legal_bullet_dot),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(end = 8.dp),
         )
+        if (urlMatch != null) {
+            val url = urlMatch.value.trimEnd('.', ',', ';')
+            val annotated = buildAnnotatedString {
+                val start = urlMatch.range.first
+                val end = urlMatch.range.last + 1
+                append(fullText.substring(0, start))
+                pushStringAnnotation(tag = "URL", annotation = url)
+                withStyle(
+                    SpanStyle(
+                        color = MaterialTheme.colorScheme.primary,
+                        textDecoration = TextDecoration.Underline,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                ) {
+                    append(url)
+                }
+                pop()
+                if (end < fullText.length) {
+                    append(fullText.substring(end))
+                }
+            }
+            ClickableText(
+                text = annotated,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+                onClick = { offset ->
+                    annotated.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                        .firstOrNull()?.let { annotation ->
+                            onOpenUrl(annotation.item)
+                        }
+                },
+                modifier = Modifier.weight(1f),
+            )
+        } else {
+            Text(
+                text = fullText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }

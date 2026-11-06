@@ -16,6 +16,9 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -38,8 +41,17 @@ import com.messages.app.ui.common.LocalNavAnimatedVisibilityScope
 import com.messages.app.ui.common.LocalSharedTransitionScope
 import com.messages.app.ui.common.fadeThroughEnter
 import com.messages.app.ui.common.fadeThroughExit
+import com.messages.app.ui.common.homeExitForChat
+import com.messages.app.ui.common.homePopEnterFromChat
+import com.messages.app.ui.common.screenBehindExitForSubMenu
+import com.messages.app.ui.common.screenBehindPopEnterFromSubMenu
 import com.messages.app.ui.common.sharedAxisEnter
 import com.messages.app.ui.common.sharedAxisExit
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import com.messages.designsystem.Motion
 import com.messages.app.ui.chat.ChatScreen
 import com.messages.app.ui.compose.NewMessageScreen
 import com.messages.app.ui.dashboard.DashboardScreen
@@ -114,7 +126,7 @@ class MainActivity : FragmentActivity() {
 
     /** Resolved from settings before composition, then updated live from Settings. */
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
-    private var accentSeed by mutableStateOf(com.messages.designsystem.AccentSeed.VIOLET)
+    private var accentSeed by mutableStateOf(com.messages.designsystem.AccentSeed.ORCHID)
     private var customBrightnessEnabled by mutableStateOf(false)
     private var brightnessLevel by mutableStateOf(ThemePreferences.DEFAULT_BRIGHTNESS)
 
@@ -161,7 +173,11 @@ class MainActivity : FragmentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
         // First-run backfill: classify existing history once we can read it (§10).
-        if (grants[android.Manifest.permission.READ_SMS] == true) Backfill.ensureScheduled(this)
+        if (grants[android.Manifest.permission.READ_SMS] == true) {
+            Backfill.ensureScheduled(this)
+            com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
+            com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -193,16 +209,6 @@ class MainActivity : FragmentActivity() {
         val startIntent = intent
         folderRequest = intent.getStringExtra("folder")
         val onboardingPrefs = getSharedPreferences("onboarding", MODE_PRIVATE)
-
-        // Only fire the first-open default role prompt if onboarding is ALREADY COMPLETED.
-        // During onboarding, the dedicated Onboarding screen asks for the role when the user taps
-        // "Set as default". Firing here on cold start would cause a premature denial popup over
-        // the intro onboarding page!
-        val onboardingDone = onboardingPrefs.getBoolean("done", false)
-        if (onboardingDone && !isDefaultSmsApp && !onboardingPrefs.getBoolean("role_prompted", false)) {
-            onboardingPrefs.edit().putBoolean("role_prompted", true).apply()
-            requestDefaultRole()
-        }
 
         // R-26: resolve lock state BEFORE the first composition so the lock
         // screen never flashes on a cold start when app lock is disabled.
@@ -284,7 +290,12 @@ class MainActivity : FragmentActivity() {
                         }
                     }
                 }
-                SharedTransitionLayout {
+                SharedTransitionLayout(
+                    modifier = Modifier.semantics {
+                        @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+                        testTagsAsResourceId = true
+                    },
+                ) {
                     CompositionLocalProvider(LocalSharedTransitionScope provides this) {
                 NavHost(
                     navController = nav,
@@ -320,14 +331,35 @@ class MainActivity : FragmentActivity() {
                     composable(
                         "home",
                         enterTransition = { fadeThroughEnter() },
-                        exitTransition = { fadeThroughExit() },
-                        popEnterTransition = { fadeThroughEnter() },
+                        exitTransition = {
+                            if (targetState.destination.route?.startsWith("chat") == true) {
+                                homeExitForChat()
+                            } else if (targetState.destination.route?.startsWith("settings") == true) {
+                                screenBehindExitForSubMenu()
+                            } else if (targetState.destination.route == "compose") {
+                                fadeThroughExit()
+                            } else {
+                                sharedAxisExit(forward = true)
+                            }
+                        },
+                        popEnterTransition = {
+                            if (initialState.destination.route?.startsWith("chat") == true) {
+                                homePopEnterFromChat()
+                            } else if (initialState.destination.route?.startsWith("settings") == true) {
+                                screenBehindPopEnterFromSubMenu()
+                            } else if (initialState.destination.route == "compose") {
+                                fadeThroughEnter()
+                            } else {
+                                sharedAxisEnter(forward = false)
+                            }
+                        },
                         popExitTransition = { fadeThroughExit() },
                     ) {
                         ProvideNavScope(this) {
                         HomeScreen(
                             isDefaultSmsApp = isDefaultSmsApp,
                             initialFolder = folderRequest,
+                            onFolderConsumed = { folderRequest = null },
                             onRequestDefault = ::requestDefaultRole,
                             roleRequestFailed = roleRequestFailed,
                             onOpenAppSettings = { openAppSettings(this@MainActivity) },
@@ -545,7 +577,21 @@ class MainActivity : FragmentActivity() {
                             onBack = { nav.popBackStack() },
                         )
                     }
-                    composable("settings") {
+                    composable(
+                        "settings",
+                        enterTransition = {
+                            slideInHorizontally(Motion.screenSpring()) { it / 4 } + fadeIn(Motion.effectsDefault())
+                        },
+                        exitTransition = {
+                            screenBehindExitForSubMenu()
+                        },
+                        popEnterTransition = {
+                            screenBehindPopEnterFromSubMenu()
+                        },
+                        popExitTransition = {
+                            slideOutHorizontally(Motion.screenSpring()) { it / 4 } + fadeOut(Motion.effectsDefault())
+                        },
+                    ) {
                         SettingsScreen(
                             onBack = { nav.popBackStack() },
                             onOpenTrash = { nav.navigate("trash") },
@@ -601,7 +647,13 @@ class MainActivity : FragmentActivity() {
                     composable("trash") {
                         com.messages.app.ui.trash.TrashScreen(onBack = { nav.popBackStack() })
                     }
-                    composable("compose") {
+                    composable(
+                        "compose",
+                        enterTransition = { fadeThroughEnter() },
+                        exitTransition = { fadeThroughExit() },
+                        popEnterTransition = { fadeThroughEnter() },
+                        popExitTransition = { fadeThroughExit() },
+                    ) {
                         NewMessageScreen(
                             onBack = { nav.popBackStack() },
                             onOpenThread = { threadId, address ->
@@ -613,10 +665,18 @@ class MainActivity : FragmentActivity() {
                     }
                     composable(
                         "chat/{threadId}?address={address}&q={q}&target={target}&draft={draft}&search={search}",
-                        enterTransition = { fadeThroughEnter() },
-                        exitTransition = { fadeThroughExit() },
-                        popEnterTransition = { fadeThroughEnter() },
-                        popExitTransition = { fadeThroughExit() },
+                        enterTransition = {
+                            slideInHorizontally(Motion.chatEnter()) { it / 6 } + fadeIn(Motion.effectsDefault())
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(Motion.chatEnter()) { it / 6 } + fadeOut(Motion.effectsFast())
+                        },
+                        popEnterTransition = {
+                            slideInHorizontally(Motion.chatEnter()) { -it / 6 } + fadeIn(Motion.effectsDefault())
+                        },
+                        popExitTransition = {
+                            slideOutHorizontally(Motion.chatEnter()) { it / 6 } + fadeOut(Motion.effectsDefault())
+                        },
                         arguments = listOf(
                             navArgument("address") {
                                 type = NavType.StringType
@@ -761,6 +821,8 @@ class MainActivity : FragmentActivity() {
         super.onResume()
         applyScreenBrightness(customBrightnessEnabled, brightnessLevel)
         refreshDefaultState()
+        com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
+        com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
     }
 
     override fun onDestroy() {
@@ -786,8 +848,15 @@ class MainActivity : FragmentActivity() {
      * the repository's persisted alias allocator (V2-21).
      */
     private suspend fun routeFor(intent: Intent): String? {
-        val threadId = intent.getLongExtra("threadId", -1L)
-        if (threadId != -1L) return "chat/$threadId"
+        if (intent.hasExtra("threadId")) {
+            val tid = intent.getLongExtra("threadId", Long.MIN_VALUE)
+            if (tid != Long.MIN_VALUE) return "chat/$tid"
+        }
+        val dataUri = intent.data
+        if (dataUri?.scheme == "messages" && dataUri.host == "thread") {
+            val tid = dataUri.pathSegments?.firstOrNull()?.toLongOrNull()
+            if (tid != null) return "chat/$tid"
+        }
 
         // Direct share (§8.2): chooser target carries the conversation
         // shortcut id + the shared text, which becomes the draft.
@@ -847,7 +916,11 @@ class MainActivity : FragmentActivity() {
             if (!wasDefault) {
                 requestCorePermissions()
                 Backfill.ensureScheduled(this)
+                com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
+                com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
             }
+        } else if (wasDefault) {
+            com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
         }
     }
 

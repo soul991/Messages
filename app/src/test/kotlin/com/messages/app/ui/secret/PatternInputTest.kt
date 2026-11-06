@@ -160,7 +160,7 @@ class PatternInputTest {
         // the drag detector underneath from ever seeing the gesture: adding
         // accessibility this way would remove the primary input method and the
         // failure is silent — it compiles, and the grid simply stops drawing.
-        val overlay = source.readText()
+        val overlay = source.readText().replace("\r\n", "\n")
             .substringAfter("private fun PatternDotTarget")
             .substringBefore("\n}\n")
         assertFalse(

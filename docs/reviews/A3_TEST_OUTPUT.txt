@@ -1,0 +1,14 @@
+Test Results: com.messages.core.db.SyntheticCleanupTest
+
+XML Test Report (core-messaging/build/test-results/testDebugUnitTest/TEST-com.messages.core.db.SyntheticCleanupTest.xml):
+------------------------------------------------------------------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.messages.core.db.SyntheticCleanupTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:52:16" hostname="SOULHYPER" time="5.168">
+  <properties/>
+  <testcase name="cleanup removes only synthetic signature rows in thread 100 and preserves real rows" classname="com.messages.core.db.SyntheticCleanupTest" time="5.168"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
+------------------------------------------------------------------------------------------------------------------------
+Status: PASS (1 test, 0 failures, 0 errors, 0 skipped)
+Execution time: 5.168 s

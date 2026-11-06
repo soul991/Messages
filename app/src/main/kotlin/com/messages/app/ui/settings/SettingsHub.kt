@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -165,8 +166,10 @@ private fun HubRow(e: HubEntry, onClick: () -> Unit) {
         Tone.PROTECTED -> categoryPalette("TRANSACTIONS")?.let { it.container to it.onContainer }
             ?: (cs.primaryContainer to cs.onPrimaryContainer)
     }
+    val tagModifier = if (e.page != null) Modifier.testTag("settings_page_${e.page}") else Modifier
     Row(
         Modifier
+            .then(tagModifier)
             .fillMaxWidth()
             .graphicsLayer {
                 scaleX = rowScale
