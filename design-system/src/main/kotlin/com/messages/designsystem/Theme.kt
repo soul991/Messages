@@ -198,6 +198,12 @@ val ColorScheme.dockBorder: Color
 val ColorScheme.dockActivePill: Color
     get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.DockActivePill else DesignTokens.Light.DockActivePill
 
+val ColorScheme.topBarBackground: Color
+    get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.TopBar else DesignTokens.Light.TopBar
+
+val ColorScheme.topBarBorder: Color
+    get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.TopBarBorder else DesignTokens.Light.TopBarBorder
+
 fun dockIconColor(category: String, isDark: Boolean): Color = when (category.uppercase()) {
     "INBOX", "PERSONAL" -> if (isDark) DesignTokens.DockIconColors.Dark.Personal else DesignTokens.DockIconColors.Light.Personal
     "PROMOTIONS", "PROMOTIONAL", "OFFERS" -> if (isDark) DesignTokens.DockIconColors.Dark.Promotional else DesignTokens.DockIconColors.Light.Promotional

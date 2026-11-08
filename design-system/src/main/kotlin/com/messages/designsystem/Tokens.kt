@@ -19,10 +19,12 @@ object DesignTokens {
         val Green = Color(0xFF30D158)
         val GreenTint16 = Color(0x2930D158) // rgba(48,209,88,0.16)
         val OnGreen = Color(0xFF04210E)
-        val Dock = Color(0x9E1E1E21) // rgba(30,30,33,0.62)
-        val DockBorder = Color(0x17FFFFFF) // rgba(255,255,255,0.09)
+        val Dock = Color(0xD11C1C1F) // rgba(28,28,31,0.82)
+        val DockBorder = Color(0x1FFFFFFF) // rgba(255,255,255,0.12)
         val DockActivePill = Color(0x17FFFFFF) // rgba(255,255,255,0.09)
         val SelectedRow = Color(0x2430D158) // rgba(48,209,88,0.14)
+        val TopBar = Color(0xB8000000) // rgba(0,0,0,0.72)
+        val TopBarBorder = Color(0x17FFFFFF) // rgba(255,255,255,0.09)
     }
 
     object Light {
@@ -34,10 +36,12 @@ object DesignTokens {
         val Green = Color(0xFF34C759)
         val GreenText = Color(0xFF1E9A44)
         val OnGreen = Color(0xFF04210E)
-        val Dock = Color(0xB3FFFFFF) // rgba(255,255,255,0.70)
-        val DockBorder = Color(0x12000000) // rgba(0,0,0,0.07)
+        val Dock = Color(0xD9FFFFFF) // rgba(255,255,255,0.85)
+        val DockBorder = Color(0x14000000) // rgba(0,0,0,0.08)
         val DockActivePill = Color(0x0F000000) // rgba(0,0,0,0.06)
         val SelectedRow = Color(0x2430D158) // rgba(48,209,88,0.14)
+        val TopBar = Color(0xCCF7F7F4) // rgba(247,247,244,0.80)
+        val TopBarBorder = Color(0x12000000) // rgba(0,0,0,0.07)
     }
 
     /**

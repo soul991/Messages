@@ -123,6 +123,8 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import com.messages.designsystem.GlassTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -448,16 +450,20 @@ fun HomeScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                AnimatedContent(
-                    targetState = selectionActive,
-                    transitionSpec = {
-                        fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
-                    },
-                    label = "home-topbar-mode",
-                ) { isSelecting ->
-                    if (isSelecting) {
-                        TopAppBar(
-                            title = {
+                GlassTopBar(isDark = LocalDarkTheme.current) {
+                    AnimatedContent(
+                        targetState = selectionActive,
+                        transitionSpec = {
+                            fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
+                        },
+                        label = "home-topbar-mode",
+                    ) { isSelecting ->
+                        if (isSelecting) {
+                            TopAppBar(
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = Color.Transparent,
+                                ),
+                                title = {
                                 Text(
                                     pluralStringResource(
                                         R.plurals.home_selected_count,
@@ -518,7 +524,7 @@ fun HomeScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .statusBarsPadding()
-                                .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 0.dp),
+                                .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -670,7 +676,8 @@ fun HomeScreen(
                         }
                     }
                 }
-            },
+            }
+        },
         ) { padding ->
             Column(
                 Modifier

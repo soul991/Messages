@@ -118,6 +118,8 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import com.messages.designsystem.GlassTopBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -569,30 +571,35 @@ fun ChatScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            val hintPrefs = remember {
-                context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-            }
-            var contactHintDone by remember {
-                mutableStateOf(hintPrefs.getBoolean("contact_info_hint_done", false))
-            }
-            val topBarMode = when {
-                msgSelectionActive -> ChatTopBarMode.SELECTION
-                chatSearchActive -> ChatTopBarMode.SEARCH
-                else -> ChatTopBarMode.NORMAL
-            }
-            AnimatedContent(
-                targetState = topBarMode,
-                transitionSpec = {
-                    fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
-                },
-                label = "chat-top-bar",
-            ) { mode ->
-                when (mode) {
-                    ChatTopBarMode.SELECTION -> {
-                        // Message multi-select bar matching Select.html
-                        var showOverflowMenu by remember { mutableStateOf(false) }
-                        TopAppBar(
-                            title = {
+            val isDark = LocalDarkTheme.current
+            GlassTopBar(isDark = isDark) {
+                val hintPrefs = remember {
+                    context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                }
+                var contactHintDone by remember {
+                    mutableStateOf(hintPrefs.getBoolean("contact_info_hint_done", false))
+                }
+                val topBarMode = when {
+                    msgSelectionActive -> ChatTopBarMode.SELECTION
+                    chatSearchActive -> ChatTopBarMode.SEARCH
+                    else -> ChatTopBarMode.NORMAL
+                }
+                AnimatedContent(
+                    targetState = topBarMode,
+                    transitionSpec = {
+                        fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
+                    },
+                    label = "chat-top-bar",
+                ) { mode ->
+                    when (mode) {
+                        ChatTopBarMode.SELECTION -> {
+                            // Message multi-select bar matching Select.html
+                            var showOverflowMenu by remember { mutableStateOf(false) }
+                            TopAppBar(
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = Color.Transparent,
+                                ),
+                                title = {
                                 Text(
                                     text = selectedMsgIds.size.toString(),
                                     style = MaterialTheme.typography.titleLarge.copy(
@@ -722,6 +729,9 @@ fun ChatScreen(
                         // In-conversation search bar (§8.5.3): live query, match count,
                         // next/previous arrows.
                         TopAppBar(
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                            ),
                             title = {
                                 TextField(
                                     value = chatSearchQuery,
@@ -790,6 +800,9 @@ fun ChatScreen(
                     }
                     ChatTopBarMode.NORMAL -> {
                         TopAppBar(
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                            ),
                             title = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -918,7 +931,8 @@ fun ChatScreen(
                     }
                 }
             }
-        },
+        }
+    },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().imePadding()) {
             // Pinned-messages banner (Phase 4 item 6): tap scrolls to the

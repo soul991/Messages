@@ -1,5 +1,8 @@
 package com.messages.designsystem
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -9,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -42,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
@@ -124,76 +129,125 @@ fun BottomDock(
             .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        Surface(
+        // Floating Dock Glass Container (64dp height, 32dp corner radius)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp),
-            shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.dockBackground,
-            shadowElevation = 0.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.dockBorder),
         ) {
-            Row(
+            // Glass background layer with 20dp blur where supported (API 31+)
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                    .matchParentSize()
+                    .then(
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            Modifier.graphicsLayer {
+                                val blurPx = 20.dp.toPx()
+                                renderEffect = RenderEffect
+                                    .createBlurEffect(blurPx, blurPx, Shader.TileMode.CLAMP)
+                                    .asComposeRenderEffect()
+                            }
+                        } else Modifier
+                    )
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(MaterialTheme.colorScheme.dockBackground),
+            )
+
+            // Crisp border & content layer
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(32.dp),
+                color = Color.Transparent,
+                shadowElevation = 0.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.dockBorder),
             ) {
-                items.forEach { item ->
-                    val selected = item.key == selectedKey
-                    val iconColor = dockIconColor(item.key, isDark)
-                    val labelColor = if (selected) {
-                        MaterialTheme.colorScheme.onBackground
-                    } else {
-                        MaterialTheme.colorScheme.textMuted
-                    }
-                    val pillBg = if (selected) MaterialTheme.colorScheme.dockActivePill else Color.Transparent
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    items.forEach { item ->
+                        val selected = item.key == selectedKey
+                        val iconColor = dockIconColor(item.key, isDark)
+                        val labelColor = if (selected) {
+                            MaterialTheme.colorScheme.onBackground
+                        } else {
+                            MaterialTheme.colorScheme.textMuted
+                        }
 
-                    Box(
-                        modifier = Modifier
-                            .testTag("dock_${item.key}")
-                            .weight(1f)
-                            .clip(RoundedCornerShape(26.dp))
-                            .background(pillBg)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(
-                                    bounded = true,
-                                    color = iconColor.copy(alpha = 0.15f),
-                                ),
-                                onClick = {
-                                    if (!selected) {
-                                        onItemSelected(item.key)
-                                    }
-                                },
-                            )
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val isPressed by interactionSource.collectIsPressedAsState()
+                        val tabScale by animateFloatAsState(
+                            targetValue = if (isPressed) 0.94f else 1f,
+                            animationSpec = Motion.bouncySpring(),
+                            label = "tab-scale-${item.key}",
+                        )
+                        val pillAlpha by animateFloatAsState(
+                            targetValue = if (selected) 1f else 0f,
+                            animationSpec = Motion.effectsDefault(),
+                            label = "pill-alpha-${item.key}",
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .testTag("dock_${item.key}")
+                                .weight(1f)
+                                .graphicsLayer {
+                                    scaleX = tabScale
+                                    scaleY = tabScale
+                                }
+                                .clip(RoundedCornerShape(26.dp))
+                                .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = ripple(
+                                        bounded = true,
+                                        color = iconColor.copy(alpha = 0.15f),
+                                    ),
+                                    onClick = {
+                                        if (!selected) {
+                                            onItemSelected(item.key)
+                                        }
+                                    },
+                                )
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                imageVector = if (selected) item.filledIcon else item.outlinedIcon,
-                                contentDescription = item.title,
-                                tint = iconColor,
-                                modifier = Modifier.size(22.dp),
-                            )
+                            // Neutral active pill with spring alpha fade
+                            if (pillAlpha > 0.01f) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .graphicsLayer { alpha = pillAlpha }
+                                        .background(MaterialTheme.colorScheme.dockActivePill, RoundedCornerShape(26.dp))
+                                )
+                            }
 
-                            Text(
-                                text = item.title,
-                                style = TextStyle(
-                                    fontFamily = InterFontFamily,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.sp,
-                                ),
-                                color = labelColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Icon(
+                                    imageVector = if (selected) item.filledIcon else item.outlinedIcon,
+                                    contentDescription = item.title,
+                                    tint = iconColor,
+                                    modifier = Modifier.size(22.dp),
+                                )
+
+                                Text(
+                                    text = item.title,
+                                    style = TextStyle(
+                                        fontFamily = InterFontFamily,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        letterSpacing = 0.sp,
+                                    ),
+                                    color = labelColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                     }
                 }
