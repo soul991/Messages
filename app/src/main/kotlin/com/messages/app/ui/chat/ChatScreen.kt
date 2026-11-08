@@ -64,7 +64,12 @@ import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.filled.Delete
+import com.messages.designsystem.selectedRow
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Image
@@ -373,6 +378,7 @@ fun ChatScreen(
 
     // ---- Message multi-select (Phase 4 item 14) ----
     var selectedMsgIds by remember { mutableStateOf(setOf<Long>()) }
+    var selectionInfoMsg by remember { mutableStateOf<com.messages.core.db.MessageEntity?>(null) }
     val msgSelectionActive = selectedMsgIds.isNotEmpty()
     var showForwardPicker by remember { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(enabled = msgSelectionActive) {
@@ -583,73 +589,131 @@ fun ChatScreen(
             ) { mode ->
                 when (mode) {
                     ChatTopBarMode.SELECTION -> {
-                        // Message multi-select bar (Phase 4 item 14).
+                        // Message multi-select bar matching Select.html
+                        var showOverflowMenu by remember { mutableStateOf(false) }
                         TopAppBar(
                             title = {
                                 Text(
-                                    pluralStringResource(
-                                        R.plurals.chat_selected_count,
-                                        selectedMsgIds.size,
-                                        selectedMsgIds.size,
-                                    )
+                                    text = selectedMsgIds.size.toString(),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontSize = 20.sp,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
                                 )
                             },
                             navigationIcon = {
                                 IconButton(onClick = { selectedMsgIds = emptySet() }) {
-                                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.chat_clear_selection))
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = stringResource(R.string.chat_clear_selection),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                    )
                                 }
                             },
                             actions = {
+                                // 1. Copy
                                 IconButton(onClick = {
                                     val text = selectedTexts()
                                     if (text.isNotBlank()) {
                                         clipboardManager.setText(AnnotatedString(text))
+                                        Haptics.confirm(view)
                                     }
                                     selectedMsgIds = emptySet()
                                 }) {
-                                    Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.action_copy))
+                                    Icon(Icons.Outlined.ContentCopy, contentDescription = stringResource(R.string.action_copy))
                                 }
+                                // 2. Star
+                                val anyUnstarred = messages.any { it.id in selectedMsgIds && !it.starred }
                                 IconButton(onClick = {
-                                    selectedMsgIds.forEach { vm.star(it, true) }
+                                    selectedMsgIds.forEach { vm.star(it, anyUnstarred) }
+                                    Haptics.confirm(view)
                                     selectedMsgIds = emptySet()
                                 }) {
-                                    Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.chat_star))
+                                    Icon(
+                                        if (anyUnstarred) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                        contentDescription = stringResource(R.string.chat_star),
+                                    )
                                 }
+                                // 3. Pin
+                                val anyUnpinned = selectedMsgIds.any { it !in pinnedIds }
+                                IconButton(onClick = {
+                                    selectedMsgIds.forEach { id ->
+                                        PinStore.setPinned(context, threadId, id, pinned = anyUnpinned, space = space)
+                                    }
+                                    Haptics.confirm(view)
+                                    selectedMsgIds = emptySet()
+                                }) {
+                                    Icon(
+                                        Icons.Filled.PushPin,
+                                        contentDescription = stringResource(R.string.home_pin),
+                                    )
+                                }
+                                // 4. Forward
                                 IconButton(
                                     onClick = { showForwardPicker = true },
                                     enabled = selectedTexts().isNotBlank(),
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = stringResource(R.string.chat_forward))
                                 }
+                                // 5. Info
                                 IconButton(onClick = {
-                                    val text = selectedTexts()
-                                    if (text.isNotBlank()) {
-                                        runCatching {
-                                            context.startActivity(
-                                                android.content.Intent.createChooser(
-                                                    android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                                        type = "text/plain"
-                                                        putExtra(android.content.Intent.EXTRA_TEXT, text)
-                                                    },
-                                                    shareChooserTitle,
-                                                )
-                                            )
-                                        }
+                                    val firstId = selectedMsgIds.firstOrNull()
+                                    if (firstId != null) {
+                                        selectionInfoMsg = messages.firstOrNull { it.id == firstId }
                                     }
-                                    selectedMsgIds = emptySet()
                                 }) {
-                                    Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.action_share))
+                                    Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.chat_info))
                                 }
-                                IconButton(onClick = {
-                                    val n = selectedMsgIds.size
-                                    selectedMsgIds.forEach { vm.delete(it) }
-                                    selectedMsgIds = emptySet()
-                                    val msg = context.resources.getQuantityString(R.plurals.chat_moved_to_trash, n, n)
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(msg)
+                                // 6. More (⋮ overflow with Delete, Share)
+                                Box {
+                                    IconButton(onClick = { showOverflowMenu = true }) {
+                                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more_options))
                                     }
-                                }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
+                                    DropdownMenu(
+                                        expanded = showOverflowMenu,
+                                        onDismissRequest = { showOverflowMenu = false },
+                                        shape = RoundedCornerShape(8.dp),
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.action_delete)) },
+                                            leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                                            modifier = Modifier.heightIn(min = 48.dp),
+                                            onClick = {
+                                                showOverflowMenu = false
+                                                val n = selectedMsgIds.size
+                                                selectedMsgIds.forEach { vm.delete(it) }
+                                                selectedMsgIds = emptySet()
+                                                val msg = context.resources.getQuantityString(R.plurals.chat_moved_to_trash, n, n)
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar(msg)
+                                                }
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.action_share)) },
+                                            leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                                            modifier = Modifier.heightIn(min = 48.dp),
+                                            onClick = {
+                                                showOverflowMenu = false
+                                                val text = selectedTexts()
+                                                if (text.isNotBlank()) {
+                                                    runCatching {
+                                                        context.startActivity(
+                                                            android.content.Intent.createChooser(
+                                                                android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                                    type = "text/plain"
+                                                                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                                                },
+                                                                shareChooserTitle,
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                                selectedMsgIds = emptySet()
+                                            },
+                                        )
+                                    }
                                 }
                             },
                         )
@@ -1014,7 +1078,7 @@ fun ChatScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().testTag("chat_message_list"),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     items(
@@ -1442,6 +1506,14 @@ fun ChatScreen(
                     }
                 }
             }
+        }
+
+        selectionInfoMsg?.let { msg ->
+            MessageInfoSheet(
+                msg = msg,
+                simName = simNameFor(msg.subId),
+                onDismiss = { selectionInfoMsg = null },
+            )
         }
 
         // Quick-reply templates sheet (Phase 4 item 8): tap fills the composer.
@@ -1945,10 +2017,7 @@ private fun MessageBubble(
     val context = LocalContext.current
     val isOut = msg.isOutgoing
     val isScheduled = msg.sendStatus == "SCHEDULED"
-    var showMenu by remember { mutableStateOf(false) }
-    var showSnoozeMenu by remember { mutableStateOf(false) }
     var showInfoSheet by remember { mutableStateOf(false) }
-    var showSelectDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     // V2-51: bumped when the user corrects or hides the summary card, so the
     // memoised extraction is recomputed against the new dismissals. The
@@ -1991,7 +2060,8 @@ private fun MessageBubble(
     Column(
         modifier
             .fillMaxWidth()
-            .padding(top = if (firstInGroup) 12.dp else 1.dp),
+            .background(if (selected) MaterialTheme.colorScheme.selectedRow else Color.Transparent)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
     ) {
         // Red fraud-warning banner (Stage 2 exception / dangerous label)
@@ -2028,7 +2098,7 @@ private fun MessageBubble(
                         onClick = { if (selectionMode) onToggleSelect() },
                         onLongClick = {
                             Haptics.longPress(view)
-                            if (selectionMode) onToggleSelect() else showMenu = true
+                            onToggleSelect()
                         },
                     )
                     .padding(horizontal = 6.dp, vertical = 2.dp),
@@ -2053,7 +2123,7 @@ private fun MessageBubble(
                         onClick = { if (selectionMode) onToggleSelect() },
                         onLongClick = {
                             Haptics.longPress(view)
-                            if (selectionMode) onToggleSelect() else showMenu = true
+                            onToggleSelect()
                         },
                     ),
                 horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
@@ -2101,21 +2171,12 @@ private fun MessageBubble(
                             androidx.compose.ui.graphics.SolidColor(receivedSurface)
                         }
                     )
-                    .then(
-                        if (selected) {
-                            Modifier.border(
-                                width = 2.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = bubbleShape,
-                            )
-                        } else Modifier
-                    )
                     .combinedClickable(
                         onClick = { if (selectionMode) onToggleSelect() },
-                        onLongClickLabel = "Message options",
+                        onLongClickLabel = stringResource(R.string.chat_select_messages),
                         onLongClick = {
                             Haptics.longPress(view)
-                            if (selectionMode) onToggleSelect() else showMenu = true
+                            onToggleSelect()
                         },
                     ),
             ) {
@@ -2272,11 +2333,23 @@ private fun MessageBubble(
                         )
                         // Thread.html: padding: 10px 14px; font-size: 15px; line-height: 1.4
                         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                            Text(
-                                bodyText,
+                            SelectableMessageText(
+                                text = bodyText,
+                                rawText = rawBody,
                                 style = scaledStyle,
                                 color = if (isOut) outBubbleColors.second
                                 else MaterialTheme.colorScheme.onSurface,
+                                onLinkClick = { spanType ->
+                                    smartSpans.firstOrNull { it.type == spanType }?.let { span ->
+                                        SmartText.performAction(context, rawBody, span)
+                                    }
+                                },
+                                onLongPress = {
+                                    Haptics.longPress(view)
+                                    onToggleSelect()
+                                },
+                                selectionMode = selectionMode,
+                                onToggleSelect = onToggleSelect,
                             )
                             if (!isScheduled) {
                                 Spacer(Modifier.height(4.dp))
@@ -2333,106 +2406,6 @@ private fun MessageBubble(
             }
         }
 
-            // Long-press actions: copy, select, star, pin, snooze, info, delete
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = { showMenu = false },
-                shape = RoundedCornerShape(8.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                tonalElevation = 6.dp,
-                shadowElevation = 8.dp,
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.chat_copy_text)) },
-                    onClick = {
-                        clipboard.setText(AnnotatedString(msg.body))
-                        showMenu = false
-                    },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                )
-                if (msg.body.isNotBlank()) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_select_text)) },
-                        onClick = { showMenu = false; showSelectDialog = true },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.chat_select_messages)) },
-                    onClick = { showMenu = false; onToggleSelect() },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                )
-                DropdownMenuItem(
-                    text = { Text(if (msg.starred) "Unstar" else "Star") },
-                    onClick = { onStar(); showMenu = false },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                )
-                if (!isScheduled) {
-                    DropdownMenuItem(
-                        text = { Text(if (pinned) "Unpin" else "Pin") },
-                        onClick = { onPinToggle(); showMenu = false },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_remind_me)) },
-                        onClick = { showMenu = false; showSnoozeMenu = true },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                }
-                // Recategorize-anywhere (Truecaller rec A): an incoming
-                // message the engine mis-slotted can be filed as spam from
-                // any folder; reputation learns from it like Not-spam does.
-                if (!isOut && msg.category != "SPAM" && msg.category != "BLOCKED") {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_mark_as_spam)) },
-                        onClick = { onMarkSpam(); showMenu = false },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.chat_info)) },
-                    onClick = { showMenu = false; showInfoSheet = true },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                )
-                // V2-51: the way back from a dismissed summary. Offered only
-                // when there is something to restore — a permanent menu entry
-                // for a card the user has never seen is noise.
-                if (MessageCards.dismissedFor(context, msg.id).isNotEmpty()) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.summary_action_restore)) },
-                        onClick = {
-                            showMenu = false
-                            MessageCards.restore(context, msg.id)
-                            cardTick++
-                        },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.action_delete)) },
-                    onClick = { onDelete(); showMenu = false },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                )
-            }
-            DropdownMenu(
-                expanded = showSnoozeMenu,
-                onDismissRequest = { showSnoozeMenu = false },
-                shape = RoundedCornerShape(8.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                tonalElevation = 6.dp,
-                shadowElevation = 8.dp,
-            ) {
-                timePresets().forEach { (label, time) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = { onSnooze(time); showSnoozeMenu = false },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                }
-            }
-
         // The old below-group meta line is gone (plan §2) — time/status live
         // inside the bubble. Scheduled and failed sends keep a line below so
         // their status (and its actions) is never hidden.
@@ -2483,22 +2456,6 @@ private fun MessageBubble(
             }
         }
 
-        if (showSelectDialog) {
-            AlertDialog(
-                properties = com.messages.app.ui.secret.secureDialogProperties(),
-                onDismissRequest = { showSelectDialog = false },
-                title = { Text(stringResource(R.string.chat_select_text)) },
-                text = {
-                    androidx.compose.foundation.text.selection.SelectionContainer {
-                        Text(msg.body, style = MaterialTheme.typography.bodyLarge)
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showSelectDialog = false }) { Text(stringResource(R.string.action_done)) }
-                },
-            )
-        }
-
         if (showInfoSheet) {
             MessageInfoSheet(
                 msg = msg,
@@ -2529,6 +2486,22 @@ private fun MessageBubble(
                 onHideCard = { MessageCards.dismissCard(context, msg.id); cardTick++ },
                 onTurnOff = { MessageCards.setEnabled(context, false); cardTick++ },
             )
+        }
+
+        if (MessageCards.dismissedFor(context, msg.id).isNotEmpty()) {
+            TextButton(
+                onClick = {
+                    MessageCards.restore(context, msg.id)
+                    cardTick++
+                },
+                modifier = Modifier.padding(start = 4.dp),
+            ) {
+                Text(
+                    stringResource(R.string.summary_action_restore),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
         // Promotional offer card for commercial / promotional messages
