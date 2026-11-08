@@ -824,10 +824,13 @@
     <string name="home_mark_all_as_read">Mark all as read</string>
     <string name="home_folder_marked_read">Folder marked as read</string>
     <string name="nav_personal">Personal</string>
+    <string name="nav_promotional">Promotional</string>
     <string name="nav_bank">Bank</string>
     <string name="nav_offers">Offers</string>
     <string name="nav_review">Review</string>
     <string name="nav_spam">Spam</string>
+    <string name="category_personal">Personal</string>
+    <string name="category_promotional">Promotional</string>
     <string name="home_new_message">New message</string>
     <string name="home_search_placeholder">Search messages</string>
     <string name="home_search_add_keyword">Add another keyword</string>

@@ -198,6 +198,14 @@ val ColorScheme.dockBorder: Color
 val ColorScheme.dockActivePill: Color
     get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.DockActivePill else DesignTokens.Light.DockActivePill
 
+fun dockIconColor(category: String, isDark: Boolean): Color = when (category.uppercase()) {
+    "INBOX", "PERSONAL" -> if (isDark) DesignTokens.DockIconColors.Dark.Personal else DesignTokens.DockIconColors.Light.Personal
+    "PROMOTIONS", "PROMOTIONAL", "OFFERS" -> if (isDark) DesignTokens.DockIconColors.Dark.Promotional else DesignTokens.DockIconColors.Light.Promotional
+    "SPAM" -> if (isDark) DesignTokens.DockIconColors.Dark.Spam else DesignTokens.DockIconColors.Light.Spam
+    "REVIEW" -> if (isDark) DesignTokens.DockIconColors.Dark.Review else DesignTokens.DockIconColors.Light.Review
+    else -> if (isDark) DesignTokens.Dark.TextMuted else DesignTokens.Light.TextMuted
+}
+
 val InterFontFamily = FontFamily(Font(R.font.inter_variable))
 
 private val MessagesTypography = Typography().let { base ->

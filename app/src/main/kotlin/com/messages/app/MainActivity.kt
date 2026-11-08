@@ -159,9 +159,11 @@ class MainActivity : FragmentActivity() {
     ) { grants ->
         // First-run backfill: classify existing history once we can read it (§10).
         if (grants[android.Manifest.permission.READ_SMS] == true) {
-            Backfill.ensureScheduled(this)
-            com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
-            com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
+            lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                Backfill.ensureScheduled(this@MainActivity)
+                com.messages.core.telephony.TelephonySyncManager.ensureObserver(this@MainActivity)
+                com.messages.core.telephony.TelephonySyncManager.triggerSync(this@MainActivity)
+            }
         }
     }
 
@@ -179,7 +181,9 @@ class MainActivity : FragmentActivity() {
         if (checkSelfPermission(android.Manifest.permission.READ_SMS) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
-            Backfill.ensureScheduled(this)
+            lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                Backfill.ensureScheduled(this@MainActivity)
+            }
         }
 
         // V2-21: resolving a `smsto:` recipient can need a Room round trip (the

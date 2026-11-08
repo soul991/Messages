@@ -10,21 +10,33 @@ import com.messages.core.search.FtsBackfill
 import com.messages.core.trash.TrashRetention
 import kotlinx.coroutines.launch
 
-class MessagesApp : Application() {
+class MessagesApp : Application(), androidx.work.Configuration.Provider {
+
+    override val workManagerConfiguration: androidx.work.Configuration
+        get() = androidx.work.Configuration.Builder()
+            .setMinimumLoggingLevel(android.util.Log.INFO)
+            .build()
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
         com.messages.app.ui.home.SwipeActions.init(this)
         com.messages.app.ui.common.DraftStore.init(this)
-        OtpCleanup.ensureScheduled(this)
-        SpamCleanup.ensureScheduled(this)
-        TrashRetention.ensureScheduled(this)
-        FtsBackfill.ensureScheduled(this)
-        com.messages.app.drive.DriveBackup.reschedule(this)
         com.messages.core.contacts.ContactSync.ensureObserver(this)
         com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
-        com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
+
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+        ).launch {
+            runCatching {
+                OtpCleanup.ensureScheduled(this@MessagesApp)
+                SpamCleanup.ensureScheduled(this@MessagesApp)
+                TrashRetention.ensureScheduled(this@MessagesApp)
+                FtsBackfill.ensureScheduled(this@MessagesApp)
+                com.messages.app.drive.DriveBackup.reschedule(this@MessagesApp)
+                com.messages.core.telephony.TelephonySyncManager.triggerSync(this@MessagesApp)
+            }
+        }
         releaseStaleScheduledClaims()
         settleAbandonedMmsTransactions()
         sealLockedBacklog()

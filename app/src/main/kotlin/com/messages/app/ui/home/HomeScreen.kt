@@ -183,75 +183,44 @@ import com.messages.designsystem.SwipeIcons
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import kotlinx.coroutines.launch
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.ripple
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.TextStyle
+import com.messages.core.util.FriendlySenderNames
+import com.messages.designsystem.DesignTokens
+import com.messages.designsystem.InterFontFamily
+import com.messages.designsystem.dockActivePill
+import com.messages.designsystem.dockBackground
+import com.messages.designsystem.dockBorder
+import com.messages.designsystem.greenText
+import com.messages.designsystem.hairline
+import com.messages.designsystem.selectedRow
+import com.messages.designsystem.textMuted
 import androidx.annotation.StringRes
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.messages.app.R
 
-// Phase 5 §1 row grid (REFS §1): 54dp avatar + 16dp gap ≈ 76dp rows.
-private val ROW_AVATAR = 54.dp
-private val ROW_GAP = 16.dp
-
-/** Draw one continuous hairline around a multi-row conversation card. */
-private fun Modifier.groupCardOutline(index: Int, size: Int, color: Color): Modifier =
-    drawBehind {
-        val strokeWidth = 1.dp.toPx()
-        val halfStroke = strokeWidth / 2f
-        val radius = 28.dp.toPx().coerceAtMost(this.size.height / 2f)
-        val left = halfStroke
-        val right = this.size.width - halfStroke
-        val top = halfStroke
-        val bottom = this.size.height - halfStroke
-        val path = Path()
-
-        when {
-            size <= 1 -> {
-                path.moveTo(left, top + radius)
-                path.quadraticTo(left, top, left + radius, top)
-                path.lineTo(right - radius, top)
-                path.quadraticTo(right, top, right, top + radius)
-                path.lineTo(right, bottom - radius)
-                path.quadraticTo(right, bottom, right - radius, bottom)
-                path.lineTo(left + radius, bottom)
-                path.quadraticTo(left, bottom, left, bottom - radius)
-                path.close()
-            }
-            index == 0 -> {
-                path.moveTo(left, bottom)
-                path.lineTo(left, top + radius)
-                path.quadraticTo(left, top, left + radius, top)
-                path.lineTo(right - radius, top)
-                path.quadraticTo(right, top, right, top + radius)
-                path.lineTo(right, bottom)
-            }
-            index == size - 1 -> {
-                path.moveTo(left, top)
-                path.lineTo(left, bottom - radius)
-                path.quadraticTo(left, bottom, left + radius, bottom)
-                path.lineTo(right - radius, bottom)
-                path.quadraticTo(right, bottom, right, bottom - radius)
-                path.lineTo(right, top)
-            }
-            else -> {
-                path.moveTo(left, top)
-                path.lineTo(left, bottom)
-                path.moveTo(right, top)
-                path.lineTo(right, bottom)
-            }
-        }
-        drawPath(path, color, style = Stroke(width = strokeWidth))
-    }
+private val ROW_HEIGHT = 68.dp
+private val ROW_AVATAR = 44.dp
+private val ROW_GAP = 12.dp
 
 // V2-36. The left half of each pair is the stored folder/label id and never
 // changes; the right half is a resource, because the tab is the first thing a
 // user reads and "Inbox" is not a name they typed.
 private val FOLDERS = listOf(
-    "INBOX" to R.string.category_inbox,
-    "TRANSACTIONS" to R.string.category_transactions,
-    "PROMOTIONS" to R.string.category_promotions,
-    "REVIEW" to R.string.category_review,
+    "INBOX" to R.string.category_personal,
+    "PROMOTIONS" to R.string.category_promotional,
     "SPAM" to R.string.category_spam,
+    "REVIEW" to R.string.category_review,
     "BLOCKED" to R.string.home_folder_blocked,
 )
 
@@ -321,10 +290,8 @@ fun HomeScreen(
     val selectionActive = selectedThreads.isNotEmpty()
     var showHomeMenu by remember { mutableStateOf(false) }
 
-    // Hoist per-folder listState to dynamically expand/collapse the compose FAB on scroll
-    // and prevent concurrent composition conflicts during AnimatedContent transitions.
+    // Hoist per-folder listState to maintain independent scroll positions across tabs
     val inboxListState = rememberLazyListState()
-    val transactionsListState = rememberLazyListState()
     val promotionsListState = rememberLazyListState()
     val spamListState = rememberLazyListState()
     val reviewListState = rememberLazyListState()
@@ -333,7 +300,6 @@ fun HomeScreen(
 
     val folderListStates = remember(
         inboxListState,
-        transactionsListState,
         promotionsListState,
         spamListState,
         reviewListState,
@@ -341,7 +307,7 @@ fun HomeScreen(
     ) {
         mapOf(
             "INBOX" to inboxListState,
-            "TRANSACTIONS" to transactionsListState,
+            "TRANSACTIONS" to inboxListState, // mapped to inbox for safe migration
             "PROMOTIONS" to promotionsListState,
             "SPAM" to spamListState,
             "REVIEW" to reviewListState,
@@ -352,10 +318,37 @@ fun HomeScreen(
         folderListStates[folderKey] ?: fallbackListState
     }
 
-    val activeListState = listStateFor(folder)
-    val fabExpanded by remember(activeListState) {
-        derivedStateOf {
-            activeListState.firstVisibleItemIndex == 0 && activeListState.firstVisibleItemScrollOffset < 60
+    val isDockVisible = remember { mutableStateOf(true) }
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -6f) {
+                    isDockVisible.value = false
+                } else if (available.y > 6f) {
+                    isDockVisible.value = true
+                }
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (consumed.y > 4f || available.y > 4f) {
+                    isDockVisible.value = true
+                } else if (consumed.y < -4f) {
+                    isDockVisible.value = false
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
+    val currentListState = listStateFor(folder)
+    LaunchedEffect(currentListState.firstVisibleItemIndex, currentListState.firstVisibleItemScrollOffset) {
+        if (currentListState.firstVisibleItemIndex == 0 && currentListState.firstVisibleItemScrollOffset == 0) {
+            isDockVisible.value = true
         }
     }
 
@@ -404,11 +397,57 @@ fun HomeScreen(
         }
     }
 
+    val inboxUnreadFlow = remember(vm) { vm.folderUnread("INBOX") }
+    val promoUnreadFlow = remember(vm) { vm.folderUnread("PROMOTIONS") }
+    val spamUnreadFlow = remember(vm) { vm.folderUnread("SPAM") }
+    val reviewUnreadFlow = remember(vm) { vm.folderUnread("REVIEW") }
+
+    val inboxUnread by inboxUnreadFlow.collectAsStateWithLifecycle()
+    val promoUnread by promoUnreadFlow.collectAsStateWithLifecycle()
+    val spamUnread by spamUnreadFlow.collectAsStateWithLifecycle()
+    val reviewUnread by reviewUnreadFlow.collectAsStateWithLifecycle()
+
+    val dockItems = remember(inboxUnread, promoUnread, spamUnread, reviewUnread) {
+        listOf(
+            DockItem(
+                key = "INBOX",
+                title = resources.getString(R.string.category_personal),
+                outlinedIcon = DockIcons.Personal,
+                filledIcon = DockIcons.Personal,
+                unreadCount = inboxUnread,
+                category = "INBOX",
+            ),
+            DockItem(
+                key = "PROMOTIONS",
+                title = resources.getString(R.string.category_promotional),
+                outlinedIcon = DockIcons.Promotional,
+                filledIcon = DockIcons.Promotional,
+                unreadCount = promoUnread,
+                category = "PROMOTIONS",
+            ),
+            DockItem(
+                key = "SPAM",
+                title = resources.getString(R.string.category_spam),
+                outlinedIcon = DockIcons.Spam,
+                filledIcon = DockIcons.Spam,
+                unreadCount = spamUnread,
+                category = "SPAM",
+            ),
+            DockItem(
+                key = "REVIEW",
+                title = resources.getString(R.string.category_review),
+                outlinedIcon = DockIcons.Review,
+                filledIcon = DockIcons.Review,
+                unreadCount = reviewUnread,
+                category = "REVIEW",
+            ),
+        )
+    }
+
     Box(Modifier.fillMaxSize()) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                // Multi-select contextual bar vs Standard Header (fluid crossfade)
                 AnimatedContent(
                     targetState = selectionActive,
                     transitionSpec = {
@@ -417,366 +456,352 @@ fun HomeScreen(
                     label = "home-topbar-mode",
                 ) { isSelecting ->
                     if (isSelecting) {
-                TopAppBar(
-                    title = {
-                        Text(pluralStringResource(
-                            R.plurals.home_selected_count,
-                            selectedThreads.size, selectedThreads.size,
-                        ))
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { vm.clearSelection() }) {
-                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.home_clear_selection))
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            vm.markThreadsRead(selectedThreads)
-                            vm.clearSelection()
-                        }) {
-                            Icon(Icons.Filled.Drafts, contentDescription = stringResource(R.string.home_mark_read))
-                        }
-                        IconButton(onClick = {
-                            vm.markThreadsUnread(selectedThreads)
-                            vm.clearSelection()
-                        }) {
-                            Icon(Icons.Filled.MarkEmailUnread, contentDescription = stringResource(R.string.home_mark_unread))
-                        }
-                        IconButton(onClick = {
-                            vm.archiveThreads(selectedThreads)
-                            vm.clearSelection()
-                        }) {
-                            Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.home_archive))
-                        }
-                        IconButton(onClick = {
-                            val ids = selectedThreads
-                            val at = vm.trashThreads(ids)
-                            vm.clearSelection()
-                            scope.launch {
-                                val r = snackbarHostState.showSnackbar(
-                                    trashedCount(ids.size),
-                                    actionLabel = undoLabel, withDismissAction = true,
-                                )
-                                if (r == SnackbarResult.ActionPerformed) {
-                                    vm.undoTrashThreads(ids)
-                                }
-                            }
-                        }) {
-                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
-                        }
-                    },
-                )
-                    } else {
                         TopAppBar(
-                    // Secret space entry: press and hold the title for 1.5s —
-                    // standard long-press feel, still deliberate. pointerInput
-                    // + a timed press (not combinedClickable — its long-press
-                    // fires at the system ~400ms timeout). No visual
-                    // affordance: nothing hints the space exists.
-                    title = {
-                        val haptics = androidx.compose.ui.hapticfeedback.HapticFeedbackType
-                        val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
-                        // V2-39: the timed press is pointer input only, so it
-                        // does not exist for TalkBack, Switch Access, a D-pad or
-                        // a keyboard. When the user has opted in, the same
-                        // entry is published as a labelled semantic action and
-                        // a long-click action — additions to the node, never a
-                        // change to the gesture, and never a way past the
-                        // credential prompt underneath.
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        val accessibleEntry = remember {
-                            com.messages.app.ui.secret.SecretEntryAccess.enabled(context)
-                        }
-                        val entryLabel = stringResource(
-                            com.messages.app.ui.secret.SecretEntryAccess.ACTION_LABEL,
-                        )
-                        Text(
-                            stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier
-                                .pointerInput(Unit) {
-                                    awaitEachGesture {
-                                        awaitFirstDown(requireUnconsumed = false)
-                                        val held = try {
-                                            withTimeout(1_500) {
-                                                waitForUpOrCancellation()
-                                                false // released/cancelled before 1.5s
-                                            }
-                                        } catch (_: PointerEventTimeoutCancellationException) {
-                                            true // still down at 1.5s
-                                        }
-                                        if (held) {
-                                            hapticFeedback.performHapticFeedback(haptics.LongPress)
-                                            onSecretEntry()
+                            title = {
+                                Text(
+                                    pluralStringResource(
+                                        R.plurals.home_selected_count,
+                                        selectedThreads.size, selectedThreads.size,
+                                    ),
+                                    style = TextStyle(
+                                        fontFamily = InterFontFamily,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                    ),
+                                )
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = { vm.clearSelection() }) {
+                                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.home_clear_selection))
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = {
+                                    vm.markThreadsRead(selectedThreads)
+                                    vm.clearSelection()
+                                }) {
+                                    Icon(Icons.Filled.Drafts, contentDescription = stringResource(R.string.home_mark_read))
+                                }
+                                IconButton(onClick = {
+                                    vm.markThreadsUnread(selectedThreads)
+                                    vm.clearSelection()
+                                }) {
+                                    Icon(Icons.Filled.MarkEmailUnread, contentDescription = stringResource(R.string.home_mark_unread))
+                                }
+                                IconButton(onClick = {
+                                    vm.archiveThreads(selectedThreads)
+                                    vm.clearSelection()
+                                }) {
+                                    Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.home_archive))
+                                }
+                                IconButton(onClick = {
+                                    val ids = selectedThreads
+                                    val at = vm.trashThreads(ids)
+                                    vm.clearSelection()
+                                    scope.launch {
+                                        val r = snackbarHostState.showSnackbar(
+                                            trashedCount(ids.size),
+                                            actionLabel = undoLabel, withDismissAction = true,
+                                        )
+                                        if (r == SnackbarResult.ActionPerformed) {
+                                            vm.undoTrashThreads(ids)
                                         }
                                     }
+                                }) {
+                                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
                                 }
-                                .then(
-                                    if (!accessibleEntry) Modifier else Modifier.semantics {
-                                        onLongClick(label = entryLabel) {
-                                            onSecretEntry(); true
+                            },
+                        )
+                    } else {
+                        // Standard Header: "Messages" 30sp/700, Shield icon button, More options
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .statusBarsPadding()
+                                .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 0.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            val haptics = androidx.compose.ui.hapticfeedback.HapticFeedbackType
+                            val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            val accessibleEntry = remember {
+                                com.messages.app.ui.secret.SecretEntryAccess.enabled(context)
+                            }
+                            val entryLabel = stringResource(
+                                com.messages.app.ui.secret.SecretEntryAccess.ACTION_LABEL,
+                            )
+
+                            Text(
+                                text = stringResource(R.string.app_name),
+                                style = TextStyle(
+                                    fontFamily = InterFontFamily,
+                                    fontSize = 30.sp,
+                                    fontWeight = FontWeight(700),
+                                    letterSpacing = (-0.5).sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier
+                                    .pointerInput(Unit) {
+                                        awaitEachGesture {
+                                            awaitFirstDown(requireUnconsumed = false)
+                                            val held = try {
+                                                withTimeout(1_500) {
+                                                    waitForUpOrCancellation()
+                                                    false
+                                                }
+                                            } catch (_: PointerEventTimeoutCancellationException) {
+                                                true
+                                            }
+                                            if (held) {
+                                                hapticFeedback.performHapticFeedback(haptics.LongPress)
+                                                onSecretEntry()
+                                            }
                                         }
-                                        customActions = listOf(
-                                            CustomAccessibilityAction(entryLabel) {
+                                    }
+                                    .then(
+                                        if (!accessibleEntry) Modifier else Modifier.semantics {
+                                            onLongClick(label = entryLabel) {
                                                 onSecretEntry(); true
+                                            }
+                                            customActions = listOf(
+                                                CustomAccessibilityAction(entryLabel) {
+                                                    onSecretEntry(); true
+                                                },
+                                            )
+                                        },
+                                    ),
+                            )
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                // Shield button top right (40dp circle, surface bg, green if protected, slashed if off)
+                                val shieldTint = if (isDefaultSmsApp) MaterialTheme.colorScheme.greenText else MaterialTheme.colorScheme.textMuted
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = ripple(),
+                                            onClick = onDashboard,
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = if (isDefaultSmsApp) DockIcons.Shield else DockIcons.ShieldOff,
+                                        contentDescription = stringResource(R.string.home_protection_dashboard),
+                                        tint = shieldTint,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+
+                                // More options button (40dp circle, transparent bg)
+                                Box {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = ripple(),
+                                                onClick = { showHomeMenu = true },
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.MoreVert,
+                                            contentDescription = stringResource(R.string.action_more_options),
+                                            tint = MaterialTheme.colorScheme.onBackground,
+                                            modifier = Modifier.size(22.dp),
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showHomeMenu,
+                                        onDismissRequest = { showHomeMenu = false },
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.settings_title)) },
+                                            onClick = { showHomeMenu = false; onSettings() },
+                                        )
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    if (outboxWaiting > 0) {
+                                                        stringResource(R.string.outbox_title_count, outboxWaiting)
+                                                    } else {
+                                                        stringResource(R.string.outbox_title)
+                                                    }
+                                                )
+                                            },
+                                            onClick = { showHomeMenu = false; onOpenOutbox() },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.archived_title)) },
+                                            onClick = { showHomeMenu = false; onOpenArchived() },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.home_starred_messages)) },
+                                            onClick = { showHomeMenu = false; onOpenStarred() },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.category_blocked)) },
+                                            onClick = {
+                                                showHomeMenu = false
+                                                vm.setFolder("BLOCKED")
                                             },
                                         )
-                                    },
-                                ),
-                        )
-                    },
-                    actions = {
-                        FilledTonalIconButton(
-                            onClick = onSettings,
-                            modifier = Modifier.testTag("home_settings_button"),
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            ),
-                        ) {
-                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
-                        }
-                        Box {
-                            FilledTonalIconButton(
-                                onClick = { showHomeMenu = true },
-                                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                ),
-                            ) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more_options))
-                            }
-                            DropdownMenu(
-                                expanded = showHomeMenu,
-                                onDismissRequest = { showHomeMenu = false },
-                            ) {
-                                // V2-48: the count is in the label rather than
-                                // in a dot, because "3 waiting" is the part
-                                // that decides whether it is worth opening.
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            if (outboxWaiting > 0) {
-                                                stringResource(R.string.outbox_title_count, outboxWaiting)
-                                            } else {
-                                                stringResource(R.string.outbox_title)
-                                            }
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.home_mark_all_as_read)) },
+                                            onClick = {
+                                                showHomeMenu = false
+                                                vm.markFolderRead(folder)
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar(markedReadMessage)
+                                                }
+                                            },
                                         )
-                                    },
-                                    onClick = { showHomeMenu = false; onOpenOutbox() },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.archived_title)) },
-                                    onClick = { showHomeMenu = false; onOpenArchived() },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.home_starred_messages)) },
-                                    onClick = { showHomeMenu = false; onOpenStarred() },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.category_blocked)) },
-                                    onClick = {
-                                        showHomeMenu = false
-                                        vm.setFolder("BLOCKED")
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.home_mark_all_as_read)) },
-                                    onClick = {
-                                        showHomeMenu = false
-                                        vm.markFolderRead(folder)
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar(markedReadMessage)
-                                        }
-                                    },
-                                )
+                                    }
+                                }
                             }
                         }
-                    },
-                )
                     }
                 }
             },
-        floatingActionButton = {
-            // Smooth spring scale transition so FAB doesn't pop or collide with search/selection
-            AnimatedVisibility(
-                visible = !searchActive && !selectionActive,
-                enter = scaleIn(Motion.butterSpring()) + fadeIn(Motion.effectsDefault()),
-                exit = scaleOut(Motion.butterSpring()) + fadeOut(Motion.effectsFast()),
+        ) { padding ->
+            Column(
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .nestedScroll(nestedScrollConnection),
             ) {
-                val fabInteractionSource = remember { MutableInteractionSource() }
-                val fabPressed by fabInteractionSource.collectIsPressedAsState()
-                val fabScale by animateFloatAsState(
-                    targetValue = if (fabPressed) 0.92f else 1f,
-                    animationSpec = Motion.butterSpring(),
-                    label = "fab-scale",
-                )
-                ExtendedFloatingActionButton(
-                    onClick = onCompose,
-                    expanded = fabExpanded,
-                    interactionSource = fabInteractionSource,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = RoundedCornerShape(20.dp),
-                    icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                    text = { Text(stringResource(R.string.home_new_message)) },
-                    modifier = Modifier.graphicsLayer {
-                        scaleX = fabScale
-                        scaleY = fabScale
-                    },
-                )
-            }
-        },
-        bottomBar = {
-            // Smooth spring slide transition so Dock doesn't pop or thrash Scaffold padding
-            AnimatedVisibility(
-                visible = !searchActive && !selectionActive,
-                enter = slideInVertically(Motion.butterSpring()) { it } + fadeIn(Motion.effectsDefault()),
-                exit = slideOutVertically(Motion.butterSpring()) { it } + fadeOut(Motion.effectsFast()),
-            ) {
-                val inboxUnread by vm.folderUnread("INBOX").collectAsStateWithLifecycle(0)
-                val txnUnread by vm.folderUnread("TRANSACTIONS").collectAsStateWithLifecycle(0)
-                val promoUnread by vm.folderUnread("PROMOTIONS").collectAsStateWithLifecycle(0)
-                val reviewUnread by vm.folderUnread("REVIEW").collectAsStateWithLifecycle(0)
-                val spamUnread by vm.folderUnread("SPAM").collectAsStateWithLifecycle(0)
-
-                val txnPalette = categoryPalette("TRANSACTIONS")
-                val promoPalette = categoryPalette("PROMOTIONS")
-                val reviewPalette = categoryPalette("REVIEW")
-                val spamPalette = categoryPalette("SPAM")
-
-                val dockItems = remember(inboxUnread, txnUnread, promoUnread, reviewUnread, spamUnread) {
-                    listOf(
-                        DockItem(
-                            key = "INBOX",
-                            title = resources.getString(R.string.nav_personal),
-                            outlinedIcon = DockIcons.PersonalOutlined,
-                            filledIcon = DockIcons.PersonalFilled,
-                            unreadCount = inboxUnread,
-                            category = "INBOX",
-                        ),
-                        DockItem(
-                            key = "TRANSACTIONS",
-                            title = resources.getString(R.string.nav_bank),
-                            outlinedIcon = DockIcons.BankOutlined,
-                            filledIcon = DockIcons.BankFilled,
-                            unreadCount = txnUnread,
-                            category = "TRANSACTIONS",
-                        ),
-                        DockItem(
-                            key = "PROMOTIONS",
-                            title = resources.getString(R.string.nav_offers),
-                            outlinedIcon = DockIcons.OffersOutlined,
-                            filledIcon = DockIcons.OffersFilled,
-                            unreadCount = promoUnread,
-                            category = "PROMOTIONS",
-                        ),
-                        DockItem(
-                            key = "REVIEW",
-                            title = resources.getString(R.string.nav_review),
-                            outlinedIcon = DockIcons.ReviewOutlined,
-                            filledIcon = DockIcons.ReviewFilled,
-                            unreadCount = reviewUnread,
-                            category = "REVIEW",
-                        ),
-                        DockItem(
-                            key = "SPAM",
-                            title = resources.getString(R.string.nav_spam),
-                            outlinedIcon = DockIcons.SpamOutlined,
-                            filledIcon = DockIcons.SpamFilled,
-                            unreadCount = spamUnread,
-                            category = "SPAM",
-                        ),
+                if (!isDefaultSmsApp) {
+                    DefaultSmsInfoCard(
+                        onRequestDefault = onRequestDefault,
+                        roleRequestFailed = roleRequestFailed,
+                        onOpenAppSettings = onOpenAppSettings,
+                        onOpenDefaultApps = onOpenDefaultApps,
                     )
                 }
 
-                BottomDock(
-                    items = dockItems,
-                    selectedKey = folder,
-                    onItemSelected = { key ->
+                // Search field below header: 40dp pill, 20dp radius, surface color
+                if (!selectionActive) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(),
+                                onClick = { searchActive = true },
+                            )
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(
+                                imageVector = DockIcons.Search,
+                                contentDescription = stringResource(R.string.home_search_placeholder),
+                                tint = MaterialTheme.colorScheme.textMuted,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                text = stringResource(R.string.home_search_placeholder),
+                                style = TextStyle(
+                                    fontFamily = InterFontFamily,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Normal,
+                                ),
+                                color = MaterialTheme.colorScheme.textMuted,
+                            )
+                        }
+                    }
+                }
+
+                // Contacts access banner
+                ContactsPermissionBanner()
+
+                // Folder conversation list
+                FolderPane(
+                    vm = vm,
+                    folder = folder,
+                    listStateFor = listStateFor,
+                    onSelectFolder = { key ->
                         if (key != folder) Haptics.tick(view)
                         vm.setFolder(key)
                     },
+                    onOpenThread = onOpenThread,
+                    onSwipeAction = ::onSwipeAction,
                 )
             }
-        },
-    ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize()) {
+        }
 
-            if (isDefaultSmsApp) {
-                val reviewFlow = remember(vm) { vm.folderUnread("REVIEW") }
-                val reviewWaiting by reviewFlow.collectAsStateWithLifecycle(initialValue = 0)
-                ProtectionStatusCard(reviewWaiting = reviewWaiting, onClick = onDashboard)
-            } else {
-                DefaultSmsInfoCard(
-                    onRequestDefault = onRequestDefault,
-                    roleRequestFailed = roleRequestFailed,
-                    onOpenAppSettings = onOpenAppSettings,
-                    onOpenDefaultApps = onOpenDefaultApps,
-                )
-            }
-
-            // Resting search pill — calm, stable, tactile touch feedback
-            val searchPillInteractionSource = remember { MutableInteractionSource() }
-            val searchPillPressed by searchPillInteractionSource.collectIsPressedAsState()
-            val searchPillScale by animateFloatAsState(
-                targetValue = if (searchPillPressed) 0.98f else 1f,
+        // Floating New Message FAB (48dp round icon-only, green, 20dp from right, above dock at 104dp)
+        AnimatedVisibility(
+            visible = isDockVisible.value && !searchActive && !selectionActive,
+            enter = scaleIn(Motion.butterSpring()) + fadeIn(Motion.effectsDefault()),
+            exit = scaleOut(Motion.butterSpring()) + fadeOut(Motion.effectsFast()),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(end = 20.dp, bottom = 104.dp),
+        ) {
+            val fabInteractionSource = remember { MutableInteractionSource() }
+            val fabPressed by fabInteractionSource.collectIsPressedAsState()
+            val fabScale by animateFloatAsState(
+                targetValue = if (fabPressed) 0.92f else 1f,
                 animationSpec = Motion.butterSpring(),
-                label = "search-pill-scale",
+                label = "fab-scale",
             )
             Box(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-            ) {
-                androidx.compose.material3.Surface(
-                    onClick = { searchActive = true },
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    interactionSource = searchPillInteractionSource,
-                    modifier = Modifier
-                        .testTag("home_search_pill")
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .graphicsLayer {
-                            scaleX = searchPillScale
-                            scaleY = searchPillScale
-                        },
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.Search,
-                            contentDescription = stringResource(R.string.home_search_placeholder),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            stringResource(R.string.home_search_placeholder),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                modifier = Modifier
+                    .size(48.dp)
+                    .graphicsLayer {
+                        scaleX = fabScale
+                        scaleY = fabScale
                     }
-                }
+                    .shadow(elevation = 6.dp, shape = CircleShape)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .clickable(
+                        interactionSource = fabInteractionSource,
+                        indication = ripple(),
+                        onClick = onCompose,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = DockIcons.NewMessage,
+                    contentDescription = stringResource(R.string.home_new_message),
+                    tint = Color(0xFF04210E),
+                    modifier = Modifier.size(22.dp),
+                )
             }
+        }
 
-            // Contacts access banner
-            ContactsPermissionBanner()
-
-            // Folder conversation list
-            FolderPane(
-                vm = vm,
-                folder = folder,
-                listStateFor = listStateFor,
-                onSelectFolder = { key ->
+        // Floating Bottom Dock (64dp tall, fully rounded, 16dp side inset, 24dp from bottom, translucent blurred bg, 1px border)
+        AnimatedVisibility(
+            visible = isDockVisible.value && !searchActive && !selectionActive,
+            enter = slideInVertically(Motion.butterSpring()) { it } + fadeIn(Motion.effectsDefault()),
+            exit = slideOutVertically(Motion.butterSpring()) { it } + fadeOut(Motion.effectsFast()),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            BottomDock(
+                items = dockItems,
+                selectedKey = folder,
+                onItemSelected = { key ->
                     if (key != folder) Haptics.tick(view)
                     vm.setFolder(key)
                 },
-                onOpenThread = onOpenThread,
-                onSwipeAction = ::onSwipeAction,
             )
         }
     }
@@ -902,14 +927,8 @@ fun HomeScreen(
         }
     }
 }
-}
 
-private sealed interface HomeRow {
-    data class Header(val labelRes: Int) : HomeRow
-    data class Item(val conv: ConversationEntity, val indexInGroup: Int, val groupSize: Int) : HomeRow
-}
-
-/** Folder chips + the conversation list, with a directional animated switch (§9). */
+/** Conversation list, with a directional animated switch (§9). Flat list without section headers or card containers. */
 @Composable
 private fun FolderPane(
     vm: HomeViewModel,
@@ -922,277 +941,83 @@ private fun FolderPane(
     val rightAction by SwipeActions.right.collectAsStateWithLifecycle()
     val leftAction by SwipeActions.left.collectAsStateWithLifecycle()
     val drafts by com.messages.app.ui.common.DraftStore.drafts.collectAsStateWithLifecycle()
-    val unreadOnly by vm.unreadOnly.collectAsStateWithLifecycle()
     val selectedThreads by vm.selectedThreads.collectAsStateWithLifecycle()
     val selectionActive = selectedThreads.isNotEmpty()
     val rowView = LocalView.current
-    var badgeSheet by remember {
-        mutableStateOf<com.messages.protection.SenderBadges.Badge?>(null)
-    }
-    Column(Modifier.fillMaxSize()) {
-        // Top filter sub-bar: Unread only filter chip
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FilterChip(
-                selected = unreadOnly,
-                onClick = { vm.setUnreadOnly(!unreadOnly) },
-                label = { Text(stringResource(R.string.home_filter_unread), style = MaterialTheme.typography.labelMedium) },
-                leadingIcon = if (unreadOnly) {
-                    {
-                        Icon(
-                            Icons.Filled.Close, contentDescription = stringResource(R.string.home_clear_unread_filter),
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
-                } else null,
-                shape = RoundedCornerShape(12.dp),
-            )
-        }
 
-        // Animated folder switch: content slides toward the tapped direction
-        // on expressive butter springs; paired with subtle scale morphs.
-        AnimatedContent(
-            targetState = folder,
-            transitionSpec = {
-                val from = FOLDERS.indexOfFirst { it.first == initialState }
-                val to = FOLDERS.indexOfFirst { it.first == targetState }
-                val dir = if (to >= from) 1 else -1
-                ((slideInHorizontally(Motion.butterSpring()) { it / 3 * dir } +
-                    fadeIn(Motion.effectsDefault()) +
-                    scaleIn(Motion.butterSpring(), initialScale = 0.96f)) togetherWith
-                    (slideOutHorizontally(Motion.butterSpring()) { -it / 3 * dir } +
-                        fadeOut(Motion.effectsFast()) +
-                        scaleOut(Motion.butterSpring(), targetScale = 0.96f))).apply {
-                    targetContentZIndex = 1f
-                }
-            },
-            label = "folder-switch",
-        ) { targetFolder ->
-            val folderListState = listStateFor(targetFolder)
-            val loadState by remember(targetFolder, unreadOnly) {
-                if (unreadOnly) vm.unreadConversationsFor(targetFolder)
-                else vm.conversationsFor(targetFolder)
-            }.collectAsStateWithLifecycle()
-
-            val pastGrace = rememberLoadingGrace(loadState is LoadState.Loading)
-            val conversations = loadState.valueOrNull.orEmpty()
-            val badgeMeta by vm.latestIncomingMeta.collectAsStateWithLifecycle()
-
-            val pinnedList = remember(conversations) { conversations.filter { it.pinned } }
-            val regularList = remember(conversations, pinnedList) {
-                if (pinnedList.isNotEmpty()) conversations.filter { !it.pinned }
-                else conversations
+    AnimatedContent(
+        targetState = folder,
+        transitionSpec = {
+            val from = FOLDERS.indexOfFirst { it.first == initialState }
+            val to = FOLDERS.indexOfFirst { it.first == targetState }
+            val dir = if (to >= from) 1 else -1
+            ((slideInHorizontally(Motion.butterSpring()) { it / 3 * dir } +
+                fadeIn(Motion.effectsDefault()) +
+                scaleIn(Motion.butterSpring(), initialScale = 0.96f)) togetherWith
+                (slideOutHorizontally(Motion.butterSpring()) { -it / 3 * dir } +
+                    fadeOut(Motion.effectsFast()) +
+                    scaleOut(Motion.butterSpring(), targetScale = 0.96f))).apply {
+                targetContentZIndex = 1f
             }
+        },
+        label = "folder-switch",
+    ) { targetFolder ->
+        val folderListState = listStateFor(targetFolder)
+        val loadState by remember(targetFolder) {
+            vm.conversationsFor(targetFolder)
+        }.collectAsStateWithLifecycle()
 
-            when (listRender(loadState, pastGrace)) {
-                ListRender.NOTHING -> Box(Modifier.fillMaxSize()) // fast load, no flash
-                ListRender.LOADING -> ListSkeleton(stringResource(R.string.home_loading_conversations))
-                ListRender.FAILED -> LoadFailedState(
-                    headline = stringResource(R.string.home_load_failed),
-                    reason = (loadState as? LoadState.Failed)?.reason,
-                    onRetry = vm::retry,
-                )
-                ListRender.EMPTY ->
-                    if (unreadOnly) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                stringResource(R.string.home_no_unread),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    } else EmptyFolderState(targetFolder)
-                ListRender.CONTENT -> {
-                    val listScope = rememberCoroutineScope()
-                    val shownList = if (pinnedList.isNotEmpty() && !unreadOnly) regularList else conversations
-                    val rows = remember(shownList) {
-                        if (shownList.isEmpty()) {
-                            emptyList()
-                        } else {
-                            val now = System.currentTimeMillis()
-                            val zone = java.util.TimeZone.getDefault()
-                            val nowDay = DateSkeletons.localDayOf(now, zone)
+        val pastGrace = rememberLoadingGrace(loadState is LoadState.Loading)
+        val conversations = loadState.valueOrNull.orEmpty()
 
-                            val todayList = mutableListOf<ConversationEntity>()
-                            val yesterdayList = mutableListOf<ConversationEntity>()
-                            val thisWeekList = mutableListOf<ConversationEntity>()
-                            val earlierList = mutableListOf<ConversationEntity>()
-
-                            for (conv in shownList) {
-                                val msgDay = DateSkeletons.localDayOf(conv.lastTimestamp, zone)
-                                val diff = nowDay - msgDay
-                                when {
-                                    diff <= 0L -> todayList.add(conv)
-                                    diff == 1L -> yesterdayList.add(conv)
-                                    diff in 2L..6L -> thisWeekList.add(conv)
-                                    else -> earlierList.add(conv)
-                                }
-                            }
-
-                            buildList {
-                                fun addGroup(labelRes: Int, list: List<ConversationEntity>) {
-                                    if (list.isNotEmpty()) {
-                                        add(HomeRow.Header(labelRes))
-                                        val size = list.size
-                                        list.forEachIndexed { index, conv ->
-                                            add(HomeRow.Item(conv, index, size))
-                                        }
-                                    }
-                                }
-                                addGroup(R.string.home_group_today, todayList)
-                                addGroup(R.string.home_group_yesterday, yesterdayList)
-                                addGroup(R.string.home_group_this_week, thisWeekList)
-                                addGroup(R.string.home_group_earlier, earlierList)
-                            }
-                        }
-                    }
-                    Box(Modifier.fillMaxSize()) {
+        when (listRender(loadState, pastGrace)) {
+            ListRender.NOTHING -> Box(Modifier.fillMaxSize()) // fast load, no flash
+            ListRender.LOADING -> ListSkeleton(stringResource(R.string.home_loading_conversations))
+            ListRender.FAILED -> LoadFailedState(
+                headline = stringResource(R.string.home_load_failed),
+                reason = (loadState as? LoadState.Failed)?.reason,
+                onRetry = vm::retry,
+            )
+            ListRender.EMPTY -> EmptyFolderState(targetFolder)
+            ListRender.CONTENT -> {
+                Box(Modifier.fillMaxSize()) {
                     LazyColumn(
                         state = folderListState,
-                        modifier = Modifier.fillMaxSize().testTag("home_conversation_list"),
-                        contentPadding = PaddingValues(bottom = 88.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("home_conversation_list"),
+                        contentPadding = PaddingValues(bottom = 120.dp),
                     ) {
-                        if (pinnedList.isNotEmpty() && !unreadOnly) {
-                            item(key = "pinned_carousel") {
-                                PinnedConversationsRow(
-                                    pinnedList = pinnedList,
-                                    onOpenThread = { if (targetFolder == folder) onOpenThread(it) },
-                                )
-                            }
-                        }
-
                         items(
-                            items = rows,
-                            key = { if (it is HomeRow.Header) "h_${it.labelRes}" else (it as HomeRow.Item).conv.threadId },
-                        ) { row ->
-                            when (row) {
-                                is HomeRow.Header -> {
-                                    Text(
-                                        text = stringResource(row.labelRes),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier
-                                            .animateItem(
-                                                fadeInSpec = Motion.effectsDefault(),
-                                                placementSpec = Motion.spatialDefault(),
-                                                fadeOutSpec = Motion.effectsFast(),
-                                            )
-                                            .padding(start = 24.dp, top = 12.dp, bottom = 6.dp),
-                                    )
-                                }
-                                is HomeRow.Item -> {
-                                    val conv = row.conv
-                                    val meta = badgeMeta[conv.threadId]
-                                    val badge = remember(conv.address, conv.contactName, meta) {
-                                        com.messages.protection.SenderBadges.badgeFor(
-                                            address = conv.address,
-                                            isContact = conv.contactName != null,
-                                            dangerous = meta?.dangerous == true || meta?.fraudWarning == true,
-                                            protectedLabel = meta?.protectedLabel,
-                                        )
+                            items = conversations,
+                            key = { it.threadId },
+                        ) { conv ->
+                            SwipeableConversationRow(
+                                conv = conv,
+                                draft = drafts[conv.threadId],
+                                rightAction = rightAction,
+                                leftAction = leftAction,
+                                onAction = onSwipeAction,
+                                accessibilityActionsEnabled = !selectionActive,
+                                onClick = {
+                                    if (targetFolder == folder) {
+                                        if (selectionActive) vm.toggleSelected(conv.threadId)
+                                        else onOpenThread(conv.threadId)
                                     }
-                                    // Redesign: rows are grouped into one rounded card
-                                    // (first/last rows carry the outer corners).
-                                    val cardShape = when {
-                                        row.groupSize == 1 -> RoundedCornerShape(28.dp)
-                                        row.indexInGroup == 0 -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                                        row.indexInGroup == row.groupSize - 1 ->
-                                            RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
-                                        else -> RectangleShape
-                                    }
-                                    Column(
-                                        Modifier
-                                            .animateItem(
-                                                fadeInSpec = Motion.effectsDefault(),
-                                                placementSpec = Motion.spatialDefault(),
-                                                fadeOutSpec = Motion.effectsFast(),
-                                            )
-                                            .padding(horizontal = 16.dp)
-                                            .clip(cardShape)
-                                            .background(MaterialTheme.colorScheme.groupCard)
-                                            .groupCardOutline(
-                                                index = row.indexInGroup,
-                                                size = row.groupSize,
-                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-                                            ),
-                                    ) {
-                                    SwipeableConversationRow(
-                                        conv = conv,
-                                        draft = drafts[conv.threadId],
-                                        rightAction = rightAction,
-                                        leftAction = leftAction,
-                                        onAction = onSwipeAction,
-                                        accessibilityActionsEnabled = !selectionActive,
-                                        onClick = {
-                                            if (targetFolder == folder) {
-                                                if (selectionActive) vm.toggleSelected(conv.threadId)
-                                                else onOpenThread(conv.threadId)
-                                            }
-                                        },
-                                        badge = badge,
-                                        onBadgeTap = { badgeSheet = it },
-                                        selectionActive = selectionActive,
-                                        selected = conv.threadId in selectedThreads,
-                                        onLongClick = {
-                                            Haptics.longPress(rowView)
-                                            vm.toggleSelected(conv.threadId)
-                                        },
-                                        // A vertical list drag may carry a small horizontal wobble.
-                                        // Do not let that in-flight scroll commit a row action.
-                                        canCommitSwipe = { !folderListState.isScrollInProgress },
-                                        cardShape = cardShape,
-                                    )
-                                    // Inset divider starting at the text column (plan
-                                    // §1 prototype) — never after the last row.
-                                    if (row.indexInGroup < row.groupSize - 1) {
-                                        HorizontalDivider(
-                                            modifier = Modifier
-                                                .padding(start = 16.dp + ROW_AVATAR + ROW_GAP),
-                                            color = MaterialTheme.colorScheme.outlineVariant
-                                                .copy(alpha = 0.5f),
-                                        )
-                                    }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    // Jump back to the newest conversations after scrolling
-                    // deep into the list (Google Messages affordance).
-                    // Bottom-start so it never collides with the compose FAB.
-                    val showJumpTop by remember(folderListState) {
-                        derivedStateOf { folderListState.firstVisibleItemIndex > 6 }
-                    }
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = showJumpTop,
-                        enter = scaleIn(Motion.butterSpring()) + fadeIn(Motion.effectsDefault()),
-                        exit = scaleOut(Motion.butterSpring()) + fadeOut(Motion.effectsFast()),
-                        modifier = Modifier.align(Alignment.BottomStart).padding(16.dp),
-                    ) {
-                        SmallFloatingActionButton(
-                            onClick = {
-                                listScope.launch { folderListState.animateScrollToItem(0) }
-                            },
-                        ) {
-                            Icon(
-                                Icons.Filled.KeyboardArrowUp,
-                                contentDescription = stringResource(R.string.home_back_to_top),
+                                },
+                                selectionActive = selectionActive,
+                                selected = conv.threadId in selectedThreads,
+                                onLongClick = {
+                                    Haptics.longPress(rowView)
+                                    vm.toggleSelected(conv.threadId)
+                                },
+                                canCommitSwipe = { !folderListState.isScrollInProgress },
                             )
                         }
-                    }
                     }
                 }
             }
         }
-    }
-    badgeSheet?.let { b ->
-        com.messages.app.ui.common.SenderBadgeSheet(b, onDismiss = { badgeSheet = null })
     }
 }
 
@@ -1857,7 +1682,6 @@ private fun SwipeableConversationRow(
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     canCommitSwipe: () -> Boolean = { true },
-    cardShape: androidx.compose.ui.graphics.Shape = androidx.compose.ui.graphics.RectangleShape,
 ) {
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val rightEnabled = rightAction != SwipeActions.NONE && !selectionActive
@@ -1865,10 +1689,7 @@ private fun SwipeableConversationRow(
 
     if (selectionActive || (!rightEnabled && !leftEnabled)) {
         Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .clip(cardShape)
-                .background(MaterialTheme.colorScheme.groupCard),
+            modifier = modifier.fillMaxWidth(),
         ) {
             ConversationRow(
                 conv = conv, draft = draft, onClick = onClick,
@@ -1916,9 +1737,7 @@ private fun SwipeableConversationRow(
     }
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(cardShape),
+        modifier = modifier.fillMaxWidth(),
     ) {
         val currentAction = swipeAction
         if (currentAction != null && rowWidthPx.floatValue > 0f) {
@@ -1937,8 +1756,6 @@ private fun SwipeableConversationRow(
             Modifier
                 .fillMaxWidth()
                 .graphicsLayer { translationX = liveOffset.floatValue + returnOffset.value }
-                .clip(cardShape)
-                .background(MaterialTheme.colorScheme.groupCard)
                 .pointerInput(conv.threadId, rightAction, leftAction, selectionActive, isRtl) {
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { change, dragAmount ->
@@ -2187,12 +2004,8 @@ private fun ConversationRow(
 ) {
     val unread = conv.unreadCount > 0
     val context = LocalContext.current
-    val rowShape = RoundedCornerShape(20.dp)
-    val rowBg = if (selected) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-    } else {
-        Color.Transparent
-    }
+    val rowBg = if (selected) MaterialTheme.colorScheme.selectedRow else Color.Transparent
+
     val rowInteractionSource = remember { MutableInteractionSource() }
     val rowPressed by rowInteractionSource.collectIsPressedAsState()
     val rowScale by animateFloatAsState(
@@ -2201,20 +2014,22 @@ private fun ConversationRow(
         label = "row-press-scale",
     )
 
+    val displayName = remember(conv.contactName, conv.address) {
+        conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
+    }
+    val avatarLetter = remember(displayName) {
+        displayName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    }
+
     Row(
-        modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .height(68.dp)
             .graphicsLayer {
                 scaleX = rowScale
                 scaleY = rowScale
             }
-            .clip(rowShape)
             .background(rowBg)
-            .then(
-                if (selected) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, rowShape)
-                else Modifier
-            )
             .combinedClickable(
                 interactionSource = rowInteractionSource,
                 indication = androidx.compose.material3.ripple(),
@@ -2249,130 +2064,130 @@ private fun ConversationRow(
                     }
                 }
             }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ContactAvatar(
-            conv.contactName ?: conv.address,
-            conv.category,
-            modifier = Modifier.sharedThreadAvatar(conv.threadId),
-            size = ROW_AVATAR,
-            // Locked chats keep their masked row anonymous — monogram only.
-            photoUri = if (conv.locked) null
-            else com.messages.app.ui.common.rememberContactPhoto(conv.address),
-        )
-        Spacer(Modifier.width(ROW_GAP))
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        // Neutral avatar: 44dp circle, surface bg, 1px hairline border, 18sp/600 textMuted letter
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.hairline, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = avatarLetter,
+                style = TextStyle(
+                    fontFamily = InterFontFamily,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = MaterialTheme.colorScheme.textMuted,
+            )
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        // Right column with inset hairline bottom border
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                // Top line: Name (16sp, 600 if unread, 500 if read) and Time (12sp, greenText if unread, textMuted if read)
                 Row(
-                    Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        conv.contactName ?: conv.address,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium,
+                        text = displayName,
+                        style = TextStyle(
+                            fontFamily = InterFontFamily,
+                            fontSize = 16.sp,
+                            fontWeight = if (unread) FontWeight.SemiBold else FontWeight.Medium,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        // fill=false: short names keep the badge hugging them,
-                        // long names still ellipsize before the badge.
-                        modifier = Modifier.weight(1f, fill = false).sharedThreadName(conv.threadId),
+                        modifier = Modifier.weight(1f, fill = false),
                     )
-                    if (badge != null && badge != com.messages.protection.SenderBadges.Badge.VERIFIED) {
-                        Spacer(Modifier.width(4.dp))
-                        com.messages.app.ui.common.SenderBadgeIcon(
-                            badge,
-                            onClick = { onBadgeTap(badge) },
-                        )
-                    }
-                    if (conv.muted) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            Icons.Outlined.NotificationsOff,
-                            contentDescription = stringResource(R.string.home_muted),
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Text(
+                        text = formatTime(conv.lastTimestamp),
+                        style = TextStyle(
+                            fontFamily = InterFontFamily,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Normal,
+                        ),
+                        color = if (unread) MaterialTheme.colorScheme.greenText else MaterialTheme.colorScheme.textMuted,
+                    )
                 }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    formatTime(conv.lastTimestamp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (unread && !conv.muted) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Draft preview (§8.1) outranks the last message, like Google
-                // Messages — but never leaks content from locked chats.
-                val showDraft = draft != null && !conv.locked
-                Text(
-                    when {
+
+                Spacer(Modifier.height(3.dp))
+
+                // Bottom line: Preview (14sp muted, 1 line ellipsis) and Unread count badge (20dp green pill)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val previewText = when {
                         conv.locked -> stringResource(R.string.conversation_locked_preview)
-                        showDraft -> stringResource(R.string.home_draft_prefix, draft)
+                        draft != null -> stringResource(R.string.home_draft_prefix, draft)
                         else -> conv.lastMessage
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (unread) FontWeight.Medium else FontWeight.Normal,
-                    color = when {
-                        showDraft -> MaterialTheme.colorScheme.primary
-                        unread -> MaterialTheme.colorScheme.onSurface
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                // Single trailing-indicator slot (plan §1): unread badge wins
-                // over the pin glyph; never both. Muted chats keep their count
-                // in a calm gray badge instead of the loud primary one.
-                when {
-                    unread -> {
-                        Spacer(Modifier.width(8.dp))
-                        // `semantics { }` is not a composable scope.
-                        val unreadLabel = pluralStringResource(
-                            if (conv.muted) R.plurals.home_unread_count_muted
-                            else R.plurals.home_unread_count,
-                            conv.unreadCount, conv.unreadCount,
-                        )
-                        if (conv.muted) {
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ) {
-                                Text(
-                                    conv.unreadCount.toString(),
-                                    modifier = Modifier.semantics {
-                                        contentDescription = unreadLabel
-                                    },
-                                )
-                            }
-                        } else {
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ) {
-                                Text(
-                                    conv.unreadCount.toString(),
-                                    modifier = Modifier.semantics {
-                                        contentDescription = unreadLabel
-                                    },
-                                )
-                            }
+                    }
+                    Text(
+                        text = previewText,
+                        style = TextStyle(
+                            fontFamily = InterFontFamily,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                        ),
+                        color = MaterialTheme.colorScheme.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    if (unread) {
+                        Spacer(Modifier.width(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .height(20.dp)
+                                .widthIn(min = 20.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.primary)
+                                .padding(horizontal = 6.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = conv.unreadCount.toString(),
+                                style = TextStyle(
+                                    fontFamily = InterFontFamily,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                ),
+                                color = Color(0xFF04210E),
+                            )
                         }
                     }
-                    conv.pinned -> {
-                        Spacer(Modifier.width(8.dp))
-                        Icon(
-                            Icons.Outlined.PushPin, contentDescription = stringResource(R.string.home_pinned),
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
             }
+
+            // Inset hairline divider at the bottom of the right column
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.hairline,
+                thickness = 1.dp,
+            )
         }
     }
 }
