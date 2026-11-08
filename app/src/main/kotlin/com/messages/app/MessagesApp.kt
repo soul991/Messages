@@ -10,21 +10,33 @@ import com.messages.core.search.FtsBackfill
 import com.messages.core.trash.TrashRetention
 import kotlinx.coroutines.launch
 
-class MessagesApp : Application() {
+class MessagesApp : Application(), androidx.work.Configuration.Provider {
+
+    override val workManagerConfiguration: androidx.work.Configuration
+        get() = androidx.work.Configuration.Builder()
+            .setMinimumLoggingLevel(android.util.Log.INFO)
+            .build()
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
         com.messages.app.ui.home.SwipeActions.init(this)
         com.messages.app.ui.common.DraftStore.init(this)
-        OtpCleanup.ensureScheduled(this)
-        SpamCleanup.ensureScheduled(this)
-        TrashRetention.ensureScheduled(this)
-        FtsBackfill.ensureScheduled(this)
-        com.messages.app.drive.DriveBackup.reschedule(this)
         com.messages.core.contacts.ContactSync.ensureObserver(this)
         com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
-        com.messages.core.telephony.TelephonySyncManager.triggerSync(this)
+
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+        ).launch {
+            runCatching {
+                OtpCleanup.ensureScheduled(this@MessagesApp)
+                SpamCleanup.ensureScheduled(this@MessagesApp)
+                TrashRetention.ensureScheduled(this@MessagesApp)
+                FtsBackfill.ensureScheduled(this@MessagesApp)
+                com.messages.app.drive.DriveBackup.reschedule(this@MessagesApp)
+                com.messages.core.telephony.TelephonySyncManager.triggerSync(this@MessagesApp)
+            }
+        }
         releaseStaleScheduledClaims()
         settleAbandonedMmsTransactions()
         sealLockedBacklog()
@@ -117,22 +129,64 @@ class MessagesApp : Application() {
      */
     private fun createNotificationChannels() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // Safe migration: check if review channel was previously created with IMPORTANCE_LOW.
+        // Android prevents increasing channel importance via createNotificationChannel if already registered.
+        // We recreate it with IMPORTANCE_DEFAULT while preserving user-configured sound and vibration.
+        val existingReview = nm.getNotificationChannel(CH_REVIEW)
+        if (existingReview != null && existingReview.importance < NotificationManager.IMPORTANCE_DEFAULT) {
+            val sound = existingReview.sound
+            val audioAttrs = existingReview.audioAttributes
+            val shouldVibrate = existingReview.shouldVibrate()
+            val pattern = existingReview.vibrationPattern
+            val lights = existingReview.shouldShowLights()
+
+            nm.deleteNotificationChannel(CH_REVIEW)
+            val updatedReview = NotificationChannel(
+                CH_REVIEW,
+                getString(R.string.channel_review_name),
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = getString(R.string.channel_review_desc)
+                if (sound != null && audioAttrs != null) {
+                    setSound(sound, audioAttrs)
+                }
+                enableVibration(shouldVibrate)
+                if (pattern != null) {
+                    vibrationPattern = pattern
+                }
+                enableLights(lights)
+            }
+            nm.createNotificationChannel(updatedReview)
+        }
+
+        // Safe migration: Bank merged into Personal in UI redesign.
+        // If the legacy "transactions" channel exists, clean it up so it does not
+        // linger in system settings.
+        val existingTransactions = nm.getNotificationChannel(CH_TRANSACTIONS)
+        if (existingTransactions != null) {
+            nm.deleteNotificationChannel(CH_TRANSACTIONS)
+        }
+
         nm.createNotificationChannels(
             listOf(
                 NotificationChannel(CH_PERSONAL, getString(R.string.channel_personal_name), NotificationManager.IMPORTANCE_HIGH).apply {
                     description = getString(R.string.channel_personal_desc)
                 },
-                NotificationChannel(CH_TRANSACTIONS, getString(R.string.channel_transactions_name), NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = getString(R.string.channel_transactions_desc)
+                NotificationChannel(CH_PROMOTIONS, getString(R.string.channel_promotions_name), NotificationManager.IMPORTANCE_LOW).apply {
+                    description = getString(R.string.channel_promotions_desc)
                 },
-                NotificationChannel(CH_REVIEW, getString(R.string.channel_review_name), NotificationManager.IMPORTANCE_LOW).apply {
+                NotificationChannel(CH_SPAM, getString(R.string.channel_spam_name), NotificationManager.IMPORTANCE_MIN).apply {
+                    description = getString(R.string.channel_spam_desc)
+                    enableLights(false)
+                    enableVibration(false)
+                    setShowBadge(false)
+                },
+                NotificationChannel(CH_REVIEW, getString(R.string.channel_review_name), NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = getString(R.string.channel_review_desc)
                 },
                 NotificationChannel(CH_REMINDERS, getString(R.string.channel_reminders_name), NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = getString(R.string.channel_reminders_desc)
-                },
-                NotificationChannel(CH_PROMOTIONS, getString(R.string.channel_promotions_name), NotificationManager.IMPORTANCE_LOW).apply {
-                    description = getString(R.string.channel_promotions_desc)
                 },
                 // Phase 4 item 19 (Truecaller report rec A4): fraud warnings are
                 // the ONE exception to "filtered folders stay silent" — ordinary
@@ -148,7 +202,6 @@ class MessagesApp : Application() {
                     description = "Shows download progress when updating the app"
                     setShowBadge(false)
                 },
-                // Spam/Blocked have NO channel — they are silent, badge only (§4)
             )
         )
     }
@@ -157,6 +210,7 @@ class MessagesApp : Application() {
         const val CH_PERSONAL = "personal"
         const val CH_TRANSACTIONS = "transactions"
         const val CH_PROMOTIONS = "promotions"
+        const val CH_SPAM = "spam"
         const val CH_REVIEW = "review"
         const val CH_REMINDERS = "reminders"
         const val CH_FRAUD = "fraud_warnings"

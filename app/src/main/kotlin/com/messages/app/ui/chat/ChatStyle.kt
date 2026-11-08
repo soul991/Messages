@@ -34,18 +34,9 @@ object ChatStyle {
         val darkContainer: Color, val darkOn: Color,
     )
 
-    /** "default" = the theme's sentBubbleContainer role (dynamic color). */
+    /** "default" = the fixed system theme iMessage green sent bubble. */
     val bubblePresets = listOf(
-        BubblePreset("default", "Dynamic", Color.Unspecified, Color.Unspecified, Color.Unspecified, Color.Unspecified),
-        // The classic messenger green (Phase 5 §2): shipped as a preset, never
-        // the default — refs-adjacent hues, AA-paired in both themes.
-        BubblePreset("green", "Green", Color(0xFFDCF7C5), Color(0xFF12351A), Color(0xFF1F5423), Color(0xFFDCF7C5)),
-        BubblePreset("ocean", "Ocean", Color(0xFF00629E), Color.White, Color(0xFF99CBFF), Color(0xFF003355)),
-        BubblePreset("forest", "Forest", Color(0xFF1B6C31), Color.White, Color(0xFF88D896), Color(0xFF00391A)),
-        BubblePreset("sunset", "Sunset", Color(0xFFA83C22), Color.White, Color(0xFFFFB59B), Color(0xFF5B1A00)),
-        BubblePreset("berry", "Berry", Color(0xFF7B3E8F), Color.White, Color(0xFFE9B3F0), Color(0xFF3E0E4F)),
-        BubblePreset("slate", "Slate", Color(0xFF4C5C6C), Color.White, Color(0xFFB4C4D4), Color(0xFF1E2A36)),
-        BubblePreset("amber", "Amber", Color(0xFF7A5900), Color.White, Color(0xFFEFC047), Color(0xFF3F2E00)),
+        BubblePreset("default", "Default", Color.Unspecified, Color.Unspecified, Color.Unspecified, Color.Unspecified),
     )
 
     @Immutable
@@ -56,29 +47,8 @@ object ChatStyle {
         val dark: List<Color>,
     )
 
-    /** Subtle vertical gradients — bubbles must stay legible on top. */
     val wallpaperPresets = listOf(
-        WallpaperPreset("none", "None", emptyList(), emptyList()),
-        WallpaperPreset(
-            "mist", "Mist",
-            listOf(Color(0xFFE3F0FA), Color(0xFFFAF7F2)),
-            listOf(Color(0xFF12202C), Color(0xFF17151F)),
-        ),
-        WallpaperPreset(
-            "dawn", "Dawn",
-            listOf(Color(0xFFFFF3E0), Color(0xFFFDE7EF)),
-            listOf(Color(0xFF2A1E2E), Color(0xFF141016)),
-        ),
-        WallpaperPreset(
-            "meadow", "Meadow",
-            listOf(Color(0xFFE6F4E7), Color(0xFFF3F9EC)),
-            listOf(Color(0xFF13241B), Color(0xFF101613)),
-        ),
-        WallpaperPreset(
-            "sand", "Sand",
-            listOf(Color(0xFFFFF8E1), Color(0xFFFBEDE7)),
-            listOf(Color(0xFF262014), Color(0xFF161310)),
-        ),
+        WallpaperPreset("none", "None", emptyList<Color>(), emptyList<Color>()),
     )
 
     const val WALLPAPER_PHOTO = "photo"
@@ -87,52 +57,25 @@ object ChatStyle {
 
     private fun key(space: String, threadId: Long, prefix: String) = "${prefix}_${space}:${threadId}"
 
-    fun bubbleId(ctx: Context, threadId: Long, space: String = Spaces.NORMAL): String =
-        prefs(ctx).getString(key(space, threadId, "bubble"), "default") ?: "default"
+    fun bubbleId(ctx: Context, threadId: Long, space: String = Spaces.NORMAL): String = "default"
 
-    fun wallpaperId(ctx: Context, threadId: Long, space: String = Spaces.NORMAL): String =
-        prefs(ctx).getString(key(space, threadId, "wallpaper"), "none") ?: "none"
+    fun wallpaperId(ctx: Context, threadId: Long, space: String = Spaces.NORMAL): String = "none"
 
-    fun setBubble(ctx: Context, threadId: Long, id: String, space: String = Spaces.NORMAL) {
-        prefs(ctx).edit().putString(key(space, threadId, "bubble"), id).apply()
-    }
+    fun setBubble(ctx: Context, threadId: Long, id: String, space: String = Spaces.NORMAL) {}
 
-    fun setWallpaper(ctx: Context, threadId: Long, id: String, space: String = Spaces.NORMAL) {
-        prefs(ctx).edit().putString(key(space, threadId, "wallpaper"), id).apply()
-        if (id != WALLPAPER_PHOTO) photoFile(ctx, threadId, space).delete()
-    }
+    fun setWallpaper(ctx: Context, threadId: Long, id: String, space: String = Spaces.NORMAL) {}
 
     fun photoFile(ctx: Context, threadId: Long, space: String = Spaces.NORMAL): File =
         File(File(ctx.filesDir, "wallpapers").apply { mkdirs() }, "wp_${space}_${threadId}.jpg")
 
-    /** Copies the picked image locally, then selects it. Returns false on failure. */
-    fun importPhoto(ctx: Context, threadId: Long, uri: Uri, space: String = Spaces.NORMAL): Boolean = try {
-        ctx.contentResolver.openInputStream(uri)?.use { input ->
-            photoFile(ctx, threadId, space).outputStream().use { input.copyTo(it) }
-        } != null && run {
-            prefs(ctx).edit().putString(key(space, threadId, "wallpaper"), WALLPAPER_PHOTO).apply()
-            true
-        }
-    } catch (_: Exception) {
-        false
-    }
+    fun importPhoto(ctx: Context, threadId: Long, uri: Uri, space: String = Spaces.NORMAL): Boolean = false
 
-    /** Outgoing-bubble container/on pair for the active theme. */
+    /** Outgoing-bubble container/on pair strictly following fixed design system tokens. */
     @Composable
-    fun bubbleColors(id: String): Pair<Color, Color> {
-        val preset = bubblePresets.firstOrNull { it.id == id && it.id != "default" }
-            ?: return com.messages.designsystem.LocalSentBubble.current
-                .let { it.container to it.onContainer }
-        return if (LocalDarkTheme.current) preset.darkContainer to preset.darkOn
-        else preset.lightContainer to preset.lightOn
-    }
+    fun bubbleColors(id: String): Pair<Color, Color> =
+        com.messages.designsystem.LocalSentBubble.current.let { it.container to it.onContainer }
 
-    /** Wallpaper brush for a gradient preset, or null (none / photo). */
+    /** Fixed palette: wallpapers are disabled; background is fixed black (#000000) or off-white (#F7F7F4). */
     @Composable
-    fun wallpaperBrush(id: String): Brush? {
-        val preset = wallpaperPresets.firstOrNull { it.id == id && it.light.isNotEmpty() }
-            ?: return null
-        val colors = if (LocalDarkTheme.current) preset.dark else preset.light
-        return Brush.verticalGradient(colors)
-    }
+    fun wallpaperBrush(id: String): Brush? = null
 }

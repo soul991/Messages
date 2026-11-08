@@ -1,5 +1,8 @@
 package com.messages.designsystem
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -9,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -41,10 +45,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -100,14 +107,11 @@ data class DockItem(
 }
 
 /**
- * Bottom Dock styled as a floating liquid-glass capsule (Phase 5 / Orchid Refresh).
+ * Bottom Dock styled as a floating pill (Tokens / Design Reference truth).
  *
- * Floating capsule: 12dp side margin, 8dp above navigation bar inset, 60dp height,
- * full-round capsule shape, surfaceContainer at 0.92 alpha with 0.5dp outlineVariant hairline,
- * and 6dp soft shadow elevation.
- *
- * Indicator is ONE composable (GlassIndicator) driven by Animatable<Float> position and lift,
- * with critically damped glide, lift spring dynamics, drag tracking, and reduced motion fallback.
+ * Floating capsule: 16dp side margins, 24dp from bottom (+ navigation bar insets),
+ * 64dp height, 32dp corner radius (dockRadius), translucent dockBackground,
+ * 1px dockBorder, and neutral dockActivePill on the active tab.
  */
 @Composable
 fun BottomDock(
@@ -122,193 +126,122 @@ fun BottomDock(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        Surface(
+        // Floating Dock Glass Container (64dp height, 32dp corner radius)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
-            shadowElevation = 6.dp,
-            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                .height(64.dp),
         ) {
-            BoxWithConstraints(
+            // Glass background layer with 20dp blur where supported (API 31+)
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-            ) {
-                val totalWidthPx = constraints.maxWidth.toFloat()
-                val density = LocalDensity.current
-                val itemCount = items.size.coerceAtLeast(1)
-                val tabWidthPx = totalWidthPx / itemCount
-                val tabWidthDp = with(density) { tabWidthPx.toDp() }
-                val selectedIndex = items.indexOfFirst { it.key == selectedKey }.coerceAtLeast(0)
-
-                val xAnim = remember { Animatable(selectedIndex * tabWidthPx) }
-                val liftAnim = remember { Animatable(0f) }
-                var glideJob by remember { mutableStateOf<Job?>(null) }
-
-                // Synchronize target position when selectedKey changes externally or via clicks
-                LaunchedEffect(selectedIndex, tabWidthPx) {
-                    val targetPx = selectedIndex * tabWidthPx
-                    if (kotlin.math.abs(xAnim.value - targetPx) > 1f) {
-                        glideJob?.cancel()
-                        glideJob = launch {
-                            if (Motion.animationsEnabled()) {
-                                launch {
-                                    liftAnim.animateTo(1f, spring(dampingRatio = 1f, stiffness = 420f))
-                                }
-                                xAnim.animateTo(targetPx, spring(dampingRatio = 1f, stiffness = 290f))
-                                liftAnim.animateTo(0f, spring(dampingRatio = 1f, stiffness = 210f))
-                            } else {
-                                xAnim.snapTo(targetPx)
-                                liftAnim.snapTo(0f)
+                    .matchParentSize()
+                    .then(
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            Modifier.graphicsLayer {
+                                val blurPx = 20.dp.toPx()
+                                renderEffect = RenderEffect
+                                    .createBlurEffect(blurPx, blurPx, Shader.TileMode.CLAMP)
+                                    .asComposeRenderEffect()
                             }
-                        }
-                    }
-                }
+                        } else Modifier
+                    )
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(MaterialTheme.colorScheme.dockBackground),
+            )
 
-                // Reusable Liquid-Glass Indicator (0 recompositions per frame)
-                GlassIndicator(
-                    xAnim = xAnim,
-                    liftAnim = liftAnim,
-                    widthDp = tabWidthDp,
-                )
-
-                // Tab slots
+            // Crisp border & content layer
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(32.dp),
+                color = Color.Transparent,
+                shadowElevation = 0.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.dockBorder),
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    items.forEachIndexed { index, item ->
-                        val selected = index == selectedIndex
-                        val iconScale by animateFloatAsState(
-                            targetValue = if (selected) 1.0f else 0.92f,
-                            animationSpec = Motion.spatialFast(),
-                            label = "dock-icon-scale",
+                    items.forEach { item ->
+                        val selected = item.key == selectedKey
+                        val iconColor = dockIconColor(item.key, isDark)
+                        val labelColor = if (selected) {
+                            MaterialTheme.colorScheme.onBackground
+                        } else {
+                            MaterialTheme.colorScheme.textMuted
+                        }
+
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val isPressed by interactionSource.collectIsPressedAsState()
+                        val tabScale by animateFloatAsState(
+                            targetValue = if (isPressed) 0.94f else 1f,
+                            animationSpec = Motion.bouncySpring(),
+                            label = "tab-scale-${item.key}",
+                        )
+                        val pillAlpha by animateFloatAsState(
+                            targetValue = if (selected) 1f else 0f,
+                            animationSpec = Motion.effectsDefault(),
+                            label = "pill-alpha-${item.key}",
                         )
 
                         Box(
                             modifier = Modifier
                                 .testTag("dock_${item.key}")
                                 .weight(1f)
-                                .fillMaxHeight()
-                                .clip(CircleShape)
+                                .graphicsLayer {
+                                    scaleX = tabScale
+                                    scaleY = tabScale
+                                }
+                                .clip(RoundedCornerShape(26.dp))
                                 .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
+                                    interactionSource = interactionSource,
                                     indication = ripple(
                                         bounded = true,
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        color = iconColor.copy(alpha = 0.15f),
                                     ),
                                     onClick = {
                                         if (!selected) {
                                             onItemSelected(item.key)
                                         }
                                     },
-                                ),
+                                )
+                                .padding(vertical = 8.dp),
                             contentAlignment = Alignment.Center,
                         ) {
+                            // Neutral active pill with spring alpha fade
+                            if (pillAlpha > 0.01f) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .graphicsLayer { alpha = pillAlpha }
+                                        .background(MaterialTheme.colorScheme.dockActivePill, RoundedCornerShape(26.dp))
+                                )
+                            }
+
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
-                                Box(contentAlignment = Alignment.TopEnd) {
-                                    Crossfade(
-                                        targetState = selected,
-                                        animationSpec = Motion.effectsDefault(),
-                                        label = "dock-icon-crossfade",
-                                    ) { isSelected ->
-                                        val icon = if (isSelected) item.filledIcon else item.outlinedIcon
-                                        val tint = if (isSelected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                        Icon(
-                                            imageVector = icon,
-                                            contentDescription = item.title,
-                                            tint = tint,
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .graphicsLayer {
-                                                    scaleX = iconScale
-                                                    scaleY = iconScale
-                                                },
-                                        )
-                                    }
-
-                                    // Notification Badge (Coral tertiary spark)
-                                    if (item.unreadCount > 0) {
-                                        val badgeBg = MaterialTheme.colorScheme.tertiary
-                                        val badgeText = MaterialTheme.colorScheme.onTertiary
-                                        val ringColor = MaterialTheme.colorScheme.surfaceContainer
-
-                                        Box(
-                                            modifier = Modifier
-                                                .offset(x = 10.dp, y = (-4).dp)
-                                                .height(18.dp)
-                                                .widthIn(min = 18.dp)
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(badgeBg)
-                                                .border(
-                                                    1.5.dp,
-                                                    ringColor,
-                                                    RoundedCornerShape(8.dp),
-                                                )
-                                                .padding(horizontal = 4.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text(
-                                                text = if (item.unreadCount > 99) "99+" else item.unreadCount.toString(),
-                                                color = badgeText,
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    lineHeight = 10.sp,
-                                                ),
-                                                maxLines = 1,
-                                            )
-                                        }
-                                    } else if (item.showDot) {
-                                        val dotColor = if (item.category == "SPAM" || item.key == "SPAM") {
-                                            MaterialTheme.colorScheme.error
-                                        } else {
-                                            MaterialTheme.colorScheme.tertiary
-                                        }
-                                        val ringColor = MaterialTheme.colorScheme.surfaceContainer
-
-                                        Box(
-                                            modifier = Modifier
-                                                .offset(x = 6.dp, y = (-2).dp)
-                                                .size(8.dp)
-                                                .clip(CircleShape)
-                                                .background(dotColor)
-                                                .border(
-                                                    1.5.dp,
-                                                    ringColor,
-                                                    CircleShape,
-                                                ),
-                                        )
-                                    }
-                                }
-
-                                Spacer(Modifier.height(2.dp))
-
-                                val labelColor = if (selected) {
-                                    if (isDark) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
+                                Icon(
+                                    imageVector = if (selected) item.filledIcon else item.outlinedIcon,
+                                    contentDescription = item.title,
+                                    tint = iconColor,
+                                    modifier = Modifier.size(22.dp),
+                                )
 
                                 Text(
                                     text = item.title,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
+                                    style = TextStyle(
+                                        fontFamily = InterFontFamily,
+                                        fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium,
-                                        letterSpacing = 0.1.sp,
+                                        letterSpacing = 0.sp,
                                     ),
                                     color = labelColor,
                                     maxLines = 1,

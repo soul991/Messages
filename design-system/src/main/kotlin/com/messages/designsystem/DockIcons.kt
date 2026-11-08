@@ -21,6 +21,192 @@ object DockIcons {
     private fun parseNodes(pathData: String) = PathParser().parsePathString(pathData).toNodes()
 
     // -------------------------------------------------------------------------
+    // Design Source of Truth Icons (Feather / Lucide matching Main.html & Chats-light.html)
+    // -------------------------------------------------------------------------
+
+    val Personal: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DockIcons.Personal",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = parseNodes("M12 4 A4 4 0 1 1 12 12 A4 4 0 1 1 12 4"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = parseNodes("M4 21a8 8 0 0 1 16 0"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    val Promotional: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DockIcons.Promotional",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = parseNodes("M3 12V4h8l10 10-8 8z"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = parseNodes("M7.5 7.5 A1 1 0 1 1 7.5 9.5 A1 1 0 1 1 7.5 7.5"),
+                fill = SolidColor(Color.White),
+            )
+        }.build()
+    }
+
+    val Spam: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DockIcons.Spam",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = parseNodes("M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = parseNodes("M12 8v4M12 15.5v.01"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    val Review: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DockIcons.Review",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = parseNodes("M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = parseNodes("M12 9 A3 3 0 1 1 12 15 A3 3 0 1 1 12 9"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    val Shield: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DockIcons.Shield",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).addPath(
+            pathData = parseNodes("M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"),
+            stroke = SolidColor(Color.White),
+            strokeLineWidth = 1.8f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ).build()
+    }
+
+    val ShieldOff: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DockIcons.ShieldOff",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = parseNodes("M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = parseNodes("M1 1l22 22"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    val NewMessage: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DockIcons.NewMessage",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).addPath(
+            pathData = parseNodes("M4 20h4L19 9l-4-4L4 16z"),
+            stroke = SolidColor(Color.White),
+            strokeLineWidth = 1.8f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ).build()
+    }
+
+    val Search: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DockIcons.Search",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = parseNodes("M11 4 A7 7 0 1 1 11 18 A7 7 0 1 1 11 4"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = parseNodes("M20 20l-4-4"),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    val PromotionalOutlined: ImageVector get() = Promotional
+    val PromotionalFilled: ImageVector get() = Promotional
+
+    // -------------------------------------------------------------------------
     // 1. Personal (INBOX): Telegram-style User Profile Avatar in Circle
     // -------------------------------------------------------------------------
 

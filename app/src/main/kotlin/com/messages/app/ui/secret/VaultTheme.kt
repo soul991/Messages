@@ -38,29 +38,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.messages.app.R
-import com.messages.app.ThemePreferences
-import com.messages.designsystem.AccentSeed
+import com.messages.designsystem.FixedDarkColorScheme
 import com.messages.designsystem.LocalDarkTheme
 import com.messages.designsystem.LocalSentBubble
 import com.messages.designsystem.Motion
 import com.messages.designsystem.SentBubbleColors
-import com.messages.designsystem.schemeForSeed
 
 /**
  * The vault treatment (Phase 7): every secret-space screen renders inside
- * this wrapper — a DARK, AMOLED-black scheme derived from the user's active
- * accent seed via the SAME generators the app theme uses (`schemeForSeed` /
- * dynamic dark). Deliberately dark even in light theme: the space must read
- * as a different place from the normal inbox. This is a re-parameterization
- * of the existing design system, not a fork — no new color constants, no new
- * duration constants; the accent shows as thin glows and edges, never slabs.
- */
-/**
- * True inside the secret space. Dialogs and bottom sheets create their OWN
- * windows — the activity's FLAG_SECURE does not extend to them — so every
- * dialog/sheet that can render inside the space asks these helpers for its
- * window properties. SecureOn inside the vault, Inherit outside (normal-space
- * behavior unchanged).
+ * this wrapper — a fixed DARK scheme (#000000 black canvas).
  */
 val LocalSecureSurfaces = androidx.compose.runtime.staticCompositionLocalOf { false }
 
@@ -87,16 +73,7 @@ fun secureSheetProperties(): androidx.compose.material3.ModalBottomSheetProperti
 
 @Composable
 fun VaultTheme(content: @Composable () -> Unit) {
-    val context = LocalContext.current
-    val accent = remember { ThemePreferences.currentAccent(context) }
-    val base = when {
-        accent == AccentSeed.DYNAMIC && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            dynamicDarkColorScheme(context)
-        accent == AccentSeed.DYNAMIC -> schemeForSeed(AccentSeed.BLUE, dark = true)
-        else -> schemeForSeed(accent, dark = true)
-    }
-    // AMOLED-black canvas — same overlay rule as the app's AMOLED tier.
-    val scheme = base.copy(surface = Color.Black, background = Color.Black)
+    val scheme = FixedDarkColorScheme
     CompositionLocalProvider(
         LocalDarkTheme provides true,
         LocalSentBubble provides SentBubbleColors(scheme.primary, scheme.onPrimary),
@@ -104,8 +81,8 @@ fun VaultTheme(content: @Composable () -> Unit) {
     ) {
         MaterialTheme(
             colorScheme = scheme,
-            typography = MaterialTheme.typography, // inherit the app's hierarchy
-            shapes = MaterialTheme.shapes, // inherit the app's shape scale (MessagesShapes)
+            typography = MaterialTheme.typography,
+            shapes = MaterialTheme.shapes,
             content = content,
         )
     }

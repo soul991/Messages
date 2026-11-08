@@ -57,9 +57,12 @@ class NotificationRoutingTest {
     }
 
     @Test fun `review channel constant is IMPORTANCE_LOW`() {
-        // CH_REVIEW is registered with IMPORTANCE_LOW in MessagesApp.onCreate.
         // Pinning the name here ensures the channel id stays consistent.
         assertEquals("review", MessagesApp.CH_REVIEW)
+    }
+
+    @Test fun `spam channel constant is the expected value`() {
+        assertEquals("spam", MessagesApp.CH_SPAM)
     }
 
     // ── Spam ──────────────────────────────────────────────────────────────────
@@ -92,14 +95,10 @@ class NotificationRoutingTest {
 
     // ── Transactions ──────────────────────────────────────────────────────────
 
-    @Test fun `transactions route to the transactions channel when enabled`() {
-        val action = route(Category.TRANSACTIONS, notifyTransactions = true)
+    @Test fun `transactions route to the personal channel as bank is merged into personal`() {
+        val action = route(Category.TRANSACTIONS)
         assertTrue("expected Post, got $action", action is NotifyAction.Post)
-        assertEquals(MessagesApp.CH_TRANSACTIONS, (action as NotifyAction.Post).channel)
-    }
-
-    @Test fun `transactions are silent when the user turned them off`() {
-        assertEquals(NotifyAction.Silent, route(Category.TRANSACTIONS, notifyTransactions = false))
+        assertEquals(MessagesApp.CH_PERSONAL, (action as NotifyAction.Post).channel)
     }
 
     // ── Promotions ────────────────────────────────────────────────────────────

@@ -64,7 +64,12 @@ import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.filled.Delete
+import com.messages.designsystem.selectedRow
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Image
@@ -113,6 +118,8 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import com.messages.designsystem.GlassTopBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -151,7 +158,10 @@ import com.messages.app.ui.common.sharedThreadName
 import com.messages.app.ui.common.AppDateFormat
 import com.messages.app.ui.common.minTouchTarget
 import com.messages.core.db.MessageEntity
+import com.messages.core.util.FriendlySenderNames
+import com.messages.designsystem.DesignTokens
 import com.messages.designsystem.Haptics
+import com.messages.designsystem.LocalDarkTheme
 import com.messages.designsystem.Motion
 import com.messages.designsystem.categoryPalette
 import java.util.Calendar
@@ -261,6 +271,7 @@ fun ChatScreen(
     val clipboardManager = LocalClipboardManager.current
     val inLockedSpace = space == com.messages.core.db.Spaces.LOCKED
     val vm: ChatViewModel = viewModel(
+        key = "chat_${space}_$threadId",
         factory = ChatViewModelFactory(context.applicationContext as Application, threadId, fallbackAddress, space)
     )
     val messages by vm.messages.collectAsStateWithLifecycle()
@@ -277,7 +288,6 @@ fun ChatScreen(
     val wallpaperId by vm.wallpaperId.collectAsStateWithLifecycle()
     val wallpaperVersion by vm.wallpaperVersion.collectAsStateWithLifecycle()
     var showSimMenu by remember { mutableStateOf(false) }
-    var showCustomizeSheet by remember { mutableStateOf(false) }
     // Verified-sender badge (Phase 2): decided by the engine from the sender
     // type + the LATEST INCOMING message's fraud/protected state — a scam
     // impersonating a bank suppresses all trust chrome.
@@ -369,6 +379,7 @@ fun ChatScreen(
 
     // ---- Message multi-select (Phase 4 item 14) ----
     var selectedMsgIds by remember { mutableStateOf(setOf<Long>()) }
+    var selectionInfoMsg by remember { mutableStateOf<com.messages.core.db.MessageEntity?>(null) }
     val msgSelectionActive = selectedMsgIds.isNotEmpty()
     var showForwardPicker by remember { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(enabled = msgSelectionActive) {
@@ -559,93 +570,156 @@ fun ChatScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            val hintPrefs = remember {
-                context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-            }
-            var contactHintDone by remember {
-                mutableStateOf(hintPrefs.getBoolean("contact_info_hint_done", false))
-            }
-            val topBarMode = when {
-                msgSelectionActive -> ChatTopBarMode.SELECTION
-                chatSearchActive -> ChatTopBarMode.SEARCH
-                else -> ChatTopBarMode.NORMAL
-            }
-            AnimatedContent(
-                targetState = topBarMode,
-                transitionSpec = {
-                    fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
-                },
-                label = "chat-top-bar",
-            ) { mode ->
-                when (mode) {
-                    ChatTopBarMode.SELECTION -> {
-                        // Message multi-select bar (Phase 4 item 14).
-                        TopAppBar(
-                            title = {
+            val isDark = LocalDarkTheme.current
+            GlassTopBar(isDark = isDark) {
+                val hintPrefs = remember {
+                    context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                }
+                var contactHintDone by remember {
+                    mutableStateOf(hintPrefs.getBoolean("contact_info_hint_done", false))
+                }
+                val topBarMode = when {
+                    msgSelectionActive -> ChatTopBarMode.SELECTION
+                    chatSearchActive -> ChatTopBarMode.SEARCH
+                    else -> ChatTopBarMode.NORMAL
+                }
+                AnimatedContent(
+                    targetState = topBarMode,
+                    transitionSpec = {
+                        fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
+                    },
+                    label = "chat-top-bar",
+                ) { mode ->
+                    when (mode) {
+                        ChatTopBarMode.SELECTION -> {
+                            // Message multi-select bar matching Select.html
+                            var showOverflowMenu by remember { mutableStateOf(false) }
+                            TopAppBar(
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = Color.Transparent,
+                                ),
+                                title = {
                                 Text(
-                                    pluralStringResource(
-                                        R.plurals.chat_selected_count,
-                                        selectedMsgIds.size,
-                                        selectedMsgIds.size,
-                                    )
+                                    text = selectedMsgIds.size.toString(),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontSize = 20.sp,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
                                 )
                             },
                             navigationIcon = {
                                 IconButton(onClick = { selectedMsgIds = emptySet() }) {
-                                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.chat_clear_selection))
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = stringResource(R.string.chat_clear_selection),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                    )
                                 }
                             },
                             actions = {
+                                // 1. Copy
                                 IconButton(onClick = {
                                     val text = selectedTexts()
                                     if (text.isNotBlank()) {
                                         clipboardManager.setText(AnnotatedString(text))
+                                        Haptics.confirm(view)
                                     }
                                     selectedMsgIds = emptySet()
                                 }) {
-                                    Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.action_copy))
+                                    Icon(Icons.Outlined.ContentCopy, contentDescription = stringResource(R.string.action_copy))
                                 }
+                                // 2. Star
+                                val anyUnstarred = messages.any { it.id in selectedMsgIds && !it.starred }
                                 IconButton(onClick = {
-                                    selectedMsgIds.forEach { vm.star(it, true) }
+                                    selectedMsgIds.forEach { vm.star(it, anyUnstarred) }
+                                    Haptics.confirm(view)
                                     selectedMsgIds = emptySet()
                                 }) {
-                                    Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.chat_star))
+                                    Icon(
+                                        if (anyUnstarred) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                        contentDescription = stringResource(R.string.chat_star),
+                                    )
                                 }
+                                // 3. Pin
+                                val anyUnpinned = selectedMsgIds.any { it !in pinnedIds }
+                                IconButton(onClick = {
+                                    selectedMsgIds.forEach { id ->
+                                        PinStore.setPinned(context, threadId, id, pinned = anyUnpinned, space = space)
+                                    }
+                                    Haptics.confirm(view)
+                                    selectedMsgIds = emptySet()
+                                }) {
+                                    Icon(
+                                        Icons.Filled.PushPin,
+                                        contentDescription = stringResource(R.string.home_pin),
+                                    )
+                                }
+                                // 4. Forward
                                 IconButton(
                                     onClick = { showForwardPicker = true },
                                     enabled = selectedTexts().isNotBlank(),
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = stringResource(R.string.chat_forward))
                                 }
+                                // 5. Info
                                 IconButton(onClick = {
-                                    val text = selectedTexts()
-                                    if (text.isNotBlank()) {
-                                        runCatching {
-                                            context.startActivity(
-                                                android.content.Intent.createChooser(
-                                                    android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                                        type = "text/plain"
-                                                        putExtra(android.content.Intent.EXTRA_TEXT, text)
-                                                    },
-                                                    shareChooserTitle,
-                                                )
-                                            )
-                                        }
+                                    val firstId = selectedMsgIds.firstOrNull()
+                                    if (firstId != null) {
+                                        selectionInfoMsg = messages.firstOrNull { it.id == firstId }
                                     }
-                                    selectedMsgIds = emptySet()
                                 }) {
-                                    Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.action_share))
+                                    Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.chat_info))
                                 }
-                                IconButton(onClick = {
-                                    val n = selectedMsgIds.size
-                                    selectedMsgIds.forEach { vm.delete(it) }
-                                    selectedMsgIds = emptySet()
-                                    val msg = context.resources.getQuantityString(R.plurals.chat_moved_to_trash, n, n)
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(msg)
+                                // 6. More (⋮ overflow with Delete, Share)
+                                Box {
+                                    IconButton(onClick = { showOverflowMenu = true }) {
+                                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more_options))
                                     }
-                                }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
+                                    DropdownMenu(
+                                        expanded = showOverflowMenu,
+                                        onDismissRequest = { showOverflowMenu = false },
+                                        shape = RoundedCornerShape(8.dp),
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.action_delete)) },
+                                            leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                                            modifier = Modifier.heightIn(min = 48.dp),
+                                            onClick = {
+                                                showOverflowMenu = false
+                                                val n = selectedMsgIds.size
+                                                selectedMsgIds.forEach { vm.delete(it) }
+                                                selectedMsgIds = emptySet()
+                                                val msg = context.resources.getQuantityString(R.plurals.chat_moved_to_trash, n, n)
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar(msg)
+                                                }
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.action_share)) },
+                                            leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                                            modifier = Modifier.heightIn(min = 48.dp),
+                                            onClick = {
+                                                showOverflowMenu = false
+                                                val text = selectedTexts()
+                                                if (text.isNotBlank()) {
+                                                    runCatching {
+                                                        context.startActivity(
+                                                            android.content.Intent.createChooser(
+                                                                android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                                    type = "text/plain"
+                                                                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                                                },
+                                                                shareChooserTitle,
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                                selectedMsgIds = emptySet()
+                                            },
+                                        )
+                                    }
                                 }
                             },
                         )
@@ -654,6 +728,9 @@ fun ChatScreen(
                         // In-conversation search bar (§8.5.3): live query, match count,
                         // next/previous arrows.
                         TopAppBar(
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                            ),
                             title = {
                                 TextField(
                                     value = chatSearchQuery,
@@ -722,6 +799,9 @@ fun ChatScreen(
                     }
                     ChatTopBarMode.NORMAL -> {
                         TopAppBar(
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                            ),
                             title = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -734,23 +814,23 @@ fun ChatScreen(
                                         onOpenContact()
                                     },
                                 ) {
-                                    // Shared element with the list row's avatar (§9).
+                                    val friendlyName = remember(address, contactName) {
+                                        contactName ?: FriendlySenderNames.format(address)
+                                    }
                                     ContactAvatar(
-                                        contactName ?: address,
+                                        friendlyName,
                                         category,
-                                        size = 38.dp,
-                                        textStyle = MaterialTheme.typography.titleMedium,
+                                        size = 36.dp,
                                         modifier = Modifier.sharedThreadAvatar(threadId, alwaysActive = true),
                                         photoUri = com.messages.app.ui.common.rememberContactPhoto(address.ifBlank { null }),
                                     )
-                                    Spacer(Modifier.width(12.dp))
+                                    Spacer(Modifier.width(8.dp))
                                     Column(Modifier.weight(1f, fill = false)) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            // Single line + ellipsis so the badge never
-                                            // wraps the header (queued Phase 2 cosmetic).
                                             Text(
-                                                contactName ?: address,
-                                                style = MaterialTheme.typography.titleMedium,
+                                                friendlyName,
+                                                fontSize = 16.sp,
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                                                 maxLines = 1,
                                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                                 modifier = Modifier.weight(1f, fill = false).sharedThreadName(threadId, alwaysActive = true),
@@ -763,15 +843,13 @@ fun ChatScreen(
                                                 )
                                             }
                                         }
-                                        when {
-                                            !contactHintDone -> Text(
-                                                stringResource(R.string.chat_tap_for_contact_info),
-                                                style = MaterialTheme.typography.bodySmall,
+                                        if (address.isNotBlank() && address != friendlyName) {
+                                            Text(
+                                                address,
+                                                fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                            contactName != null -> Text(
-                                                address, style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                             )
                                         }
                                     }
@@ -800,14 +878,12 @@ fun ChatScreen(
                                     DropdownMenu(
                                         expanded = showChatMenu,
                                         onDismissRequest = { showChatMenu = false },
+                                        shape = RoundedCornerShape(8.dp),
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                        tonalElevation = 6.dp,
+                                        shadowElevation = 8.dp,
                                     ) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.chat_customize_chat)) },
-                                            onClick = {
-                                                showChatMenu = false
-                                                showCustomizeSheet = true
-                                            },
-                                        )
                                         // Secret space: "Lock chat" opens the two-option
                                         // sheet (normal space); inside the locked space
                                         // the action is "Unlock chat" (move back).
@@ -818,6 +894,7 @@ fun ChatScreen(
                                                     showChatMenu = false
                                                     showLockSheet = true
                                                 },
+                                                modifier = Modifier.heightIn(min = 48.dp),
                                             )
                                         } else {
                                             DropdownMenuItem(
@@ -826,6 +903,7 @@ fun ChatScreen(
                                                     showChatMenu = false
                                                     vm.unlockChat(onDone = onBack)
                                                 },
+                                                modifier = Modifier.heightIn(min = 48.dp),
                                             )
                                         }
                                         DropdownMenuItem(
@@ -852,7 +930,8 @@ fun ChatScreen(
                     }
                 }
             }
-        },
+        }
+    },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().imePadding()) {
             // Pinned-messages banner (Phase 4 item 6): tap scrolls to the
@@ -1012,7 +1091,7 @@ fun ChatScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().testTag("chat_message_list"),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     items(
@@ -1360,22 +1439,6 @@ fun ChatScreen(
             )
         }
 
-        // Per-chat customization sheet (§8.2).
-        if (showCustomizeSheet) {
-            CustomizeChatSheet(
-                currentBubble = bubbleStyleId,
-                currentWallpaper = wallpaperId,
-                onBubble = { Haptics.tick(view); vm.setBubbleStyle(it) },
-                onWallpaper = { Haptics.tick(view); vm.setWallpaper(it) },
-                onPickPhoto = {
-                    wallpaperPicker.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-                onDismiss = { showCustomizeSheet = false },
-            )
-        }
-
         // Forward-to-conversation picker (Phase 4 item 14): recents + search.
         if (showForwardPicker) {
             androidx.compose.material3.ModalBottomSheet(
@@ -1440,6 +1503,14 @@ fun ChatScreen(
                     }
                 }
             }
+        }
+
+        selectionInfoMsg?.let { msg ->
+            MessageInfoSheet(
+                msg = msg,
+                simName = simNameFor(msg.subId),
+                onDismiss = { selectionInfoMsg = null },
+            )
         }
 
         // Quick-reply templates sheet (Phase 4 item 8): tap fills the composer.
@@ -1652,156 +1723,6 @@ private fun ComposerField(
     )
 }
 
-/** Per-chat customization sheet (§8.2): bubble color swatches + wallpapers. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CustomizeChatSheet(
-    currentBubble: String,
-    currentWallpaper: String,
-    onBubble: (String) -> Unit,
-    onWallpaper: (String) -> Unit,
-    onPickPhoto: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    androidx.compose.material3.ModalBottomSheet(
-                properties = com.messages.app.ui.secret.secureSheetProperties(),
-                onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
-            Text(stringResource(R.string.chat_customize_chat), style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(20.dp))
-
-            Text(
-                stringResource(R.string.chat_bubble_color),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(10.dp))
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ChatStyle.bubblePresets.forEach { preset ->
-                    val fill = if (preset.id == "default") MaterialTheme.colorScheme.primary
-                    else if (com.messages.designsystem.LocalDarkTheme.current) preset.darkContainer
-                    else preset.lightContainer
-                    val selected = currentBubble == preset.id
-                    Box(
-                        Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(fill)
-                            .then(
-                                if (selected) Modifier.border(
-                                    3.dp, MaterialTheme.colorScheme.onSurface, CircleShape,
-                                ) else Modifier
-                            )
-                            .clickable { onBubble(preset.id) }
-                            .semantics {
-                                contentDescription =
-                                    "${preset.name} bubble color" + if (selected) ", selected" else ""
-                            },
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-            Text(
-                stringResource(R.string.chat_wallpaper),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(10.dp))
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ChatStyle.wallpaperPresets.forEach { preset ->
-                    val selected = currentWallpaper == preset.id
-                    val colors =
-                        if (com.messages.designsystem.LocalDarkTheme.current) preset.dark else preset.light
-                    WallpaperTile(
-                        label = preset.name,
-                        selected = selected,
-                        onClick = { onWallpaper(preset.id) },
-                    ) {
-                        if (colors.isEmpty()) {
-                            Box(
-                                Modifier.fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            )
-                        } else {
-                            Box(
-                                Modifier.fillMaxSize()
-                                    .background(
-                                        androidx.compose.ui.graphics.Brush.verticalGradient(colors)
-                                    )
-                            )
-                        }
-                    }
-                }
-                WallpaperTile(
-                    label = stringResource(R.string.chat_wallpaper_photo),
-                    selected = currentWallpaper == ChatStyle.WALLPAPER_PHOTO,
-                    onClick = onPickPhoto,
-                ) {
-                    Box(
-                        Modifier.fillMaxSize()
-                            .background(MaterialTheme.colorScheme.secondaryContainer),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Filled.Image, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WallpaperTile(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    preview: @Composable () -> Unit,
-) {
-    // `semantics { }` is not a composable scope, so the description is resolved
-    // here and read inside the lambda.
-    val tileDescription = stringResource(
-        if (selected) R.string.chat_wallpaper_option_selected else R.string.chat_wallpaper_option,
-        label,
-    )
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            Modifier
-                .size(width = 56.dp, height = 84.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .then(
-                    if (selected) Modifier.border(
-                        3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp),
-                    ) else Modifier
-                )
-                .clickable(onClick = onClick)
-                .semantics {
-                    contentDescription = tileDescription
-                },
-        ) { preview() }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (selected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
 @Composable
 private fun AttachOption(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -1872,6 +1793,7 @@ private fun Modifier.messageEntrance(
 
 @Composable
 private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
+    val isDark = LocalDarkTheme.current
     val todayLabel = stringResource(R.string.chat_date_today)
     val yesterdayLabel = stringResource(R.string.chat_date_yesterday)
     val label = remember(ts, todayLabel, yesterdayLabel) {
@@ -1891,13 +1813,13 @@ private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
     }
     Box(modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
         Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(12.dp),
+            color = if (isDark) DesignTokens.DatePill.DarkFill else DesignTokens.DatePill.LightFill,
         ) {
             Text(
                 label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                color = if (isDark) DesignTokens.Dark.TextMuted else DesignTokens.Light.TextMuted,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             )
         }
@@ -1942,10 +1864,7 @@ private fun MessageBubble(
     val context = LocalContext.current
     val isOut = msg.isOutgoing
     val isScheduled = msg.sendStatus == "SCHEDULED"
-    var showMenu by remember { mutableStateOf(false) }
-    var showSnoozeMenu by remember { mutableStateOf(false) }
     var showInfoSheet by remember { mutableStateOf(false) }
-    var showSelectDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     // V2-51: bumped when the user corrects or hides the summary card, so the
     // memoised extraction is recomputed against the new dismissals. The
@@ -1953,8 +1872,8 @@ private fun MessageBubble(
     // came back on the next scroll would read as the app overruling the user.
     var cardTick by remember(msg.id) { mutableIntStateOf(0) }
     val fraudPalette = categoryPalette("SPAM")
-    // Refs' bubble grid (plan §2): bubbles cap at ~76% of screen width.
-    val maxBubbleWidth = (LocalConfiguration.current.screenWidthDp * 0.76f).dp
+    // Refs' bubble grid: bubbles cap at 84% of screen width matching Thread.html.
+    val maxBubbleWidth = (LocalConfiguration.current.screenWidthDp * 0.84f).dp
 
     // Smart text actions (Phase 4 item 5): platform TextClassifier entities,
     // NEVER on Spam/Blocked or Dangerous/fraud-flagged messages.
@@ -1971,25 +1890,8 @@ private fun MessageBubble(
             value = SmartText.spansFor(context, msg.id, msg.body)
         }.value
 
-    // Grouped-bubble corners: 20dp concentric outer corners, tight 6dp intra-group corners, 4dp tail
-    val big = 20.dp
-    val cont = 6.dp
-    val tail = 4.dp
-    val bubbleShape = if (isOut) {
-        when {
-            firstInGroup && lastInGroup -> RoundedCornerShape(big)
-            firstInGroup && !lastInGroup -> RoundedCornerShape(topStart = big, bottomStart = big, topEnd = big, bottomEnd = cont)
-            !firstInGroup && !lastInGroup -> RoundedCornerShape(topStart = big, bottomStart = big, topEnd = cont, bottomEnd = cont)
-            else -> RoundedCornerShape(topStart = big, bottomStart = big, topEnd = cont, bottomEnd = tail)
-        }
-    } else {
-        when {
-            firstInGroup && lastInGroup -> RoundedCornerShape(big)
-            firstInGroup && !lastInGroup -> RoundedCornerShape(topStart = big, bottomStart = cont, topEnd = big, bottomEnd = big)
-            !firstInGroup && !lastInGroup -> RoundedCornerShape(topStart = cont, bottomStart = cont, topEnd = big, bottomEnd = big)
-            else -> RoundedCornerShape(topStart = cont, bottomStart = tail, topEnd = big, bottomEnd = big)
-        }
-    }
+    // Bubble radius: 20dp per tokens/design-tokens.json & Thread.html
+    val bubbleShape = RoundedCornerShape(20.dp)
 
     val isEmoji = isEmojiOnly(msg.body) && msg.mediaUri == null
     val reply = remember(msg.body) { parseReply(msg.body) }
@@ -2005,7 +1907,8 @@ private fun MessageBubble(
     Column(
         modifier
             .fillMaxWidth()
-            .padding(top = if (firstInGroup) 12.dp else 1.dp),
+            .background(if (selected) MaterialTheme.colorScheme.selectedRow else Color.Transparent)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
     ) {
         // Red fraud-warning banner (Stage 2 exception / dangerous label)
@@ -2042,7 +1945,7 @@ private fun MessageBubble(
                         onClick = { if (selectionMode) onToggleSelect() },
                         onLongClick = {
                             Haptics.longPress(view)
-                            if (selectionMode) onToggleSelect() else showMenu = true
+                            onToggleSelect()
                         },
                     )
                     .padding(horizontal = 6.dp, vertical = 2.dp),
@@ -2067,7 +1970,7 @@ private fun MessageBubble(
                         onClick = { if (selectionMode) onToggleSelect() },
                         onLongClick = {
                             Haptics.longPress(view)
-                            if (selectionMode) onToggleSelect() else showMenu = true
+                            onToggleSelect()
                         },
                     ),
                 horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
@@ -2102,36 +2005,21 @@ private fun MessageBubble(
                 }
             }
         } else {
-            val bubbleBorder = if (selected) {
-                androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
-            } else if (!isOut) {
-                androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.outlineVariant)
-            } else {
-                androidx.compose.ui.graphics.SolidColor(Color.Transparent)
-            }
+            val receivedSurface = MaterialTheme.colorScheme.surface
 
             Box(
                 Modifier
                     .widthIn(max = maxBubbleWidth)
-                    .clip(bubbleShape)
                     .background(
-                        if (isOut) {
-                            androidx.compose.ui.graphics.SolidColor(outBubbleColors.first)
-                        } else {
-                            androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.groupCard)
-                        }
-                    )
-                    .border(
-                        width = if (selected) 2.dp else 1.dp,
-                        brush = bubbleBorder,
+                        color = if (isOut) outBubbleColors.first else receivedSurface,
                         shape = bubbleShape,
                     )
                     .combinedClickable(
                         onClick = { if (selectionMode) onToggleSelect() },
-                        onLongClickLabel = "Message options",
+                        onLongClickLabel = stringResource(R.string.chat_select_messages),
                         onLongClick = {
                             Haptics.longPress(view)
-                            if (selectionMode) onToggleSelect() else showMenu = true
+                            onToggleSelect()
                         },
                     ),
             ) {
@@ -2147,7 +2035,7 @@ private fun MessageBubble(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(16f / 9f)
-                                    .clip(RoundedCornerShape(topStart = big, topEnd = big)),
+                                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
                             )
                         } else {
                             Row(
@@ -2277,23 +2165,37 @@ private fun MessageBubble(
                                 )
                             }
                         }
-                        // In-app text size (Phase 4 item 15) — bubble text only.
-                        val baseStyle = MaterialTheme.typography.bodyLarge
+                        // In-app text size (Phase 4 item 15) — bubble text: 15sp, line-height 1.4 (21sp)
+                        val baseStyle = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 15.sp,
+                            lineHeight = 21.sp,
+                        )
                         val scaledStyle = if (textScale == 1f) baseStyle else baseStyle.copy(
                             fontSize = baseStyle.fontSize * textScale,
                             lineHeight = baseStyle.lineHeight * textScale,
                         )
-                        // Plan §2: 12×8dp inner grid; timestamp + delivery status
-                        // live INSIDE the bubble, bottom-right (both refs).
-                        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                            Text(
-                                bodyText,
+                        // Thread.html: padding: 10px 14px; font-size: 15px; line-height: 1.4
+                        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                            SelectableMessageText(
+                                text = bodyText,
+                                rawText = rawBody,
                                 style = scaledStyle,
                                 color = if (isOut) outBubbleColors.second
                                 else MaterialTheme.colorScheme.onSurface,
+                                onLinkClick = { spanType ->
+                                    smartSpans.firstOrNull { it.type == spanType }?.let { span ->
+                                        SmartText.performAction(context, rawBody, span)
+                                    }
+                                },
+                                onLongPress = {
+                                    Haptics.longPress(view)
+                                    onToggleSelect()
+                                },
+                                selectionMode = selectionMode,
+                                onToggleSelect = onToggleSelect,
                             )
                             if (!isScheduled) {
-                                Spacer(Modifier.height(2.dp))
+                                Spacer(Modifier.height(4.dp))
                                 BubbleMetaRow(
                                     msg = msg, isOut = isOut,
                                     color = if (isOut) outBubbleColors.second
@@ -2310,7 +2212,7 @@ private fun MessageBubble(
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .align(Alignment.End)
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
                         )
                     }
                 }
@@ -2346,79 +2248,6 @@ private fun MessageBubble(
                 }
             }
         }
-
-            // Long-press actions: copy, select, star, pin, snooze, info, delete
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.chat_copy_text)) },
-                    onClick = {
-                        clipboard.setText(AnnotatedString(msg.body))
-                        showMenu = false
-                    },
-                )
-                if (msg.body.isNotBlank()) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_select_text)) },
-                        onClick = { showMenu = false; showSelectDialog = true },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.chat_select_messages)) },
-                    onClick = { showMenu = false; onToggleSelect() },
-                )
-                DropdownMenuItem(
-                    text = { Text(if (msg.starred) "Unstar" else "Star") },
-                    onClick = { onStar(); showMenu = false },
-                )
-                if (!isScheduled) {
-                    DropdownMenuItem(
-                        text = { Text(if (pinned) "Unpin" else "Pin") },
-                        onClick = { onPinToggle(); showMenu = false },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_remind_me)) },
-                        onClick = { showMenu = false; showSnoozeMenu = true },
-                    )
-                }
-                // Recategorize-anywhere (Truecaller rec A): an incoming
-                // message the engine mis-slotted can be filed as spam from
-                // any folder; reputation learns from it like Not-spam does.
-                if (!isOut && msg.category != "SPAM" && msg.category != "BLOCKED") {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_mark_as_spam)) },
-                        onClick = { onMarkSpam(); showMenu = false },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.chat_info)) },
-                    onClick = { showMenu = false; showInfoSheet = true },
-                )
-                // V2-51: the way back from a dismissed summary. Offered only
-                // when there is something to restore — a permanent menu entry
-                // for a card the user has never seen is noise.
-                if (MessageCards.dismissedFor(context, msg.id).isNotEmpty()) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.summary_action_restore)) },
-                        onClick = {
-                            showMenu = false
-                            MessageCards.restore(context, msg.id)
-                            cardTick++
-                        },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.action_delete)) },
-                    onClick = { onDelete(); showMenu = false },
-                )
-            }
-            DropdownMenu(expanded = showSnoozeMenu, onDismissRequest = { showSnoozeMenu = false }) {
-                timePresets().forEach { (label, time) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = { onSnooze(time); showSnoozeMenu = false },
-                    )
-                }
-            }
 
         // The old below-group meta line is gone (plan §2) — time/status live
         // inside the bubble. Scheduled and failed sends keep a line below so
@@ -2470,22 +2299,6 @@ private fun MessageBubble(
             }
         }
 
-        if (showSelectDialog) {
-            AlertDialog(
-                properties = com.messages.app.ui.secret.secureDialogProperties(),
-                onDismissRequest = { showSelectDialog = false },
-                title = { Text(stringResource(R.string.chat_select_text)) },
-                text = {
-                    androidx.compose.foundation.text.selection.SelectionContainer {
-                        Text(msg.body, style = MaterialTheme.typography.bodyLarge)
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showSelectDialog = false }) { Text(stringResource(R.string.action_done)) }
-                },
-            )
-        }
-
         if (showInfoSheet) {
             MessageInfoSheet(
                 msg = msg,
@@ -2516,6 +2329,22 @@ private fun MessageBubble(
                 onHideCard = { MessageCards.dismissCard(context, msg.id); cardTick++ },
                 onTurnOff = { MessageCards.setEnabled(context, false); cardTick++ },
             )
+        }
+
+        if (MessageCards.dismissedFor(context, msg.id).isNotEmpty()) {
+            TextButton(
+                onClick = {
+                    MessageCards.restore(context, msg.id)
+                    cardTick++
+                },
+                modifier = Modifier.padding(start = 4.dp),
+            ) {
+                Text(
+                    stringResource(R.string.summary_action_restore),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
         // Promotional offer card for commercial / promotional messages

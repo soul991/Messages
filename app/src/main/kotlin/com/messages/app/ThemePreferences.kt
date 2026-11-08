@@ -1,73 +1,41 @@
 package com.messages.app
 
 import android.content.Context
-import com.messages.designsystem.AccentSeed
-import com.messages.designsystem.ThemeMode
 
-/** Device-local appearance choice. It is intentionally independent of system theme changes. */
+/**
+ * User preferences for app theme and launcher icon.
+ * Dark and Light strictly follow system theme.
+ */
 object ThemePreferences {
     private const val PREFS = "settings"
-    private const val KEY_THEME_MODE = "theme_mode"
-    private const val KEY_ACCENT_SEED = "accent_seed"
+    private const val KEY_LIGHT_ICON = "light_launcher_icon"
 
-    fun current(context: Context): ThemeMode {
-        val saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_THEME_MODE, ThemeMode.SYSTEM.name)
-        return ThemeMode.values().firstOrNull { it.name == saved } ?: ThemeMode.SYSTEM
-    }
-
-    fun set(context: Context, mode: ThemeMode) {
+    fun isLightIconEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString(KEY_THEME_MODE, mode.name).apply()
-    }
+            .getBoolean(KEY_LIGHT_ICON, false)
 
-    private const val KEY_THEME_VERSION = "theme_version"
-    private const val CURRENT_THEME_VERSION = 3 // v1: green (v1.4.1), v2: violet (v1.5.1), v3: orchid 2026 identity
+    fun setLightIconEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_LIGHT_ICON, enabled).apply()
 
-    /** App accent — Orchid by default (2026 identity), Dynamic and 9 more seeds selectable. */
-    fun currentAccent(context: Context): AccentSeed {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val version = prefs.getInt(KEY_THEME_VERSION, 0)
-        if (version < CURRENT_THEME_VERSION) {
-            val saved = prefs.getString(KEY_ACCENT_SEED, null)
-            // Migrate users from previous Violet default (or unset) to Orchid identity
-            if (saved == null || saved == AccentSeed.VIOLET.name) {
-                prefs.edit()
-                    .putString(KEY_ACCENT_SEED, AccentSeed.ORCHID.name)
-                    .putInt(KEY_THEME_VERSION, CURRENT_THEME_VERSION)
-                    .apply()
-                return AccentSeed.ORCHID
+        runCatching {
+            val pm = context.packageManager
+            val darkAlias = android.content.ComponentName(context, "com.messages.app.MainActivityAliasDark")
+            val lightAlias = android.content.ComponentName(context, "com.messages.app.MainActivityAliasLight")
+
+            val lightState = if (enabled) {
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            } else {
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
             }
-            prefs.edit().putInt(KEY_THEME_VERSION, CURRENT_THEME_VERSION).apply()
+            val darkState = if (enabled) {
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            } else {
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            }
+
+            pm.setComponentEnabledSetting(lightAlias, lightState, android.content.pm.PackageManager.DONT_KILL_APP)
+            pm.setComponentEnabledSetting(darkAlias, darkState, android.content.pm.PackageManager.DONT_KILL_APP)
         }
-        val saved = prefs.getString(KEY_ACCENT_SEED, AccentSeed.ORCHID.name)
-        return AccentSeed.values().firstOrNull { it.name == saved } ?: AccentSeed.ORCHID
-    }
-
-    fun setAccent(context: Context, accent: AccentSeed) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString(KEY_ACCENT_SEED, accent.name).apply()
-    }
-
-    private const val KEY_CUSTOM_BRIGHTNESS = "custom_brightness_enabled"
-    private const val KEY_BRIGHTNESS_LEVEL = "custom_brightness_level"
-    const val DEFAULT_BRIGHTNESS = 0.70f
-
-    fun isCustomBrightnessEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_CUSTOM_BRIGHTNESS, false)
-
-    fun setCustomBrightnessEnabled(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_CUSTOM_BRIGHTNESS, enabled).apply()
-    }
-
-    fun getBrightnessLevel(context: Context): Float =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getFloat(KEY_BRIGHTNESS_LEVEL, DEFAULT_BRIGHTNESS)
-
-    fun setBrightnessLevel(context: Context, level: Float) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putFloat(KEY_BRIGHTNESS_LEVEL, level.coerceIn(0.05f, 1.0f)).apply()
     }
 }

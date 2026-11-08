@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
@@ -165,21 +166,43 @@ fun WhyFilteredScreen(
 
 @Composable
 private fun VerdictHeader(msg: MessageEntity) {
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val (color, container, label) = when {
-        msg.dangerous -> Triple(CategoryColors.Fraud, CategoryColors.FraudContainer,
-            stringResource(R.string.category_spam_dangerous))
-        msg.category == "SPAM" -> Triple(CategoryColors.Fraud, CategoryColors.FraudContainer,
-            stringResource(R.string.category_spam))
-        msg.category == "PROMOTIONS" -> Triple(CategoryColors.Promo, CategoryColors.PromoContainer,
-            stringResource(R.string.category_promotions))
-        msg.category == "REVIEW" -> Triple(CategoryColors.Review, CategoryColors.ReviewContainer,
-            stringResource(R.string.category_review))
-        msg.category == "BLOCKED" -> Triple(CategoryColors.Review, CategoryColors.ReviewContainer,
-            stringResource(R.string.category_blocked))
-        msg.category == "TRANSACTIONS" -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer,
-            stringResource(R.string.category_transactions))
-        else -> Triple(CategoryColors.Protected, CategoryColors.ProtectedContainer,
-            stringResource(R.string.category_inbox))
+        msg.dangerous -> Triple(
+            if (isDark) CategoryColors.Fraud else CategoryColors.FraudLight,
+            if (isDark) CategoryColors.FraudContainer else CategoryColors.FraudContainerLight,
+            stringResource(R.string.category_spam_dangerous)
+        )
+        msg.category == "SPAM" -> Triple(
+            if (isDark) CategoryColors.Fraud else CategoryColors.FraudLight,
+            if (isDark) CategoryColors.FraudContainer else CategoryColors.FraudContainerLight,
+            stringResource(R.string.category_spam)
+        )
+        msg.category == "PROMOTIONS" -> Triple(
+            if (isDark) CategoryColors.Promo else CategoryColors.PromoLight,
+            if (isDark) CategoryColors.PromoContainer else CategoryColors.PromoContainerLight,
+            stringResource(R.string.category_promotions)
+        )
+        msg.category == "REVIEW" -> Triple(
+            if (isDark) CategoryColors.Review else CategoryColors.ReviewLight,
+            if (isDark) CategoryColors.ReviewContainer else CategoryColors.ReviewContainerLight,
+            stringResource(R.string.category_review)
+        )
+        msg.category == "BLOCKED" -> Triple(
+            if (isDark) CategoryColors.Review else CategoryColors.ReviewLight,
+            if (isDark) CategoryColors.ReviewContainer else CategoryColors.ReviewContainerLight,
+            stringResource(R.string.category_blocked)
+        )
+        msg.category == "TRANSACTIONS" -> Triple(
+            if (isDark) CategoryColors.Protected else CategoryColors.ProtectedLight,
+            if (isDark) CategoryColors.ProtectedContainer else CategoryColors.ProtectedContainerLight,
+            stringResource(R.string.category_transactions)
+        )
+        else -> Triple(
+            if (isDark) CategoryColors.Protected else CategoryColors.ProtectedLight,
+            if (isDark) CategoryColors.ProtectedContainer else CategoryColors.ProtectedContainerLight,
+            stringResource(R.string.category_inbox)
+        )
     }
     Surface(
         shape = RoundedCornerShape(28.dp),
@@ -239,6 +262,10 @@ private fun DangerousLinksSection(msg: MessageEntity) {
     var revealed by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(setOf<String>())
     }
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val fraudColor = if (isDark) CategoryColors.Fraud else CategoryColors.FraudLight
+    val fraudContainer = if (isDark) CategoryColors.FraudContainer else CategoryColors.FraudContainerLight
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             stringResource(R.string.why_links_title),
@@ -248,13 +275,13 @@ private fun DangerousLinksSection(msg: MessageEntity) {
         Text(
             stringResource(R.string.why_links_body),
             style = MaterialTheme.typography.bodySmall,
-            color = CategoryColors.Fraud,
+            color = fraudColor,
         )
         urls.forEach { url ->
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = CategoryColors.FraudContainer.copy(alpha = 0.4f),
-                border = BorderStroke(1.dp, CategoryColors.Fraud.copy(alpha = 0.3f)),
+                color = fraudContainer.copy(alpha = 0.4f),
+                border = BorderStroke(1.dp, fraudColor.copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -268,14 +295,14 @@ private fun DangerousLinksSection(msg: MessageEntity) {
                             Text(
                                 url,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = CategoryColors.Fraud,
+                                color = fraudColor,
                             )
                         }
                     } else {
                         Text(
                             stringResource(R.string.why_link_hidden),
                             style = MaterialTheme.typography.bodySmall,
-                            color = CategoryColors.Fraud,
+                            color = fraudColor,
                             modifier = Modifier.weight(1f),
                         )
                         androidx.compose.material3.TextButton(

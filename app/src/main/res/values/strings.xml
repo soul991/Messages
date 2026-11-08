@@ -649,16 +649,6 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_amoled">AMOLED black</string>
-    <string name="accent_dynamic">Dynamic</string>
-    <string name="accent_orchid">Orchid</string>
-    <string name="accent_violet">Violet</string>
-    <string name="accent_blue">Blue</string>
-    <string name="accent_teal">Teal</string>
-    <string name="accent_green">Green</string>
-    <string name="accent_amber">Amber</string>
-    <string name="accent_coral">Coral</string>
-    <string name="accent_pink">Pink</string>
-    <string name="accent_purple">Purple</string>
     <string name="accent_graphite">Graphite</string>
     <!-- %1$s is an accent name from the list above. Screen-reader only. -->
     <string name="settings_accent_swatch">%1$s accent</string>
@@ -824,10 +814,13 @@
     <string name="home_mark_all_as_read">Mark all as read</string>
     <string name="home_folder_marked_read">Folder marked as read</string>
     <string name="nav_personal">Personal</string>
+    <string name="nav_promotional">Promotional</string>
     <string name="nav_bank">Bank</string>
     <string name="nav_offers">Offers</string>
     <string name="nav_review">Review</string>
     <string name="nav_spam">Spam</string>
+    <string name="category_personal">Personal</string>
+    <string name="category_promotional">Promotional</string>
     <string name="home_new_message">New message</string>
     <string name="home_search_placeholder">Search messages</string>
     <string name="home_search_add_keyword">Add another keyword</string>
@@ -1342,6 +1335,13 @@
     <string name="channel_promotions_desc">Optional alerts for promotional messages</string>
     <string name="channel_fraud_name">Fraud warnings</string>
     <string name="channel_fraud_desc">Warnings about dangerous, likely-fraudulent messages</string>
+    <string name="channel_spam_name">Spam</string>
+    <string name="channel_spam_desc">Silent notifications for filtered spam messages</string>
+    <string name="notif_spam_channel_subtitle">Configure minimal/silent spam alerts</string>
+    <string name="notif_system_settings_title">All system notification settings</string>
+    <string name="notif_system_settings_desc">Open Android settings for all message channels</string>
+    <string name="settings_light_icon_title">Light launcher icon</string>
+    <string name="settings_light_icon_subtitle">Use light icon on home screen. The launcher may take a moment to refresh.</string>
 
     <!-- Choosing which spam to include in a Drive backup. -->
     <string name="drive_spam_picker_title">Spam to back up</string>

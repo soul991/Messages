@@ -77,9 +77,10 @@ class UpdateCheckWorker(
         )
         val appIcon = NotificationAvatarGenerator.getAppIconBitmap(applicationContext)
         val builder = NotificationCompat.Builder(applicationContext, MessagesApp.CH_UPDATES)
-            .setSmallIcon(R.drawable.ic_notif_message)
+            .setSmallIcon(R.drawable.ic_stat_message)
             .setLargeIcon(appIcon)
-            .setColor(0xFF5A41DD.toInt())
+            // Brand notification accent color (#30D158)
+            .setColor(0xFF30D158.toInt())
             .setContentTitle(
                 applicationContext.getString(R.string.update_notif_title, version)
             )

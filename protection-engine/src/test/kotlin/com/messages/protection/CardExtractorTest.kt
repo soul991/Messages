@@ -302,6 +302,67 @@ class CardExtractorTest {
         )?.normalized)
     }
 
+    @Test
+    fun `exact Mamaearth order placed message rejects subordinate delivered and extracts order placed`() {
+        val exactMamaearth = "Order Placed: Hi ISTAK AHAMED, Thank You for choosing Mamaearth. Your order of Rs 386 has been successfully placed & the details have been mailed to you. Cashback will be credited in the user Mamapay wallet account within 7 days of all products being delivered for eligible orders"
+        val statusField = field(exactMamaearth, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNotNull("Must extract delivery status", statusField)
+        assertEquals("order placed", statusField!!.normalized)
+        assertFalse("Status must NOT be delivered", statusField.normalized == "delivered")
+    }
+
+    @Test
+    fun `subordinate clause delivered is rejected in order placed message`() {
+        val promptCase = "Order placed. Get cashback within 7 days of all products being delivered"
+        val statusField = field(promptCase, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNotNull(statusField)
+        assertEquals("order placed", statusField!!.normalized)
+        assertFalse("Must NOT extract delivered from subordinate clause", statusField.normalized == "delivered")
+    }
+
+    @Test
+    fun `subordinate conditional delivery markers are rejected`() {
+        val willBe = "Your order has tracking ID 12345678 and will be delivered tomorrow"
+        val willBeStatus = field(willBe, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNull("will be delivered must be rejected", willBeStatus)
+
+        val once = "Cashback applies once products are delivered to your address"
+        val onceStatus = field(once, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNull("once delivered must be rejected", onceStatus)
+
+        val after = "Review will open after products are delivered"
+        val afterStatus = field(after, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNull("after delivered must be rejected", afterStatus)
+
+        val uponBeing = "Refund credited upon being delivered to return depot"
+        val uponBeingStatus = field(uponBeing, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNull("upon being delivered must be rejected", uponBeingStatus)
+    }
+
+    @Test
+    fun `shipped status is extracted from genuine dispatch notification`() {
+        val shipped = "Package shipped via BlueDart with AWB 987654321"
+        val shippedStatus = field(shipped, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNotNull(shippedStatus)
+        assertEquals("shipped", shippedStatus!!.normalized)
+    }
+
+    @Test
+    fun `out for delivery status is extracted from courier notification`() {
+        val out = "Your order is out for delivery with courier partner"
+        val outStatus = field(out, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNotNull(outStatus)
+        assertEquals("out for delivery", outStatus!!.normalized)
+    }
+
+    @Test
+    fun `delivered status is extracted from genuine delivery confirmation message`() {
+        val delivered = "Your package has been delivered safely at your door"
+        val deliveredStatus = field(delivered, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNotNull(deliveredStatus)
+        assertEquals("delivered", deliveredStatus!!.normalized)
+    }
+
     // ---- structure ------------------------------------------------------
 
     @Test

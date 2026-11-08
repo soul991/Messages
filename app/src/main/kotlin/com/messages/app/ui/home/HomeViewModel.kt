@@ -61,7 +61,23 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun conversationsFor(category: String): StateFlow<LoadState<List<ConversationEntity>>> =
         conversationCache.getOrPut(category) {
-            loadStateOf { repo.db.conversations().byCategory(category) }
+            if (category == "INBOX" || category == "PERSONAL") {
+                loadStateOf {
+                    combine(
+                        repo.db.conversations().byCategory("INBOX"),
+                        repo.db.conversations().byCategory("TRANSACTIONS"),
+                    ) { inboxList, txnList ->
+                        (inboxList + txnList)
+                            .distinctBy { it.threadId }
+                            .sortedWith(
+                                compareByDescending<ConversationEntity> { it.pinned }
+                                    .thenByDescending { it.lastTimestamp }
+                            )
+                    }
+                }
+            } else {
+                loadStateOf { repo.db.conversations().byCategory(category) }
+            }
         }
 
     /**
@@ -77,7 +93,23 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun unreadConversationsFor(category: String): StateFlow<LoadState<List<ConversationEntity>>> =
         unreadConversationCache.getOrPut(category) {
-            loadStateOf { repo.db.conversations().byCategoryUnread(category) }
+            if (category == "INBOX" || category == "PERSONAL") {
+                loadStateOf {
+                    combine(
+                        repo.db.conversations().byCategoryUnread("INBOX"),
+                        repo.db.conversations().byCategoryUnread("TRANSACTIONS"),
+                    ) { inboxList, txnList ->
+                        (inboxList + txnList)
+                            .distinctBy { it.threadId }
+                            .sortedWith(
+                                compareByDescending<ConversationEntity> { it.pinned }
+                                    .thenByDescending { it.lastTimestamp }
+                            )
+                    }
+                }
+            } else {
+                loadStateOf { repo.db.conversations().byCategoryUnread(category) }
+            }
         }
 
     /**
@@ -106,9 +138,23 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             }
             .stateIn(viewModelScope, SharingStarted.Lazily, LoadState.Loading)
 
+    private val folderUnreadCache = HashMap<String, StateFlow<Int>>()
+
     /** Folder-chip badge: conversations with an unread badge (NOT unread
-     *  message rows — same predicate as the row badges and the filter). */
-    fun folderUnread(category: String) = repo.db.conversations().unreadConversationCount(category)
+     *  message rows — same predicate as the row badges and the filter). Cached
+     *  as a StateFlow so recomposition never creates new Flow instances. */
+    fun folderUnread(category: String): StateFlow<Int> =
+        folderUnreadCache.getOrPut(category) {
+            val f = if (category == "INBOX" || category == "PERSONAL") {
+                combine(
+                    repo.db.conversations().unreadConversationCount("INBOX"),
+                    repo.db.conversations().unreadConversationCount("TRANSACTIONS"),
+                ) { a, b -> a + b }
+            } else {
+                repo.db.conversations().unreadConversationCount(category)
+            }
+            f.stateIn(viewModelScope, SharingStarted.Lazily, 0)
+        }
 
     /** Verified-sender badges: latest incoming message's fraud/protected-lane
      *  state per thread — drives badge suppression + elevation in list rows. */
@@ -126,7 +172,10 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     val outboxCount: StateFlow<Int> = repo.outboxCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    fun setFolder(f: String) { folder.value = f }
+    fun setFolder(f: String) {
+        val mapped = if (f == "TRANSACTIONS") "INBOX" else f
+        folder.value = mapped
+    }
 
     // V2-24: Home only ever lists the normal space (every query it feeds from
     // is NORMAL-scoped), so it names that space rather than leaning on a
@@ -209,8 +258,15 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     /** Phase 4 item 12: mark the whole current folder read. */
     fun markFolderRead(category: String) = viewModelScope.launch {
         try {
-            repo.db.messages().markCategoryRead(category)
-            repo.db.conversations().clearUnreadForCategory(category)
+            val categories = if (category == "INBOX" || category == "PERSONAL") {
+                listOf("INBOX", "TRANSACTIONS")
+            } else {
+                listOf(category)
+            }
+            for (cat in categories) {
+                repo.db.messages().markCategoryRead(cat)
+                repo.db.conversations().clearUnreadForCategory(cat)
+            }
         } catch (t: Throwable) {
             android.util.Log.e("HomeViewModel", "markFolderRead failed", t)
         }
