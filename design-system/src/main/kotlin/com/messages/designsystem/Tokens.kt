@@ -67,13 +67,45 @@ object DesignTokens {
             val Fill = Color(0x1A30D158) // rgba(48,209,88,0.10)
             val Border = Color(0x4730D158) // rgba(48,209,88,0.28)
             val Text = Color(0xFF6EE7A0)
+            val BadgeFill = Color(0x1F30D158) // rgba(48,209,88,0.12)
+            val BadgeBorder = Color(0x6630D158) // rgba(48,209,88,0.40)
         }
         object Debit {
             val Fill = Color(0x1AFF453A) // rgba(255,69,58,0.10)
             val Border = Color(0x47FF453A) // rgba(255,69,58,0.28)
             val Text = Color(0xFFFF8A80)
+            val BadgeFill = Color(0x1FFF453A) // rgba(255,69,58,0.12)
+            val BadgeBorder = Color(0x66FF453A) // rgba(255,69,58,0.40)
+        }
+        object Neutral {
+            val DarkFill = Color(0x12FFFFFF)
+            val LightFill = Color(0x0A000000)
+            val DarkBorder = Color(0x24FFFFFF)
+            val LightBorder = Color(0x14000000)
         }
         val Blur = 20.dp
+    }
+
+    object DatePill {
+        val DarkFill = Color(0x12FFFFFF) // rgba(255,255,255,0.07) matching Thread.html
+        val LightFill = Color(0x0F000000) // rgba(0,0,0,0.06)
+    }
+
+    object Monogram {
+        val Bg = Color(0xFF161618)
+        val Border = Color(0xFF28282C)
+        val Text = Color(0xFF8E8E93)
+    }
+
+    object VerifiedBadge {
+        // Trust chrome blue: fixed across themes (AA on both dark and light surfaces)
+        val Blue = Color(0xFF1A73E8)
+    }
+
+    object TextSelection {
+        val Highlight = Color(0x4D30D158) // rgba(48,209,88,.30) matching TextSelect.html
+        val LoupeSurface = Color(0xFF1C1C1F) // Loupe dark surface from TextSelect.html
+        val LoupeBorder = Color(0x24FFFFFF) // Loupe border rgba(255,255,255,0.14)
     }
 
     object Dimensions {

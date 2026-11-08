@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import com.messages.designsystem.DesignTokens
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -258,7 +259,7 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
  */
 @Composable
 private fun NotificationPreviewCard() {
-    val brandGreen = Color(0xFF30D158)
+    val brandGreen = DesignTokens.Dark.Green
 
     Surface(
         shape = RoundedCornerShape(28.dp),
@@ -317,13 +318,13 @@ private fun NotificationPreviewCard() {
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF161618))
-                        .border(BorderStroke(1.dp, Color(0xFF28282C)), CircleShape),
+                        .background(DesignTokens.Monogram.Bg)
+                        .border(BorderStroke(1.dp, DesignTokens.Monogram.Border), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = "A",
-                        color = Color(0xFF8E8E93),
+                        color = DesignTokens.Monogram.Text,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
                     )

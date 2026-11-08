@@ -430,6 +430,7 @@ class MessageNotifier(private val context: Context) {
             // Persistent until the user swipes it away (Truecaller pattern):
             // tapping opens the chat but the warning stays.
             .setAutoCancel(false)
+            // Semantic error red accent for critical fraud warning notification
             .setColor(0xFFD32F2F.toInt())
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

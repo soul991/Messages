@@ -30,11 +30,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.messages.app.R
+import com.messages.designsystem.DesignTokens
 import com.messages.protection.SenderBadges
 
 /** The one blue used for the verified check, light and dark (AA on both
  *  surface tones; not theme-dynamic — trust chrome shouldn't restyle). */
-private val VerifiedBlue = Color(0xFF1A73E8)
+private val VerifiedBlue = DesignTokens.VerifiedBadge.Blue
 
 /**
  * Verified-sender badge chrome (Phase 2). Renders whatever

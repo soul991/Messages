@@ -140,6 +140,7 @@ object AppUpdateManager {
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_DOWNLOAD)
             .setSmallIcon(R.drawable.ic_stat_message)
             .setLargeIcon(appIcon)
+            // Brand notification accent color (#30D158)
             .setColor(0xFF30D158.toInt())
             .setContentTitle(context.getString(R.string.download_notif_title, version))
             .setOngoing(true)
@@ -159,6 +160,7 @@ object AppUpdateManager {
                     builder
                         .setSmallIcon(R.drawable.ic_stat_message)
                         .setLargeIcon(appIcon)
+                        // Semantic error red for download failure notification
                         .setColor(0xFFEF4444.toInt())
                         .setContentTitle(context.getString(R.string.download_notif_failed))
                         .setContentText(errorMsg)
@@ -242,6 +244,7 @@ object AppUpdateManager {
                 val completeBuilder = NotificationCompat.Builder(context, MessagesApp.CH_DOWNLOAD)
                     .setSmallIcon(R.drawable.ic_stat_message)
                     .setLargeIcon(appIcon)
+                    // Brand notification accent color (#30D158)
                     .setColor(0xFF30D158.toInt())
                     .setContentTitle(context.getString(R.string.download_notif_complete, version))
                     .setContentText(context.getString(R.string.download_notif_tap_install))
@@ -262,6 +265,7 @@ object AppUpdateManager {
                 builder
                     .setSmallIcon(R.drawable.ic_stat_message)
                     .setLargeIcon(appIcon)
+                    // Semantic error red for download failure notification
                     .setColor(0xFFEF4444.toInt())
                     .setContentTitle(context.getString(R.string.download_notif_failed))
                     .setContentText(errorMsg)

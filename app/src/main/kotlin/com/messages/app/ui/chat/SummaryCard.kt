@@ -101,8 +101,8 @@ fun SummaryCard(
             val border = DesignTokens.SummaryCards.Credit.Border // rgba(48,209,88,0.28)
             val tint = DesignTokens.SummaryCards.Credit.Text // #6EE7A0
             val badge = stringResource(R.string.summary_badge_credited)
-            val bBg = Color(0x1F30D158) // rgba(48,209,88,0.12)
-            val bBorder = Color(0x6630D158) // rgba(48,209,88,0.40)
+            val bBg = DesignTokens.SummaryCards.Credit.BadgeFill // rgba(48,209,88,0.12)
+            val bBorder = DesignTokens.SummaryCards.Credit.BadgeBorder // rgba(48,209,88,0.40)
             val bText = tint
             CardThemeColors(bg, border, tint, badge, bBg, bBorder, bText, amountColor = tint)
         }
@@ -111,14 +111,14 @@ fun SummaryCard(
             val border = DesignTokens.SummaryCards.Debit.Border // rgba(255,69,58,0.28)
             val tint = DesignTokens.SummaryCards.Debit.Text // #FF8A80
             val badge = stringResource(R.string.summary_badge_debited)
-            val bBg = Color(0x1FFF453A) // rgba(255,69,58,0.12)
-            val bBorder = Color(0x66FF453A) // rgba(255,69,58,0.40)
+            val bBg = DesignTokens.SummaryCards.Debit.BadgeFill // rgba(255,69,58,0.12)
+            val bBorder = DesignTokens.SummaryCards.Debit.BadgeBorder // rgba(255,69,58,0.40)
             val bText = tint
             CardThemeColors(bg, border, tint, badge, bBg, bBorder, bText, amountColor = tint)
         }
         CardExtractor.Direction.NEUTRAL -> {
-            val bg = if (isDark) Color(0x12FFFFFF) else Color(0x0A000000)
-            val border = if (isDark) Color(0x24FFFFFF) else Color(0x14000000)
+            val bg = if (isDark) DesignTokens.SummaryCards.Neutral.DarkFill else DesignTokens.SummaryCards.Neutral.LightFill
+            val border = if (isDark) DesignTokens.SummaryCards.Neutral.DarkBorder else DesignTokens.SummaryCards.Neutral.LightBorder
             val tint = cs.onSurface
             CardThemeColors(bg, border, tint, null, Color.Transparent, Color.Transparent, Color.Transparent, amountColor = cs.onSurface)
         }
@@ -257,7 +257,7 @@ fun SummaryCard(
             Text(
                 stringResource(R.string.summary_card_footer),
                 fontSize = 11.sp,
-                color = if (isDark) Color(0xFF6B6B72) else Color(0xFF8E8E93),
+                color = if (isDark) DesignTokens.Dark.TextMuted else DesignTokens.Light.TextMuted,
                 lineHeight = 14.sp,
             )
         }

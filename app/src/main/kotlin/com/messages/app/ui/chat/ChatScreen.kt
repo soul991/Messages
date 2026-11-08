@@ -1814,7 +1814,7 @@ private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = if (isDark) Color(0x12FFFFFF) else Color(0x0F000000),
+            color = if (isDark) DesignTokens.DatePill.DarkFill else DesignTokens.DatePill.LightFill,
         ) {
             Text(
                 label,

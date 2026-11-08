@@ -800,7 +800,7 @@ fun HomeScreen(
                 Icon(
                     imageVector = DockIcons.NewMessage,
                     contentDescription = stringResource(R.string.home_new_message),
-                    tint = Color(0xFF04210E),
+                    tint = DesignTokens.Dark.OnGreen,
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -2194,7 +2194,7 @@ private fun ConversationRow(
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                 ),
-                                color = Color(0xFF04210E),
+                                color = DesignTokens.Dark.OnGreen,
                             )
                         }
                     }

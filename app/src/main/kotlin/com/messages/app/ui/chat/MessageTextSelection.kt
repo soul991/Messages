@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.messages.designsystem.DesignTokens
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -146,8 +147,8 @@ fun SelectableMessageText(
         }
     }
 
-    val greenAccent = Color(0xFF30D158)
-    val selectionBg = Color(0x4D30D158) // rgba(48,209,88,.30) matching TextSelect.html
+    val greenAccent = DesignTokens.Dark.Green
+    val selectionBg = DesignTokens.TextSelection.Highlight // rgba(48,209,88,.30) matching TextSelect.html
 
     // Build annotated string with highlight if selection is active
     val displayedText = remember(text, selectionRange) {
@@ -466,8 +467,8 @@ fun SelectableMessageText(
                             .size(150.dp, 56.dp)
                             .shadow(12.dp, RoundedCornerShape(28.dp))
                             .clip(RoundedCornerShape(28.dp))
-                            .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(28.dp)),
-                        color = Color(0xFF1C1C1F),
+                            .border(1.dp, DesignTokens.TextSelection.LoupeBorder, RoundedCornerShape(28.dp)),
+                        color = DesignTokens.TextSelection.LoupeSurface,
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -480,7 +481,7 @@ fun SelectableMessageText(
                                     Text(
                                         text = snippet.first,
                                         fontSize = 17.sp,
-                                        color = Color(0xFF8E8E93),
+                                        color = DesignTokens.Dark.TextMuted,
                                         maxLines = 1,
                                     )
                                 }
@@ -488,10 +489,10 @@ fun SelectableMessageText(
                                     text = snippet.second,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = Color(0xFFF2F2F4),
+                                    color = DesignTokens.Dark.Text,
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(4.dp))
-                                        .background(Color(0x4D30D158))
+                                        .background(DesignTokens.TextSelection.Highlight)
                                         .padding(horizontal = 2.dp),
                                     maxLines = 1,
                                 )
@@ -499,7 +500,7 @@ fun SelectableMessageText(
                                     Text(
                                         text = snippet.third,
                                         fontSize = 17.sp,
-                                        color = Color(0xFF8E8E93),
+                                        color = DesignTokens.Dark.TextMuted,
                                         maxLines = 1,
                                     )
                                 }
