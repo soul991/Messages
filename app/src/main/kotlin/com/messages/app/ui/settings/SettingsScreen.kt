@@ -119,9 +119,7 @@ import com.messages.core.secret.SecretStrength
 import com.messages.protection.AiLayer
 import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.db.UserRuleEntity
-import com.messages.designsystem.AccentSeed
-import com.messages.designsystem.ThemeMode
-import com.messages.designsystem.schemeForSeed
+
 import kotlinx.coroutines.Dispatchers
 import com.messages.protection.SafeRegexPolicy
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -480,14 +478,7 @@ fun SettingsScreen(
      * destination as the Home-title press, not a way around it.
      */
     onSecretEntry: () -> Unit = {},
-    themeMode: ThemeMode = ThemeMode.SYSTEM,
-    onThemeModeChange: (ThemeMode) -> Unit = {},
-    accent: AccentSeed = AccentSeed.ORCHID,
-    onAccentChange: (AccentSeed) -> Unit = {},
-    customBrightness: Boolean = false,
-    onCustomBrightnessChange: (Boolean) -> Unit = {},
-    brightnessLevel: Float = 0.70f,
-    onBrightnessLevelChange: (Float) -> Unit = {},
+
     vm: SettingsViewModel = viewModel(),
 ) {
     val rules by vm.rules.collectAsStateWithLifecycle()
@@ -659,18 +650,6 @@ fun SettingsScreen(
                         val ctx = androidx.compose.ui.platform.LocalContext.current
                         SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
                         SettingsGroupCard(cardIndex = 0) {
-                            SettingsDropdownRow(
-                                icon = Icons.Outlined.DarkMode,
-                                categoryBadge = null,
-                                title = stringResource(R.string.settings_theme),
-                                subtitle = stringResource(R.string.settings_theme_subtitle),
-                                value = stringResource(themeMode.labelRes()),
-                                options = ThemeMode.values().map { it to stringResource(it.labelRes()) },
-                                onSelect = onThemeModeChange,
-                            )
-                            SettingsCardDivider()
-                            AccentPickerRow(selected = accent, onSelect = onAccentChange)
-                            SettingsCardDivider()
                             MessageTextSizeRow()
                             SettingsCardDivider()
                             var lightIcon by remember {
@@ -690,18 +669,9 @@ fun SettingsScreen(
                         }
                     }
                     item {
-                        SettingsSectionHeader(stringResource(R.string.settings_section_brightness))
-                        SettingsGroupCard(cardIndex = 1) {
-                        InAppBrightnessSection(
-                            customEnabled = customBrightness,
-                            brightness = brightnessLevel,
-                            onCustomEnabledChange = onCustomBrightnessChange,
-                            onBrightnessChange = onBrightnessLevelChange,
-                        )
+                        Spacer(Modifier.height(16.dp))
                     }
-                    Spacer(Modifier.height(16.dp))
                 }
-            }
 
             // ---- Protection sensitivity (§3 Stage 5) ----
             if (currentPage == SettingsPage.PROTECTION) {
@@ -1200,147 +1170,9 @@ fun SettingsScreen(
 }
 }
 
-@StringRes
-internal fun ThemeMode.labelRes(): Int = when (this) {
-    ThemeMode.SYSTEM -> R.string.settings_theme_system
-    ThemeMode.LIGHT -> R.string.settings_theme_light
-    ThemeMode.DARK -> R.string.settings_theme_dark
-    ThemeMode.AMOLED -> R.string.settings_theme_amoled
-}
 
-/**
- * V2-36. [AccentSeed.displayName] is the enum's own stable identifier, kept in
- * :design-system where there is no resource table. The name the user reads
- * comes from here.
- */
-@StringRes
-internal fun AccentSeed.labelRes(): Int = when (this) {
-    AccentSeed.DYNAMIC -> R.string.accent_dynamic
-    AccentSeed.ORCHID -> R.string.accent_orchid
-    AccentSeed.VIOLET -> R.string.accent_violet
-    AccentSeed.BLUE -> R.string.accent_blue
-    AccentSeed.TEAL -> R.string.accent_teal
-    AccentSeed.GREEN -> R.string.accent_green
-    AccentSeed.AMBER -> R.string.accent_amber
-    AccentSeed.CORAL -> R.string.accent_coral
-    AccentSeed.PINK -> R.string.accent_pink
-    AccentSeed.PURPLE -> R.string.accent_purple
-    AccentSeed.GRAPHITE -> R.string.accent_graphite
-}
 
-/**
- * Phase 5 §4 accent picker: Material You dynamic first, then the eight
- * curated seeds as tone-40 swatches. Swatches are decorative (the selection
- * state is carried by the check + row subtitle), so no AA pair is required
- * on the swatch fill itself.
- */
-@Composable
-private fun AccentPickerRow(selected: AccentSeed, onSelect: (AccentSeed) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.Palette, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-            Spacer(Modifier.width(18.dp))
-            Column {
-                Text(
-                    stringResource(R.string.settings_app_color),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    if (selected == AccentSeed.DYNAMIC) {
-                        stringResource(R.string.settings_accent_dynamic_subtitle)
-                    } else {
-                        stringResource(selected.labelRes())
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(start = 58.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            AccentSeed.values().forEach { seed ->
-                AccentSwatch(seed, selected == seed) { onSelect(seed) }
-            }
-        }
-    }
-}
 
-@Composable
-private fun AccentSwatch(seed: AccentSeed, selected: Boolean, onClick: () -> Unit) {
-    val dynamic = seed == AccentSeed.DYNAMIC
-    // `semantics { }` is not a composable scope; resolved here and read inside.
-    val swatchDescription =
-        stringResource(R.string.settings_accent_swatch, stringResource(seed.labelRes()))
-    val fill = if (dynamic) {
-        // The dynamic swatch previews the CURRENT dynamic primary; on pre-S
-        // devices it shows the static fallback blue, which is equally honest.
-        Brush.sweepGradient(
-            listOf(
-                MaterialTheme.colorScheme.primary,
-                MaterialTheme.colorScheme.tertiary,
-                MaterialTheme.colorScheme.secondary,
-                MaterialTheme.colorScheme.primary,
-            )
-        )
-    } else {
-        SolidColor(schemeForSeed(seed, dark = false).primary)
-    }
-    Box(
-        Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(fill)
-            .then(
-                if (selected) Modifier.border(
-                    3.dp, MaterialTheme.colorScheme.onSurface, CircleShape,
-                ) else Modifier
-            )
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = swatchDescription },
-        contentAlignment = Alignment.Center,
-    ) {
-        if (selected) {
-            // Scrim badge keeps the check readable on ANY fill — dynamic
-            // swatches can be near-white pastels.
-            Box(
-                Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.4f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.Check, contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
-    }
-}
 
 /** In-app message text size (Phase 4 item 15) — applies to chat bubbles. */
 @Composable
@@ -1414,67 +1246,7 @@ private fun MessageTextSizeRow() {
     }
 }
 
-/** In-app brightness adjustment section. */
-@Composable
-private fun InAppBrightnessSection(
-    customEnabled: Boolean,
-    brightness: Float,
-    onCustomEnabledChange: (Boolean) -> Unit,
-    onBrightnessChange: (Float) -> Unit,
-) {
-    Column {
-        SettingsSwitchRow(
-            icon = Icons.Outlined.BrightnessMedium,
-            title = stringResource(R.string.settings_brightness_custom_title),
-            subtitle = stringResource(R.string.settings_brightness_custom_subtitle),
-            checked = customEnabled,
-            onChange = onCustomEnabledChange,
-        )
 
-        AnimatedVisibility(
-            visible = customEnabled,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
-        ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        Icons.Outlined.BrightnessLow,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(22.dp),
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Slider(
-                        value = brightness,
-                        onValueChange = { onBrightnessChange(it.coerceIn(0.05f, 1.0f)) },
-                        valueRange = 0.05f..1.0f,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Icon(
-                        Icons.Outlined.BrightnessHigh,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                Text(
-                    stringResource(R.string.settings_brightness_footnote),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-                Spacer(Modifier.height(8.dp))
-            }
-        }
-    }
-}
 
 /** Quick-reply template manager (Phase 3C): grouped card + SwipeToRevealRow + Edit mode + Input pill. */
 @Composable

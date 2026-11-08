@@ -62,7 +62,6 @@ import com.messages.app.ui.settings.SettingsScreen
 import com.messages.app.ui.why.WhyFilteredScreen
 import com.messages.core.backfill.Backfill
 import com.messages.designsystem.MessagesTheme
-import com.messages.designsystem.ThemeMode
 
 /**
  * App-lock state with the correct lifetime: a ViewModel survives configuration
@@ -124,21 +123,7 @@ class MainActivity : FragmentActivity() {
     /** Folder to show on Home (e.g. Review notification tap); observed by HomeScreen. */
     private var folderRequest by mutableStateOf<String?>(null)
 
-    /** Resolved from settings before composition, then updated live from Settings. */
-    private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
-    private var accentSeed by mutableStateOf(com.messages.designsystem.AccentSeed.ORCHID)
-    private var customBrightnessEnabled by mutableStateOf(false)
-    private var brightnessLevel by mutableStateOf(ThemePreferences.DEFAULT_BRIGHTNESS)
 
-    private fun applyScreenBrightness(enabled: Boolean, level: Float) {
-        val lp = window.attributes
-        lp.screenBrightness = if (enabled) {
-            level.coerceIn(0.05f, 1.0f)
-        } else {
-            android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-        }
-        window.attributes = lp
-    }
 
     /** Keeps FLAG_SECURE in sync with the App lock toggle while Settings is
      *  open in this same activity. Field-held: SharedPreferences only keeps a
@@ -185,11 +170,6 @@ class MainActivity : FragmentActivity() {
         applyFlagSecure()
         getSharedPreferences("settings", MODE_PRIVATE)
             .registerOnSharedPreferenceChangeListener(secureFlagListener)
-        themeMode = ThemePreferences.current(this)
-        accentSeed = ThemePreferences.currentAccent(this)
-        customBrightnessEnabled = ThemePreferences.isCustomBrightnessEnabled(this)
-        brightnessLevel = ThemePreferences.getBrightnessLevel(this)
-        applyScreenBrightness(customBrightnessEnabled, brightnessLevel)
         refreshDefaultState()
         // Note: blind requestCorePermissions() removed on cold start.
         // Default SMS role automatically grants SMS permissions upon assignment.
@@ -217,7 +197,7 @@ class MainActivity : FragmentActivity() {
         if (!AppLock.isEnabled(this)) appUnlocked = true
 
         setContent {
-            MessagesTheme(mode = themeMode, accent = accentSeed) {
+            MessagesTheme {
                 // V2-37: the window theme guessed from the system night setting;
                 // this corrects the bar icons to the scheme actually resolved.
                 com.messages.app.ui.common.SyncSystemBars()
@@ -609,28 +589,6 @@ class MainActivity : FragmentActivity() {
                                     nav.navigate("secret_setup")
                                 }
                             },
-                            themeMode = themeMode,
-                            accent = accentSeed,
-                            onAccentChange = { seed ->
-                                ThemePreferences.setAccent(this@MainActivity, seed)
-                                accentSeed = seed
-                            },
-                            onThemeModeChange = { mode ->
-                                ThemePreferences.set(this@MainActivity, mode)
-                                themeMode = mode
-                            },
-                            customBrightness = customBrightnessEnabled,
-                            onCustomBrightnessChange = { enabled ->
-                                customBrightnessEnabled = enabled
-                                ThemePreferences.setCustomBrightnessEnabled(this@MainActivity, enabled)
-                                applyScreenBrightness(enabled, brightnessLevel)
-                            },
-                            brightnessLevel = brightnessLevel,
-                            onBrightnessLevelChange = { level ->
-                                brightnessLevel = level
-                                ThemePreferences.setBrightnessLevel(this@MainActivity, level)
-                                applyScreenBrightness(customBrightnessEnabled, level)
-                            },
                         )
                     }
                     composable("drive_backup") {
@@ -819,7 +777,6 @@ class MainActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
-        applyScreenBrightness(customBrightnessEnabled, brightnessLevel)
         refreshDefaultState()
         com.messages.core.telephony.TelephonySyncManager.ensureObserver(this)
         com.messages.core.telephony.TelephonySyncManager.triggerSync(this)

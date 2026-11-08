@@ -2,10 +2,8 @@ package com.messages.app
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.messages.designsystem.AccentSeed
-import java.lang.reflect.InvocationHandler
-import java.lang.reflect.Proxy
-import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ThemePreferencesMigrationTest {
@@ -85,44 +83,18 @@ class ThemePreferencesMigrationTest {
     }
 
     @Test
-    fun `stored accent VIOLET with version under 3 migrates to ORCHID`() {
-        val prefs = InMemoryPreferences().apply {
-            map["accent_seed"] = AccentSeed.VIOLET.name
-            map["theme_version"] = 2
-        }
-        val context = MockContext(prefs)
-
-        val accent = ThemePreferences.currentAccent(context)
-
-        assertEquals(AccentSeed.ORCHID, accent)
-        assertEquals(AccentSeed.ORCHID.name, prefs.getString("accent_seed", null))
-        assertEquals(3, prefs.getInt("theme_version", 0))
-    }
-
-    @Test
-    fun `deliberately chosen other accent e_g_ GREEN is preserved`() {
-        val prefs = InMemoryPreferences().apply {
-            map["accent_seed"] = AccentSeed.GREEN.name
-            map["theme_version"] = 2
-        }
-        val context = MockContext(prefs)
-
-        val accent = ThemePreferences.currentAccent(context)
-
-        assertEquals(AccentSeed.GREEN, accent)
-        assertEquals(AccentSeed.GREEN.name, prefs.getString("accent_seed", null))
-        assertEquals(3, prefs.getInt("theme_version", 0))
-    }
-
-    @Test
-    fun `fresh install gets ORCHID`() {
+    fun `light launcher icon default is disabled`() {
         val prefs = InMemoryPreferences()
         val context = MockContext(prefs)
+        assertFalse(ThemePreferences.isLightIconEnabled(context))
+    }
 
-        val accent = ThemePreferences.currentAccent(context)
-
-        assertEquals(AccentSeed.ORCHID, accent)
-        assertEquals(AccentSeed.ORCHID.name, prefs.getString("accent_seed", null))
-        assertEquals(3, prefs.getInt("theme_version", 0))
+    @Test
+    fun `light launcher icon enabled state is persisted`() {
+        val prefs = InMemoryPreferences().apply {
+            map["light_launcher_icon"] = true
+        }
+        val context = MockContext(prefs)
+        assertTrue(ThemePreferences.isLightIconEnabled(context))
     }
 }
