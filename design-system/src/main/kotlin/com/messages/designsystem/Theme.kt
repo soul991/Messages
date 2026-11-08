@@ -94,16 +94,31 @@ fun categoryPalette(category: String?): CategoryPalette? {
     }
 }
 
-// Static hues kept for non-composable callers (WhyFilteredScreen, widgets, notifications)
+// Neutral category tints kept for callers (WhyFilteredScreen, widgets, notifications)
+// NOTE: DockIconColors (green, yellow, red, blue) are strictly reserved for dock icons only.
 object CategoryColors {
-    val Fraud = DesignTokens.DockIconColors.Dark.Spam
-    val FraudContainer = Color(0x29FF453A)
-    val Promo = DesignTokens.DockIconColors.Dark.Promotional
-    val PromoContainer = Color(0x29FFD60A)
-    val Protected = DesignTokens.DockIconColors.Dark.Personal
-    val ProtectedContainer = Color(0x2930D158)
-    val Review = DesignTokens.DockIconColors.Dark.Review
-    val ReviewContainer = Color(0x290A84FF)
+    // Semantic error red: reserved for dangerous/fraud alerts and distinct from dock spam indicator
+    val Fraud = Color(0xFFFF453A)
+    val FraudLight = Color(0xFFBA1A1A)
+    // Neutral translucent surface tints for containers (replacing dock accent tints)
+    val FraudContainer = Color(0x24FFFFFF)
+    val FraudContainerLight = Color(0x14000000)
+
+    // Neutral text muted and translucent surface tints for non-dock category surfaces
+    val Promo = DesignTokens.Dark.TextMuted
+    val PromoLight = DesignTokens.Light.TextMuted
+    val PromoContainer = Color(0x24FFFFFF)
+    val PromoContainerLight = Color(0x14000000)
+
+    val Protected = DesignTokens.Dark.Green
+    val ProtectedLight = DesignTokens.Light.GreenText
+    val ProtectedContainer = DesignTokens.Dark.GreenTint16
+    val ProtectedContainerLight = Color(0x1F34C759)
+
+    val Review = DesignTokens.Dark.TextMuted
+    val ReviewLight = DesignTokens.Light.TextMuted
+    val ReviewContainer = Color(0x24FFFFFF)
+    val ReviewContainerLight = Color(0x14000000)
 }
 
 // Fixed Color Schemes mapping tokens/design-tokens.json
