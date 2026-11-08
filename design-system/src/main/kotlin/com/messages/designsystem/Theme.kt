@@ -38,45 +38,47 @@ val LocalSentBubble = staticCompositionLocalOf {
 @Immutable
 data class CategoryPalette(val tint: Color, val container: Color, val onContainer: Color)
 
+// Semantic palettes for cards, badges, and warnings outside the dock.
+// DockIconColors (green, yellow, red, blue) are strictly reserved for dock icons only.
 private val FraudLight = CategoryPalette(
-    tint = DesignTokens.DockIconColors.Light.Spam,
-    container = Color(0x24E5352B),
-    onContainer = DesignTokens.DockIconColors.Light.Spam,
+    tint = Color(0xFFBA1A1A),
+    container = Color(0xFFFFDAD6),
+    onContainer = Color(0xFF410002),
 )
 private val FraudDark = CategoryPalette(
-    tint = DesignTokens.DockIconColors.Dark.Spam,
-    container = Color(0x29FF453A),
-    onContainer = DesignTokens.DockIconColors.Dark.Spam,
+    tint = Color(0xFFFFB4AB),
+    container = Color(0xFF93000A),
+    onContainer = Color(0xFFFFDAD6),
 )
 private val PromoLight = CategoryPalette(
-    tint = DesignTokens.DockIconColors.Light.Promotional,
-    container = Color(0x24C98A00),
-    onContainer = DesignTokens.DockIconColors.Light.Promotional,
+    tint = DesignTokens.Light.TextMuted,
+    container = Color(0x14000000),
+    onContainer = DesignTokens.Light.Text,
 )
 private val PromoDark = CategoryPalette(
-    tint = DesignTokens.DockIconColors.Dark.Promotional,
-    container = Color(0x29FFD60A),
-    onContainer = DesignTokens.DockIconColors.Dark.Promotional,
+    tint = DesignTokens.Dark.TextMuted,
+    container = Color(0x24FFFFFF),
+    onContainer = DesignTokens.Dark.Text,
 )
 private val ProtectedLight = CategoryPalette(
-    tint = DesignTokens.DockIconColors.Light.Personal,
-    container = Color(0x241E9A44),
-    onContainer = DesignTokens.DockIconColors.Light.Personal,
+    tint = DesignTokens.Light.GreenText,
+    container = Color(0x1F34C759),
+    onContainer = DesignTokens.Light.GreenText,
 )
 private val ProtectedDark = CategoryPalette(
-    tint = DesignTokens.DockIconColors.Dark.Personal,
-    container = Color(0x2930D158),
-    onContainer = DesignTokens.DockIconColors.Dark.Personal,
+    tint = DesignTokens.Dark.Green,
+    container = Color(0x2430D158),
+    onContainer = DesignTokens.Dark.Green,
 )
 private val ReviewLight = CategoryPalette(
-    tint = DesignTokens.DockIconColors.Light.Review,
-    container = Color(0x24007AFF),
-    onContainer = DesignTokens.DockIconColors.Light.Review,
+    tint = DesignTokens.Light.TextMuted,
+    container = Color(0x14000000),
+    onContainer = DesignTokens.Light.Text,
 )
 private val ReviewDark = CategoryPalette(
-    tint = DesignTokens.DockIconColors.Dark.Review,
-    container = Color(0x290A84FF),
-    onContainer = DesignTokens.DockIconColors.Dark.Review,
+    tint = DesignTokens.Dark.TextMuted,
+    container = Color(0x24FFFFFF),
+    onContainer = DesignTokens.Dark.Text,
 )
 
 /** Theme-aware palette for a message/conversation category. */

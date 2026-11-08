@@ -649,16 +649,6 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_amoled">AMOLED black</string>
-    <string name="accent_dynamic">Dynamic</string>
-    <string name="accent_orchid">Orchid</string>
-    <string name="accent_violet">Violet</string>
-    <string name="accent_blue">Blue</string>
-    <string name="accent_teal">Teal</string>
-    <string name="accent_green">Green</string>
-    <string name="accent_amber">Amber</string>
-    <string name="accent_coral">Coral</string>
-    <string name="accent_pink">Pink</string>
-    <string name="accent_purple">Purple</string>
     <string name="accent_graphite">Graphite</string>
     <!-- %1$s is an accent name from the list above. Screen-reader only. -->
     <string name="settings_accent_swatch">%1$s accent</string>
