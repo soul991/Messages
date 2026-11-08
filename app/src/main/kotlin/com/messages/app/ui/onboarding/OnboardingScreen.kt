@@ -421,7 +421,12 @@ private fun IntroHero() {
                 .background(cs.primary),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Filled.Shield, contentDescription = null, tint = cs.onPrimary, modifier = Modifier.size(58.dp))
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(R.drawable.ic_stat_message),
+                contentDescription = null,
+                tint = cs.onPrimary,
+                modifier = Modifier.size(60.dp),
+            )
         }
     }
 }

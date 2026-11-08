@@ -39,6 +39,7 @@ internal object NotificationIds {
     const val ID_MESSAGE = 1
     const val ID_FRAUD = 2
     const val ID_REMINDER = 3
+    const val ID_SUMMARY = 4
 
     /** Scheme for the per-action data URIs that keep PendingIntents distinct. */
     const val SCHEME = "messages"

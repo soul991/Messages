@@ -138,9 +138,9 @@ object AppUpdateManager {
 
         val appIcon = NotificationAvatarGenerator.getAppIconBitmap(context)
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_DOWNLOAD)
-            .setSmallIcon(R.drawable.ic_notif_message)
+            .setSmallIcon(R.drawable.ic_stat_message)
             .setLargeIcon(appIcon)
-            .setColor(0xFF5A41DD.toInt())
+            .setColor(0xFF30D158.toInt())
             .setContentTitle(context.getString(R.string.download_notif_title, version))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -157,7 +157,7 @@ object AppUpdateManager {
                 // Show failure notification
                 if (hasNotifPermission) {
                     builder
-                        .setSmallIcon(R.drawable.ic_notif_message)
+                        .setSmallIcon(R.drawable.ic_stat_message)
                         .setLargeIcon(appIcon)
                         .setColor(0xFFEF4444.toInt())
                         .setContentTitle(context.getString(R.string.download_notif_failed))
@@ -240,9 +240,9 @@ object AppUpdateManager {
                 nm.cancel(NOTIFICATION_ID)
                 val installIntent = createInstallPendingIntent(context, targetFile)
                 val completeBuilder = NotificationCompat.Builder(context, MessagesApp.CH_DOWNLOAD)
-                    .setSmallIcon(R.drawable.ic_notif_message)
+                    .setSmallIcon(R.drawable.ic_stat_message)
                     .setLargeIcon(appIcon)
-                    .setColor(0xFF5A41DD.toInt())
+                    .setColor(0xFF30D158.toInt())
                     .setContentTitle(context.getString(R.string.download_notif_complete, version))
                     .setContentText(context.getString(R.string.download_notif_tap_install))
                     .setContentIntent(installIntent)
@@ -260,7 +260,7 @@ object AppUpdateManager {
             // Show failure notification
             if (hasNotifPermission) {
                 builder
-                    .setSmallIcon(R.drawable.ic_notif_message)
+                    .setSmallIcon(R.drawable.ic_stat_message)
                     .setLargeIcon(appIcon)
                     .setColor(0xFFEF4444.toInt())
                     .setContentTitle(context.getString(R.string.download_notif_failed))

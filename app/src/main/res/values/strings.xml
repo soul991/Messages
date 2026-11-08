@@ -1342,6 +1342,13 @@
     <string name="channel_promotions_desc">Optional alerts for promotional messages</string>
     <string name="channel_fraud_name">Fraud warnings</string>
     <string name="channel_fraud_desc">Warnings about dangerous, likely-fraudulent messages</string>
+    <string name="channel_spam_name">Spam</string>
+    <string name="channel_spam_desc">Silent notifications for filtered spam messages</string>
+    <string name="notif_spam_channel_subtitle">Configure minimal/silent spam alerts</string>
+    <string name="notif_system_settings_title">All system notification settings</string>
+    <string name="notif_system_settings_desc">Open Android settings for all message channels</string>
+    <string name="settings_light_icon_title">Light launcher icon</string>
+    <string name="settings_light_icon_subtitle">Use light icon on home screen. The launcher may take a moment to refresh.</string>
 
     <!-- Choosing which spam to include in a Drive backup. -->
     <string name="drive_spam_picker_title">Spam to back up</string>

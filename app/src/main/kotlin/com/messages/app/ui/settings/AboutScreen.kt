@@ -646,12 +646,14 @@ private fun AppIdentityCard() {
                 .padding(vertical = 24.dp, horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+            val bgRes = if (isDark) R.drawable.ic_launcher_background else R.drawable.ic_launcher_light_background
             Box(
                 Modifier.size(80.dp).clip(CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
-                    painterResource(R.drawable.ic_launcher_background),
+                    painterResource(bgRes),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                 )

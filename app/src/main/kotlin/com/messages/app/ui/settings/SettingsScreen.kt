@@ -19,6 +19,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import com.messages.designsystem.Motion
+import com.messages.app.ThemePreferences
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -655,6 +656,7 @@ fun SettingsScreen(
                 // ---- Appearance (§8.2 / §9, Phase 5 §4) ----
                 if (currentPage == SettingsPage.APPEARANCE) {
                     item {
+                        val ctx = androidx.compose.ui.platform.LocalContext.current
                         SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
                         SettingsGroupCard(cardIndex = 0) {
                             SettingsDropdownRow(
@@ -670,6 +672,21 @@ fun SettingsScreen(
                             AccentPickerRow(selected = accent, onSelect = onAccentChange)
                             SettingsCardDivider()
                             MessageTextSizeRow()
+                            SettingsCardDivider()
+                            var lightIcon by remember {
+                                mutableStateOf<Boolean>(ThemePreferences.isLightIconEnabled(ctx))
+                            }
+                            SettingsSwitchRow(
+                                icon = Icons.Outlined.BrightnessHigh,
+                                categoryBadge = null,
+                                title = stringResource(R.string.settings_light_icon_title),
+                                subtitle = stringResource(R.string.settings_light_icon_subtitle),
+                                checked = lightIcon,
+                                onChange = { enabled ->
+                                    lightIcon = enabled
+                                    ThemePreferences.setLightIconEnabled(ctx, enabled)
+                                },
+                            )
                         }
                     }
                     item {

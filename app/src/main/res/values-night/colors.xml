@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- V2-37: matches DarkBase.background in design-system Theme.kt. -->
-    <color name="window_background">#110C16</color>
+    <color name="window_background">#000000</color>
+    <color name="brand_primary">#30D158</color>
+    <color name="brand_primary_variant">#1E9A44</color>
+    <color name="notification_accent">#30D158</color>
 
-    <!--
-      V2-44: dark widget surface. A fixed light card glares on a dark home
-      screen and reads as a foreign object among the launcher's own widgets.
-    -->
-    <color name="widget_background">#1C1B1F</color>
-    <color name="widget_text_primary">#E6E1E5</color>
-    <color name="widget_text_secondary">#CAC4D0</color>
-    <color name="widget_text_tertiary">#938F99</color>
+    <color name="widget_background">#121214</color>
+    <color name="widget_text_primary">#F2F2F4</color>
+    <color name="widget_text_secondary">#8E8E93</color>
+    <color name="widget_text_tertiary">#8E8E93</color>
 </resources>

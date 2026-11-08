@@ -47,6 +47,8 @@ internal sealed class NotifyAction {
     object FraudWarning : NotifyAction()
 }
 
+private const val NOTIF_ACCENT_COLOR = 0xFF30D158.toInt() // Design system brand accent green
+
 /**
  * §3/§4 notification policy: Inbox/Transactions notify; Promotions, Spam and
  * Blocked are silent (badge only); Review gets one quiet batched notification.
@@ -140,6 +142,7 @@ class MessageNotifier(private val context: Context) {
         null
     }
 
+
     private fun postMessageNotification(
         message: MessageEntity,
         verdict: Verdict,
@@ -149,8 +152,9 @@ class MessageNotifier(private val context: Context) {
         conversationLocked: Boolean,
     ) {
         // Locked conversations hide the sender too; hide-previews keeps it.
+        val friendlySender = com.messages.core.util.FriendlySenderNames.format(message.address)
         val title = if (conversationLocked) context.getString(R.string.app_name)
-        else (contactName ?: message.address)
+        else (contactName ?: friendlySender)
         // V2-31: every PendingIntent below carries a per-(thread, action) data
         // URI. `Intent.filterEquals` ignores extras, so without it two threads'
         // action intents are the same intent, and a request-code collision
@@ -228,25 +232,34 @@ class MessageNotifier(private val context: Context) {
             else -> null
         }
 
-        val notifColor = when (verdict.category) {
-            Category.TRANSACTIONS -> 0xFF10B981.toInt() // Lush Emerald Green
-            Category.PROMOTIONS -> 0xFFD97706.toInt()   // Amber
-            Category.SPAM -> 0xFFD32F2F.toInt()         // Red
-            Category.REVIEW -> 0xFF4B5563.toInt()       // Slate
-            Category.INBOX, Category.BLOCKED -> 0xFF5A41DD.toInt() // Brand signature Violet
-        }
+        val groupKey = "com.messages.app.sender." + (contactName ?: friendlySender)
 
         val builder = NotificationCompat.Builder(context, effectiveChannel)
-            .setSmallIcon(R.drawable.ic_notif_message)
-            .setColor(notifColor)
+            .setSmallIcon(R.drawable.ic_stat_message)
+            .setColor(NOTIF_ACCENT_COLOR)
             .setContentTitle(heroTitle ?: title)
             .setContentText(text)
             .setContentIntent(openIntent)
             .setAutoCancel(true)
+            .setGroup(groupKey)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .addAction(R.drawable.ic_notif_mark_read, context.getString(R.string.notif_mark_as_read), markRead)
 
-        // Set high-resolution circular avatar (photo or branded monogram)
+        // Public notification on lock screen: hide body if previews are hidden or locked
+        val publicNotification = NotificationCompat.Builder(context, effectiveChannel)
+            .setSmallIcon(R.drawable.ic_stat_message)
+            .setColor(NOTIF_ACCENT_COLOR)
+            .setContentTitle(title)
+            .setContentText(context.getString(R.string.notif_new_message))
+            .setContentIntent(openIntent)
+            .setAutoCancel(true)
+            .build()
+        builder.setPublicVersion(publicNotification)
+        if (hidden || AppLock.hidePreviews(context)) {
+            builder.setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+        }
+
+        // Set high-resolution circular avatar (photo or neutral monogram matching chat list)
         if (!conversationLocked) {
             val photoBitmap = try {
                 MessageRepository.get(context).lookupContact(message.address)?.photoUri?.let { uriStr ->
@@ -257,7 +270,7 @@ class MessageNotifier(private val context: Context) {
             } catch (_: Exception) { null }
 
             val largeBitmap = photoBitmap ?: NotificationAvatarGenerator.generateBitmap(
-                context, message.address, contactName, verdict.category,
+                context, message.address, title, verdict.category,
             )
             builder.setLargeIcon(largeBitmap)
         }
@@ -288,11 +301,10 @@ class MessageNotifier(private val context: Context) {
             builder.addAction(R.drawable.ic_notif_copy, context.getString(R.string.notif_copy_otp, otpCode), copyOtp)
         }
 
-        // Inline reply (Phase 4 item 2): only for senders that can actually
-        // receive SMS (never DLT/alpha headers — §canReceiveReplies, same rule
-        // as the composer) and never for locked conversations. Groups reply
-        // only when every recipient is replyable, matching ChatScreen.
+        // Inline reply (Phase 4 item 2): only on Personal channel when replying is possible,
+        // and never for locked conversations.
         val replyable = !conversationLocked &&
+            (channel == MessagesApp.CH_PERSONAL || verdict.category == Category.INBOX) &&
             message.address.split(';').all { it.isNotBlank() && SenderAnalyzer.canReceiveReplies(it) }
         if (replyable) {
             val remoteInput = RemoteInput.Builder(KEY_REPLY).setLabel(context.getString(R.string.notif_reply)).build()
@@ -350,14 +362,35 @@ class MessageNotifier(private val context: Context) {
                 .build()
         }
 
+        val notificationManager = NotificationManagerCompat.from(context)
+
         // V2-31: tag carries the whole 64-bit thread id; the id is a per-kind
         // constant. `(tag, id)` is the platform's identity pair, so two threads
         // can never share a notification and none of them can land on the
         // fixed-id Review / locked-space notifications (which carry no tag).
-        NotificationManagerCompat.from(context).notify(
+        notificationManager.notify(
             NotificationIds.threadTag(message.threadId),
             NotificationIds.ID_MESSAGE,
             builder.build(),
+        )
+
+        // Post summary notification for grouping by sender
+        val summaryNotification = NotificationCompat.Builder(context, effectiveChannel)
+            .setSmallIcon(R.drawable.ic_stat_message)
+            .setColor(NOTIF_ACCENT_COLOR)
+            .setGroup(groupKey)
+            .setGroupSummary(true)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setContentIntent(openIntent)
+            .setAutoCancel(true)
+            .addAction(R.drawable.ic_notif_mark_read, context.getString(R.string.notif_mark_as_read), markRead)
+            .build()
+
+        notificationManager.notify(
+            NotificationIds.threadTag(message.threadId),
+            NotificationIds.ID_SUMMARY,
+            summaryNotification,
         )
     }
 
@@ -439,8 +472,8 @@ class MessageNotifier(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_PERSONAL)
-            .setSmallIcon(R.drawable.ic_notif_message)
-            .setColor(0xFF5A41DD.toInt())
+            .setSmallIcon(R.drawable.ic_stat_message)
+            .setColor(NOTIF_ACCENT_COLOR)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(context.getString(R.string.notif_new_message))
             .setContentIntent(openIntent)
@@ -456,8 +489,8 @@ class MessageNotifier(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val builder = NotificationCompat.Builder(context, MessagesApp.CH_REVIEW)
-            .setSmallIcon(R.drawable.ic_notif_review)
-            .setColor(0xFF4B5563.toInt())
+            .setSmallIcon(R.drawable.ic_stat_message)
+            .setColor(NOTIF_ACCENT_COLOR)
             .setContentTitle(context.getString(R.string.notif_review_batch_title))
             .setContentText(context.getString(R.string.notif_review_batch_body))
             .setContentIntent(openIntent)
@@ -535,6 +568,7 @@ class MessageNotifier(private val context: Context) {
                 val tag = NotificationIds.threadTag(threadId)
                 cancel(tag, NotificationIds.ID_MESSAGE)
                 cancel(tag, NotificationIds.ID_FRAUD)
+                cancel(tag, NotificationIds.ID_SUMMARY)
                 cancel(NotificationIds.legacyMessageId(threadId))
                 cancel(NotificationIds.legacyFraudId(threadId))
             }

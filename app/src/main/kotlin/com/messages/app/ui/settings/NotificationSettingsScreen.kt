@@ -83,6 +83,16 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
         }
     }
 
+    fun openAppNotificationSettings() {
+        runCatching {
+            context.startActivity(
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                }
+            )
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -194,6 +204,24 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
                         indented = true,
                     )
                 }
+                SettingsCardDivider()
+                SettingsNavRow(
+                    icon = Icons.Outlined.GppMaybe,
+                    categoryBadge = "SPAM",
+                    title = stringResource(R.string.category_spam),
+                    subtitle = stringResource(R.string.notif_spam_channel_subtitle),
+                    onClick = { openChannelSettings(MessagesApp.CH_SPAM) },
+                    external = true,
+                )
+                SettingsCardDivider()
+                SettingsNavRow(
+                    icon = null,
+                    categoryBadge = null,
+                    title = stringResource(R.string.notif_system_settings_title),
+                    subtitle = stringResource(R.string.notif_system_settings_desc),
+                    onClick = { openAppNotificationSettings() },
+                    external = true,
+                )
             }
 
             SettingsSectionHeader(stringResource(R.string.notif_section_protection))
@@ -250,7 +278,7 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
  */
 @Composable
 private fun NotificationPreviewCard() {
-    val emerald = categoryPalette("TRANSACTIONS")?.tint ?: MaterialTheme.colorScheme.primary
+    val brandGreen = Color(0xFF30D158)
 
     Surface(
         shape = RoundedCornerShape(28.dp),
@@ -270,23 +298,23 @@ private fun NotificationPreviewCard() {
                     modifier = Modifier
                         .size(18.dp)
                         .clip(CircleShape)
-                        .background(emerald),
+                        .background(brandGreen),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        Icons.Outlined.Receipt,
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_stat_message),
                         contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(11.dp),
+                        tint = Color.Black,
+                        modifier = Modifier.size(12.dp),
                     )
                 }
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Messages • TRANSACTIONS",
+                    text = "Messages • Personal",
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = emerald,
+                    color = brandGreen,
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
@@ -299,24 +327,25 @@ private fun NotificationPreviewCard() {
 
             Spacer(Modifier.height(12.dp))
 
-            // Notification Body with Avatar & Hero Text
+            // Notification Body with Neutral Avatar & Friendly Sender Name
             Row(
                 verticalAlignment = Alignment.Top,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                // Branded Solid Circular Avatar
+                // Neutral Circular Letter Avatar matching Chat List
                 Box(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(emerald),
+                        .background(Color(0xFF161618))
+                        .border(BorderStroke(1.dp, Color(0xFF28282C)), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "AB",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = "A",
+                        color = Color(0xFF8E8E93),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
 
@@ -324,7 +353,7 @@ private fun NotificationPreviewCard() {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "₹ 20.00 — AX-AIRBNK-S",
+                        text = "₹ 20.00 — Airtel Payments Bank",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -348,8 +377,8 @@ private fun NotificationPreviewCard() {
             ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = emerald.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, emerald.copy(alpha = 0.35f)),
+                    color = brandGreen.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, brandGreen.copy(alpha = 0.35f)),
                 ) {
                     Box(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
@@ -357,7 +386,7 @@ private fun NotificationPreviewCard() {
                     ) {
                         Text(
                             text = "Mark as read",
-                            color = emerald,
+                            color = brandGreen,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                         )
