@@ -40,10 +40,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
@@ -53,8 +56,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
-import androidx.compose.ui.res.stringResource
 import com.messages.app.R
 import com.messages.designsystem.Haptics
 import kotlin.math.roundToInt
@@ -87,7 +91,7 @@ fun findWordBoundaries(text: String, index: Int): IntRange {
  * - Double-tap to select word
  * - iMessage-style handles (thin 2dp green stem, 10dp round knob)
  * - Platform-style loupe magnifier offset above the finger that stays within screen bounds
- * - Floating copy toolbar near selection
+ * - Floating copy toolbar in a Window Popup near selection
  */
 @Composable
 fun SelectableMessageText(
@@ -112,6 +116,7 @@ fun SelectableMessageText(
     var isDraggingStart by remember { mutableStateOf(false) }
     var isDraggingEnd by remember { mutableStateOf(false) }
     var dragTouchPosition by remember { mutableStateOf(Offset.Zero) }
+    var positionInWindow by remember { mutableStateOf(Offset.Zero) }
 
     // Clear text selection if whole-message selection mode becomes active
     LaunchedEffect(selectionMode) {
@@ -144,6 +149,9 @@ fun SelectableMessageText(
 
     Box(
         modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                positionInWindow = coordinates.positionInWindow()
+            }
             .pointerInput(selectionMode, selectionRange) {
                 detectTapGestures(
                     onTap = { offset ->
@@ -315,54 +323,76 @@ fun SelectableMessageText(
                 }
             }
 
-            // Floating Copy Toolbar (near selection when not dragging)
+            // Floating Copy Toolbar rendered via Popup so it is NEVER clipped by parent containers
             if (!isDraggingStart && !isDraggingEnd) {
-                val toolbarX = ((startRect.left + endRect.right) / 2f) - with(density) { 45.dp.toPx() }
-                val toolbarY = (startRect.top - with(density) { 48.dp.toPx() }).coerceAtLeast(with(density) { (-40).dp.toPx() })
+                val toolbarWidthPx = with(density) { 90.dp.toPx() }
+                val toolbarLocalX = ((startRect.left + endRect.right) / 2f) - (toolbarWidthPx / 2f)
+                val toolbarLocalY = startRect.top - with(density) { 54.dp.toPx() }
 
-                Surface(
-                    modifier = Modifier
-                        .offset { IntOffset(toolbarX.roundToInt(), toolbarY.roundToInt()) }
-                        .shadow(8.dp, RoundedCornerShape(20.dp))
-                        .clip(RoundedCornerShape(20.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
-                        .zIndex(25f),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 6.dp,
+                val toolbarWindowX = (positionInWindow.x + toolbarLocalX).coerceIn(
+                    with(density) { 16.dp.toPx() },
+                    (screenWidthPx - toolbarWidthPx - with(density) { 16.dp.toPx() }).coerceAtLeast(0f)
+                )
+                val toolbarWindowY = (positionInWindow.y + toolbarLocalY).coerceAtLeast(with(density) { 70.dp.toPx() })
+
+                // Popup(alignment = Alignment.TopStart) positions relative to parent anchor (positionInWindow)
+                val popupOffset = IntOffset(
+                    (toolbarWindowX - positionInWindow.x).roundToInt(),
+                    (toolbarWindowY - positionInWindow.y).roundToInt(),
+                )
+
+                Popup(
+                    alignment = Alignment.TopStart,
+                    offset = popupOffset,
+                    properties = PopupProperties(
+                        focusable = false,
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false,
+                        clippingEnabled = false,
+                    ),
                 ) {
-                    Row(
+                    Surface(
                         modifier = Modifier
-                            .clickable {
-                                val selectedSnippet = rawText.substring(range.first, range.last)
-                                if (selectedSnippet.isNotBlank()) {
-                                    clipboard.setText(AnnotatedString(selectedSnippet))
-                                    Haptics.confirm(view)
-                                }
-                                selectionRange = null
-                            }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                            .shadow(8.dp, RoundedCornerShape(20.dp))
+                            .clip(RoundedCornerShape(20.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp)),
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 6.dp,
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ContentCopy,
-                            contentDescription = stringResource(R.string.action_copy),
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = stringResource(R.string.action_copy),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
+                        Row(
+                            modifier = Modifier
+                                .clickable {
+                                    val selectedSnippet = rawText.substring(range.first, range.last)
+                                    if (selectedSnippet.isNotBlank()) {
+                                        clipboard.setText(AnnotatedString(selectedSnippet))
+                                        Haptics.confirm(view)
+                                    }
+                                    selectionRange = null
+                                }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.ContentCopy,
+                                contentDescription = stringResource(R.string.action_copy),
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.action_copy),
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
                     }
                 }
             }
 
-            // Platform-Style Loupe Magnifier (when actively dragging handles)
+            // Platform-Style Loupe Magnifier rendered via Popup so it is NEVER clipped
             // Specs from TextSelect.html:
             // width: 150px, height: 56px, border-radius: 28px, background: #1C1C1F,
             // border: 1px solid rgba(255,255,255,.14), shadow: 0 10px 30px rgba(0,0,0,.5), font-size: 19px
@@ -370,16 +400,19 @@ fun SelectableMessageText(
             if (isDragging) {
                 val loupeWidthPx = with(density) { 150.dp.toPx() }
                 val loupeHeightPx = with(density) { 56.dp.toPx() }
-                
-                // Offset strictly above the finger (~80dp above) so it never covers the words
-                val loupeTargetX = dragTouchPosition.x - (loupeWidthPx / 2f)
-                val loupeTargetY = dragTouchPosition.y - loupeHeightPx - with(density) { 32.dp.toPx() }
+
+                val dragWindowX = positionInWindow.x + dragTouchPosition.x
+                val dragWindowY = positionInWindow.y + dragTouchPosition.y
+
+                val loupeTargetX = dragWindowX - (loupeWidthPx / 2f)
+                val loupeTargetY = dragWindowY - loupeHeightPx - with(density) { 36.dp.toPx() }
 
                 // Clamp horizontally within screen edges
                 val clampedX = loupeTargetX.coerceIn(
                     with(density) { 16.dp.toPx() },
                     (screenWidthPx - loupeWidthPx - with(density) { 16.dp.toPx() }).coerceAtLeast(0f)
                 )
+                val clampedY = loupeTargetY.coerceAtLeast(with(density) { 48.dp.toPx() })
 
                 // Selected snippet for the loupe
                 val snippet = remember(range, rawText) {
@@ -391,49 +424,64 @@ fun SelectableMessageText(
                     Triple(before, selected, after)
                 }
 
-                Surface(
-                    modifier = Modifier
-                        .offset { IntOffset(clampedX.roundToInt(), loupeTargetY.roundToInt()) }
-                        .size(150.dp, 56.dp)
-                        .shadow(12.dp, RoundedCornerShape(28.dp))
-                        .clip(RoundedCornerShape(28.dp))
-                        .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(28.dp))
-                        .zIndex(30f),
-                    color = Color(0xFF1C1C1F),
+                // Popup(alignment = Alignment.TopStart) positions relative to parent anchor (positionInWindow)
+                val loupePopupOffset = IntOffset(
+                    (clampedX - positionInWindow.x).roundToInt(),
+                    (clampedY - positionInWindow.y).roundToInt(),
+                )
+
+                Popup(
+                    alignment = Alignment.TopStart,
+                    offset = loupePopupOffset,
+                    properties = PopupProperties(
+                        focusable = false,
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false,
+                        clippingEnabled = false,
+                    ),
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.padding(horizontal = 10.dp)
+                    Surface(
+                        modifier = Modifier
+                            .size(150.dp, 56.dp)
+                            .shadow(12.dp, RoundedCornerShape(28.dp))
+                            .clip(RoundedCornerShape(28.dp))
+                            .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(28.dp)),
+                        color = Color(0xFF1C1C1F),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 10.dp)
                         ) {
-                            if (snippet.first.isNotEmpty()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (snippet.first.isNotEmpty()) {
+                                    Text(
+                                        text = snippet.first,
+                                        fontSize = 17.sp,
+                                        color = Color(0xFF8E8E93),
+                                        maxLines = 1,
+                                    )
+                                }
                                 Text(
-                                    text = snippet.first,
-                                    fontSize = 17.sp,
-                                    color = Color(0xFF8E8E93),
+                                    text = snippet.second,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFFF2F2F4),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(Color(0x4D30D158))
+                                        .padding(horizontal = 2.dp),
                                     maxLines = 1,
                                 )
-                            }
-                            Text(
-                                text = snippet.second,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFFF2F2F4),
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Color(0x4D30D158))
-                                    .padding(horizontal = 2.dp),
-                                maxLines = 1,
-                            )
-                            if (snippet.third.isNotEmpty()) {
-                                Text(
-                                    text = snippet.third,
-                                    fontSize = 17.sp,
-                                    color = Color(0xFF8E8E93),
-                                    maxLines = 1,
-                                )
+                                if (snippet.third.isNotEmpty()) {
+                                    Text(
+                                        text = snippet.third,
+                                        fontSize = 17.sp,
+                                        color = Color(0xFF8E8E93),
+                                        maxLines = 1,
+                                    )
+                                }
                             }
                         }
                     }

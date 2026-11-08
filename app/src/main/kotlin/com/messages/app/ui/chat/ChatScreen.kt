@@ -2163,13 +2163,9 @@ private fun MessageBubble(
             Box(
                 Modifier
                     .widthIn(max = maxBubbleWidth)
-                    .clip(bubbleShape)
                     .background(
-                        if (isOut) {
-                            androidx.compose.ui.graphics.SolidColor(outBubbleColors.first)
-                        } else {
-                            androidx.compose.ui.graphics.SolidColor(receivedSurface)
-                        }
+                        color = if (isOut) outBubbleColors.first else receivedSurface,
+                        shape = bubbleShape,
                     )
                     .combinedClickable(
                         onClick = { if (selectionMode) onToggleSelect() },
