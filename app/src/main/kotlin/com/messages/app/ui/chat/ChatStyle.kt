@@ -39,8 +39,16 @@ object ChatStyle {
         BubblePreset("default", "Default", Color.Unspecified, Color.Unspecified, Color.Unspecified, Color.Unspecified),
     )
 
+    @Immutable
+    data class WallpaperPreset(
+        val id: String,
+        val name: String,
+        val light: List<Color>,
+        val dark: List<Color>,
+    )
+
     val wallpaperPresets = listOf(
-        WallpaperPreset("none", "None", emptyList(), emptyList()),
+        WallpaperPreset("none", "None", emptyList<Color>(), emptyList<Color>()),
     )
 
     const val WALLPAPER_PHOTO = "photo"

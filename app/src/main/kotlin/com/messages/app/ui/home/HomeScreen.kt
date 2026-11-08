@@ -235,6 +235,24 @@ private val SEARCH_LABELS = listOf(
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Pure helper for calculating dock visibility on scroll.
+ * Scroll down (negative delta) hides; scroll up (positive delta) reveals; top position always reveals.
+ */
+internal fun calculateDockVisibility(
+    currentlyVisible: Boolean,
+    deltaY: Float,
+    isTop: Boolean = false,
+): Boolean {
+    if (isTop) return true
+    return when {
+        deltaY < -6f -> false
+        deltaY > 6f -> true
+        else -> currentlyVisible
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     isDefaultSmsApp: Boolean,
@@ -324,11 +342,7 @@ fun HomeScreen(
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -6f) {
-                    isDockVisible.value = false
-                } else if (available.y > 6f) {
-                    isDockVisible.value = true
-                }
+                isDockVisible.value = calculateDockVisibility(isDockVisible.value, available.y)
                 return Offset.Zero
             }
 
@@ -337,11 +351,8 @@ fun HomeScreen(
                 available: Offset,
                 source: NestedScrollSource,
             ): Offset {
-                if (consumed.y > 4f || available.y > 4f) {
-                    isDockVisible.value = true
-                } else if (consumed.y < -4f) {
-                    isDockVisible.value = false
-                }
+                val delta = if (consumed.y != 0f) consumed.y else available.y
+                isDockVisible.value = calculateDockVisibility(isDockVisible.value, delta)
                 return Offset.Zero
             }
         }

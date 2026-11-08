@@ -64,6 +64,25 @@ import com.messages.designsystem.Haptics
 import kotlin.math.roundToInt
 
 /**
+ * Clamps loupe position strictly inside screen boundaries so it never clips edges or obscures text.
+ */
+internal fun clampLoupePosition(
+    targetX: Float,
+    targetY: Float,
+    loupeWidthPx: Float,
+    screenWidthPx: Float,
+    minMarginPx: Float,
+    minTopPx: Float,
+): Pair<Float, Float> {
+    val clampedX = targetX.coerceIn(
+        minMarginPx,
+        (screenWidthPx - loupeWidthPx - minMarginPx).coerceAtLeast(0f),
+    )
+    val clampedY = targetY.coerceAtLeast(minTopPx)
+    return clampedX to clampedY
+}
+
+/**
  * Helper to calculate word boundaries around a character index in [text].
  */
 fun findWordBoundaries(text: String, index: Int): IntRange {
@@ -407,12 +426,14 @@ fun SelectableMessageText(
                 val loupeTargetX = dragWindowX - (loupeWidthPx / 2f)
                 val loupeTargetY = dragWindowY - loupeHeightPx - with(density) { 36.dp.toPx() }
 
-                // Clamp horizontally within screen edges
-                val clampedX = loupeTargetX.coerceIn(
-                    with(density) { 16.dp.toPx() },
-                    (screenWidthPx - loupeWidthPx - with(density) { 16.dp.toPx() }).coerceAtLeast(0f)
+                val (clampedX, clampedY) = clampLoupePosition(
+                    targetX = loupeTargetX,
+                    targetY = loupeTargetY,
+                    loupeWidthPx = loupeWidthPx,
+                    screenWidthPx = screenWidthPx,
+                    minMarginPx = with(density) { 16.dp.toPx() },
+                    minTopPx = with(density) { 48.dp.toPx() },
                 )
-                val clampedY = loupeTargetY.coerceAtLeast(with(density) { 48.dp.toPx() })
 
                 // Selected snippet for the loupe
                 val snippet = remember(range, rawText) {
