@@ -19,14 +19,14 @@ class NotificationBehaviorTest {
     }
 
     @Test
-    fun `sender grouping key isolates conversations by formatted sender`() {
-        val senderAirtel = "AV-AIRTEL-S"
-        val senderPnb = "VA-PNBSMS-S"
-        val groupKeyAirtel = "com.messages.app.sender." + FriendlySenderNames.format(senderAirtel)
-        val groupKeyPnb = "com.messages.app.sender." + FriendlySenderNames.format(senderPnb)
+    fun `sender grouping key isolates conversations by formatted sender using production code`() {
+        val groupKeyAirtel = MessageNotifier.resolveGroupKey("AV-AIRTEL-S", null)
+        val groupKeyPnb = MessageNotifier.resolveGroupKey("VA-PNBSMS-S", null)
+        val groupKeyCustomContact = MessageNotifier.resolveGroupKey("+15551234567", "John Doe")
 
         assertEquals("com.messages.app.sender.Airtel", groupKeyAirtel)
         assertEquals("com.messages.app.sender.PNB", groupKeyPnb)
+        assertEquals("com.messages.app.sender.John Doe", groupKeyCustomContact)
         assertTrue(groupKeyAirtel != groupKeyPnb)
     }
 
@@ -43,11 +43,33 @@ class NotificationBehaviorTest {
     }
 
     @Test
-    fun `lock-screen privacy hides body and provides generic text when requested`() {
+    fun `lock-screen privacy hides body and sets private visibility using production code`() {
         val originalBody = "Your OTP is 948123 for transaction of Rs 5000"
-        val hidePreviews = true
-        val publicNotificationText = if (hidePreviews) "New message" else originalBody
-        assertEquals("New message", publicNotificationText)
-        assertFalse("Must not leak OTP or amount in locked preview", publicNotificationText.contains("948123"))
+
+        // When hidden is true (e.g. app lock on or conversation locked)
+        val hiddenText = MessageNotifier.resolveNotificationBody(
+            body = originalBody,
+            hidden = true,
+            placeholder = "New message",
+        )
+        assertEquals("New message", hiddenText)
+        assertFalse("Must not leak OTP or amount when hidden", hiddenText.contains("948123"))
+
+        // When hidden is false
+        val visibleText = MessageNotifier.resolveNotificationBody(
+            body = originalBody,
+            hidden = false,
+            placeholder = "New message",
+        )
+        assertEquals(originalBody, visibleText)
+
+        // Visibility flags on lock screen
+        val privateVisibility = MessageNotifier.resolveNotificationVisibility(hidden = true, hidePreviewsSetting = false)
+        val settingPrivateVisibility = MessageNotifier.resolveNotificationVisibility(hidden = false, hidePreviewsSetting = true)
+        val publicVisibility = MessageNotifier.resolveNotificationVisibility(hidden = false, hidePreviewsSetting = false)
+
+        assertEquals(androidx.core.app.NotificationCompat.VISIBILITY_PRIVATE, privateVisibility)
+        assertEquals(androidx.core.app.NotificationCompat.VISIBILITY_PRIVATE, settingPrivateVisibility)
+        assertEquals(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC, publicVisibility)
     }
 }

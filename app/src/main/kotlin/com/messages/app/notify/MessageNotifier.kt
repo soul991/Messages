@@ -185,12 +185,13 @@ class MessageNotifier(private val context: Context) {
             // their identity must not surface outside the app).
             if (!conversationLocked) contactPhotoIcon(message.address)?.let { setIcon(it) }
         }.build()
-        val text = when {
-            hidden -> context.getString(R.string.notif_new_message)
-            verdict.fraudWarningBanner ->
-                context.getString(R.string.notif_suspicious_link, message.body)
-            else -> message.body
-        }
+        val text = resolveNotificationBody(
+            body = message.body,
+            hidden = hidden,
+            fraudWarningBanner = verdict.fraudWarningBanner,
+            placeholder = context.getString(R.string.notif_new_message),
+            suspiciousLinkFormat = { context.getString(R.string.notif_suspicious_link, it) },
+        )
         val style = NotificationCompat.MessagingStyle(Person.Builder().setName(context.getString(R.string.notif_you)).build())
             .addMessage(text, message.timestamp, person)
 
@@ -232,7 +233,7 @@ class MessageNotifier(private val context: Context) {
             else -> null
         }
 
-        val groupKey = "com.messages.app.sender." + (contactName ?: friendlySender)
+        val groupKey = resolveGroupKey(message.address, contactName)
 
         val builder = NotificationCompat.Builder(context, effectiveChannel)
             .setSmallIcon(R.drawable.ic_stat_message)
@@ -255,9 +256,7 @@ class MessageNotifier(private val context: Context) {
             .setAutoCancel(true)
             .build()
         builder.setPublicVersion(publicNotification)
-        if (hidden || AppLock.hidePreviews(context)) {
-            builder.setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-        }
+        builder.setVisibility(resolveNotificationVisibility(hidden, AppLock.hidePreviews(context)))
 
         // Set high-resolution circular avatar (photo or neutral monogram matching chat list)
         if (!conversationLocked) {
@@ -542,6 +541,30 @@ class MessageNotifier(private val context: Context) {
                 else NotifyAction.Silent
             Category.BLOCKED -> NotifyAction.Silent
         }
+
+        /** Resolves notification sender group key for threading by sender. */
+        internal fun resolveGroupKey(address: String, contactName: String?): String {
+            val title = contactName ?: com.messages.core.util.FriendlySenderNames.format(address)
+            return "com.messages.app.sender.$title"
+        }
+
+        /** Resolves the display text according to lock and preview privacy rules. */
+        internal fun resolveNotificationBody(
+            body: String,
+            hidden: Boolean,
+            fraudWarningBanner: Boolean = false,
+            placeholder: String = "New message",
+            suspiciousLinkFormat: ((String) -> String)? = null,
+        ): String = when {
+            hidden -> placeholder
+            fraudWarningBanner && suspiciousLinkFormat != null -> suspiciousLinkFormat(body)
+            else -> body
+        }
+
+        /** Lock-screen visibility: private when previews are hidden or conversation is locked. */
+        internal fun resolveNotificationVisibility(hidden: Boolean, hidePreviewsSetting: Boolean): Int =
+            if (hidden || hidePreviewsSetting) NotificationCompat.VISIBILITY_PRIVATE
+            else NotificationCompat.VISIBILITY_PUBLIC
 
         /** Single shared id for ALL locked-space pings — never per-thread.
          *  Public: the Reset flow cancels it during the wipe. */
