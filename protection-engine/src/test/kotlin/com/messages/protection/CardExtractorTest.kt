@@ -303,6 +303,15 @@ class CardExtractorTest {
     }
 
     @Test
+    fun `exact Mamaearth order placed message rejects subordinate delivered and extracts order placed`() {
+        val exactMamaearth = "Order Placed: Hi ISTAK AHAMED, Thank You for choosing Mamaearth. Your order of Rs 386 has been successfully placed & the details have been mailed to you. Cashback will be credited in the user Mamapay wallet account within 7 days of all products being delivered for eligible orders"
+        val statusField = field(exactMamaearth, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNotNull("Must extract delivery status", statusField)
+        assertEquals("order placed", statusField!!.normalized)
+        assertFalse("Status must NOT be delivered", statusField.normalized == "delivered")
+    }
+
+    @Test
     fun `subordinate clause delivered is rejected in order placed message`() {
         val promptCase = "Order placed. Get cashback within 7 days of all products being delivered"
         val statusField = field(promptCase, CardExtractor.FieldKind.DELIVERY_STATUS)
@@ -331,21 +340,27 @@ class CardExtractorTest {
     }
 
     @Test
-    fun `main clause delivery statuses are extracted with high confidence`() {
-        val delivered = "Your package has been delivered safely at your door"
-        val deliveredStatus = field(delivered, CardExtractor.FieldKind.DELIVERY_STATUS)
-        assertNotNull(deliveredStatus)
-        assertEquals("delivered", deliveredStatus!!.normalized)
-
+    fun `shipped status is extracted from genuine dispatch notification`() {
         val shipped = "Package shipped via BlueDart with AWB 987654321"
         val shippedStatus = field(shipped, CardExtractor.FieldKind.DELIVERY_STATUS)
         assertNotNull(shippedStatus)
         assertEquals("shipped", shippedStatus!!.normalized)
+    }
 
+    @Test
+    fun `out for delivery status is extracted from courier notification`() {
         val out = "Your order is out for delivery with courier partner"
         val outStatus = field(out, CardExtractor.FieldKind.DELIVERY_STATUS)
         assertNotNull(outStatus)
         assertEquals("out for delivery", outStatus!!.normalized)
+    }
+
+    @Test
+    fun `delivered status is extracted from genuine delivery confirmation message`() {
+        val delivered = "Your package has been delivered safely at your door"
+        val deliveredStatus = field(delivered, CardExtractor.FieldKind.DELIVERY_STATUS)
+        assertNotNull(deliveredStatus)
+        assertEquals("delivered", deliveredStatus!!.normalized)
     }
 
     // ---- structure ------------------------------------------------------
