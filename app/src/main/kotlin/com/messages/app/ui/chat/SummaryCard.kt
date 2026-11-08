@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -58,13 +59,18 @@ import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.Motion
 import com.messages.protection.CardExtractor
 
+import com.messages.designsystem.DesignTokens
+import com.messages.designsystem.LocalDarkTheme
+
 private data class CardThemeColors(
     val background: Color,
     val borderColor: Color,
     val tint: Color,
     val badgeText: String?,
     val badgeBg: Color,
+    val badgeBorder: Color,
     val badgeTextColor: Color,
+    val amountColor: Color,
 )
 
 @Composable
@@ -83,36 +89,38 @@ fun SummaryCard(
 ) {
     var expanded by remember { mutableStateOf<CardExtractor.FieldKind?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
+    val isDark = LocalDarkTheme.current
     val cs = MaterialTheme.colorScheme
     val direction = card.direction
 
-    // Direction-aware solid colors and crisp hairline styling
+    // Direction-aware translucent tinted glass styling
+    // Source of truth: design-tokens.json & Thread.html
     val themeColors = when (direction) {
         CardExtractor.Direction.CREDIT -> {
-            val p = categoryPalette("TRANSACTIONS")
-            val bg = p?.container ?: cs.primaryContainer
-            val border = (p?.tint ?: cs.primary).copy(alpha = 0.35f)
-            val tint = p?.tint ?: cs.primary
+            val bg = DesignTokens.SummaryCards.Credit.Fill // rgba(48,209,88,0.10)
+            val border = DesignTokens.SummaryCards.Credit.Border // rgba(48,209,88,0.28)
+            val tint = DesignTokens.SummaryCards.Credit.Text // #6EE7A0
             val badge = stringResource(R.string.summary_badge_credited)
-            val bBg = (p?.tint ?: cs.primary).copy(alpha = 0.15f)
+            val bBg = Color(0x1F30D158) // rgba(48,209,88,0.12)
+            val bBorder = Color(0x6630D158) // rgba(48,209,88,0.40)
             val bText = tint
-            CardThemeColors(bg, border, tint, badge, bBg, bText)
+            CardThemeColors(bg, border, tint, badge, bBg, bBorder, bText, amountColor = tint)
         }
         CardExtractor.Direction.DEBIT -> {
-            val p = categoryPalette("SPAM")
-            val bg = p?.container ?: cs.errorContainer
-            val border = (p?.tint ?: cs.error).copy(alpha = 0.35f)
-            val tint = p?.tint ?: cs.error
+            val bg = DesignTokens.SummaryCards.Debit.Fill // rgba(255,69,58,0.10)
+            val border = DesignTokens.SummaryCards.Debit.Border // rgba(255,69,58,0.28)
+            val tint = DesignTokens.SummaryCards.Debit.Text // #FF8A80
             val badge = stringResource(R.string.summary_badge_debited)
-            val bBg = (p?.tint ?: cs.error).copy(alpha = 0.15f)
+            val bBg = Color(0x1FFF453A) // rgba(255,69,58,0.12)
+            val bBorder = Color(0x66FF453A) // rgba(255,69,58,0.40)
             val bText = tint
-            CardThemeColors(bg, border, tint, badge, bBg, bText)
+            CardThemeColors(bg, border, tint, badge, bBg, bBorder, bText, amountColor = tint)
         }
         CardExtractor.Direction.NEUTRAL -> {
-            val bg = MaterialTheme.colorScheme.groupCard
-            val border = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            val tint = MaterialTheme.colorScheme.primary
-            CardThemeColors(bg, border, tint, null, Color.Transparent, Color.Transparent)
+            val bg = if (isDark) Color(0x12FFFFFF) else Color(0x0A000000)
+            val border = if (isDark) Color(0x24FFFFFF) else Color(0x14000000)
+            val tint = cs.onSurface
+            CardThemeColors(bg, border, tint, null, Color.Transparent, Color.Transparent, Color.Transparent, amountColor = cs.onSurface)
         }
     }
 
@@ -128,7 +136,7 @@ fun SummaryCard(
         border = BorderStroke(1.dp, themeColors.borderColor),
     ) {
         Column(
-            Modifier.padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 12.dp),
+            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             // Header Row
             Row(
@@ -146,59 +154,88 @@ fun SummaryCard(
                     modifier = Modifier.size(16.dp),
                     tint = themeColors.tint,
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(R.string.summary_card_title),
-                    style = MaterialTheme.typography.labelMedium,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = themeColors.tint,
                     modifier = Modifier.weight(1f),
                 )
 
-                // Direction Badge Pill
+                // Direction Badge Pill: e.g. CREDITED / DEBITED
                 if (themeColors.badgeText != null) {
                     Box(
                         modifier = Modifier
                             .padding(end = 4.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(themeColors.badgeBg)
-                            .border(0.75.dp, themeColors.tint.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 7.dp, vertical = 2.dp),
+                            .border(1.dp, themeColors.badgeBorder, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 9.dp, vertical = 3.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = themeColors.badgeText,
                             color = themeColors.badgeTextColor,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.6.sp,
                         )
                     }
                 }
 
-                IconButton(
-                    onClick = { menuOpen = true },
-                ) {
-                    Icon(
-                        Icons.Filled.MoreVert,
-                        contentDescription = stringResource(R.string.summary_card_options),
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    )
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.summary_action_hide)) },
-                        onClick = { menuOpen = false; onHideCard() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.summary_action_turn_off)) },
-                        onClick = { menuOpen = false; onTurnOff() },
-                    )
+                // Anchored Three-Dot Menu
+                Box {
+                    IconButton(
+                        onClick = { menuOpen = true },
+                    ) {
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.summary_card_options),
+                            modifier = Modifier.size(16.dp),
+                            tint = if (isDark) DesignTokens.Dark.TextMuted else DesignTokens.Light.TextMuted,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false },
+                        shape = RoundedCornerShape(8.dp),
+                        containerColor = cs.surface,
+                        border = BorderStroke(1.dp, cs.outlineVariant),
+                        tonalElevation = 6.dp,
+                        shadowElevation = 8.dp,
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(R.string.summary_action_hide),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            },
+                            onClick = {
+                                menuOpen = false
+                                onHideCard()
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(R.string.summary_action_turn_off),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            },
+                            onClick = {
+                                menuOpen = false
+                                onTurnOff()
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
 
             // Field List
             for (field in card.fields) {
@@ -208,6 +245,7 @@ fun SummaryCard(
                     expanded = expanded == field.kind,
                     direction = direction,
                     headerTint = themeColors.tint,
+                    amountColor = themeColors.amountColor,
                     onToggle = {
                         expanded = if (expanded == field.kind) null else field.kind
                     },
@@ -215,14 +253,12 @@ fun SummaryCard(
                 )
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 stringResource(R.string.summary_card_footer),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                fontSize = 10.sp,
-                lineHeight = 13.sp,
-                modifier = Modifier.padding(end = 8.dp),
+                fontSize = 11.sp,
+                color = if (isDark) Color(0xFF6B6B72) else Color(0xFF8E8E93),
+                lineHeight = 14.sp,
             )
         }
     }
@@ -235,9 +271,14 @@ private fun SummaryFieldRow(
     expanded: Boolean,
     direction: CardExtractor.Direction,
     headerTint: Color,
+    amountColor: Color,
     onToggle: () -> Unit,
     onWrong: () -> Unit,
 ) {
+    val isDark = LocalDarkTheme.current
+    val mutedColor = if (isDark) DesignTokens.Dark.TextMuted else DesignTokens.Light.TextMuted
+    val normalTextColor = MaterialTheme.colorScheme.onSurface
+
     val label = when (field.kind) {
         CardExtractor.FieldKind.AMOUNT -> when (field.direction) {
             CardExtractor.Direction.CREDIT -> stringResource(R.string.summary_field_credited)
@@ -249,12 +290,6 @@ private fun SummaryFieldRow(
 
     val value = displayValue(field)
     val isAmount = field.kind == CardExtractor.FieldKind.AMOUNT
-    val cs = MaterialTheme.colorScheme
-    val amountColor = when (field.direction) {
-        CardExtractor.Direction.CREDIT -> categoryPalette("TRANSACTIONS")?.tint ?: cs.primary
-        CardExtractor.Direction.DEBIT -> categoryPalette("SPAM")?.tint ?: cs.error
-        CardExtractor.Direction.NEUTRAL -> cs.onSurface
-    }
 
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -265,47 +300,51 @@ private fun SummaryFieldRow(
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onToggle)
-            .padding(vertical = 3.dp, horizontal = 2.dp),
+            .padding(vertical = if (isAmount) 4.dp else 3.dp),
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = if (isAmount) Alignment.Bottom else Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (isAmount) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isAmount) headerTint else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.width(88.dp),
+                text = label,
+                fontSize = 13.sp,
+                color = mutedColor,
             )
-            Text(
-                value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isAmount) FontWeight.Bold else FontWeight.Medium,
-                color = if (isAmount) amountColor else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                Icons.Filled.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier
-                    .size(16.dp)
-                    .rotate(rotation),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = value,
+                    fontSize = if (isAmount) 20.sp else 13.sp,
+                    fontWeight = if (isAmount) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isAmount) amountColor else normalTextColor,
+                )
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = mutedColor.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .size(16.dp)
+                        .rotate(rotation),
+                )
+            }
         }
 
+        // Expanded Evidence Panel
         AnimatedVisibility(visible = expanded) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp, bottom = 4.dp, start = 8.dp, end = 4.dp)
+                    .padding(top = 8.dp, bottom = 4.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
-                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)), RoundedCornerShape(12.dp))
-                    .padding(10.dp),
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)), RoundedCornerShape(12.dp))
+                    .padding(12.dp),
             ) {
                 Text(
                     field.explanation,
@@ -318,19 +357,22 @@ private fun SummaryFieldRow(
                     Text(
                         stringResource(R.string.summary_confidence_medium),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = mutedColor,
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(
                     stringResource(R.string.summary_in_message),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = mutedColor,
                 )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     excerpt(body, field),
                     style = MaterialTheme.typography.bodySmall,
+                    color = normalTextColor,
                 )
+                Spacer(Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.Start) {
                     TextButton(onClick = onWrong) {
                         Text(
@@ -368,19 +410,39 @@ private fun labelFor(kind: CardExtractor.FieldKind): Int = when (kind) {
 
 private const val EXCERPT_CONTEXT = 34
 
+/**
+ * Trims excerpt snippets strictly at word boundaries.
+ */
 internal fun excerpt(body: String, field: CardExtractor.Field): AnnotatedString {
     val start = field.start.coerceIn(0, body.length)
     val end = field.end.coerceIn(start, body.length)
     if (start == end) return AnnotatedString(field.raw)
-    val from = (start - EXCERPT_CONTEXT).coerceAtLeast(0)
-    val to = (end + EXCERPT_CONTEXT).coerceAtMost(body.length)
+
+    var from = (start - EXCERPT_CONTEXT).coerceAtLeast(0)
+    if (from > 0) {
+        // Find next word boundary so we don't start mid-word
+        val spaceIndex = body.indexOfAny(charArrayOf(' ', '\t', '\n'), startIndex = from)
+        if (spaceIndex in from until start) {
+            from = spaceIndex + 1
+        }
+    }
+
+    var to = (end + EXCERPT_CONTEXT).coerceAtMost(body.length)
+    if (to < body.length) {
+        // Find previous word boundary so we don't end mid-word
+        val spaceIndex = body.lastIndexOfAny(charArrayOf(' ', '\t', '\n'), startIndex = to)
+        if (spaceIndex in end..to) {
+            to = spaceIndex
+        }
+    }
+
     return buildAnnotatedString {
-        if (from > 0) append("…")
+        if (from > 0) append("… ")
         append(body.substring(from, start))
         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
             append(body.substring(start, end))
         }
         append(body.substring(end, to))
-        if (to < body.length) append("…")
+        if (to < body.length) append(" …")
     }
 }

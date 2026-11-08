@@ -463,25 +463,86 @@ object CardExtractor {
         }.toList()
 
     /**
-     * The courier's own status wording. Reported verbatim rather than mapped
-     * onto a status enum: "out for delivery" and "arriving today" are not the
-     * same promise, and flattening them into one label invents certainty.
+     * Subordinate / conditional markers that disqualify a status match.
+     * Reject matches preceded by: being, will be, once, after, if, until, within, or upon.
      */
-    private val DELIVERY_STATUS = Regex(
-        """(?i)\b(out for delivery|delivered|shipped|dispatched|in transit|arriving today|arriving tomorrow|delivery attempted|returned to (?:origin|sender)|ready for pickup|picked up)\b"""
+    private val SUBORDINATE_MARKERS = Regex(
+        """(?i)\b(being|will\s+be|once|after|if|until|within|upon)\b"""
     )
 
-    private fun deliveryStatus(body: CharSequence): List<Field> =
-        DELIVERY_STATUS.findAll(body).map { m ->
+    private val STAGE_PLACED = Regex("""(?i)\b(order placed|placed successfully|booking confirmed|order confirmed|placed)\b""")
+    private val STAGE_SHIPPED = Regex("""(?i)\b(shipped|dispatched|in transit)\b""")
+    private val STAGE_OUT = Regex("""(?i)\b(out for delivery|arriving today|arriving tomorrow|delivery attempted)\b""")
+    private val STAGE_DELIVERED = Regex("""(?i)\b(delivered|ready for pickup|picked up)\b""")
+
+    /**
+     * The courier / order status wording. Reported verbatim rather than mapped
+     * onto an arbitrary enum, but vetted to ensure:
+     * 1. The message type is classified (placed, shipped, out for delivery, delivered).
+     * 2. Status is taken from the main clause.
+     * 3. Matches preceded by being, will be, once, after, if, until, within, or upon are rejected.
+     * 4. Low-confidence or ambiguous matches emit no status.
+     */
+    private val DELIVERY_STATUS = Regex(
+        """(?i)\b(order placed|out for delivery|delivered|shipped|dispatched|in transit|arriving today|arriving tomorrow|delivery attempted|returned to (?:origin|sender)|ready for pickup|picked up|placed)\b"""
+    )
+
+    private fun deliveryStatus(body: CharSequence): List<Field> {
+        val text = body.toString()
+        if (text.isBlank()) return emptyList()
+
+        // 1. Classify main clause message type
+        val sentences = text.split(Regex("""[.!?\n]+""")).map { it.trim() }.filter { it.isNotEmpty() }
+        val mainClause = sentences.firstOrNull() ?: text
+
+        val isPlacedMain = STAGE_PLACED.containsMatchIn(mainClause)
+        val isShippedMain = STAGE_SHIPPED.containsMatchIn(mainClause)
+        val isOutMain = STAGE_OUT.containsMatchIn(mainClause)
+        val isDeliveredMain = STAGE_DELIVERED.containsMatchIn(mainClause)
+
+        val candidates = DELIVERY_STATUS.findAll(body).mapNotNull { m ->
+            val matchStart = m.range.first
+            // Locate clause boundary before this match
+            val prevPunct = text.lastIndexOfAny(charArrayOf('.', '!', '?', '\n', ';'), (matchStart - 1).coerceAtLeast(0))
+            val clauseStart = if (prevPunct >= 0) prevPunct + 1 else 0
+            val prefixInClause = text.substring(clauseStart, matchStart)
+
+            // Reject if preceded by subordinate / conditional markers in the same clause or preceding window
+            val windowStart = (matchStart - 60).coerceAtLeast(clauseStart)
+            val checkWindow = text.substring(windowStart, matchStart)
+            if (SUBORDINATE_MARKERS.containsMatchIn(prefixInClause) || SUBORDINATE_MARKERS.containsMatchIn(checkWindow)) {
+                return@mapNotNull null
+            }
+
+            // If main clause was PLACED, reject later subordinate 'delivered' references
+            if (isPlacedMain && m.value.equals("delivered", ignoreCase = true) && matchStart > mainClause.length) {
+                return@mapNotNull null
+            }
+
+            // If main clause was SHIPPED, reject later subordinate 'delivered' references
+            if (isShippedMain && m.value.equals("delivered", ignoreCase = true) && matchStart > mainClause.length) {
+                return@mapNotNull null
+            }
+
+            m
+        }.toList()
+
+        if (candidates.isEmpty()) return emptyList()
+
+        // Prefer candidate in the main clause, otherwise take the first valid un-rejected candidate
+        val best = candidates.firstOrNull { it.range.first < mainClause.length } ?: candidates.first()
+
+        return listOf(
             Field(
                 kind = FieldKind.DELIVERY_STATUS,
-                raw = m.value,
-                normalized = m.value.lowercase(),
+                raw = best.value,
+                normalized = best.value.lowercase(),
                 confidence = Confidence.HIGH,
                 explanation = "The courier's own wording, quoted as written",
-                start = m.range.first, end = m.range.last + 1,
+                start = best.range.first, end = best.range.last + 1,
             )
-        }.toList()
+        )
+    }
 
     // ---- Shared --------------------------------------------------------
 
