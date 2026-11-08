@@ -226,7 +226,7 @@ class MessageNotifier(private val context: Context) {
         ) com.messages.protection.OtpExtractor.extract(message.body) else null
         val heroTitle = when {
             otpCode != null -> "$otpCode — $title"
-            channel == MessagesApp.CH_TRANSACTIONS && !hidden ->
+            (channel == MessagesApp.CH_PERSONAL || verdict.category == Category.TRANSACTIONS) && !hidden ->
                 com.messages.protection.Normalizer.normalize(message.body)
                     .amounts.distinct().singleOrNull()?.let { "$it — $title" }
             else -> null
@@ -529,9 +529,8 @@ class MessageNotifier(private val context: Context) {
             warnDangerous: Boolean,
         ): NotifyAction = when (category) {
             Category.INBOX -> NotifyAction.Post(MessagesApp.CH_PERSONAL)
-            Category.TRANSACTIONS ->
-                if (notifyTransactions) NotifyAction.Post(MessagesApp.CH_TRANSACTIONS)
-                else NotifyAction.Silent
+            // Bank is merged into Personal; transactional messages post to CH_PERSONAL
+            Category.TRANSACTIONS -> NotifyAction.Post(MessagesApp.CH_PERSONAL)
             Category.REVIEW ->
                 if (notifyReview) NotifyAction.ReviewBatch
                 else NotifyAction.Silent

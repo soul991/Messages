@@ -146,26 +146,6 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
                 )
                 SettingsCardDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Receipt,
-                    categoryBadge = "TRANSACTIONS",
-                    title = stringResource(R.string.category_transactions),
-                    subtitle = stringResource(R.string.notif_transactions_subtitle),
-                    checked = notifyTransactions,
-                    onChange = { vm.setNotifyTransactions(it) },
-                )
-                if (notifyTransactions) {
-                    SettingsCardDivider()
-                    SettingsNavRow(
-                        icon = null,
-                        title = stringResource(R.string.notif_sound_transactions),
-                        subtitle = null,
-                        onClick = { openChannelSettings(MessagesApp.CH_TRANSACTIONS) },
-                        external = true,
-                        indented = true,
-                    )
-                }
-                SettingsCardDivider()
-                SettingsSwitchRow(
                     icon = Icons.Outlined.LocalOffer,
                     categoryBadge = "PROMOTIONS",
                     title = stringResource(R.string.category_promotions),

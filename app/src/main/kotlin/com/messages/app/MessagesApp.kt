@@ -160,13 +160,18 @@ class MessagesApp : Application(), androidx.work.Configuration.Provider {
             nm.createNotificationChannel(updatedReview)
         }
 
+        // Safe migration: Bank merged into Personal in UI redesign.
+        // If the legacy "transactions" channel exists, clean it up so it does not
+        // linger in system settings.
+        val existingTransactions = nm.getNotificationChannel(CH_TRANSACTIONS)
+        if (existingTransactions != null) {
+            nm.deleteNotificationChannel(CH_TRANSACTIONS)
+        }
+
         nm.createNotificationChannels(
             listOf(
                 NotificationChannel(CH_PERSONAL, getString(R.string.channel_personal_name), NotificationManager.IMPORTANCE_HIGH).apply {
                     description = getString(R.string.channel_personal_desc)
-                },
-                NotificationChannel(CH_TRANSACTIONS, getString(R.string.channel_transactions_name), NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = getString(R.string.channel_transactions_desc)
                 },
                 NotificationChannel(CH_PROMOTIONS, getString(R.string.channel_promotions_name), NotificationManager.IMPORTANCE_LOW).apply {
                     description = getString(R.string.channel_promotions_desc)
