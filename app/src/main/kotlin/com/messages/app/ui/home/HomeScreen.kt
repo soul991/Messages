@@ -1857,13 +1857,6 @@ private fun SwipeActionBackground(
             tint = colorScheme.onSecondaryContainer,
             label = stringResource(R.string.home_archive),
         )
-        SwipeActions.DELETE -> SwipeVisuals(
-            outlinedIcon = SwipeIcons.DeleteOutlined,
-            filledIcon = SwipeIcons.DeleteFilled,
-            container = colorScheme.errorContainer,
-            tint = colorScheme.onErrorContainer,
-            label = stringResource(R.string.action_delete),
-        )
         SwipeActions.PIN -> SwipeVisuals(
             outlinedIcon = SwipeIcons.PinOutlined,
             filledIcon = SwipeIcons.PinFilled,
@@ -2044,7 +2037,6 @@ private fun ConversationRow(
                     customActions = availableActions.mapNotNull { action ->
                         val label = when (action) {
                             SwipeActions.ARCHIVE -> context.getString(R.string.home_archive)
-                            SwipeActions.DELETE -> context.getString(R.string.action_delete)
                             SwipeActions.PIN -> context.getString(
                                 if (conv.pinned) R.string.home_unpin else R.string.home_pin,
                             )

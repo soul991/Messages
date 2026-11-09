@@ -1399,36 +1399,18 @@ private fun QuickRepliesEditor(
                             )
                         }
                     } else {
-                        SwipeToRevealRow(
-                            deleteLabel = stringResource(R.string.action_delete),
-                            onDelete = {
-                                val prev = templates
-                                com.messages.app.ui.chat.QuickReplies.remove(ctx, template)
-                                scope.launch {
-                                    val res = snackbarHostState.showSnackbar(
-                                        message = ctx.getString(R.string.quick_reply_deleted),
-                                        actionLabel = ctx.getString(R.string.action_undo),
-                                        duration = SnackbarDuration.Short,
-                                    )
-                                    if (res == SnackbarResult.ActionPerformed) {
-                                        com.messages.app.ui.chat.QuickReplies.setAll(ctx, prev)
-                                    }
-                                }
-                            }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = template,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
+                            Text(
+                                text = template,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }

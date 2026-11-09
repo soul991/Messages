@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
  */
 object SwipeActions {
     const val ARCHIVE = "archive"
-    const val DELETE = "delete"
     const val PIN = "pin"
     const val READ = "read"
     const val MUTE = "mute"
@@ -40,19 +39,19 @@ object SwipeActions {
 
     fun init(ctx: Context) {
         val r = prefs(ctx).getString(KEY_RIGHT, ARCHIVE) ?: ARCHIVE
-        right.value = if (r == DELETE) ARCHIVE else r
+        right.value = if (r == "delete") ARCHIVE else r
         val l = prefs(ctx).getString(KEY_LEFT, NONE) ?: NONE
-        left.value = if (l == DELETE) NONE else l
+        left.value = if (l == "delete") NONE else l
     }
 
     fun setRight(ctx: Context, id: String) {
-        val cleanId = if (id == DELETE) NONE else id
+        val cleanId = if (id == "delete") NONE else id
         prefs(ctx).edit().putString(KEY_RIGHT, cleanId).apply()
         right.value = cleanId
     }
 
     fun setLeft(ctx: Context, id: String) {
-        val cleanId = if (id == DELETE) NONE else id
+        val cleanId = if (id == "delete") NONE else id
         prefs(ctx).edit().putString(KEY_LEFT, cleanId).apply()
         left.value = cleanId
     }
