@@ -49,6 +49,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,6 +57,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -470,11 +473,17 @@ fun HomeScreen(
         )
     }
 
+    val hazeState = remember { HazeState() }
+
     Box(Modifier.fillMaxSize()) {
         Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = {},
             topBar = {
-                GlassTopBar(isDark = LocalDarkTheme.current) {
+                GlassTopBar(
+                    isDark = LocalDarkTheme.current,
+                    hazeState = hazeState,
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -934,6 +943,7 @@ fun HomeScreen(
                     },
                     onOpenThread = onOpenThread,
                     onSwipeAction = ::onSwipeAction,
+                    hazeState = hazeState,
                 )
             }
         }
@@ -1014,6 +1024,7 @@ fun HomeScreen(
                     if (key != folder) Haptics.tick(view)
                     vm.setFolder(key)
                 },
+                hazeState = hazeState,
             )
         }
     }
@@ -1149,6 +1160,7 @@ private fun FolderPane(
     onOpenThread: (Long) -> Unit,
     onSwipeAction: (String, ConversationEntity) -> Unit,
     listStateFor: (String) -> LazyListState,
+    hazeState: HazeState,
 ) {
     val rightAction by SwipeActions.right.collectAsStateWithLifecycle()
     val leftAction by SwipeActions.left.collectAsStateWithLifecycle()
@@ -1197,8 +1209,9 @@ private fun FolderPane(
                         state = folderListState,
                         modifier = Modifier
                             .fillMaxSize()
+                            .haze(hazeState)
                             .testTag("home_conversation_list"),
-                        contentPadding = PaddingValues(bottom = 144.dp),
+                        contentPadding = PaddingValues(bottom = 180.dp),
                     ) {
                         items(
                             items = conversations,
