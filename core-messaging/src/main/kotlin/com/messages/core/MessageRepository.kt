@@ -270,6 +270,10 @@ class MessageRepository private constructor(private val context: Context) {
             // never lost. This is shared with MMS and backfill so every intake
             // path preserves the same guarantee.
             val verdict = classifyIncomingOrInbox(address, body, source = "SMS")
+            com.messages.core.audit.ReceiveAudit.record(
+                com.messages.core.audit.ReceiveAudit.Stage.CLASSIFIED,
+                address, body, "cat=${verdict.category.name}"
+            )
             // Secret-space routing rule: once a LOCKED conversation exists for
             // this thread, ALL incoming messages from the address go to it —
             // never the normal thread (a visible incoming message would betray
@@ -311,8 +315,16 @@ class MessageRepository private constructor(private val context: Context) {
             // rejected the row. Nothing was stored, so nothing may be counted.
             if (id == -1L) {
                 val stored = smsId?.let { db.messages().bySmsId(it)?.opened() }
+                com.messages.core.audit.ReceiveAudit.record(
+                    com.messages.core.audit.ReceiveAudit.Stage.DROPPED,
+                    address, body, "duplicate_or_conflict smsId=$smsId"
+                )
                 return@withContext Intake(stored ?: entity, verdict, isNew = false)
             }
+            com.messages.core.audit.ReceiveAudit.record(
+                com.messages.core.audit.ReceiveAudit.Stage.STORED,
+                address, body, "id=$id smsId=$smsId space=$space"
+            )
             if (smsId != null) {
                 db.providerRows().upsert(
                     ProviderRowEntity("content://sms/$smsId", id, address, "SMS")
