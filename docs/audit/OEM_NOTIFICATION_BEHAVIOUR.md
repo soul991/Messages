@@ -78,12 +78,15 @@ Full non-redacted dumpsys output captured on live Android 16 (`emulator-5554`) i
 
 ## 5. Visual Artifacts & Screenshots (Phase N5)
 
-Screenshots captured directly from `emulator-5554` running Android 16:
+Screenshots captured directly from `emulator-5554` running Android 16 via direct filesystem pull and validated for 100% binary integrity (PNG standard `89504E470D0A1A0A` header):
+- **Heads-Up Banner (Dark Mode)**: [`docs/audit/screenshots/notifications/headsup_dark.png`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/audit/screenshots/notifications/headsup_dark.png)
+- **Heads-Up Banner (Light Mode)**: [`docs/audit/screenshots/notifications/headsup_light.png`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/audit/screenshots/notifications/headsup_light.png)
 - **Expanded Notification Shade (Dark Mode)**: [`docs/audit/screenshots/notifications/shade_dark_expanded.png`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/audit/screenshots/notifications/shade_dark_expanded.png)
 - **Collapsed Notification Shade (Dark Mode)**: [`docs/audit/screenshots/notifications/shade_dark_collapsed.png`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/audit/screenshots/notifications/shade_dark_collapsed.png)
 - **Expanded Notification Shade (Light Mode)**: [`docs/audit/screenshots/notifications/shade_light_expanded.png`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/audit/screenshots/notifications/shade_light_expanded.png)
 - **Collapsed Notification Shade (Light Mode)**: [`docs/audit/screenshots/notifications/shade_light_collapsed.png`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/audit/screenshots/notifications/shade_light_collapsed.png)
-- **Lock Screen Notifications (Dark Mode)**: [`docs/audit/screenshots/notifications/lockscreen_notifications.png`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/audit/screenshots/notifications/lockscreen_notifications.png)
+- **Lock Screen Notifications (Dark Mode)**: [`docs/audit/screenshots/notifications/lockscreen_dark.png`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/audit/screenshots/notifications/lockscreen_dark.png)
+- **Lock Screen Notifications (Light Mode)**: [`docs/audit/screenshots/notifications/lockscreen_light.png`](file:///d:/Istak/Messages/Messages%20App/01_active_codebase/messages/docs/audit/screenshots/notifications/lockscreen_light.png)
 
 ---
 
