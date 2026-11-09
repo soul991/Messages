@@ -334,7 +334,7 @@ fun DashboardScreen(
                                         "$count",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.outline,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -389,7 +389,7 @@ fun DashboardScreen(
                                             R.plurals.dashboard_sender_filtered, count, count,
                                         ),
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.outline,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -414,7 +414,7 @@ fun DashboardScreen(
                         Text(
                             stringResource(R.string.dashboard_empty_body),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }

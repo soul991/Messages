@@ -557,7 +557,7 @@ fun DriveBackupScreen(
             Text(
                 stringResource(R.string.drive_intro),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 12.dp),
             )
             busy?.let {

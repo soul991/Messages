@@ -270,7 +270,7 @@ fun TrashScreen(
                     TrashRetention.RETENTION_DAYS,
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
             if (trashed.isNotEmpty()) {
@@ -321,7 +321,7 @@ fun TrashScreen(
                         Text(
                             stringResource(R.string.trash_is_empty),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -534,7 +534,7 @@ private fun TrashRow(
                     Text(
                         AppDateFormat.dayMonthYearClock(msg.timestamp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(Modifier.height(2.dp))
@@ -552,10 +552,7 @@ private fun TrashRow(
                     Box(
                         Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (daysLeft > 0) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                                else MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-                            )
+                            .background(MaterialTheme.colorScheme.errorContainer)
                             .padding(horizontal = 8.dp, vertical = 2.dp),
                     ) {
                         Text(
@@ -566,7 +563,7 @@ private fun TrashRow(
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.error,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
                         )
                     }
                     if (msg.trashReason != null && msg.trashReason != "USER") {

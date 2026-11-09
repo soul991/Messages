@@ -158,7 +158,7 @@ fun WhyFilteredScreen(
                 Text(
                     stringResource(R.string.why_not_spam_effect, msg.address),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -359,7 +359,7 @@ private fun ExplanationList(msg: MessageEntity) {
                 Text(
                     stringResource(R.string.why_no_patterns),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
                 explanations.forEach { line ->
@@ -390,7 +390,7 @@ private fun ExplanationList(msg: MessageEntity) {
                             (patternIds + comboIds).joinToString(", "),
                         ),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -398,7 +398,7 @@ private fun ExplanationList(msg: MessageEntity) {
             Text(
                 stringResource(R.string.why_deterministic),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
