@@ -1730,10 +1730,11 @@ private fun SwipeableConversationRow(
     val willCommit by remember(rightAction, leftAction) {
         derivedStateOf {
             val tx = liveOffset.floatValue + returnOffset.value
-            val threshold = rowWidthPx.floatValue * 0.36f
-            swipeAction != null && kotlin.math.abs(tx) >= threshold
+            swipeAction != null && SwipeGesturePolicy.shouldCommit(tx, rowWidthPx.floatValue)
         }
     }
+
+    val density = androidx.compose.ui.platform.LocalDensity.current
 
     Box(
         modifier = modifier.fillMaxWidth(),
@@ -1755,54 +1756,114 @@ private fun SwipeableConversationRow(
             Modifier
                 .fillMaxWidth()
                 .graphicsLayer { translationX = liveOffset.floatValue + returnOffset.value }
+                .background(MaterialTheme.colorScheme.surface)
                 .pointerInput(conv.threadId, rightAction, leftAction, selectionActive, isRtl) {
-                    detectHorizontalDragGestures(
-                        onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            val next = liveOffset.floatValue + dragAmount
-                            val minOffset = if (isRtl) {
-                                if (rightEnabled) -size.width.toFloat() else 0f
-                            } else {
-                                if (leftEnabled) -size.width.toFloat() else 0f
-                            }
-                            val maxOffset = if (isRtl) {
-                                if (leftEnabled) size.width.toFloat() else 0f
-                            } else {
-                                if (rightEnabled) size.width.toFloat() else 0f
-                            }
-                            liveOffset.floatValue = next.coerceIn(minOffset, maxOffset)
-                        },
-                        onDragEnd = {
-                            val released = liveOffset.floatValue
-                            val threshold = rowWidthPx.floatValue * 0.36f
-                            val action = when {
-                                isRtl -> when {
-                                    released <= -threshold && rightEnabled -> rightAction
-                                    released >= threshold && leftEnabled -> leftAction
-                                    else -> null
+                    if (selectionActive || (!rightEnabled && !leftEnabled)) return@pointerInput
+
+                    val touchSlopPx = with(density) { SwipeGesturePolicy.TOUCH_SLOP_DP.dp.toPx() }
+
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        if (!canCommitSwipe()) return@awaitEachGesture
+
+                        var totalDx = 0f
+                        var totalDy = 0f
+                        var dragStarted = false
+
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                            if (!change.pressed) {
+                                if (dragStarted) {
+                                    val released = liveOffset.floatValue
+                                    val shouldCommit = SwipeGesturePolicy.shouldCommit(released, rowWidthPx.floatValue)
+                                    val action = when {
+                                        !shouldCommit -> null
+                                        isRtl -> when {
+                                            released < 0f && rightEnabled -> rightAction
+                                            released > 0f && leftEnabled -> leftAction
+                                            else -> null
+                                        }
+                                        else -> when {
+                                            released > 0f && rightEnabled -> rightAction
+                                            released < 0f && leftEnabled -> leftAction
+                                            else -> null
+                                        }
+                                    }
+                                    scope.launch {
+                                        returnOffset.snapTo(released)
+                                        liveOffset.floatValue = 0f
+                                        if (action != null && canCommitSwipe()) onAction(action, conv)
+                                        returnOffset.animateTo(0f, Motion.butterSpring())
+                                    }
                                 }
-                                else -> when {
-                                    released >= threshold && rightEnabled -> rightAction
-                                    released <= -threshold && leftEnabled -> leftAction
-                                    else -> null
+                                break
+                            }
+
+                            // If vertical scrolling started or list is flinging, cancel swipe immediately
+                            if (!canCommitSwipe()) {
+                                if (dragStarted) {
+                                    val released = liveOffset.floatValue
+                                    scope.launch {
+                                        returnOffset.snapTo(released)
+                                        liveOffset.floatValue = 0f
+                                        returnOffset.animateTo(0f, Motion.butterSpring())
+                                    }
                                 }
+                                break
                             }
-                            scope.launch {
-                                returnOffset.snapTo(released)
-                                liveOffset.floatValue = 0f
-                                if (action != null && canCommitSwipe()) onAction(action, conv)
-                                returnOffset.animateTo(0f, Motion.butterSpring())
+
+                            val dragAmountX = change.position.x - change.previousPosition.x
+                            val dragAmountY = change.position.y - change.previousPosition.y
+
+                            totalDx += dragAmountX
+                            totalDy += dragAmountY
+
+                            val absDx = kotlin.math.abs(totalDx)
+                            val absDy = kotlin.math.abs(totalDy)
+
+                            if (!dragStarted) {
+                                // If vertical movement is steeper than 20 degrees, give gesture to vertical scroll
+                                if (absDy > 0f && (absDx == 0f || (absDy / absDx) >= SwipeGesturePolicy.MAX_DY_DX_RATIO)) {
+                                    break
+                                }
+
+                                // If horizontal touch slop (24dp) reached within 20 degrees of horizontal, engage drag
+                                if (absDx >= touchSlopPx && SwipeGesturePolicy.isHorizontalDominant(totalDx, totalDy)) {
+                                    dragStarted = true
+                                    change.consume()
+                                }
+                            } else {
+                                // Actively dragging: if sharp vertical gesture occurs, cancel immediately
+                                val stepAbsDx = kotlin.math.abs(dragAmountX)
+                                val stepAbsDy = kotlin.math.abs(dragAmountY)
+                                if (stepAbsDy > with(density) { 16.dp.toPx() } && (stepAbsDx == 0f || stepAbsDy / stepAbsDx > 1.5f)) {
+                                    val released = liveOffset.floatValue
+                                    scope.launch {
+                                        returnOffset.snapTo(released)
+                                        liveOffset.floatValue = 0f
+                                        returnOffset.animateTo(0f, Motion.butterSpring())
+                                    }
+                                    break
+                                }
+
+                                change.consume()
+                                val next = liveOffset.floatValue + dragAmountX
+                                val minOffset = if (isRtl) {
+                                    if (rightEnabled) -size.width.toFloat() else 0f
+                                } else {
+                                    if (leftEnabled) -size.width.toFloat() else 0f
+                                }
+                                val maxOffset = if (isRtl) {
+                                    if (leftEnabled) size.width.toFloat() else 0f
+                                } else {
+                                    if (rightEnabled) size.width.toFloat() else 0f
+                                }
+                                liveOffset.floatValue = next.coerceIn(minOffset, maxOffset)
                             }
-                        },
-                        onDragCancel = {
-                            val released = liveOffset.floatValue
-                            scope.launch {
-                                returnOffset.snapTo(released)
-                                liveOffset.floatValue = 0f
-                                returnOffset.animateTo(0f, Motion.butterSpring())
-                            }
-                        },
-                    )
+                        }
+                    }
                 }
                 .onSizeChanged { rowWidthPx.floatValue = it.width.toFloat() },
         ) {
@@ -1890,6 +1951,7 @@ private fun SwipeActionBackground(
     Row(
         modifier = modifier
             .fillMaxSize()
+            .clip(RoundedCornerShape(16.dp))
             .background(visuals.container)
             .padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
