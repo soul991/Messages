@@ -363,7 +363,7 @@ fun ContactDetailScreen(
                         subtitle = stringResource(R.string.contact_mute_subtitle),
                         onClick = { vm.setMuted(!muted) },
                         role = Role.Switch,
-                        trailing = { Switch(checked = muted, onCheckedChange = null) },
+                        trailing = { Switch(checked = muted, onCheckedChange = null, colors = com.messages.designsystem.appSwitchColors()) },
                     )
                     HorizontalDivider(
                         Modifier.padding(start = 76.dp, end = 16.dp),
@@ -375,7 +375,7 @@ fun ContactDetailScreen(
                         subtitle = stringResource(R.string.contact_lock_subtitle),
                         onClick = { vm.setLocked(!locked) },
                         role = Role.Switch,
-                        trailing = { Switch(checked = locked, onCheckedChange = null) },
+                        trailing = { Switch(checked = locked, onCheckedChange = null, colors = com.messages.designsystem.appSwitchColors()) },
                     )
                     if (!locked) {
                         HorizontalDivider(

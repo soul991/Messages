@@ -336,6 +336,7 @@ private fun UpdateSettingsSwitchRow(
         Switch(
             checked = checked,
             onCheckedChange = null,
+            colors = com.messages.designsystem.appSwitchColors(),
         )
     }
 }

@@ -713,7 +713,7 @@ fun SettingsScreen(
                                         stringResource(sensitivityLabelRes(step)),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = if (i == index) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (i == index) MaterialTheme.colorScheme.primary
+                                        color = if (i == index) MaterialTheme.colorScheme.onSurface
                                         else MaterialTheme.colorScheme.outline,
                                     )
                                 }
@@ -784,7 +784,7 @@ fun SettingsScreen(
                                 Text(
                                     importStatus!!,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             Row {
@@ -1158,7 +1158,7 @@ fun SettingsScreen(
                                 Text(
                                     backupStatus!!,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(Modifier.height(8.dp))
                             }
@@ -1209,7 +1209,7 @@ fun SettingsScreen(
                                         stringResource(R.string.settings_importing)
                                     },
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(Modifier.height(8.dp))
                             }

@@ -517,6 +517,7 @@ fun AboutScreen(
                                 UpdateCheck.setNotifyEnabled(context, on)
                                 UpdateCheck.setAutoCheckEnabled(context, on)
                             },
+                            colors = com.messages.designsystem.appSwitchColors(),
                         )
                     }
 
@@ -673,7 +674,7 @@ private fun AppIdentityCard() {
             Text(
                 stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(10.dp))
@@ -706,7 +707,7 @@ private fun AboutGlassRow(
         Icon(
             icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp),
         )
         Spacer(Modifier.width(16.dp))
@@ -788,7 +789,7 @@ private fun LegalDocumentScreen(doc: LegalDoc, onBack: () -> Unit) {
                         text = stringResource(doc.model.summaryTitleRes),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.semantics { heading() },
                     )
                     Spacer(Modifier.height(10.dp))
@@ -838,7 +839,7 @@ private fun LegalBulletRow(
         Text(
             text = stringResource(R.string.legal_bullet_dot),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(end = 8.dp),
         )
         if (urlMatch != null) {

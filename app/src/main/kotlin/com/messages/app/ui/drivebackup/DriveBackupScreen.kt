@@ -994,6 +994,6 @@ private fun SwitchRow(
                 )
             }
         }
-        Switch(checked = checked, onCheckedChange = onChange)
+        Switch(checked = checked, onCheckedChange = onChange, colors = com.messages.designsystem.appSwitchColors())
     }
 }

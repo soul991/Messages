@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import com.messages.designsystem.appSwitchColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -69,14 +70,14 @@ import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.groupCard
 import kotlinx.coroutines.launch
 
-/** Section header: primary-colored titleSmall on the 20dp grid. */
+/** Section header: neutral onSurfaceVariant titleSmall on the 20dp grid. */
 @Composable
 internal fun SettingsSectionHeader(title: String) {
     Text(
         title,
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 6.dp),
     )
 }
@@ -310,7 +311,14 @@ internal fun SettingsSwitchRow(
         icon = icon, title = title, subtitle = subtitle,
         onClick = { if (enabled) onChange(!checked) }, enabled = enabled,
         categoryBadge = categoryBadge,
-        trailing = { Switch(checked = checked, onCheckedChange = onChange, enabled = enabled) },
+        trailing = {
+            Switch(
+                checked = checked,
+                onCheckedChange = onChange,
+                enabled = enabled,
+                colors = appSwitchColors(),
+            )
+        },
     )
 }
 
@@ -339,7 +347,7 @@ internal fun SettingsNavRow(
     )
 }
 
-/** Value-picker row: current value in primary at the trailing edge, dropdown on tap. */
+/** Value-picker row: current value in neutral onSurfaceVariant at the trailing edge, dropdown on tap. */
 @Composable
 internal fun <T> SettingsDropdownRow(
     title: String,
@@ -359,7 +367,7 @@ internal fun <T> SettingsDropdownRow(
                 Text(
                     value,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     options.forEach { (option, label) ->
