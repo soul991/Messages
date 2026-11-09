@@ -8,6 +8,7 @@ import com.messages.core.cleanup.OtpCleanup
 import com.messages.core.cleanup.SpamCleanup
 import com.messages.core.search.FtsBackfill
 import com.messages.core.trash.TrashRetention
+import com.messages.app.shortcut.ConversationShortcuts
 import kotlinx.coroutines.launch
 
 class MessagesApp : Application(), androidx.work.Configuration.Provider {
@@ -41,6 +42,27 @@ class MessagesApp : Application(), androidx.work.Configuration.Provider {
         settleAbandonedMmsTransactions()
         sealLockedBacklog()
         cleanupSyntheticData()
+        checkAndHandleVersionUpgrade()
+    }
+
+    /**
+     * Purges and refreshes system shortcut cache on version upgrade (§Phase N2).
+     * Prevents legacy 2.4.x cached launcher icon bitmaps in ShortcutService from
+     * lingering as notification avatar badges.
+     */
+    private fun checkAndHandleVersionUpgrade() {
+        val prefs = getSharedPreferences("app_version_state", Context.MODE_PRIVATE)
+        val lastVersionCode = prefs.getInt("last_seen_version_code", 0)
+        val currentVersionCode = BuildConfig.VERSION_CODE
+        if (lastVersionCode < currentVersionCode) {
+            android.util.Log.i("MessagesApp", "Version upgrade detected ($lastVersionCode -> $currentVersionCode); refreshing shortcuts")
+            kotlinx.coroutines.CoroutineScope(
+                kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+            ).launch {
+                ConversationShortcuts.purgeAndRefreshShortcuts(this@MessagesApp)
+            }
+            prefs.edit().putInt("last_seen_version_code", currentVersionCode).apply()
+        }
     }
 
     /**
