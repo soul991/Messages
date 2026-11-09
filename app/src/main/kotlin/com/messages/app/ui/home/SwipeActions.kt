@@ -19,7 +19,6 @@ object SwipeActions {
     /** id → label, in the order shown in Settings. */
     val options = listOf(
         ARCHIVE to "Archive",
-        DELETE to "Delete",
         PIN to "Pin / Unpin",
         READ to "Mark read",
         MUTE to "Mute / Unmute",
@@ -32,7 +31,7 @@ object SwipeActions {
     val right = MutableStateFlow(ARCHIVE)
 
     /** Action for a right-to-left (end→start) swipe. */
-    val left = MutableStateFlow(DELETE)
+    val left = MutableStateFlow(NONE)
 
     private const val KEY_RIGHT = "swipe_right"
     private const val KEY_LEFT = "swipe_left"
@@ -40,17 +39,21 @@ object SwipeActions {
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     fun init(ctx: Context) {
-        right.value = prefs(ctx).getString(KEY_RIGHT, ARCHIVE) ?: ARCHIVE
-        left.value = prefs(ctx).getString(KEY_LEFT, DELETE) ?: DELETE
+        val r = prefs(ctx).getString(KEY_RIGHT, ARCHIVE) ?: ARCHIVE
+        right.value = if (r == DELETE) ARCHIVE else r
+        val l = prefs(ctx).getString(KEY_LEFT, NONE) ?: NONE
+        left.value = if (l == DELETE) NONE else l
     }
 
     fun setRight(ctx: Context, id: String) {
-        prefs(ctx).edit().putString(KEY_RIGHT, id).apply()
-        right.value = id
+        val cleanId = if (id == DELETE) NONE else id
+        prefs(ctx).edit().putString(KEY_RIGHT, cleanId).apply()
+        right.value = cleanId
     }
 
     fun setLeft(ctx: Context, id: String) {
-        prefs(ctx).edit().putString(KEY_LEFT, id).apply()
-        left.value = id
+        val cleanId = if (id == DELETE) NONE else id
+        prefs(ctx).edit().putString(KEY_LEFT, cleanId).apply()
+        left.value = cleanId
     }
 }

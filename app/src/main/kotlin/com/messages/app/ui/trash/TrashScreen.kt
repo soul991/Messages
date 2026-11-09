@@ -14,11 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.ui.draw.clip
 import com.messages.designsystem.groupCard
@@ -85,6 +88,10 @@ class TrashViewModel(app: Application) : AndroidViewModel(app) {
         repo.db.messages().trashedMessages()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val autoTrashedCount: StateFlow<Int> =
+        repo.db.messages().autoTrashedCount()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     /**
      * V2-36: a resource id, not a sentence. Resolving it in composition means
      * the snackbar follows a locale change even if the flow emitted before it,
@@ -94,6 +101,11 @@ class TrashViewModel(app: Application) : AndroidViewModel(app) {
 
     fun restore(messageId: Long) = viewModelScope.launch {
         repo.restoreFromTrash(messageId)
+        lastAction.value = R.string.trash_restored_snackbar
+    }
+
+    fun restoreAllAutoTrashed() = viewModelScope.launch {
+        repo.restoreAllAutoTrashed()
         lastAction.value = R.string.trash_restored_snackbar
     }
 
@@ -134,6 +146,7 @@ fun TrashScreen(
     vm: TrashViewModel = viewModel(),
 ) {
     val trashed by vm.trashed.collectAsStateWithLifecycle()
+    val autoTrashedCount by vm.autoTrashedCount.collectAsStateWithLifecycle()
     val lastAction by vm.lastAction.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmForever by remember { mutableStateOf<MessageEntity?>(null) }
@@ -308,6 +321,45 @@ fun TrashScreen(
                 }
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {
+                    if (autoTrashedCount > 0) {
+                        item(key = "auto_trashed_banner") {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(
+                                            stringResource(R.string.trash_auto_trashed_banner_title, autoTrashedCount),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        Text(
+                                            stringResource(R.string.trash_auto_trashed_banner_subtitle),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    Button(
+                                        onClick = { vm.restoreAllAutoTrashed() },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    ) {
+                                        Text(stringResource(R.string.trash_restore_all_auto))
+                                    }
+                                }
+                            }
+                        }
+                    }
                     items(shown, key = { it.id }) { msg ->
                         TrashRow(
                             msg = msg,
@@ -510,6 +562,26 @@ private fun TrashRow(
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.error,
                         )
+                    }
+                    if (msg.trashReason != null && msg.trashReason != "USER") {
+                        Spacer(Modifier.width(6.dp))
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                if (msg.trashReason == "AUTO_SWIPE") {
+                                    stringResource(R.string.trash_reason_auto_swipe)
+                                } else {
+                                    stringResource(R.string.trash_reason_auto_cleanup)
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                        }
                     }
                 }
             }

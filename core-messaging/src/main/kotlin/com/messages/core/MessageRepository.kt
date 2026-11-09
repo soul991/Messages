@@ -14,6 +14,7 @@ import com.messages.core.db.SenderReputationEntity
 import com.messages.core.db.SmsAttemptEntity
 import com.messages.core.db.Spaces
 import com.messages.core.db.ThreadAliasEntity
+import com.messages.core.db.TrashReason
 import com.messages.core.media.MediaRef
 import com.messages.core.mms.MmsPduParser
 import com.messages.core.search.MessageSearch
@@ -1838,13 +1839,13 @@ class MessageRepository private constructor(private val context: Context) {
      * exception — they were never sent or in the provider, so cancelling one
      * deletes it outright (nothing to retain).
      */
-    suspend fun moveToTrash(messageId: Long) = withContext(Dispatchers.IO) {
+    suspend fun moveToTrash(messageId: Long, reason: String = TrashReason.USER) = withContext(Dispatchers.IO) {
         val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         if (msg.sendStatus == "SCHEDULED") {
             db.messages().userDelete(messageId)
         } else {
             deleteProviderRows(msg)
-            db.messages().moveToTrash(messageId, System.currentTimeMillis())
+            db.messages().moveToTrash(messageId, System.currentTimeMillis(), reason)
         }
         refreshConversationSummary(msg.threadId, msg.space)
     }
@@ -1898,14 +1899,14 @@ class MessageRepository private constructor(private val context: Context) {
 
     /** Delete a whole conversation to Trash (§6.4). V2-24: `space` is explicit
      *  — the same threadId names a different conversation in each space. */
-    suspend fun moveThreadToTrash(threadId: Long, space: String) =
+    suspend fun moveThreadToTrash(threadId: Long, space: String, reason: String = TrashReason.USER) =
         withContext(Dispatchers.IO) {
             val now = System.currentTimeMillis()
             db.messages().listForThread(threadId, space).forEach { msg ->
                 if (msg.sendStatus == "SCHEDULED") db.messages().userDelete(msg.id)
                 else deleteProviderRows(msg)
             }
-            db.messages().moveThreadToTrash(threadId, now, space)
+            db.messages().moveThreadToTrash(threadId, now, space, reason)
             refreshConversationSummary(threadId, space) // no live messages left → row is dropped
         }
 
@@ -1919,7 +1920,7 @@ class MessageRepository private constructor(private val context: Context) {
     suspend fun restoreFromTrash(messageId: Long) = withContext(Dispatchers.IO) {
         val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         if (!msg.trashed) return@withContext
-        var restored = msg.copy(trashed = false, trashedAt = null)
+        var restored = msg.copy(trashed = false, trashedAt = null, trashReason = null)
         // R-05: split the old mapping in two.
         //
         //  - Rows we really deleted are gone from the provider: drop the stale
@@ -2002,6 +2003,27 @@ class MessageRepository private constructor(private val context: Context) {
                 ).sealed()
             )
         }
+    }
+
+    /**
+     * Restores all messages auto-trashed (by accidental swipe or legacy auto-cleanup).
+     * Rebuilds provider rows and updates conversation summaries.
+     */
+    suspend fun restoreAllAutoTrashed(): Int = withContext(Dispatchers.IO) {
+        val autoTrashed = db.messages().autoTrashedMessages()
+        val affectedThreads = mutableSetOf<Pair<Long, String>>()
+        autoTrashed.forEach { msg ->
+            try {
+                restoreFromTrash(msg.id)
+                affectedThreads.add(msg.threadId to msg.space)
+            } catch (e: Exception) {
+                android.util.Log.e("MessageRepository", "Failed to restore auto-trashed message ${msg.id}", e)
+            }
+        }
+        affectedThreads.forEach { (threadId, space) ->
+            refreshConversationSummary(threadId, space)
+        }
+        autoTrashed.size
     }
 
     /** Undo-from-trash for an INCOMING SMS: one Inbox row, mapped for R-05. */

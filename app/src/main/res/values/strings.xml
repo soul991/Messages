@@ -143,6 +143,11 @@
     <string name="trash_is_empty">Trash is empty</string>
     <string name="trash_no_match">No trashed messages match</string>
     <string name="trash_restore">Restore</string>
+    <string name="trash_auto_trashed_banner_title">%1$d messages auto-trashed</string>
+    <string name="trash_auto_trashed_banner_subtitle">Recover messages moved to trash by swipe gestures or automatic cleanup</string>
+    <string name="trash_restore_all_auto">Restore all</string>
+    <string name="trash_reason_auto_swipe">Auto-trashed (swipe)</string>
+    <string name="trash_reason_auto_cleanup">Auto-trashed (cleanup)</string>
     <string name="trash_delete_forever_title">Delete forever?</string>
     <string name="trash_delete_forever_body">This message will be permanently deleted. This cannot be undone.</string>
     <string name="trash_delete_forever_action">Delete forever</string>

@@ -387,19 +387,6 @@ fun HomeScreen(
                     if (r == SnackbarResult.ActionPerformed) vm.unarchive(conv.threadId)
                 }
             }
-            SwipeActions.DELETE -> {
-                val at = System.currentTimeMillis()
-                vm.trashThread(conv.threadId)
-                scope.launch {
-                    val r = snackbarHostState.showSnackbar(
-                        trashedMessage, actionLabel = undoLabel,
-                        withDismissAction = true,
-                    )
-                    if (r == SnackbarResult.ActionPerformed) {
-                        vm.undoTrashThread(conv.threadId)
-                    }
-                }
-            }
             SwipeActions.PIN -> vm.togglePin(conv.threadId, !conv.pinned)
             // Read swipe is a toggle (Phase 4 item 13): unread → read,
             // read → marked unread (Google Messages behavior).
