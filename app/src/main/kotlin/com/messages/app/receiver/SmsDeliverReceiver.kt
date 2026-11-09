@@ -7,6 +7,7 @@ import android.provider.Telephony
 import com.messages.app.notify.MessageNotifier
 import com.messages.app.widget.WidgetUpdater
 import com.messages.core.MessageRepository
+import com.messages.core.audit.ReceiveAudit
 
 /**
  * Default-SMS mandatory component: SMS_DELIVER. Runs the full
@@ -17,13 +18,23 @@ class SmsDeliverReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_DELIVER_ACTION) return
-        val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
-        if (messages.isEmpty()) return
+        ReceiveAudit.record(ReceiveAudit.Stage.RECEIVED, "broadcast", "", "SMS_DELIVER_ACTION")
+        val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+        if (messages.isNullOrEmpty()) {
+            ReceiveAudit.record(ReceiveAudit.Stage.DROPPED, "broadcast", "", "empty messages extra")
+            return
+        }
 
         // Multipart SMS arrives as several PDUs of one logical message.
-        val address = messages.first().displayOriginatingAddress ?: return
-        val body = messages.joinToString("") { it.displayMessageBody ?: "" }
+        // Fall back gracefully so messages with null displayOriginatingAddress are NEVER dropped.
+        val firstMsg = messages.first()
+        val address = (firstMsg.displayOriginatingAddress
+            ?: firstMsg.originatingAddress
+            ?: "Unknown").ifBlank { "Unknown" }
+        val body = messages.joinToString("") { it.displayMessageBody ?: it.messageBody ?: "" }
         val timestamp = messages.first().timestampMillis
+        ReceiveAudit.record(ReceiveAudit.Stage.PARSED, address, body, "parts=${messages.size}")
+
         // Dual-SIM: which subscription received this (extra name predates the S constant).
         val subId = intent.getIntExtra("android.telephony.extra.SUBSCRIPTION_INDEX",
             intent.getIntExtra("subscription", -1)).takeIf { it >= 0 }
@@ -41,6 +52,7 @@ class SmsDeliverReceiver : BroadcastReceiver() {
             MessageNotifier(context)
                 .notifyFor(intake.message, intake.verdict, repo.lookupContactName(address))
             WidgetUpdater.requestUpdate(context)
+            ReceiveAudit.record(ReceiveAudit.Stage.DISPLAYED, address, body, "id=${intake.message.id}")
         }
     }
 

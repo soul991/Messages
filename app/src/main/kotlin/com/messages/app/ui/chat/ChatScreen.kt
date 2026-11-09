@@ -107,10 +107,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -385,6 +386,9 @@ fun ChatScreen(
     androidx.activity.compose.BackHandler(enabled = msgSelectionActive) {
         selectedMsgIds = emptySet()
     }
+    androidx.activity.compose.BackHandler(enabled = !msgSelectionActive) {
+        onBack()
+    }
     fun selectedTexts(): String = messages
         .filter { it.id in selectedMsgIds }
         .sortedBy { it.timestamp }
@@ -397,7 +401,7 @@ fun ChatScreen(
     ) { uri ->
         if (uri != null) vm.exportConversation(uri) { ok ->
             scope.launch {
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showTransient(
                     if (ok) exportedMessage else exportFailedMessage
                 )
             }
@@ -530,12 +534,10 @@ fun ChatScreen(
     // only), so the snackbar is the retry contract rather than a dead notice.
     LaunchedEffect(sendProblem) {
         sendProblem?.let { problem ->
-            val result = snackbarHostState.showSnackbar(
+            val result = snackbarHostState.showTransient(
                 message = problem.message,
                 actionLabel = problem.actionLabel,
                 withDismissAction = problem.actionLabel != null,
-                duration = if (problem.actionLabel != null) SnackbarDuration.Long
-                else SnackbarDuration.Short,
             )
             vm.clearSendProblem()
             if (result == SnackbarResult.ActionPerformed) problem.action?.invoke()
@@ -556,20 +558,21 @@ fun ChatScreen(
         if (baseline == null) return@LaunchedEffect
         val freshId = (failedIds - baseline).maxOrNull() ?: return@LaunchedEffect
         val fresh = messages.firstOrNull { it.id == freshId } ?: return@LaunchedEffect
-        // Short = standard M3 auto-dismiss (~4s); swipe still dismisses early.
-        val result = snackbarHostState.showSnackbar(
+        val result = snackbarHostState.showTransient(
             message = com.messages.core.send.SendFailure.reasonFor(fresh.sendResultCode),
             actionLabel = resendLabel,
-            duration = androidx.compose.material3.SnackbarDuration.Short,
         )
-        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+        if (result == SnackbarResult.ActionPerformed) {
             vm.resend(fresh)
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
+    CompositionLocalProvider(com.messages.app.ui.common.LocalSnackbarHostState provides snackbarHostState) {
+        Scaffold(
+            snackbarHost = {
+                AppTransientSnackbarHost(snackbarHostState)
+            },
+            topBar = {
             val isDark = LocalDarkTheme.current
             GlassTopBar(isDark = isDark) {
                 val hintPrefs = remember {
@@ -692,7 +695,7 @@ fun ChatScreen(
                                                 selectedMsgIds = emptySet()
                                                 val msg = context.resources.getQuantityString(R.plurals.chat_moved_to_trash, n, n)
                                                 scope.launch {
-                                                    snackbarHostState.showSnackbar(msg)
+                                                    snackbarHostState.showTransient(msg)
                                                 }
                                             },
                                         )
@@ -1136,12 +1139,12 @@ fun ChatScreen(
                                     // §9: satisfying "message moved" moment.
                                     Haptics.confirm(view)
                                     vm.moveToInbox(item.m.id)
-                                    scope.launch { snackbarHostState.showSnackbar(movedToInboxMessage) }
+                                    scope.launch { snackbarHostState.showTransient(movedToInboxMessage) }
                                 },
                                 onMarkSpam = {
                                     Haptics.confirm(view)
                                     vm.moveToSpam(item.m.id)
-                                    scope.launch { snackbarHostState.showSnackbar(movedToSpamMessage) }
+                                    scope.launch { snackbarHostState.showTransient(movedToSpamMessage) }
                                 },
                                 onResend = { vm.resend(item.m) },
                                 onSendNow = { vm.sendScheduledNow(item.m.id) },
@@ -1479,14 +1482,15 @@ fun ChatScreen(
                                 .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            val displayName = conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
                             ContactAvatar(
-                                conv.contactName ?: conv.address,
+                                displayName,
                                 conv.category,
                                 size = 40.dp,
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                conv.contactName ?: conv.address,
+                                displayName,
                                 style = MaterialTheme.typography.bodyLarge,
                                 maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -1633,7 +1637,7 @@ fun ChatScreen(
                             showLockSheet = false
                             vm.lockNewChat {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar(lockedChatCreatedMessage)
+                                    snackbarHostState.showTransient(lockedChatCreatedMessage)
                                 }
                             }
                         },
@@ -1657,6 +1661,7 @@ fun ChatScreen(
                 }
             }
         }
+    }
     }
 }
 
@@ -2654,6 +2659,8 @@ private fun LinkPreviewCard(url: String) {
 @Composable
 private fun CarrierReportDialog(msg: MessageEntity, onDismiss: () -> Unit) {
     val context = LocalContext.current
+    val snackbarHost = com.messages.app.ui.common.LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
     val india = remember { com.messages.app.report.CarrierReport.isIndia(context) }
     val withinWindow = remember {
         com.messages.app.report.CarrierReportFormat.withinTraiComplaintWindow(
@@ -2665,11 +2672,8 @@ private fun CarrierReportDialog(msg: MessageEntity, onDismiss: () -> Unit) {
 
     fun send(shortCode: String, text: String) {
         val ok = com.messages.app.report.CarrierReport.send(context, shortCode, text, msg.subId)
-        android.widget.Toast.makeText(
-            context,
-            if (ok) "Report sent to $shortCode" else "Couldn't send the report",
-            android.widget.Toast.LENGTH_SHORT,
-        ).show()
+        val reportNotice = if (ok) "Report sent to $shortCode" else "Couldn't send the report"
+        scope.launch { snackbarHost?.showTransient(reportNotice) }
         onDismiss()
     }
 

@@ -113,6 +113,7 @@ fun WhyFilteredScreen(
         factory = WhyFilteredViewModelFactory(context.applicationContext as Application, messageId)
     )
     val message by vm.message.collectAsStateWithLifecycle()
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         topBar = {

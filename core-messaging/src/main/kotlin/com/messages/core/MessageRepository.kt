@@ -14,6 +14,7 @@ import com.messages.core.db.SenderReputationEntity
 import com.messages.core.db.SmsAttemptEntity
 import com.messages.core.db.Spaces
 import com.messages.core.db.ThreadAliasEntity
+import com.messages.core.db.TrashReason
 import com.messages.core.media.MediaRef
 import com.messages.core.mms.MmsPduParser
 import com.messages.core.search.MessageSearch
@@ -269,6 +270,10 @@ class MessageRepository private constructor(private val context: Context) {
             // never lost. This is shared with MMS and backfill so every intake
             // path preserves the same guarantee.
             val verdict = classifyIncomingOrInbox(address, body, source = "SMS")
+            com.messages.core.audit.ReceiveAudit.record(
+                com.messages.core.audit.ReceiveAudit.Stage.CLASSIFIED,
+                address, body, "cat=${verdict.category.name}"
+            )
             // Secret-space routing rule: once a LOCKED conversation exists for
             // this thread, ALL incoming messages from the address go to it —
             // never the normal thread (a visible incoming message would betray
@@ -310,8 +315,16 @@ class MessageRepository private constructor(private val context: Context) {
             // rejected the row. Nothing was stored, so nothing may be counted.
             if (id == -1L) {
                 val stored = smsId?.let { db.messages().bySmsId(it)?.opened() }
+                com.messages.core.audit.ReceiveAudit.record(
+                    com.messages.core.audit.ReceiveAudit.Stage.DROPPED,
+                    address, body, "duplicate_or_conflict smsId=$smsId"
+                )
                 return@withContext Intake(stored ?: entity, verdict, isNew = false)
             }
+            com.messages.core.audit.ReceiveAudit.record(
+                com.messages.core.audit.ReceiveAudit.Stage.STORED,
+                address, body, "id=$id smsId=$smsId space=$space"
+            )
             if (smsId != null) {
                 db.providerRows().upsert(
                     ProviderRowEntity("content://sms/$smsId", id, address, "SMS")
@@ -802,7 +815,14 @@ class MessageRepository private constructor(private val context: Context) {
         val isContact = lookupContactName(address) != null
         val reputation = db.reputation().forSender(address)?.score ?: 0
         val firstContact = db.messages().countForAddress(address) == 0
-        val senderInfo = SenderAnalyzer.analyze(address, isContact, reputation, firstContact = firstContact)
+        val hasUserReplyHistory = db.messages().outgoingCountForAddress(address) > 0
+        val senderInfo = SenderAnalyzer.analyze(
+            address,
+            isContact,
+            reputation,
+            firstContact = firstContact,
+            hasUserReplyHistory = hasUserReplyHistory,
+        )
         val rules = db.userRules().all()
         val allow = rules.any { it.kind == "ALLOW" && matchesRule(it.pattern, address) }
         val block = rules.any { it.kind == "BLOCK" && matchesRule(it.pattern, address) }
@@ -1838,13 +1858,13 @@ class MessageRepository private constructor(private val context: Context) {
      * exception — they were never sent or in the provider, so cancelling one
      * deletes it outright (nothing to retain).
      */
-    suspend fun moveToTrash(messageId: Long) = withContext(Dispatchers.IO) {
+    suspend fun moveToTrash(messageId: Long, reason: String = TrashReason.USER) = withContext(Dispatchers.IO) {
         val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         if (msg.sendStatus == "SCHEDULED") {
             db.messages().userDelete(messageId)
         } else {
             deleteProviderRows(msg)
-            db.messages().moveToTrash(messageId, System.currentTimeMillis())
+            db.messages().moveToTrash(messageId, System.currentTimeMillis(), reason)
         }
         refreshConversationSummary(msg.threadId, msg.space)
     }
@@ -1898,14 +1918,14 @@ class MessageRepository private constructor(private val context: Context) {
 
     /** Delete a whole conversation to Trash (§6.4). V2-24: `space` is explicit
      *  — the same threadId names a different conversation in each space. */
-    suspend fun moveThreadToTrash(threadId: Long, space: String) =
+    suspend fun moveThreadToTrash(threadId: Long, space: String, reason: String = TrashReason.USER) =
         withContext(Dispatchers.IO) {
             val now = System.currentTimeMillis()
             db.messages().listForThread(threadId, space).forEach { msg ->
                 if (msg.sendStatus == "SCHEDULED") db.messages().userDelete(msg.id)
                 else deleteProviderRows(msg)
             }
-            db.messages().moveThreadToTrash(threadId, now, space)
+            db.messages().moveThreadToTrash(threadId, now, space, reason)
             refreshConversationSummary(threadId, space) // no live messages left → row is dropped
         }
 
@@ -1919,7 +1939,7 @@ class MessageRepository private constructor(private val context: Context) {
     suspend fun restoreFromTrash(messageId: Long) = withContext(Dispatchers.IO) {
         val msg = db.messages().byId(messageId)?.opened() ?: return@withContext
         if (!msg.trashed) return@withContext
-        var restored = msg.copy(trashed = false, trashedAt = null)
+        var restored = msg.copy(trashed = false, trashedAt = null, trashReason = null)
         // R-05: split the old mapping in two.
         //
         //  - Rows we really deleted are gone from the provider: drop the stale
@@ -2004,6 +2024,27 @@ class MessageRepository private constructor(private val context: Context) {
         }
     }
 
+    /**
+     * Restores all messages auto-trashed (by accidental swipe or legacy auto-cleanup).
+     * Rebuilds provider rows and updates conversation summaries.
+     */
+    suspend fun restoreAllAutoTrashed(): Int = withContext(Dispatchers.IO) {
+        val autoTrashed = db.messages().autoTrashedMessages()
+        val affectedThreads = mutableSetOf<Pair<Long, String>>()
+        autoTrashed.forEach { msg ->
+            try {
+                restoreFromTrash(msg.id)
+                affectedThreads.add(msg.threadId to msg.space)
+            } catch (e: Exception) {
+                android.util.Log.e("MessageRepository", "Failed to restore auto-trashed message ${msg.id}", e)
+            }
+        }
+        affectedThreads.forEach { (threadId, space) ->
+            refreshConversationSummary(threadId, space)
+        }
+        autoTrashed.size
+    }
+
     /** Undo-from-trash for an INCOMING SMS: one Inbox row, mapped for R-05. */
     private suspend fun restoreIncomingProviderRow(msg: MessageEntity): Long? {
         val smsId = try {
@@ -2044,14 +2085,8 @@ class MessageRepository private constructor(private val context: Context) {
 
     /** The 60-day purge (§6.4), run by [com.messages.core.trash.TrashPurge]. */
     suspend fun purgeExpiredTrash(): Int = withContext(Dispatchers.IO) {
-        val expired = db.messages().trashExpiredBefore(
-            System.currentTimeMillis() - TrashRetention.RETENTION_MS
-        )
-        expired.forEach { msg ->
-            deleteLocalMedia(msg)
-            db.messages().userDelete(msg.id)
-        }
-        expired.size
+        // Phase 0.1: Frozen. Automatic permanent deletion is frozen until approved.
+        0
     }
 
     /**
@@ -2165,14 +2200,8 @@ class MessageRepository private constructor(private val context: Context) {
      * summaries consistent. Returns how many messages were deleted.
      */
     suspend fun cleanupExpiredOtps(olderThanMs: Long): Int = withContext(Dispatchers.IO) {
-        val expired = db.messages().expiredOtps(System.currentTimeMillis() - olderThanMs)
-        expired.forEach { msg ->
-            deleteProviderRows(msg)
-            db.messages().userDelete(msg.id)
-        }
-        expired.map { it.threadId to it.space }.distinct()
-            .forEach { (t, s) -> refreshConversationSummary(t, s) }
-        expired.size
+        // Phase 0.1: Frozen. Automatic permanent deletion is frozen until approved.
+        0
     }
 
     /**
@@ -2185,15 +2214,8 @@ class MessageRepository private constructor(private val context: Context) {
      * scoped to SPAM only — Review/Blocked untouchable — and skips starred.
      */
     suspend fun cleanupExpiredSpam(olderThanMs: Long): Int = withContext(Dispatchers.IO) {
-        val expired = db.messages().expiredSpam(System.currentTimeMillis() - olderThanMs)
-        val now = System.currentTimeMillis()
-        expired.forEach { msg ->
-            deleteProviderRows(msg)
-            db.messages().moveToTrash(msg.id, now)
-        }
-        expired.map { it.threadId to it.space }.distinct()
-            .forEach { (t, s) -> refreshConversationSummary(t, s) }
-        expired.size
+        // Phase 0.1: Frozen. Automatic permanent deletion is frozen until approved.
+        0
     }
 
     /** Recompute a conversation's summary after deletions; drop it if empty. */

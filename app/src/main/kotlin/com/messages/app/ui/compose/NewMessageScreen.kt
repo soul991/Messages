@@ -43,6 +43,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SnackbarHostState
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -170,6 +173,9 @@ class NewMessageViewModel(app: Application) : AndroidViewModel(app) {
      *  composing from inside the secret space, the conversation is created
      *  directly as LOCKED — the routing rule applies from this very moment
      *  (future incoming from the address files locked, never normal). */
+    val errorNotice = MutableStateFlow<String?>(null)
+    fun clearErrorNotice() { errorNotice.value = null }
+
     fun openThread(
         address: String,
         space: String = com.messages.core.db.Spaces.NORMAL,
@@ -182,12 +188,8 @@ class NewMessageViewModel(app: Application) : AndroidViewModel(app) {
             } catch (_: com.messages.core.secret.LockedWriteBlockedException) {
                 // V2-6b: the locked space refuses new conversations while its
                 // content key is down. A dead tap would look broken; say why.
-                android.widget.Toast.makeText(
-                    getApplication(),
-                    getApplication<android.app.Application>()
-                        .getString(R.string.secret_seal_blocked_write),
-                    android.widget.Toast.LENGTH_SHORT,
-                ).show()
+                errorNotice.value = getApplication<android.app.Application>()
+                    .getString(R.string.secret_seal_blocked_write)
                 return@launch
             }
         }
@@ -235,8 +237,17 @@ fun NewMessageScreen(
     val selected by vm.selected.collectAsStateWithLifecycle()
     var groupMode by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val errorNotice by vm.errorNotice.collectAsStateWithLifecycle()
+    androidx.activity.compose.BackHandler { onBack() }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(errorNotice) {
+        errorNotice?.let {
+            snackbarHostState.showTransient(it)
+            vm.clearErrorNotice()
+        }
+    }
 
     fun open(address: String) =
         vm.openThread(address, space) { threadId -> onOpenThread(threadId, address) }
@@ -247,6 +258,7 @@ fun NewMessageScreen(
     }
 
     Scaffold(
+        snackbarHost = { AppTransientSnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {

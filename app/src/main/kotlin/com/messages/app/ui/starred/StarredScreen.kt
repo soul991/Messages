@@ -111,6 +111,7 @@ fun StarredScreen(
     ),
 ) {
     val rows by vm.rows.collectAsStateWithLifecycle()
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         topBar = {

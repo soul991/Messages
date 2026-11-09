@@ -62,6 +62,7 @@ fun SecretSetupScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
+    androidx.activity.compose.BackHandler { onBack() }
 
     // (kind, credential) once chosen+confirmed; null while still choosing.
     var chosen by remember { mutableStateOf<Pair<String, CharArray>?>(null) }

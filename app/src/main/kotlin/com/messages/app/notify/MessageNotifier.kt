@@ -47,7 +47,25 @@ internal sealed class NotifyAction {
     object FraudWarning : NotifyAction()
 }
 
-private const val NOTIF_ACCENT_COLOR = 0xFF30D158.toInt() // Design system brand accent green
+/**
+ * Structured specification of a notification payload for verification and testing (§Phase N5).
+ */
+data class NotificationPayloadSpec(
+    val channelId: String,
+    val smallIconRes: Int,
+    val color: Int,
+    val title: String,
+    val body: String,
+    val groupKey: String,
+    val shortcutId: String?,
+    val hasMarkAsReadAction: Boolean,
+    val copyOtpCode: String?,
+    val isReplyable: Boolean,
+    val isFraudWarning: Boolean,
+)
+
+internal const val NOTIF_ACCENT_COLOR = 0xFF30D158.toInt() // Design system brand accent green (#30D158)
+internal const val NOTIF_FRAUD_COLOR = 0xFFFF453A.toInt() // Semantic error red per design tokens (#FF453A)
 
 /**
  * §3/§4 notification policy: Inbox/Transactions notify; Promotions, Spam and
@@ -430,8 +448,8 @@ class MessageNotifier(private val context: Context) {
             // Persistent until the user swipes it away (Truecaller pattern):
             // tapping opens the chat but the warning stays.
             .setAutoCancel(false)
-            // Semantic error red accent for critical fraud warning notification
-            .setColor(0xFFD32F2F.toInt())
+            // Semantic error red accent for critical fraud warning notification per design tokens (#FF453A)
+            .setColor(NOTIF_FRAUD_COLOR)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
         NotificationManagerCompat.from(context).notify(
@@ -566,6 +584,86 @@ class MessageNotifier(private val context: Context) {
         internal fun resolveNotificationVisibility(hidden: Boolean, hidePreviewsSetting: Boolean): Int =
             if (hidden || hidePreviewsSetting) NotificationCompat.VISIBILITY_PRIVATE
             else NotificationCompat.VISIBILITY_PUBLIC
+
+        /**
+         * Resolves the complete payload specification for an incoming notification (§Phase N5).
+         * Used to build notifications and verified directly by unit tests without platform mocks.
+         */
+        fun buildPayloadSpec(
+            address: String,
+            contactName: String?,
+            body: String,
+            category: Category,
+            protectedLabel: com.messages.protection.ProtectedLabel = com.messages.protection.ProtectedLabel.NONE,
+            dangerous: Boolean = false,
+            threadId: Long = 1L,
+            conversationLocked: Boolean = false,
+            hidden: Boolean = false,
+            appNamePlaceholder: String = "Messages",
+            newMessagePlaceholder: String = "New message",
+        ): NotificationPayloadSpec {
+            val isFraud = dangerous && category == Category.SPAM
+            if (isFraud) {
+                val sender = contactName ?: com.messages.core.util.FriendlySenderNames.format(address)
+                val fraudBody = if (hidden) "Suspicious message hidden" else "Suspicious message from $sender"
+                return NotificationPayloadSpec(
+                    channelId = MessagesApp.CH_FRAUD,
+                    smallIconRes = R.drawable.ic_notif_fraud,
+                    color = NOTIF_FRAUD_COLOR,
+                    title = "Potential fraud detected",
+                    body = fraudBody,
+                    groupKey = resolveGroupKey(address, contactName),
+                    shortcutId = null,
+                    hasMarkAsReadAction = false,
+                    copyOtpCode = null,
+                    isReplyable = false,
+                    isFraudWarning = true,
+                )
+            }
+
+            val channelId = when (category) {
+                Category.INBOX, Category.TRANSACTIONS -> MessagesApp.CH_PERSONAL
+                Category.REVIEW -> MessagesApp.CH_REVIEW
+                Category.PROMOTIONS -> MessagesApp.CH_PROMOTIONS
+                Category.SPAM, Category.BLOCKED -> MessagesApp.CH_SPAM
+            }
+
+            val friendlySender = com.messages.core.util.FriendlySenderNames.format(address)
+            val baseTitle = if (conversationLocked) appNamePlaceholder else (contactName ?: friendlySender)
+            val text = resolveNotificationBody(body, hidden, false, newMessagePlaceholder)
+
+            val otpCode = if (
+                protectedLabel == com.messages.protection.ProtectedLabel.OTP && !hidden
+            ) com.messages.protection.OtpExtractor.extract(body) else null
+
+            val heroTitle = when {
+                otpCode != null -> "$otpCode — $baseTitle"
+                (channelId == MessagesApp.CH_PERSONAL || category == Category.TRANSACTIONS) && !hidden ->
+                    com.messages.protection.Normalizer.normalize(body)
+                        .amounts.distinct().singleOrNull()?.let { "$it — $baseTitle" }
+                else -> null
+            }
+
+            val shortcutId = if (!conversationLocked) ConversationShortcuts.idFor(threadId) else null
+            val groupKey = resolveGroupKey(address, contactName)
+            val replyable = !conversationLocked &&
+                (channelId == MessagesApp.CH_PERSONAL || category == Category.INBOX) &&
+                address.split(';').all { it.isNotBlank() && SenderAnalyzer.canReceiveReplies(it) }
+
+            return NotificationPayloadSpec(
+                channelId = channelId,
+                smallIconRes = R.drawable.ic_stat_message,
+                color = NOTIF_ACCENT_COLOR,
+                title = heroTitle ?: baseTitle,
+                body = text,
+                groupKey = groupKey,
+                shortcutId = shortcutId,
+                hasMarkAsReadAction = true,
+                copyOtpCode = otpCode,
+                isReplyable = replyable,
+                isFraudWarning = false,
+            )
+        }
 
         /** Single shared id for ALL locked-space pings — never per-thread.
          *  Public: the Reset flow cancels it during the wipe. */

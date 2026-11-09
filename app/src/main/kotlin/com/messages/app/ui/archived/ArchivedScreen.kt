@@ -30,8 +30,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -50,6 +51,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.ui.common.AppDateFormat
 import com.messages.app.ui.common.ContactAvatar
+import com.messages.core.util.FriendlySenderNames
 import com.messages.core.MessageRepository
 import com.messages.core.db.ConversationEntity
 import kotlinx.coroutines.flow.SharingStarted
@@ -92,6 +94,7 @@ fun ArchivedScreen(
     val conversations by vm.conversations.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         topBar = {
@@ -104,7 +107,9 @@ fun ArchivedScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            AppTransientSnackbarHost(snackbarHostState)
+        },
     ) { padding ->
         if (conversations.isEmpty()) {
             Box(
@@ -158,6 +163,7 @@ fun ArchivedScreen(
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                         .clickable { onOpenThread(conv.threadId) },
                 ) {
+                    val displayName = conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -165,7 +171,7 @@ fun ArchivedScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         ContactAvatar(
-                            conv.contactName ?: conv.address,
+                            displayName,
                             conv.category,
                             size = ROW_AVATAR,
                             photoUri = if (conv.locked) null
@@ -175,7 +181,7 @@ fun ArchivedScreen(
                         Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    conv.contactName ?: conv.address,
+                                    displayName,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
@@ -202,7 +208,7 @@ fun ArchivedScreen(
                         IconButton(onClick = {
                             vm.unarchive(conv.threadId)
                             scope.launch {
-                                snackbarHostState.showSnackbar(unarchived)
+                                snackbarHostState.showTransient(unarchived)
                             }
                         }) {
                             Icon(

@@ -23,8 +23,8 @@ object DesignTokens {
         val DockBorder = Color(0x1FFFFFFF) // rgba(255,255,255,0.12)
         val DockActivePill = Color(0x17FFFFFF) // rgba(255,255,255,0.09)
         val SelectedRow = Color(0x2430D158) // rgba(48,209,88,0.14)
-        val TopBar = Color(0xB8000000) // rgba(0,0,0,0.72)
-        val TopBarBorder = Color(0x17FFFFFF) // rgba(255,255,255,0.09)
+        val TopBar = Color.Transparent // G4: clean top bar without dark tint
+        val TopBarBorder = Color.Transparent // G4: no dividing hairline under header
     }
 
     object Light {
@@ -40,8 +40,8 @@ object DesignTokens {
         val DockBorder = Color(0x14000000) // rgba(0,0,0,0.08)
         val DockActivePill = Color(0x0F000000) // rgba(0,0,0,0.06)
         val SelectedRow = Color(0x2430D158) // rgba(48,209,88,0.14)
-        val TopBar = Color(0xCCF7F7F4) // rgba(247,247,244,0.80)
-        val TopBarBorder = Color(0x12000000) // rgba(0,0,0,0.07)
+        val TopBar = Color.Transparent // G4: clean top bar without tinted band
+        val TopBarBorder = Color.Transparent // G4: no dividing hairline under header
     }
 
     /**

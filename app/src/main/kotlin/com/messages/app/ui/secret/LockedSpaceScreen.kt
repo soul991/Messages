@@ -55,6 +55,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.ui.common.AppDateFormat
 import com.messages.app.ui.common.ContactAvatar
+import com.messages.core.util.FriendlySenderNames
 import com.messages.core.MessageRepository
 import com.messages.core.db.ConversationEntity
 import com.messages.core.db.Spaces
@@ -172,6 +173,12 @@ fun LockedSpaceScreen(
     val notifyOff = remember {
         com.messages.core.secret.SecretSpace.notifyMode(context) ==
             com.messages.core.secret.SecretSpace.NOTIFY_OFF
+    }
+    androidx.activity.compose.BackHandler(enabled = folder != "INBOX") {
+        vm.setFolder("INBOX")
+    }
+    androidx.activity.compose.BackHandler(enabled = folder == "INBOX") {
+        onBack()
     }
 
     Scaffold(
@@ -371,7 +378,7 @@ private fun LockedConversationRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val name = conv.contactName ?: conv.address
+    val name = conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
     Row(
         Modifier
             .fillMaxWidth()

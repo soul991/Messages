@@ -160,8 +160,8 @@ object AppUpdateManager {
                     builder
                         .setSmallIcon(R.drawable.ic_stat_message)
                         .setLargeIcon(appIcon)
-                        // Semantic error red for download failure notification
-                        .setColor(0xFFEF4444.toInt())
+                        // Semantic error red for download failure notification (#FF453A)
+                        .setColor(0xFFFF453A.toInt())
                         .setContentTitle(context.getString(R.string.download_notif_failed))
                         .setContentText(errorMsg)
                         .setOngoing(false)
@@ -265,8 +265,8 @@ object AppUpdateManager {
                 builder
                     .setSmallIcon(R.drawable.ic_stat_message)
                     .setLargeIcon(appIcon)
-                    // Semantic error red for download failure notification
-                    .setColor(0xFFEF4444.toInt())
+                    // Semantic error red for download failure notification (#FF453A)
+                    .setColor(0xFFFF453A.toInt())
                     .setContentTitle(context.getString(R.string.download_notif_failed))
                     .setContentText(errorMsg)
                     .setOngoing(false)

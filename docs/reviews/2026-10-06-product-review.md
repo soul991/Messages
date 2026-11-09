@@ -1,5 +1,8 @@
 # Messages app product and UX review
 
+> [!NOTE]
+> **SUPERSEDED (Historical Review)**: Documents historical product audit from 2026-10-06 referring to pre-2.5.0 UI (violet theme, user theme picker). The active design system is fixed black/off-white + green. Preserved for historical record.
+
 **Date:** 2026-10-06  
 **Scope:** Android source in `01_active_codebase/messages/`, plus a limited visual look at the Home screen. A device screenshot and accessibility dump unexpectedly contained SMS previews and entered this session's tool output; they cannot be described as on-device-only. The debug app's local data was cleared, its SMS permissions were revoked, it was force-stopped, and the regular `com.messages.app` SMS role was restored. The latest debug APK remains installed. No message text or identifying details are reproduced in this report.
 

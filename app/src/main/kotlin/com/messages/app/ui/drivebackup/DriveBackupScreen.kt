@@ -48,6 +48,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -488,7 +490,10 @@ fun DriveBackupScreen(
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
 
     androidx.compose.runtime.LaunchedEffect(snackbar) {
-        snackbar?.let { snackbarHostState.showSnackbar(it); vm.clearSnackbar() }
+        snackbar?.let {
+            snackbarHostState.showTransient(it)
+            vm.clearSnackbar()
+        }
     }
 
     // Guards against a single tap producing many overlapping sign-in intent
@@ -497,6 +502,7 @@ fun DriveBackupScreen(
     // — ApiException 12502 SIGN_IN_CURRENTLY_IN_PROGRESS — and racing each
     // other's result callbacks, which stomp the account state out of order).
     var signingIn by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler { onBack() }
 
     val signInLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -530,7 +536,9 @@ fun DriveBackupScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            AppTransientSnackbarHost(snackbarHostState)
+        },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.drive_title)) },
@@ -989,6 +997,6 @@ private fun SwitchRow(
                 )
             }
         }
-        Switch(checked = checked, onCheckedChange = onChange)
+        Switch(checked = checked, onCheckedChange = onChange, colors = com.messages.designsystem.appSwitchColors())
     }
 }

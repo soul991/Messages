@@ -21,17 +21,12 @@ class TrashPurgeWorker(
 ) : CoroutineWorker(context, params) {
 
     /**
-     * R-29: cancellation is not a failure. `runCatching` caught
-     * [kotlinx.coroutines.CancellationException] as well, so a run the system
-     * stopped came back as `retry()` and got rescheduled; rethrow it so
-     * WorkManager sees the stop it asked for.
+     * Phase 0.1: Freeze every automatic permanent delete (TrashRetention, SpamCleanup,
+     * OtpCleanup, and anything else that hard-deletes or purges) so nothing is permanently
+     * deleted until approved.
      */
     override suspend fun doWork(): Result = try {
-        val repo = MessageRepository.get(applicationContext)
-        repo.purgeExpiredTrash()
-        // R-05: the same daily cadence sweeps provider rows whose deletion
-        // failed earlier (default-SMS role lost, provider transiently busy).
-        repo.retryFailedProviderDeletions()
+        // Frozen: do not purge expired trash or sweep provider deletions automatically
         Result.success()
     } catch (cancelled: kotlinx.coroutines.CancellationException) {
         throw cancelled

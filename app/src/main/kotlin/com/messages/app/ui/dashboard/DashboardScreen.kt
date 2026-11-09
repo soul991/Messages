@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +54,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.R
+import com.messages.app.ui.common.ContactAvatar
+import com.messages.app.ui.settings.SettingsTileColors
 import com.messages.core.MessageRepository
 import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.groupCard
@@ -135,6 +138,7 @@ fun DashboardScreen(
     val stats by vm.stats.collectAsStateWithLifecycle()
     val spamPalette = categoryPalette("SPAM")
     val promoPalette = categoryPalette("PROMOTIONS")
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         topBar = {
@@ -152,10 +156,11 @@ fun DashboardScreen(
 
             // Hero counter — "N spam messages silenced" with animated rolling odometer
             item {
+                val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
                 Surface(
-                    shape = RoundedCornerShape(32.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.groupCard,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 12.dp),
@@ -169,14 +174,17 @@ fun DashboardScreen(
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    if (isDark) SettingsTileColors.GreenDark.copy(alpha = 0.24f)
+                                    else SettingsTileColors.GreenLight.copy(alpha = 0.14f)
+                                ),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 Icons.Filled.Shield,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight,
                                 modifier = Modifier.size(28.dp),
                             )
                         }
@@ -198,14 +206,14 @@ fun DashboardScreen(
                                 "%,d".format(count),
                                 style = MaterialTheme.typography.displayMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
                             stringResource(R.string.dashboard_silenced_subtitle),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -234,8 +242,11 @@ fun DashboardScreen(
 
             // Category counters
             item {
-                val spamTint = spamPalette?.tint ?: MaterialTheme.colorScheme.error
-                val promoTint = promoPalette?.tint ?: MaterialTheme.colorScheme.tertiary
+                val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+                val spamTint = if (isDark) SettingsTileColors.RedDark else SettingsTileColors.RedLight
+                val promoTint = if (isDark) SettingsTileColors.AmberDark else SettingsTileColors.AmberLight
+                val blockedTint = if (isDark) SettingsTileColors.BlueDark else SettingsTileColors.BlueLight
+
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -244,7 +255,7 @@ fun DashboardScreen(
                 ) {
                     StatCard(stringResource(R.string.category_spam), stats.byCategory["SPAM"] ?: 0, spamTint, Modifier.weight(1f))
                     StatCard(stringResource(R.string.dashboard_stat_promos), stats.byCategory["PROMOTIONS"] ?: 0, promoTint, Modifier.weight(1f))
-                    StatCard(stringResource(R.string.dashboard_stat_blocked), stats.byCategory["BLOCKED"] ?: 0, MaterialTheme.colorScheme.outline, Modifier.weight(1f))
+                    StatCard(stringResource(R.string.dashboard_stat_blocked), stats.byCategory["BLOCKED"] ?: 0, blockedTint, Modifier.weight(1f))
                 }
                 if (stats.dangerous > 0) {
                     val dangerContainer = spamPalette?.container ?: MaterialTheme.colorScheme.errorContainer
@@ -361,20 +372,11 @@ fun DashboardScreen(
                                     Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Box(
-                                        Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(spamPalette?.container ?: MaterialTheme.colorScheme.errorContainer),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            address.take(1).uppercase(),
-                                            color = spamPalette?.onContainer ?: MaterialTheme.colorScheme.onErrorContainer,
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.titleSmall,
-                                        )
-                                    }
+                                    ContactAvatar(
+                                        name = address,
+                                        category = "SPAM",
+                                        size = 40.dp,
+                                    )
                                     Spacer(Modifier.width(12.dp))
                                     Text(
                                         address,

@@ -12,7 +12,10 @@ import androidx.compose.ui.text.withStyle
 
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -304,11 +307,15 @@ fun AboutScreen(
         return
     }
 
+    BackHandler { onBack() }
+
     val open: (String) -> Unit = { url ->
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
+        snackbarHost = { AppTransientSnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.about_title), fontWeight = FontWeight.SemiBold) },
@@ -517,6 +524,7 @@ fun AboutScreen(
                                 UpdateCheck.setNotifyEnabled(context, on)
                                 UpdateCheck.setAutoCheckEnabled(context, on)
                             },
+                            colors = com.messages.designsystem.appSwitchColors(),
                         )
                     }
 
@@ -533,11 +541,11 @@ fun AboutScreen(
                                     val deleted = AppUpdateManager.clearCache(context)
                                     cachedCount = AppUpdateManager.listCachedApks(context).size
                                     cachedBytes = AppUpdateManager.cachedSizeBytes(context)
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.update_cleared_toast, deleted),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
+                                    scope.launch {
+                                        snackbarHostState.showTransient(
+                                            context.getString(R.string.update_cleared_toast, deleted)
+                                        )
+                                    }
                                 }
                                 .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -673,7 +681,7 @@ private fun AppIdentityCard() {
             Text(
                 stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(10.dp))
@@ -706,7 +714,7 @@ private fun AboutGlassRow(
         Icon(
             icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp),
         )
         Spacer(Modifier.width(16.dp))
@@ -788,7 +796,7 @@ private fun LegalDocumentScreen(doc: LegalDoc, onBack: () -> Unit) {
                         text = stringResource(doc.model.summaryTitleRes),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.semantics { heading() },
                     )
                     Spacer(Modifier.height(10.dp))
@@ -838,7 +846,7 @@ private fun LegalBulletRow(
         Text(
             text = stringResource(R.string.legal_bullet_dot),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(end = 8.dp),
         )
         if (urlMatch != null) {

@@ -103,6 +103,7 @@ fun SecretPromptScreen(
     var showResetDialog by remember { mutableStateOf(false) }
     var resetting by remember { mutableStateOf(false) }
     var cooldownMs by remember { mutableLongStateOf(SecretSpace.remainingCooldownMs(context)) }
+    androidx.activity.compose.BackHandler { onBack() }
 
     // Live cooldown countdown.
     LaunchedEffect(cooldownMs > 0) {

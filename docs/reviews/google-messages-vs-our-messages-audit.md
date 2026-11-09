@@ -1,5 +1,8 @@
 # Comprehensive Comparative Audit: Google Messages vs. Our Messages App
 
+> [!NOTE]
+> **SUPERSEDED (Historical Audit)**: This comparative benchmark reflects pre-2.5.0 versions of Our Messages App. Messages 2.5.0+ introduces the fixed green/black identity, flat conversation rows, and floating dock. Retained for historical record.
+
 > **Executive Summary**: This report delivers an exhaustive, evidence-grounded comparative evaluation of **Google Messages** (`com.google.android.apps.messaging`) and **Our Messages App** (`com.messages.app.debug`). Both applications were executed simultaneously in side-by-side Android 16 (API 36) virtual devices, tested across identical communication datasets, and benchmarked using automated `adb shell dumpsys gfxinfo` telemetry. Evaluation criteria are grounded in **Nielsen Norman's 10 Mobile Usability Heuristics**, **Google Material 3 Expressive Motion Physics**, **Thumb-Zone Ergonomics**, and **WCAG 2.2 Accessibility Standards**.
 
 ---

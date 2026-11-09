@@ -87,18 +87,18 @@ class BackfillWorker(
                 if (batch.isEmpty()) break
                 for (row in batch) {
                     if (row.id > maxSmsId) maxSmsId = row.id
-                    if (row.address.isNotBlank() && row.body.isNotBlank()) {
-                        try {
-                            repo.indexHistorical(
-                                smsId = row.id,
-                                threadId = row.threadId,
-                                address = row.address,
-                                body = row.body,
-                                timestamp = row.date,
-                                isOutgoing = row.type == Telephony.Sms.MESSAGE_TYPE_SENT,
-                                read = row.read,
-                            )
-                        } catch (t: Throwable) {
+                    val effectiveAddress = row.address.ifBlank { "Unknown" }
+                    try {
+                        repo.indexHistorical(
+                            smsId = row.id,
+                            threadId = row.threadId,
+                            address = effectiveAddress,
+                            body = row.body,
+                            timestamp = row.date,
+                            isOutgoing = row.type == Telephony.Sms.MESSAGE_TYPE_SENT,
+                            read = row.read,
+                        )
+                    } catch (t: Throwable) {
                             // Cancellation is not a row failure: WorkManager is
                             // stopping us; the checkpoint lets the retry resume.
                             if (t is kotlin.coroutines.cancellation.CancellationException) throw t
@@ -107,7 +107,6 @@ class BackfillWorker(
                             Log.e(TAG, "indexHistorical failed for SMS row; will retry (${t.javaClass.simpleName})")
                             failedIds.add(row.id)
                         }
-                    }
                 }
                 processed += batch.size
                 checkpointDate = batch.last().date

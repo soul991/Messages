@@ -9,6 +9,8 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.messages.app.MainActivity
 import com.messages.app.R
+import com.messages.core.MessageRepository
+import com.messages.core.db.Spaces
 
 /**
  * Conversation shortcuts (§8.2, Android platform features): long-lived dynamic
@@ -57,6 +59,34 @@ object ConversationShortcuts {
     fun remove(context: Context, threadId: Long) {
         runCatching {
             ShortcutManagerCompat.removeLongLivedShortcuts(context, listOf(idFor(threadId)))
+        }
+    }
+
+    /**
+     * Purges all dynamic shortcuts from Android's system shortcut service and
+     * re-publishes recent conversations with the fresh launcher icon.
+     *
+     * (§Phase N2): When upgrading from earlier versions (e.g. 2.4.x), Android's
+     * system ShortcutService persists shortcut bitmaps in internal storage
+     * (`/data/system_ce/0/shortcut_service/bitmaps/`). SystemUI re-uses that
+     * persisted bitmap as the notification badge forever until the shortcut is
+     * removed or updated. Purging all dynamic shortcuts on version upgrade
+     * invalidates the legacy cache and forces SystemUI to render the fresh icon.
+     */
+    suspend fun purgeAndRefreshShortcuts(context: Context) {
+        runCatching {
+            ShortcutManagerCompat.removeAllDynamicShortcuts(context)
+        }
+        runCatching {
+            val repo = MessageRepository.get(context)
+            val conversations = repo.db.conversations().allConversations()
+                .filter { it.space == Spaces.NORMAL && !it.locked && !it.archived }
+                .sortedByDescending { it.lastTimestamp }
+                .take(10)
+            for (conv in conversations) {
+                val title = repo.lookupContactName(conv.address) ?: conv.contactName ?: conv.address
+                push(context, conv.threadId, title)
+            }
         }
     }
 }

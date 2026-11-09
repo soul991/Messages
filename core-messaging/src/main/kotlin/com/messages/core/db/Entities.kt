@@ -112,7 +112,19 @@ data class MessageEntity(
     val trashedAt: Long? = null,
     /** [Spaces.NORMAL] or [Spaces.LOCKED] — see [Spaces]. */
     val space: String = Spaces.NORMAL,
+    /**
+     * Reason for trashing: [TrashReason.USER], [TrashReason.AUTO_SWIPE],
+     * [TrashReason.AUTO_SPAM], [TrashReason.AUTO_OTP].
+     */
+    val trashReason: String? = null,
 )
+
+object TrashReason {
+    const val USER = "USER"
+    const val AUTO_SWIPE = "AUTO_SWIPE"
+    const val AUTO_SPAM = "AUTO_SPAM"
+    const val AUTO_OTP = "AUTO_OTP"
+}
 
 /**
  * §8.5: FTS4 mirror of [MessageEntity] (external content — Room keeps it in

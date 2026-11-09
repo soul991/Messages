@@ -72,6 +72,7 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
     val notifyPromotions by vm.notifyPromotions.collectAsStateWithLifecycle()
     val notifyReview by vm.notifyReview.collectAsStateWithLifecycle()
     val otpAutoCopy by vm.otpAutoCopy.collectAsStateWithLifecycle()
+    androidx.activity.compose.BackHandler { onBack() }
 
     fun openChannelSettings(channelId: String) {
         runCatching {

@@ -1,5 +1,8 @@
 # "Orchid" Theme & Liquid-Glass Dock Review Report
 
+> [!NOTE]
+> **SUPERSEDED (Historical Report)**: Documents historical implementation of the Orchid accent theme. In version 2.5.0+, the theme system was simplified to a fixed black/off-white + green identity, and the user-facing accent picker was removed. Preserved for historical record.
+
 ## 1. Executive Summary
 This report documents the implementation and verification of the **"Orchid" Theme Identity** and **Liquid-Glass Floating Dock** in `soul991/Messages` on branch `feat/orchid-theme-liquid-dock` (commit `e214cf27` and newer).
 

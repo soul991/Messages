@@ -16,7 +16,7 @@ import org.junit.Test
  * Every text/background pair in the fixed Dark and Light schemes must achieve
  * WCAG-AA contrast (>= 4.5:1 for body text, >= 3.0:1 for graphical/accent elements).
  */
-class AccentSchemesContrastTest {
+class FixedColorSchemesContrastTest {
 
     private fun contrast(a: Color, b: Color): Double {
         val la = a.luminance() + 0.05

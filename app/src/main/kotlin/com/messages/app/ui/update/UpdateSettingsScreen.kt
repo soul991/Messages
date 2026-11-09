@@ -2,7 +2,11 @@ package com.messages.app.ui.update
 
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -87,8 +91,12 @@ fun UpdateSettingsScreen(
     val openUrl: (String) -> Unit = { url ->
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
+        snackbarHost = { AppTransientSnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -199,17 +207,17 @@ fun UpdateSettingsScreen(
                                 val cleared = AppUpdateManager.clearCache(context)
                                 cachedCount = AppUpdateManager.listCachedApks(context).size
                                 cachedBytes = AppUpdateManager.cachedSizeBytes(context)
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.update_cleared_toast, cleared),
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                                scope.launch {
+                                    snackbarHostState.showTransient(
+                                        context.getString(R.string.update_cleared_toast, cleared)
+                                    )
+                                }
                             } else {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.update_no_cached_toast),
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                                scope.launch {
+                                    snackbarHostState.showTransient(
+                                        context.getString(R.string.update_no_cached_toast)
+                                    )
+                                }
                             }
                         },
                     )
@@ -336,6 +344,7 @@ private fun UpdateSettingsSwitchRow(
         Switch(
             checked = checked,
             onCheckedChange = null,
+            colors = com.messages.designsystem.appSwitchColors(),
         )
     }
 }

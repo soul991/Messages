@@ -3,6 +3,8 @@ package com.messages.designsystem
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwitchColors
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -207,7 +209,14 @@ val ColorScheme.groupCard: Color
     get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.Surface else DesignTokens.Light.Surface
 
 val ColorScheme.dockBackground: Color
-    get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.Dock else DesignTokens.Light.Dock
+    get() {
+        val isDark = surface.luminance() < 0.5f
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            if (isDark) DesignTokens.Dark.Dock else DesignTokens.Light.Dock
+        } else {
+            if (isDark) Color(0xEB1C1C1F) else Color(0xEBFFFFFF) // 92% near-opaque surface below API 31
+        }
+    }
 
 val ColorScheme.dockBorder: Color
     get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.DockBorder else DesignTokens.Light.DockBorder
@@ -227,6 +236,33 @@ fun dockIconColor(category: String, isDark: Boolean): Color = when (category.upp
     "SPAM" -> if (isDark) DesignTokens.DockIconColors.Dark.Spam else DesignTokens.DockIconColors.Light.Spam
     "REVIEW" -> if (isDark) DesignTokens.DockIconColors.Dark.Review else DesignTokens.DockIconColors.Light.Review
     else -> if (isDark) DesignTokens.Dark.TextMuted else DesignTokens.Light.TextMuted
+}
+
+/** Tokens for visible switch states across light and dark modes. */
+object AppSwitchTokens {
+    // Dark mode: visible track on dark surfaces, bright distinct thumb
+    val DarkTrack = Color(0xFF39393D)
+    val DarkThumb = Color(0xFFE5E5EA)
+    val DarkBorder = Color(0xFF545458)
+
+    // Light mode: visible light gray track on white surfaces, distinct thumb and border
+    val LightTrack = Color(0xFFE5E5EA)
+    val LightThumb = Color(0xFF767680)
+    val LightBorder = Color(0xFF8E8E93)
+}
+
+/** Standard SwitchColors ensuring off switches remain clearly visible in both light and dark themes. */
+@Composable
+fun appSwitchColors(): SwitchColors {
+    val isDark = LocalDarkTheme.current || isSystemInDarkTheme()
+    return SwitchDefaults.colors(
+        checkedThumbColor = if (isDark) Color(0xFF04210E) else Color.White,
+        checkedTrackColor = if (isDark) DesignTokens.Dark.Green else DesignTokens.Light.Green,
+        checkedBorderColor = Color.Transparent,
+        uncheckedThumbColor = if (isDark) AppSwitchTokens.DarkThumb else AppSwitchTokens.LightThumb,
+        uncheckedTrackColor = if (isDark) AppSwitchTokens.DarkTrack else AppSwitchTokens.LightTrack,
+        uncheckedBorderColor = if (isDark) AppSwitchTokens.DarkBorder else AppSwitchTokens.LightBorder,
+    )
 }
 
 val InterFontFamily = FontFamily(Font(R.font.inter_variable))

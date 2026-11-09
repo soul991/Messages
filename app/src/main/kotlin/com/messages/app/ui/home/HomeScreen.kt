@@ -3,6 +3,7 @@ package com.messages.app.ui.home
 import androidx.activity.compose.BackHandler
 import com.messages.app.MainActivity
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.zIndex
 import androidx.compose.material3.Surface
 import com.messages.app.ui.common.DateSkeletons
 import com.messages.designsystem.DockItem
@@ -54,6 +55,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -209,6 +212,10 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import com.messages.app.R
 
 private val ROW_HEIGHT = 68.dp
@@ -234,23 +241,14 @@ private val SEARCH_LABELS = listOf(
     "BILL" to R.string.home_label_bill,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 /**
- * Pure helper for calculating dock visibility on scroll.
- * Scroll down (negative delta) hides; scroll up (positive delta) reveals; top position always reveals.
+ * Helper for dock visibility (B1: dock is always visible; hide-on-scroll is removed).
  */
 internal fun calculateDockVisibility(
-    currentlyVisible: Boolean,
-    deltaY: Float,
+    currentlyVisible: Boolean = true,
+    deltaY: Float = 0f,
     isTop: Boolean = false,
-): Boolean {
-    if (isTop) return true
-    return when {
-        deltaY < -6f -> false
-        deltaY > 6f -> true
-        else -> currentlyVisible
-    }
-}
+): Boolean = true
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -338,41 +336,69 @@ fun HomeScreen(
         folderListStates[folderKey] ?: fallbackListState
     }
 
-    val isDockVisible = remember { mutableStateOf(true) }
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                isDockVisible.value = calculateDockVisibility(isDockVisible.value, available.y)
-                return Offset.Zero
-            }
-
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource,
-            ): Offset {
-                val delta = if (consumed.y != 0f) consumed.y else available.y
-                isDockVisible.value = calculateDockVisibility(isDockVisible.value, delta)
-                return Offset.Zero
-            }
-        }
-    }
-
-    val currentListState = listStateFor(folder)
-    LaunchedEffect(currentListState.firstVisibleItemIndex, currentListState.firstVisibleItemScrollOffset) {
-        if (currentListState.firstVisibleItemIndex == 0 && currentListState.firstVisibleItemScrollOffset == 0) {
-            isDockVisible.value = true
-        }
-    }
-
     fun exitSearch() {
         searchActive = false
         vm.clearSearch()
         focusManager.clearFocus()
         keyboardController?.hide()
     }
-    BackHandler(enabled = searchActive) { exitSearch() }
-    BackHandler(enabled = selectionActive) { vm.clearSelection() }
+    BackHandler(enabled = !searchActive && !selectionActive && folder != "INBOX") {
+        com.messages.app.ui.navigation.NavigationBackPolicy.handleHomeBack(
+            searchActive = searchActive,
+            selectionActive = selectionActive,
+            currentFolder = folder,
+            onResetFolderToInbox = { vm.setFolder("INBOX") },
+        )
+    }
+    BackHandler(enabled = searchActive) {
+        com.messages.app.ui.navigation.NavigationBackPolicy.handleHomeBack(
+            searchActive = searchActive,
+            selectionActive = selectionActive,
+            currentFolder = folder,
+            onExitSearch = { exitSearch() },
+        )
+    }
+    BackHandler(enabled = selectionActive) {
+        com.messages.app.ui.navigation.NavigationBackPolicy.handleHomeBack(
+            searchActive = searchActive,
+            selectionActive = selectionActive,
+            currentFolder = folder,
+            onClearSelection = { vm.clearSelection() },
+        )
+    }
+
+    // G1: Search bar scroll-away on scroll down, return on scroll up or top
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val searchBarMaxHeightDp = 60.dp // 12dp top + 40dp pill + 8dp bottom
+    val searchBarMaxHeightPx = with(density) { searchBarMaxHeightDp.toPx() }
+    var searchBarOffsetPx by remember { mutableFloatStateOf(0f) }
+
+    val nestedScrollConnection = remember(searchBarMaxHeightPx, selectionActive, searchActive) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (selectionActive || searchActive) return Offset.Zero
+                val delta = available.y
+                val prevOffset = searchBarOffsetPx
+                val newOffset = (prevOffset + delta).coerceIn(-searchBarMaxHeightPx, 0f)
+                val consumed = newOffset - prevOffset
+                searchBarOffsetPx = newOffset
+                return Offset(0f, consumed)
+            }
+        }
+    }
+
+    val currentFolderListState = listStateFor(folder)
+    LaunchedEffect(currentFolderListState.firstVisibleItemIndex, currentFolderListState.firstVisibleItemScrollOffset) {
+        if (currentFolderListState.firstVisibleItemIndex == 0 && currentFolderListState.firstVisibleItemScrollOffset == 0) {
+            searchBarOffsetPx = 0f
+        }
+    }
+    LaunchedEffect(folder) {
+        searchBarOffsetPx = 0f
+    }
+    LaunchedEffect(selectionActive) {
+        if (selectionActive) searchBarOffsetPx = 0f
+    }
 
     // Swipe actions (§8.2) with undo snackbars for the destructive ones.
     fun onSwipeAction(action: String, conv: ConversationEntity) {
@@ -381,23 +407,10 @@ fun HomeScreen(
             SwipeActions.ARCHIVE -> {
                 vm.archive(conv.threadId)
                 scope.launch {
-                    val r = snackbarHostState.showSnackbar(
+                    val r = snackbarHostState.showTransient(
                         archivedMessage, actionLabel = undoLabel, withDismissAction = true,
                     )
                     if (r == SnackbarResult.ActionPerformed) vm.unarchive(conv.threadId)
-                }
-            }
-            SwipeActions.DELETE -> {
-                val at = System.currentTimeMillis()
-                vm.trashThread(conv.threadId)
-                scope.launch {
-                    val r = snackbarHostState.showSnackbar(
-                        trashedMessage, actionLabel = undoLabel,
-                        withDismissAction = true,
-                    )
-                    if (r == SnackbarResult.ActionPerformed) {
-                        vm.undoTrashThread(conv.threadId)
-                    }
                 }
             }
             SwipeActions.PIN -> vm.togglePin(conv.threadId, !conv.pinned)
@@ -459,86 +472,224 @@ fun HomeScreen(
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = {},
             topBar = {
                 GlassTopBar(isDark = LocalDarkTheme.current) {
-                    AnimatedContent(
-                        targetState = selectionActive,
-                        transitionSpec = {
-                            fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
-                        },
-                        label = "home-topbar-mode",
-                    ) { isSelecting ->
-                        if (isSelecting) {
-                            TopAppBar(
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = Color.Transparent,
-                                ),
-                                title = {
-                                Text(
-                                    pluralStringResource(
-                                        R.plurals.home_selected_count,
-                                        selectedThreads.size, selectedThreads.size,
-                                    ),
-                                    style = TextStyle(
-                                        fontFamily = InterFontFamily,
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                    ),
-                                )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .height(64.dp),
+                    ) {
+                        AnimatedContent(
+                            targetState = selectionActive,
+                            transitionSpec = {
+                                fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
                             },
-                            navigationIcon = {
-                                IconButton(onClick = { vm.clearSelection() }) {
-                                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.home_clear_selection))
-                                }
-                            },
-                            actions = {
-                                IconButton(onClick = {
-                                    vm.markThreadsRead(selectedThreads)
-                                    vm.clearSelection()
-                                }) {
-                                    Icon(Icons.Filled.Drafts, contentDescription = stringResource(R.string.home_mark_read))
-                                }
-                                IconButton(onClick = {
-                                    vm.markThreadsUnread(selectedThreads)
-                                    vm.clearSelection()
-                                }) {
-                                    Icon(Icons.Filled.MarkEmailUnread, contentDescription = stringResource(R.string.home_mark_unread))
-                                }
-                                IconButton(onClick = {
-                                    vm.archiveThreads(selectedThreads)
-                                    vm.clearSelection()
-                                }) {
-                                    Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.home_archive))
-                                }
-                                IconButton(onClick = {
-                                    val ids = selectedThreads
-                                    val at = vm.trashThreads(ids)
-                                    vm.clearSelection()
-                                    scope.launch {
-                                        val r = snackbarHostState.showSnackbar(
-                                            trashedCount(ids.size),
-                                            actionLabel = undoLabel, withDismissAction = true,
+                            label = "home-topbar-mode",
+                            modifier = Modifier.fillMaxSize(),
+                        ) { isSelecting ->
+                            if (isSelecting) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        IconButton(onClick = { vm.clearSelection() }) {
+                                            Icon(
+                                                Icons.Filled.Close,
+                                                contentDescription = stringResource(R.string.home_clear_selection),
+                                                tint = MaterialTheme.colorScheme.onBackground,
+                                            )
+                                        }
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            pluralStringResource(
+                                                R.plurals.home_selected_count,
+                                                selectedThreads.size, selectedThreads.size,
+                                            ),
+                                            style = TextStyle(
+                                                fontFamily = InterFontFamily,
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onBackground,
                                         )
-                                        if (r == SnackbarResult.ActionPerformed) {
-                                            vm.undoTrashThreads(ids)
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        IconButton(onClick = {
+                                            vm.markThreadsRead(selectedThreads)
+                                            vm.clearSelection()
+                                        }) {
+                                            Icon(Icons.Filled.Drafts, contentDescription = stringResource(R.string.home_mark_read))
+                                        }
+                                        IconButton(onClick = {
+                                            vm.markThreadsUnread(selectedThreads)
+                                            vm.clearSelection()
+                                        }) {
+                                            Icon(Icons.Filled.MarkEmailUnread, contentDescription = stringResource(R.string.home_mark_unread))
+                                        }
+                                        IconButton(onClick = {
+                                            vm.archiveThreads(selectedThreads)
+                                            vm.clearSelection()
+                                        }) {
+                                            Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.home_archive))
+                                        }
+                                        IconButton(onClick = {
+                                            val ids = selectedThreads
+                                            val at = vm.trashThreads(ids)
+                                            vm.clearSelection()
+                                            scope.launch {
+                                                val r = snackbarHostState.showTransient(
+                                                    trashedCount(ids.size),
+                                                    actionLabel = undoLabel, withDismissAction = true,
+                                                )
+                                                if (r == SnackbarResult.ActionPerformed) {
+                                                    vm.undoTrashThreads(ids)
+                                                }
+                                            }
+                                        }) {
+                                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
                                         }
                                     }
-                                }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
                                 }
-                            },
-                        )
-                    } else {
-                        // Standard Header: "Messages" 30sp/700, Shield icon button, More options
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .statusBarsPadding()
-                                .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
+                            } else if (folder == "BLOCKED") {
+                                // Blocked Header: Back button to return to Inbox + "Blocked" title + Shield & More options
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(start = 8.dp, end = 16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        IconButton(onClick = { vm.setFolder("INBOX") }) {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.ArrowBack,
+                                                contentDescription = stringResource(R.string.action_back),
+                                                tint = MaterialTheme.colorScheme.onBackground,
+                                            )
+                                        }
+                                        Text(
+                                            text = stringResource(R.string.category_blocked),
+                                            style = TextStyle(
+                                                fontFamily = InterFontFamily,
+                                                fontSize = 24.sp,
+                                                fontWeight = FontWeight(700),
+                                                letterSpacing = (-0.5).sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                        )
+                                    }
+
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        // Shield button top right
+                                        val shieldTint = if (isDefaultSmsApp) MaterialTheme.colorScheme.greenText else MaterialTheme.colorScheme.textMuted
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = ripple(),
+                                                    onClick = onDashboard,
+                                                ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isDefaultSmsApp) DockIcons.Shield else DockIcons.ShieldOff,
+                                                contentDescription = stringResource(R.string.home_protection_dashboard),
+                                                tint = shieldTint,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
+
+                                        // More options button
+                                        Box {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(CircleShape)
+                                                    .clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = ripple(),
+                                                        onClick = { showHomeMenu = true },
+                                                    ),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Icon(
+                                                    Icons.Filled.MoreVert,
+                                                    contentDescription = stringResource(R.string.action_more_options),
+                                                    tint = MaterialTheme.colorScheme.onBackground,
+                                                    modifier = Modifier.size(22.dp),
+                                                )
+                                            }
+                                            DropdownMenu(
+                                                expanded = showHomeMenu,
+                                                onDismissRequest = { showHomeMenu = false },
+                                            ) {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.settings_title)) },
+                                                    onClick = { showHomeMenu = false; onSettings() },
+                                                )
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            if (outboxWaiting > 0) {
+                                                                stringResource(R.string.outbox_title_count, outboxWaiting)
+                                                            } else {
+                                                                stringResource(R.string.outbox_title)
+                                                            }
+                                                        )
+                                                    },
+                                                    onClick = { showHomeMenu = false; onOpenOutbox() },
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.archived_title)) },
+                                                    onClick = { showHomeMenu = false; onOpenArchived() },
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.home_starred_messages)) },
+                                                    onClick = { showHomeMenu = false; onOpenStarred() },
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.home_mark_all_as_read)) },
+                                                    onClick = {
+                                                        showHomeMenu = false
+                                                        vm.markFolderRead(folder)
+                                                        scope.launch {
+                                                            snackbarHostState.showTransient(markedReadMessage)
+                                                        }
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Standard Header: "Messages" 30sp/700, Shield icon button, More options
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(start = 16.dp, end = 16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
                             val haptics = androidx.compose.ui.hapticfeedback.HapticFeedbackType
                             val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
                             val context = androidx.compose.ui.platform.LocalContext.current
@@ -677,7 +828,7 @@ fun HomeScreen(
                                                 showHomeMenu = false
                                                 vm.markFolderRead(folder)
                                                 scope.launch {
-                                                    snackbarHostState.showSnackbar(markedReadMessage)
+                                                    snackbarHostState.showTransient(markedReadMessage)
                                                 }
                                             },
                                         )
@@ -688,8 +839,9 @@ fun HomeScreen(
                     }
                 }
             }
-        },
-        ) { padding ->
+        }
+    },
+) { padding ->
             Column(
                 Modifier
                     .padding(padding)
@@ -705,16 +857,34 @@ fun HomeScreen(
                     )
                 }
 
-                // Search field below header: 40dp pill, 20dp radius, surface color
-                if (!selectionActive) {
+                // G1: Search field below header: 40dp pill, 20dp radius, surface color
+                // Smoothly collapses/expands with list scrolling via nestedScroll
+                val searchAlpha by animateFloatAsState(
+                    targetValue = if (selectionActive) 0.38f else 1f,
+                    animationSpec = Motion.effectsFast(),
+                    label = "search-selection-alpha",
+                )
+                val searchBarHeightDp = with(density) {
+                    (searchBarMaxHeightPx + searchBarOffsetPx).coerceAtLeast(0f).toDp()
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(searchBarHeightDp)
+                        .clipToBounds(),
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(searchBarMaxHeightDp)
+                            .offset { IntOffset(0, searchBarOffsetPx.roundToInt()) }
                             .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
-                            .height(40.dp)
+                            .graphicsLayer { alpha = searchAlpha }
                             .clip(RoundedCornerShape(20.dp))
                             .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
                             .clickable(
+                                enabled = !selectionActive,
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = ripple(),
                                 onClick = { searchActive = true },
@@ -723,6 +893,7 @@ fun HomeScreen(
                         contentAlignment = Alignment.CenterStart,
                     ) {
                         Row(
+                            modifier = Modifier.fillMaxHeight(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
@@ -738,6 +909,10 @@ fun HomeScreen(
                                     fontFamily = InterFontFamily,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Normal,
+                                    lineHeight = 20.sp,
+                                    platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                                        includeFontPadding = false,
+                                    ),
                                 ),
                                 color = MaterialTheme.colorScheme.textMuted,
                             )
@@ -763,15 +938,15 @@ fun HomeScreen(
             }
         }
 
-        // Floating New Message FAB (48dp round icon-only, green, 20dp from right, above dock at 104dp)
+        // Floating New Message FAB (48dp round icon-only, green, 20dp from right, above dock at 88dp)
         AnimatedVisibility(
-            visible = isDockVisible.value && !searchActive && !selectionActive,
+            visible = !searchActive && !selectionActive,
             enter = scaleIn(Motion.butterSpring()) + fadeIn(Motion.effectsDefault()),
             exit = scaleOut(Motion.butterSpring()) + fadeOut(Motion.effectsFast()),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
-                .padding(end = 20.dp, bottom = 104.dp),
+                .padding(end = 20.dp, bottom = 88.dp),
         ) {
             val fabInteractionSource = remember { MutableInteractionSource() }
             val fabPressed by fabInteractionSource.collectIsPressedAsState()
@@ -806,9 +981,28 @@ fun HomeScreen(
             }
         }
 
-        // Floating Bottom Dock (64dp tall, fully rounded, 16dp side inset, 24dp from bottom, translucent blurred bg, 1px border)
+        // Floating Undo / Transient Message Banner
+        // Sits ABOVE the dock with clear separation (at least 8dp clearance above dock top; 84dp bottom padding gives 16dp clearance)
+        // Does not cover dock or FAB: leaves 80dp on right when FAB is active.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(
+                    start = 16.dp,
+                    end = if (!searchActive && !selectionActive) 80.dp else 16.dp,
+                    bottom = 84.dp,
+                )
+                .zIndex(5f),
+        ) {
+            AppTransientSnackbarHost(
+                hostState = snackbarHostState,
+            )
+        }
+
+        // Floating Bottom Dock (56dp tall, compact pill, wrap content width, centered, always visible)
         AnimatedVisibility(
-            visible = isDockVisible.value && !searchActive && !selectionActive,
+            visible = !searchActive && !selectionActive,
             enter = slideInVertically(Motion.butterSpring()) { it } + fadeIn(Motion.effectsDefault()),
             exit = slideOutVertically(Motion.butterSpring()) { it } + fadeOut(Motion.effectsFast()),
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -1004,7 +1198,7 @@ private fun FolderPane(
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("home_conversation_list"),
-                        contentPadding = PaddingValues(bottom = 120.dp),
+                        contentPadding = PaddingValues(bottom = 144.dp),
                     ) {
                         items(
                             items = conversations,
@@ -1177,8 +1371,9 @@ private fun PinnedConversationsRow(
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
+                            val pinnedName = conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
                             ContactAvatar(
-                                name = conv.contactName ?: conv.address,
+                                name = pinnedName,
                                 category = conv.category,
                                 size = 52.dp,
                                 modifier = Modifier.sharedThreadAvatar(conv.threadId),
@@ -1197,8 +1392,9 @@ private fun PinnedConversationsRow(
                         }
                     }
                     Spacer(Modifier.height(4.dp))
+                    val pinnedShortName = conv.contactName?.takeIf { it.isNotBlank() }?.split(" ")?.firstOrNull() ?: FriendlySenderNames.format(conv.address)
                     Text(
-                        text = conv.contactName?.split(" ")?.firstOrNull() ?: conv.address,
+                        text = pinnedShortName,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1,
@@ -1443,15 +1639,16 @@ private fun ConversationMatchRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val displayName = conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
         ContactAvatar(
-            conv.contactName ?: conv.address, conv.category,
+            displayName, conv.category,
             modifier = Modifier.sharedThreadAvatar(conv.threadId),
             photoUri = com.messages.app.ui.common.rememberContactPhoto(conv.address),
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                SearchHighlight.annotate(conv.contactName ?: conv.address, keywords, highlight),
+                SearchHighlight.annotate(displayName, keywords, highlight),
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -1749,10 +1946,11 @@ private fun SwipeableConversationRow(
     val willCommit by remember(rightAction, leftAction) {
         derivedStateOf {
             val tx = liveOffset.floatValue + returnOffset.value
-            val threshold = rowWidthPx.floatValue * 0.36f
-            swipeAction != null && kotlin.math.abs(tx) >= threshold
+            swipeAction != null && SwipeGesturePolicy.shouldCommit(tx, rowWidthPx.floatValue)
         }
     }
+
+    val density = androidx.compose.ui.platform.LocalDensity.current
 
     Box(
         modifier = modifier.fillMaxWidth(),
@@ -1774,54 +1972,114 @@ private fun SwipeableConversationRow(
             Modifier
                 .fillMaxWidth()
                 .graphicsLayer { translationX = liveOffset.floatValue + returnOffset.value }
+                .background(MaterialTheme.colorScheme.surface)
                 .pointerInput(conv.threadId, rightAction, leftAction, selectionActive, isRtl) {
-                    detectHorizontalDragGestures(
-                        onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            val next = liveOffset.floatValue + dragAmount
-                            val minOffset = if (isRtl) {
-                                if (rightEnabled) -size.width.toFloat() else 0f
-                            } else {
-                                if (leftEnabled) -size.width.toFloat() else 0f
-                            }
-                            val maxOffset = if (isRtl) {
-                                if (leftEnabled) size.width.toFloat() else 0f
-                            } else {
-                                if (rightEnabled) size.width.toFloat() else 0f
-                            }
-                            liveOffset.floatValue = next.coerceIn(minOffset, maxOffset)
-                        },
-                        onDragEnd = {
-                            val released = liveOffset.floatValue
-                            val threshold = rowWidthPx.floatValue * 0.36f
-                            val action = when {
-                                isRtl -> when {
-                                    released <= -threshold && rightEnabled -> rightAction
-                                    released >= threshold && leftEnabled -> leftAction
-                                    else -> null
+                    if (selectionActive || (!rightEnabled && !leftEnabled)) return@pointerInput
+
+                    val touchSlopPx = with(density) { SwipeGesturePolicy.TOUCH_SLOP_DP.dp.toPx() }
+
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        if (!canCommitSwipe()) return@awaitEachGesture
+
+                        var totalDx = 0f
+                        var totalDy = 0f
+                        var dragStarted = false
+
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                            if (!change.pressed) {
+                                if (dragStarted) {
+                                    val released = liveOffset.floatValue
+                                    val shouldCommit = SwipeGesturePolicy.shouldCommit(released, rowWidthPx.floatValue)
+                                    val action = when {
+                                        !shouldCommit -> null
+                                        isRtl -> when {
+                                            released < 0f && rightEnabled -> rightAction
+                                            released > 0f && leftEnabled -> leftAction
+                                            else -> null
+                                        }
+                                        else -> when {
+                                            released > 0f && rightEnabled -> rightAction
+                                            released < 0f && leftEnabled -> leftAction
+                                            else -> null
+                                        }
+                                    }
+                                    scope.launch {
+                                        returnOffset.snapTo(released)
+                                        liveOffset.floatValue = 0f
+                                        if (action != null && canCommitSwipe()) onAction(action, conv)
+                                        returnOffset.animateTo(0f, Motion.butterSpring())
+                                    }
                                 }
-                                else -> when {
-                                    released >= threshold && rightEnabled -> rightAction
-                                    released <= -threshold && leftEnabled -> leftAction
-                                    else -> null
+                                break
+                            }
+
+                            // If vertical scrolling started or list is flinging, cancel swipe immediately
+                            if (!canCommitSwipe()) {
+                                if (dragStarted) {
+                                    val released = liveOffset.floatValue
+                                    scope.launch {
+                                        returnOffset.snapTo(released)
+                                        liveOffset.floatValue = 0f
+                                        returnOffset.animateTo(0f, Motion.butterSpring())
+                                    }
                                 }
+                                break
                             }
-                            scope.launch {
-                                returnOffset.snapTo(released)
-                                liveOffset.floatValue = 0f
-                                if (action != null && canCommitSwipe()) onAction(action, conv)
-                                returnOffset.animateTo(0f, Motion.butterSpring())
+
+                            val dragAmountX = change.position.x - change.previousPosition.x
+                            val dragAmountY = change.position.y - change.previousPosition.y
+
+                            totalDx += dragAmountX
+                            totalDy += dragAmountY
+
+                            val absDx = kotlin.math.abs(totalDx)
+                            val absDy = kotlin.math.abs(totalDy)
+
+                            if (!dragStarted) {
+                                // If vertical movement is steeper than 20 degrees, give gesture to vertical scroll
+                                if (absDy > 0f && (absDx == 0f || (absDy / absDx) >= SwipeGesturePolicy.MAX_DY_DX_RATIO)) {
+                                    break
+                                }
+
+                                // If horizontal touch slop (24dp) reached within 20 degrees of horizontal, engage drag
+                                if (absDx >= touchSlopPx && SwipeGesturePolicy.isHorizontalDominant(totalDx, totalDy)) {
+                                    dragStarted = true
+                                    change.consume()
+                                }
+                            } else {
+                                // Actively dragging: if sharp vertical gesture occurs, cancel immediately
+                                val stepAbsDx = kotlin.math.abs(dragAmountX)
+                                val stepAbsDy = kotlin.math.abs(dragAmountY)
+                                if (stepAbsDy > with(density) { 16.dp.toPx() } && (stepAbsDx == 0f || stepAbsDy / stepAbsDx > 1.5f)) {
+                                    val released = liveOffset.floatValue
+                                    scope.launch {
+                                        returnOffset.snapTo(released)
+                                        liveOffset.floatValue = 0f
+                                        returnOffset.animateTo(0f, Motion.butterSpring())
+                                    }
+                                    break
+                                }
+
+                                change.consume()
+                                val next = liveOffset.floatValue + dragAmountX
+                                val minOffset = if (isRtl) {
+                                    if (rightEnabled) -size.width.toFloat() else 0f
+                                } else {
+                                    if (leftEnabled) -size.width.toFloat() else 0f
+                                }
+                                val maxOffset = if (isRtl) {
+                                    if (leftEnabled) size.width.toFloat() else 0f
+                                } else {
+                                    if (rightEnabled) size.width.toFloat() else 0f
+                                }
+                                liveOffset.floatValue = next.coerceIn(minOffset, maxOffset)
                             }
-                        },
-                        onDragCancel = {
-                            val released = liveOffset.floatValue
-                            scope.launch {
-                                returnOffset.snapTo(released)
-                                liveOffset.floatValue = 0f
-                                returnOffset.animateTo(0f, Motion.butterSpring())
-                            }
-                        },
-                    )
+                        }
+                    }
                 }
                 .onSizeChanged { rowWidthPx.floatValue = it.width.toFloat() },
         ) {
@@ -1876,13 +2134,6 @@ private fun SwipeActionBackground(
             tint = colorScheme.onSecondaryContainer,
             label = stringResource(R.string.home_archive),
         )
-        SwipeActions.DELETE -> SwipeVisuals(
-            outlinedIcon = SwipeIcons.DeleteOutlined,
-            filledIcon = SwipeIcons.DeleteFilled,
-            container = colorScheme.errorContainer,
-            tint = colorScheme.onErrorContainer,
-            label = stringResource(R.string.action_delete),
-        )
         SwipeActions.PIN -> SwipeVisuals(
             outlinedIcon = SwipeIcons.PinOutlined,
             filledIcon = SwipeIcons.PinFilled,
@@ -1916,6 +2167,7 @@ private fun SwipeActionBackground(
     Row(
         modifier = modifier
             .fillMaxSize()
+            .clip(RoundedCornerShape(16.dp))
             .background(visuals.container)
             .padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -2063,7 +2315,6 @@ private fun ConversationRow(
                     customActions = availableActions.mapNotNull { action ->
                         val label = when (action) {
                             SwipeActions.ARCHIVE -> context.getString(R.string.home_archive)
-                            SwipeActions.DELETE -> context.getString(R.string.action_delete)
                             SwipeActions.PIN -> context.getString(
                                 if (conv.pinned) R.string.home_unpin else R.string.home_pin,
                             )

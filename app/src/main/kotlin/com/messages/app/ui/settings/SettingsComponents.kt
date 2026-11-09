@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import com.messages.designsystem.appSwitchColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -45,6 +46,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -56,22 +59,25 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.messages.app.R
+import com.messages.designsystem.DesignTokens
+import com.messages.designsystem.LocalDarkTheme
 import com.messages.designsystem.Motion
 import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.groupCard
 import kotlinx.coroutines.launch
 
-/** Section header: primary-colored titleSmall on the 20dp grid. */
+/** Section header: neutral onSurfaceVariant titleSmall on the 20dp grid. */
 @Composable
 internal fun SettingsSectionHeader(title: String) {
     Text(
         title,
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 6.dp),
     )
 }
@@ -162,10 +168,72 @@ internal fun SettingsGroupCard(
     }
 }
 
+object SettingsTileColors {
+    val GreenDark = Color(0xFF30D158)
+    val GreenLight = Color(0xFF146C2E)
+
+    val RedDark = Color(0xFFFFB4AB)
+    val RedLight = Color(0xFFB3261E)
+
+    val AmberDark = Color(0xFFFFB951)
+    val AmberLight = Color(0xFF7A4300)
+
+    val BlueDark = Color(0xFF64B5F6)
+    val BlueLight = Color(0xFF004BA0)
+
+    fun forCategory(categoryBadge: String?, isDark: Boolean): Color {
+        return when (categoryBadge) {
+            "SPAM", "BLOCKED" -> if (isDark) RedDark else RedLight
+            "PROMOTIONS", "OFFERS" -> if (isDark) AmberDark else AmberLight
+            "REVIEW" -> if (isDark) BlueDark else BlueLight
+            "TRANSACTIONS", "PERSONAL", "INBOX" -> if (isDark) GreenDark else GreenLight
+            else -> if (isDark) GreenDark else GreenLight
+        }
+    }
+}
+
+/**
+ * SettingsIconTile (§Phase D1):
+ * Renders an icon tile with a tinted container and full-contrast glyph.
+ * In light mode: container tinted 14% with the icon's color, glyph full contrast (the icon's color).
+ * In dark mode: container tinted 24% with the icon's color, glyph full contrast (the icon's color).
+ * This eliminates the dark gray (#2C2C2E) "holes" in light mode cards and guarantees WCAG AA 4.5:1.
+ */
+@Composable
+internal fun SettingsIconTile(
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    alpha: Float = 1f,
+    size: Dp = 40.dp,
+    iconSize: Dp = 22.dp,
+    shape: Shape = RoundedCornerShape(12.dp),
+) {
+    val isDark = LocalDarkTheme.current
+    val containerTint = if (isDark) 0.24f else 0.14f
+    val containerColor = color.copy(alpha = containerTint * alpha)
+    val glyphColor = color.copy(alpha = alpha)
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(shape)
+            .background(containerColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = glyphColor,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
 /**
  * Row scaffold every settings row builds on.
- * Left icons become squircle badges: 40dp, corner 12dp, fill categoryPalette(...).container,
- * glyph categoryPalette(...).onContainer (contrast >= 4.5:1).
+ * Left icons become squircle badges: 40dp, corner 12dp, fill 14%/24% tint of icon color,
+ * glyph full contrast (contrast >= 4.5:1).
  * Rows padded 16h x 12v, single-line ellipsized titles and subtitles.
  */
 @Composable
@@ -180,12 +248,8 @@ internal fun SettingsRow(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val alpha = if (enabled) 1f else 0.5f
-    val palette = categoryPalette(categoryBadge)
-    val (badgeBg, badgeFg) = if (palette != null) {
-        palette.container to palette.onContainer
-    } else {
-        MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-    }
+    val isDark = LocalDarkTheme.current
+    val iconColor = SettingsTileColors.forCategory(categoryBadge, isDark)
 
     Row(
         Modifier
@@ -196,20 +260,13 @@ internal fun SettingsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(badgeBg.copy(alpha = alpha)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = badgeFg.copy(alpha = alpha),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+            SettingsIconTile(
+                icon = icon,
+                color = iconColor,
+                alpha = alpha,
+                size = 40.dp,
+                iconSize = 22.dp,
+            )
             Spacer(Modifier.width(18.dp))
         } else if (indented) {
             // Align with row titles (16dp row padding + 40dp badge + 18dp spacer = 74dp)
@@ -254,7 +311,14 @@ internal fun SettingsSwitchRow(
         icon = icon, title = title, subtitle = subtitle,
         onClick = { if (enabled) onChange(!checked) }, enabled = enabled,
         categoryBadge = categoryBadge,
-        trailing = { Switch(checked = checked, onCheckedChange = onChange, enabled = enabled) },
+        trailing = {
+            Switch(
+                checked = checked,
+                onCheckedChange = onChange,
+                enabled = enabled,
+                colors = appSwitchColors(),
+            )
+        },
     )
 }
 
@@ -283,7 +347,7 @@ internal fun SettingsNavRow(
     )
 }
 
-/** Value-picker row: current value in primary at the trailing edge, dropdown on tap. */
+/** Value-picker row: current value in neutral onSurfaceVariant at the trailing edge, dropdown on tap. */
 @Composable
 internal fun <T> SettingsDropdownRow(
     title: String,
@@ -303,7 +367,7 @@ internal fun <T> SettingsDropdownRow(
                 Text(
                     value,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     options.forEach { (option, label) ->
@@ -321,130 +385,7 @@ internal fun <T> SettingsDropdownRow(
     )
 }
 
-/**
- * Swipe-to-reveal destructive row for Settings (Quick Replies).
- * Swiping left reveals errorContainer background with delete icon and label.
- * Spring-back uses Motion.butterSpring(), commit threshold 42% of row width.
- * GraphicsLayer translation and derivedStateOf for 60fps performance without recompositions.
- */
-@Composable
-internal fun SwipeToRevealRow(
-    onDelete: () -> Unit,
-    enabled: Boolean = true,
-    deleteLabel: String = stringResource(R.string.action_delete),
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    val coroutineScope = rememberCoroutineScope()
-    val liveOffset = remember { mutableFloatStateOf(0f) }
-    val returnOffset = remember { Animatable(0f) }
-    var rowWidthPx by remember { mutableFloatStateOf(0f) }
 
-    val willCommit by remember {
-        derivedStateOf {
-            rowWidthPx > 0f && (liveOffset.floatValue + returnOffset.value) < -rowWidthPx * 0.42f
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .onSizeChanged { rowWidthPx = it.width.toFloat() }
-            .semantics {
-                if (enabled) {
-                    customActions = listOf(
-                        CustomAccessibilityAction(label = deleteLabel) {
-                            onDelete()
-                            true
-                        }
-                    )
-                }
-            }
-    ) {
-        // Destructive action background revealed when swiping left
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(MaterialTheme.colorScheme.errorContainer)
-                .padding(end = 20.dp),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier.graphicsLayer {
-                    val progress = if (rowWidthPx > 0f) {
-                        (-(liveOffset.floatValue + returnOffset.value) / (rowWidthPx * 0.42f)).coerceIn(0f, 1f)
-                    } else 0f
-                    alpha = progress
-                    scaleX = 0.8f + 0.2f * progress
-                    scaleY = 0.8f + 0.2f * progress
-                }
-            ) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = deleteLabel,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-
-        // Foreground content with left-swipe gesture
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                    translationX = liveOffset.floatValue + returnOffset.value
-                }
-                .background(MaterialTheme.colorScheme.groupCard)
-                .pointerInput(enabled) {
-                    if (!enabled) return@pointerInput
-                    detectHorizontalDragGestures(
-                        onDragStart = {
-                            coroutineScope.launch { returnOffset.snapTo(0f) }
-                        },
-                        onDragEnd = {
-                            if (willCommit) {
-                                coroutineScope.launch {
-                                    liveOffset.floatValue = 0f
-                                    returnOffset.snapTo(0f)
-                                    onDelete()
-                                }
-                            } else {
-                                coroutineScope.launch {
-                                    returnOffset.snapTo(liveOffset.floatValue)
-                                    liveOffset.floatValue = 0f
-                                    returnOffset.animateTo(0f, Motion.butterSpring())
-                                }
-                            }
-                        },
-                        onDragCancel = {
-                            coroutineScope.launch {
-                                returnOffset.snapTo(liveOffset.floatValue)
-                                liveOffset.floatValue = 0f
-                                returnOffset.animateTo(0f, Motion.butterSpring())
-                            }
-                        },
-                        onHorizontalDrag = { _, dragAmount ->
-                            val minOffset = if (rowWidthPx > 0f) -rowWidthPx else -1000f
-                            val newOffset = (liveOffset.floatValue + dragAmount).coerceIn(minOffset, 0f)
-                            liveOffset.floatValue = newOffset
-                        }
-                    )
-                }
-        ) {
-            content()
-        }
-    }
-}
 
 /**
  * Integrated Quick Reply Input Pill:

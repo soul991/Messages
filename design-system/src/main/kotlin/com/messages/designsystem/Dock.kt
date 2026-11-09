@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -107,11 +108,12 @@ data class DockItem(
 }
 
 /**
- * Bottom Dock styled as a floating pill (Tokens / Design Reference truth).
+ * Bottom Dock styled as a compact floating pill (Telegram-style).
  *
- * Floating capsule: 16dp side margins, 24dp from bottom (+ navigation bar insets),
- * 64dp height, 32dp corner radius (dockRadius), translucent dockBackground,
- * 1px dockBorder, and neutral dockActivePill on the active tab.
+ * Compact floating capsule: centered, width wrapping its content,
+ * 56dp height, 28dp corner radius, sits above the gesture bar,
+ * translucent dockBackground with crisp 1dp border,
+ * and neutral dockActivePill on the active tab.
  */
 @Composable
 fun BottomDock(
@@ -126,16 +128,16 @@ fun BottomDock(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+            .padding(bottom = 16.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        // Floating Dock Glass Container (64dp height, 32dp corner radius)
+        // Floating Dock Glass Container (56dp height, 28dp corner radius, wrap content width)
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp),
+                .wrapContentWidth()
+                .height(56.dp),
         ) {
-            // Glass background layer with 20dp blur where supported (API 31+)
+            // Glass background layer with blur where supported (API 31+)
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -149,24 +151,27 @@ fun BottomDock(
                             }
                         } else Modifier
                     )
-                    .clip(RoundedCornerShape(32.dp))
+                    .clip(RoundedCornerShape(28.dp))
                     .background(MaterialTheme.colorScheme.dockBackground),
             )
 
             // Crisp border & content layer
             Surface(
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(32.dp),
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .fillMaxHeight(),
+                shape = RoundedCornerShape(28.dp),
                 color = Color.Transparent,
                 shadowElevation = 0.dp,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.dockBorder),
             ) {
                 Row(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .wrapContentWidth()
+                        .fillMaxHeight()
                         .padding(horizontal = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
                     items.forEach { item ->
                         val selected = item.key == selectedKey
@@ -193,12 +198,12 @@ fun BottomDock(
                         Box(
                             modifier = Modifier
                                 .testTag("dock_${item.key}")
-                                .weight(1f)
+                                .widthIn(min = 62.dp)
                                 .graphicsLayer {
                                     scaleX = tabScale
                                     scaleY = tabScale
                                 }
-                                .clip(RoundedCornerShape(26.dp))
+                                .clip(RoundedCornerShape(24.dp))
                                 .clickable(
                                     interactionSource = interactionSource,
                                     indication = ripple(
@@ -211,7 +216,7 @@ fun BottomDock(
                                         }
                                     },
                                 )
-                                .padding(vertical = 8.dp),
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             // Neutral active pill with spring alpha fade
@@ -220,19 +225,19 @@ fun BottomDock(
                                     modifier = Modifier
                                         .matchParentSize()
                                         .graphicsLayer { alpha = pillAlpha }
-                                        .background(MaterialTheme.colorScheme.dockActivePill, RoundedCornerShape(26.dp))
+                                        .background(MaterialTheme.colorScheme.dockActivePill, RoundedCornerShape(24.dp))
                                 )
                             }
 
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalArrangement = Arrangement.spacedBy(1.dp),
                             ) {
                                 Icon(
                                     imageVector = if (selected) item.filledIcon else item.outlinedIcon,
                                     contentDescription = item.title,
                                     tint = iconColor,
-                                    modifier = Modifier.size(22.dp),
+                                    modifier = Modifier.size(20.dp),
                                 )
 
                                 Text(

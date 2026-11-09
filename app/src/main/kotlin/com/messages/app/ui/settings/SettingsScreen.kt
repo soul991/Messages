@@ -39,6 +39,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,6 +49,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Accessibility
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.AutoDelete
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.BrightnessHigh
@@ -73,6 +76,9 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -80,8 +86,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -573,8 +580,11 @@ fun SettingsScreen(
     var page by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     androidx.activity.compose.BackHandler(enabled = page != null) { page = null }
+    androidx.activity.compose.BackHandler(enabled = page == null) { onBack() }
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            AppTransientSnackbarHost(snackbarHostState)
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -678,16 +688,6 @@ fun SettingsScreen(
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
                     SettingsGroupCard(cardIndex = 0) {
-                        SettingsSwitchRow(
-                            icon = Icons.Outlined.Shield,
-                            categoryBadge = null,
-                            title = stringResource(R.string.settings_advanced_filtering_title),
-                            subtitle = stringResource(R.string.settings_advanced_filtering_subtitle),
-                            checked = advancedFiltering,
-                            onChange = { vm.setAdvancedFiltering(it) },
-                            enabled = AiLayer.AI_LAYER_ENABLED,
-                        )
-                        SettingsCardDivider()
                         val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                             Slider(
@@ -702,7 +702,7 @@ fun SettingsScreen(
                                         stringResource(sensitivityLabelRes(step)),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = if (i == index) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (i == index) MaterialTheme.colorScheme.primary
+                                        color = if (i == index) MaterialTheme.colorScheme.onSurface
                                         else MaterialTheme.colorScheme.outline,
                                     )
                                 }
@@ -773,7 +773,7 @@ fun SettingsScreen(
                                 Text(
                                     importStatus!!,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             Row {
@@ -787,6 +787,20 @@ fun SettingsScreen(
                                 }
                             }
                         }
+                    }
+                }
+                item {
+                    SettingsSectionHeader(stringResource(R.string.settings_advanced_filtering_title))
+                    SettingsGroupCard(cardIndex = 3) {
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Shield,
+                            categoryBadge = "SPAM",
+                            title = stringResource(R.string.settings_advanced_filtering_title),
+                            subtitle = stringResource(R.string.settings_advanced_filtering_subtitle),
+                            checked = advancedFiltering,
+                            onChange = { vm.setAdvancedFiltering(it) },
+                            enabled = AiLayer.AI_LAYER_ENABLED,
+                        )
                     }
                     Spacer(Modifier.height(16.dp))
                 }
@@ -907,8 +921,67 @@ fun SettingsScreen(
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_conversations))
                     val ctx = androidx.compose.ui.platform.LocalContext.current
-                    val rightAction by com.messages.app.ui.home.SwipeActions.right.collectAsStateWithLifecycle()
-                    val leftAction by com.messages.app.ui.home.SwipeActions.left.collectAsStateWithLifecycle()
+                    var showArchiveShortcutDialog by remember { mutableStateOf(false) }
+                    val currentArchiveShortcut by com.messages.app.ui.home.SwipeActions.archiveShortcut.collectAsStateWithLifecycle()
+                    val archiveShortcutSubtitle = when (currentArchiveShortcut) {
+                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_RIGHT -> stringResource(R.string.settings_swipe_right)
+                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_LEFT -> stringResource(R.string.settings_swipe_left)
+                        com.messages.app.ui.home.SwipeActions.SHORTCUT_OFF -> stringResource(R.string.settings_archive_shortcut_off)
+                        else -> stringResource(R.string.settings_archive_shortcut_choose)
+                    }
+
+                    if (showArchiveShortcutDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showArchiveShortcutDialog = false },
+                            title = { Text(stringResource(R.string.settings_archive_shortcut)) },
+                            text = {
+                                Column(modifier = Modifier.selectableGroup()) {
+                                    val options = listOf(
+                                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_RIGHT to stringResource(R.string.settings_swipe_right),
+                                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_LEFT to stringResource(R.string.settings_swipe_left),
+                                        com.messages.app.ui.home.SwipeActions.SHORTCUT_OFF to stringResource(R.string.settings_archive_shortcut_off),
+                                    )
+                                    options.forEach { (optionKey, label) ->
+                                        val isSelected = currentArchiveShortcut == optionKey
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .selectable(
+                                                    selected = isSelected,
+                                                    onClick = {
+                                                        com.messages.app.ui.home.SwipeActions.setArchiveShortcut(ctx, optionKey)
+                                                        showArchiveShortcutDialog = false
+                                                    },
+                                                    role = Role.RadioButton,
+                                                )
+                                                .padding(vertical = 12.dp, horizontal = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            RadioButton(
+                                                selected = isSelected,
+                                                onClick = null,
+                                                colors = RadioButtonDefaults.colors(
+                                                    selectedColor = MaterialTheme.colorScheme.primary,
+                                                ),
+                                            )
+                                            Spacer(Modifier.width(12.dp))
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showArchiveShortcutDialog = false }) {
+                                    Text(stringResource(R.string.action_cancel))
+                                }
+                            },
+                            confirmButton = {},
+                        )
+                    }
                     var deliveryReports by remember {
                         mutableStateOf(
                             ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
@@ -930,7 +1003,7 @@ fun SettingsScreen(
                                     stringResource(R.string.settings_link_previews_footer),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                    )
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     stringResource(R.string.settings_summary_cards_footer),
@@ -940,24 +1013,12 @@ fun SettingsScreen(
                             }
                         }
                     ) {
-                        SettingsDropdownRow(
-                            icon = Icons.Outlined.SwipeRight,
-                            categoryBadge = "TRANSACTIONS",
-                            title = stringResource(R.string.settings_swipe_right),
-                            subtitle = stringResource(R.string.settings_swipe_right_subtitle),
-                            value = com.messages.app.ui.home.SwipeActions.label(rightAction),
-                            options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
-                            onSelect = { com.messages.app.ui.home.SwipeActions.setRight(ctx, it) },
-                        )
-                        SettingsCardDivider()
-                        SettingsDropdownRow(
-                            icon = Icons.Outlined.SwipeLeft,
-                            categoryBadge = "SPAM",
-                            title = stringResource(R.string.settings_swipe_left),
-                            subtitle = stringResource(R.string.settings_swipe_left_subtitle),
-                            value = com.messages.app.ui.home.SwipeActions.label(leftAction),
-                            options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
-                            onSelect = { com.messages.app.ui.home.SwipeActions.setLeft(ctx, it) },
+                        SettingsRow(
+                            icon = Icons.Outlined.Archive,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_archive_shortcut),
+                            subtitle = archiveShortcutSubtitle,
+                            onClick = { showArchiveShortcutDialog = true },
                         )
                         SettingsCardDivider()
                         SettingsSwitchRow(
@@ -1100,7 +1161,7 @@ fun SettingsScreen(
                                 Text(
                                     backupStatus!!,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(Modifier.height(8.dp))
                             }
@@ -1151,7 +1212,7 @@ fun SettingsScreen(
                                         stringResource(R.string.settings_importing)
                                     },
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(Modifier.height(8.dp))
                             }
@@ -1192,19 +1253,14 @@ private fun MessageTextSizeRow() {
     }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.FormatSize, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+            val isDark = com.messages.designsystem.LocalDarkTheme.current
+            val greenColor = if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight
+            SettingsIconTile(
+                icon = Icons.Outlined.FormatSize,
+                color = greenColor,
+                size = 40.dp,
+                iconSize = 22.dp,
+            )
             Spacer(Modifier.width(18.dp))
             Column {
                 Text(
@@ -1279,20 +1335,14 @@ private fun QuickRepliesEditor(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.Bolt,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+            val isDark = com.messages.designsystem.LocalDarkTheme.current
+            val greenColor = if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight
+            SettingsIconTile(
+                icon = Icons.Outlined.Bolt,
+                color = greenColor,
+                size = 40.dp,
+                iconSize = 22.dp,
+            )
             Spacer(Modifier.width(18.dp))
             Text(
                 text = stringResource(R.string.settings_quick_replies),
@@ -1311,14 +1361,13 @@ private fun QuickRepliesEditor(
                         selectedTemplates = emptySet()
                         isEditMode = false
                         scope.launch {
-                            val res = snackbarHostState.showSnackbar(
+                            val res = snackbarHostState.showTransient(
                                 message = if (toDelete.size > 1) {
                                     ctx.getString(R.string.quick_replies_deleted)
                                 } else {
                                     ctx.getString(R.string.quick_reply_deleted)
                                 },
                                 actionLabel = ctx.getString(R.string.action_undo),
-                                duration = SnackbarDuration.Short,
                             )
                             if (res == SnackbarResult.ActionPerformed) {
                                 com.messages.app.ui.chat.QuickReplies.setAll(ctx, prev)
@@ -1399,36 +1448,18 @@ private fun QuickRepliesEditor(
                             )
                         }
                     } else {
-                        SwipeToRevealRow(
-                            deleteLabel = stringResource(R.string.action_delete),
-                            onDelete = {
-                                val prev = templates
-                                com.messages.app.ui.chat.QuickReplies.remove(ctx, template)
-                                scope.launch {
-                                    val res = snackbarHostState.showSnackbar(
-                                        message = ctx.getString(R.string.quick_reply_deleted),
-                                        actionLabel = ctx.getString(R.string.action_undo),
-                                        duration = SnackbarDuration.Short,
-                                    )
-                                    if (res == SnackbarResult.ActionPerformed) {
-                                        com.messages.app.ui.chat.QuickReplies.setAll(ctx, prev)
-                                    }
-                                }
-                            }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = template,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
+                            Text(
+                                text = template,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }

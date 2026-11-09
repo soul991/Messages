@@ -378,9 +378,9 @@ private fun DonePage() {
 }
 
 /**
- * Intro illustration: a violet shield flanked by three tilted message chips
+ * Intro illustration: green brand badge flanked by three tilted message chips
  * (spam, promo, normal) — "everything is sorted before you see it".
- * 358x220 container, 40dp corners, shield 120dp.
+ * 358x220 container, 40dp corners, badge 120dp.
  */
 @Composable
 private fun IntroHero() {

@@ -10,6 +10,7 @@ import android.os.Build
 import android.provider.Settings
 import android.provider.Telephony
 import android.util.Log
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -168,7 +169,14 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         applyFlagSecure()
         getSharedPreferences("settings", MODE_PRIVATE)
             .registerOnSharedPreferenceChangeListener(secureFlagListener)
@@ -380,7 +388,7 @@ class MainActivity : FragmentActivity() {
                     ) {
                         com.messages.app.ui.secret.VaultTheme {
                         com.messages.app.ui.secret.SecretSetupScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("home") },
                             onComplete = {
                                 nav.navigate("secret_space") {
                                     popUpTo("home") // setup screens leave the stack
@@ -398,7 +406,7 @@ class MainActivity : FragmentActivity() {
                     ) {
                         com.messages.app.ui.secret.VaultTheme {
                         com.messages.app.ui.secret.SecretPromptScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("home") },
                             onUnlocked = {
                                 nav.navigate("secret_space") {
                                     popUpTo("home") // prompt never stays beneath the space
@@ -443,7 +451,7 @@ class MainActivity : FragmentActivity() {
                         }
                         com.messages.app.ui.secret.VaultTheme {
                         NewMessageScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("secret_space") },
                             space = com.messages.core.db.Spaces.LOCKED,
                             onOpenThread = { threadId, address ->
                                 nav.navigate(
@@ -462,7 +470,7 @@ class MainActivity : FragmentActivity() {
                         }
                         com.messages.app.ui.secret.VaultTheme {
                         com.messages.app.ui.secret.SecretSettingsScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("secret_space") },
                         )
                         }
                     }
@@ -485,7 +493,7 @@ class MainActivity : FragmentActivity() {
                         com.messages.app.ui.secret.VaultTheme {
                         ChatScreen(
                             threadId = threadId,
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("secret_space") },
                             onWhy = { messageId -> nav.navigate("secret_why/$messageId") },
                             // Compose-from-space: brand-new thread may have no
                             // conversation row yet beyond the LOCKED shell.
@@ -502,23 +510,23 @@ class MainActivity : FragmentActivity() {
                             return@composable
                         }
                         com.messages.app.ui.secret.VaultTheme {
-                        WhyFilteredScreen(messageId = messageId, onBack = { nav.popBackStack() })
+                        WhyFilteredScreen(messageId = messageId, onBack = { if (!nav.popBackStack()) nav.navigate("secret_space") })
                         }
                     }
                     composable("archived") {
                         com.messages.app.ui.archived.ArchivedScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("home") },
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
                         )
                     }
                     composable("outbox") {
                         com.messages.app.ui.outbox.OutboxScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("home") },
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
                         )
                     }
                     composable("dashboard") {
-                        DashboardScreen(onBack = { nav.popBackStack() })
+                        DashboardScreen(onBack = { if (!nav.popBackStack()) nav.navigate("home") })
                     }
                     composable(
                         "starred?thread={thread}",
@@ -531,7 +539,7 @@ class MainActivity : FragmentActivity() {
                         ),
                     ) { entry ->
                         com.messages.app.ui.starred.StarredScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("home") },
                             onOpenMessage = { threadId, messageId ->
                                 nav.navigate("chat/$threadId?target=$messageId")
                             },
@@ -540,25 +548,25 @@ class MainActivity : FragmentActivity() {
                     }
                     composable("notification_settings") {
                         com.messages.app.ui.settings.NotificationSettingsScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("settings") },
                         )
                     }
                     composable("about") {
                         com.messages.app.ui.settings.AboutScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("settings") },
                             onOpenUpdateSettings = { nav.navigate("update_settings") },
                             onOpenUpdateCheck = { nav.navigate("update_check") },
                         )
                     }
                     composable("update_settings") {
                         com.messages.app.ui.update.UpdateSettingsScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("about") },
                             onNavigateToCheck = { nav.navigate("update_check") },
                         )
                     }
                     composable("update_check") {
                         com.messages.app.ui.update.UpdateScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("update_settings") },
                         )
                     }
                     composable(
@@ -577,7 +585,7 @@ class MainActivity : FragmentActivity() {
                         },
                     ) {
                         SettingsScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("home") },
                             onOpenTrash = { nav.navigate("trash") },
                             onOpenDriveBackup = { nav.navigate("drive_backup") },
                             onOpenNotificationSettings = { nav.navigate("notification_settings") },
@@ -597,17 +605,17 @@ class MainActivity : FragmentActivity() {
                     }
                     composable("drive_backup") {
                         com.messages.app.ui.drivebackup.DriveBackupScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("settings") },
                             onPickSpamMessages = { nav.navigate("spam_backup_picker") },
                         )
                     }
                     composable("spam_backup_picker") {
                         com.messages.app.ui.drivebackup.SpamBackupPickerScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("drive_backup") },
                         )
                     }
                     composable("trash") {
-                        com.messages.app.ui.trash.TrashScreen(onBack = { nav.popBackStack() })
+                        com.messages.app.ui.trash.TrashScreen(onBack = { if (!nav.popBackStack()) nav.navigate("settings") })
                     }
                     composable(
                         "compose",
@@ -617,7 +625,7 @@ class MainActivity : FragmentActivity() {
                         popExitTransition = { fadeThroughExit() },
                     ) {
                         NewMessageScreen(
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("home") },
                             onOpenThread = { threadId, address ->
                                 nav.navigate("chat/$threadId?address=${Uri.encode(address)}") {
                                     popUpTo("compose") { inclusive = true }
@@ -671,7 +679,11 @@ class MainActivity : FragmentActivity() {
                         ProvideNavScope(this) {
                         ChatScreen(
                             threadId = threadId,
-                            onBack = { nav.popBackStack() },
+                            onBack = {
+                                if (!nav.popBackStack()) {
+                                    nav.navigate("home")
+                                }
+                            },
                             onWhy = { messageId -> nav.navigate("why/$messageId") },
                             fallbackAddress = entry.arguments?.getString("address"),
                             // §8.5.3: opened from search — highlight terms + jump to the match.
@@ -693,9 +705,9 @@ class MainActivity : FragmentActivity() {
                         val threadId = entry.arguments?.getString("threadId")?.toLongOrNull() ?: return@composable
                         com.messages.app.ui.contact.ContactDetailScreen(
                             threadId = threadId,
-                            onBack = { nav.popBackStack() },
+                            onBack = { if (!nav.popBackStack()) nav.navigate("chat/$threadId") },
                             // Trio "Message" = return to the chat beneath.
-                            onMessage = { nav.popBackStack() },
+                            onMessage = { if (!nav.popBackStack()) nav.navigate("chat/$threadId") },
                             onOpenStarred = { nav.navigate("starred?thread=$threadId") },
                             // Fresh chat entry with search active; popUpTo keeps
                             // the stack home→chat (no duplicate chat entries —
@@ -707,7 +719,7 @@ class MainActivity : FragmentActivity() {
                     }
                     composable("why/{messageId}") { entry ->
                         val messageId = entry.arguments?.getString("messageId")?.toLongOrNull() ?: return@composable
-                        WhyFilteredScreen(messageId = messageId, onBack = { nav.popBackStack() })
+                        WhyFilteredScreen(messageId = messageId, onBack = { if (!nav.popBackStack()) nav.navigate("home") })
                     }
                 }
                     }

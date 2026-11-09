@@ -331,15 +331,15 @@ interface MessageDao {
 
     // ---- Trash (§6.4) ----
 
-    @Query("UPDATE messages SET trashed = 1, trashedAt = :at WHERE id = :id")
-    suspend fun moveToTrash(id: Long, at: Long)
+    @Query("UPDATE messages SET trashed = 1, trashedAt = :at, trashReason = :reason WHERE id = :id")
+    suspend fun moveToTrash(id: Long, at: Long, reason: String = "USER")
 
     @Query(
-        "UPDATE messages SET trashed = 1, trashedAt = :at " +
+        "UPDATE messages SET trashed = 1, trashedAt = :at, trashReason = :reason " +
             "WHERE threadId = :threadId AND space = :space AND trashed = 0"
     )
     // V2-24: space is explicit — see markThreadRead.
-    suspend fun moveThreadToTrash(threadId: Long, at: Long, space: String)
+    suspend fun moveThreadToTrash(threadId: Long, at: Long, space: String, reason: String = "USER")
 
     @Query(
         "SELECT id FROM messages WHERE threadId = :threadId AND space = :space " +
@@ -353,8 +353,20 @@ interface MessageDao {
     )
     suspend fun allTrashedForThread(threadId: Long, space: String = Spaces.NORMAL): List<MessageEntity>
 
-    @Query("UPDATE messages SET trashed = 0, trashedAt = NULL WHERE id = :id")
+    @Query("UPDATE messages SET trashed = 0, trashedAt = NULL, trashReason = NULL WHERE id = :id")
     suspend fun restoreFromTrash(id: Long)
+
+    @Query(
+        "SELECT * FROM messages WHERE trashed = 1 AND (trashReason = 'AUTO_SWIPE' OR trashReason = 'AUTO_SPAM' OR trashReason = 'AUTO_OTP') " +
+            "AND space = 'NORMAL' ORDER BY trashedAt DESC, timestamp DESC"
+    )
+    suspend fun autoTrashedMessages(): List<MessageEntity>
+
+    @Query(
+        "SELECT COUNT(*) FROM messages WHERE trashed = 1 AND (trashReason = 'AUTO_SWIPE' OR trashReason = 'AUTO_SPAM' OR trashReason = 'AUTO_OTP') " +
+            "AND space = 'NORMAL'"
+    )
+    fun autoTrashedCount(): Flow<Int>
 
     /** Trash screen (normal surface): locked-space trash never appears here. */
     @Query(
@@ -504,6 +516,9 @@ interface MessageDao {
      */
     @Query("SELECT COUNT(*) FROM messages WHERE address = :address")
     suspend fun countForAddress(address: String): Int
+
+    @Query("SELECT COUNT(*) FROM messages WHERE address = :address AND isOutgoing = 1")
+    suspend fun outgoingCountForAddress(address: String): Int
 
     @Query(
         "SELECT matchedPatternIds FROM messages WHERE category IN " +
@@ -795,7 +810,7 @@ interface ThreadAliasDao {
         MessageFtsEntity::class,
         ProviderRowEntity::class, SmsAttemptEntity::class, ThreadAliasEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class MessagesDatabase : RoomDatabase() {

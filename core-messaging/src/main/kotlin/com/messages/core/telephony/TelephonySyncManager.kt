@@ -191,18 +191,23 @@ object TelephonySyncManager {
                         } catch (_: Exception) { 0L }
                     }
 
-                    if (address.isNotBlank() && body.isNotBlank()) {
-                        val inserted = repo.indexHistorical(
-                            smsId = id,
-                            threadId = effectiveThreadId,
-                            address = address,
-                            body = body,
-                            timestamp = date,
-                            isOutgoing = isOutgoing,
-                            read = read,
-                            bumpUnread = true,
+                    val effectiveAddress = address.ifBlank { "Unknown" }
+                    val inserted = repo.indexHistorical(
+                        smsId = id,
+                        threadId = effectiveThreadId,
+                        address = effectiveAddress,
+                        body = body,
+                        timestamp = date,
+                        isOutgoing = isOutgoing,
+                        read = read,
+                        bumpUnread = true,
+                    )
+                    if (inserted) {
+                        count++
+                        com.messages.core.audit.ReceiveAudit.record(
+                            com.messages.core.audit.ReceiveAudit.Stage.STORED,
+                            effectiveAddress, body, "sync delta smsId=$id"
                         )
-                        if (inserted) count++
                     }
 
                     if (id > highestIdSeen) {

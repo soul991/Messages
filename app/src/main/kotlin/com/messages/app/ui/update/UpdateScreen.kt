@@ -104,6 +104,7 @@ fun UpdateScreen(onBack: () -> Unit) {
     var screenState by remember { mutableStateOf<UpdateScreenState>(UpdateScreenState.Idle) }
     var downloadState by remember { mutableStateOf<AppUpdateManager.DownloadState>(AppUpdateManager.DownloadState.Idle) }
     var downloadedApk by remember { mutableStateOf<File?>(null) }
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         topBar = {
