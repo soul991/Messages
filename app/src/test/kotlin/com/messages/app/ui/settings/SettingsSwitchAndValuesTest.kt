@@ -82,4 +82,14 @@ class SettingsSwitchAndValuesTest {
         assertTrue("Dark onSurfaceVariant should be neutral grey", darkDiff < 0.1f)
         assertTrue("Light onSurfaceVariant should be neutral grey", lightDiff < 0.1f)
     }
+
+    @Test
+    fun advancedFilteringSubtitle_matchesSpec() {
+        val stringsXml = java.io.File("src/main/res/values/strings.xml")
+        val content = stringsXml.readText()
+        assertTrue(
+            "strings.xml should have updated subtitle 'Stricter rules for suspicious senders'",
+            content.contains("""<string name="settings_advanced_filtering_subtitle">Stricter rules for suspicious senders</string>"""),
+        )
+    }
 }

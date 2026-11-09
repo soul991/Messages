@@ -689,16 +689,6 @@ fun SettingsScreen(
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_sensitivity))
                     SettingsGroupCard(cardIndex = 0) {
-                        SettingsSwitchRow(
-                            icon = Icons.Outlined.Shield,
-                            categoryBadge = null,
-                            title = stringResource(R.string.settings_advanced_filtering_title),
-                            subtitle = stringResource(R.string.settings_advanced_filtering_subtitle),
-                            checked = advancedFiltering,
-                            onChange = { vm.setAdvancedFiltering(it) },
-                            enabled = AiLayer.AI_LAYER_ENABLED,
-                        )
-                        SettingsCardDivider()
                         val index = SENSITIVITY_STEPS.indexOf(sensitivity).coerceAtLeast(0)
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                             Slider(
@@ -798,6 +788,20 @@ fun SettingsScreen(
                                 }
                             }
                         }
+                    }
+                }
+                item {
+                    SettingsSectionHeader(stringResource(R.string.settings_advanced_filtering_title))
+                    SettingsGroupCard(cardIndex = 3) {
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Shield,
+                            categoryBadge = "SPAM",
+                            title = stringResource(R.string.settings_advanced_filtering_title),
+                            subtitle = stringResource(R.string.settings_advanced_filtering_subtitle),
+                            checked = advancedFiltering,
+                            onChange = { vm.setAdvancedFiltering(it) },
+                            enabled = AiLayer.AI_LAYER_ENABLED,
+                        )
                     }
                     Spacer(Modifier.height(16.dp))
                 }
