@@ -1,33 +1,31 @@
 package com.messages.app.ui.home
 
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DockScrollTest {
 
     @Test
-    fun `scrolling down hides floating dock`() {
+    fun `scrolling down preserves floating dock visibility`() {
         val visible = calculateDockVisibility(currentlyVisible = true, deltaY = -25f)
-        assertFalse("Scrolling down should hide the dock", visible)
+        assertTrue("Scrolling down must keep dock visible in B1 Telegram-style dock", visible)
     }
 
     @Test
-    fun `scrolling up reveals floating dock`() {
+    fun `scrolling up preserves floating dock visibility`() {
         val visible = calculateDockVisibility(currentlyVisible = false, deltaY = 25f)
-        assertTrue("Scrolling up should reveal the dock", visible)
+        assertTrue("Scrolling up must keep dock visible", visible)
     }
 
     @Test
-    fun `micro jitter preserves current dock visibility state`() {
-        // Minor delta within [-6f, 6f]
+    fun `micro jitter preserves dock visibility`() {
         assertTrue(calculateDockVisibility(currentlyVisible = true, deltaY = -2f))
-        assertFalse(calculateDockVisibility(currentlyVisible = false, deltaY = 3f))
+        assertTrue(calculateDockVisibility(currentlyVisible = false, deltaY = 3f))
     }
 
     @Test
-    fun `reaching top of conversation list always ensures dock is visible`() {
+    fun `reaching top of conversation list ensures dock is visible`() {
         val visible = calculateDockVisibility(currentlyVisible = false, deltaY = -50f, isTop = true)
-        assertTrue("Reaching top of list must always keep dock visible", visible)
+        assertTrue("Reaching top of list must keep dock visible", visible)
     }
 }

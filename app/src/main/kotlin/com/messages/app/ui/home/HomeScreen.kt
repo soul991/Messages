@@ -234,23 +234,14 @@ private val SEARCH_LABELS = listOf(
     "BILL" to R.string.home_label_bill,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 /**
- * Pure helper for calculating dock visibility on scroll.
- * Scroll down (negative delta) hides; scroll up (positive delta) reveals; top position always reveals.
+ * Helper for dock visibility (B1: dock is always visible; hide-on-scroll is removed).
  */
 internal fun calculateDockVisibility(
-    currentlyVisible: Boolean,
-    deltaY: Float,
+    currentlyVisible: Boolean = true,
+    deltaY: Float = 0f,
     isTop: Boolean = false,
-): Boolean {
-    if (isTop) return true
-    return when {
-        deltaY < -6f -> false
-        deltaY > 6f -> true
-        else -> currentlyVisible
-    }
-}
+): Boolean = true
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -336,33 +327,6 @@ fun HomeScreen(
     }
     val listStateFor: (String) -> LazyListState = { folderKey ->
         folderListStates[folderKey] ?: fallbackListState
-    }
-
-    val isDockVisible = remember { mutableStateOf(true) }
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                isDockVisible.value = calculateDockVisibility(isDockVisible.value, available.y)
-                return Offset.Zero
-            }
-
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource,
-            ): Offset {
-                val delta = if (consumed.y != 0f) consumed.y else available.y
-                isDockVisible.value = calculateDockVisibility(isDockVisible.value, delta)
-                return Offset.Zero
-            }
-        }
-    }
-
-    val currentListState = listStateFor(folder)
-    LaunchedEffect(currentListState.firstVisibleItemIndex, currentListState.firstVisibleItemScrollOffset) {
-        if (currentListState.firstVisibleItemIndex == 0 && currentListState.firstVisibleItemScrollOffset == 0) {
-            isDockVisible.value = true
-        }
     }
 
     fun exitSearch() {
@@ -680,8 +644,7 @@ fun HomeScreen(
             Column(
                 Modifier
                     .padding(padding)
-                    .fillMaxSize()
-                    .nestedScroll(nestedScrollConnection),
+                    .fillMaxSize(),
             ) {
                 if (!isDefaultSmsApp) {
                     DefaultSmsInfoCard(
@@ -750,15 +713,15 @@ fun HomeScreen(
             }
         }
 
-        // Floating New Message FAB (48dp round icon-only, green, 20dp from right, above dock at 104dp)
+        // Floating New Message FAB (48dp round icon-only, green, 20dp from right, above dock at 88dp)
         AnimatedVisibility(
-            visible = isDockVisible.value && !searchActive && !selectionActive,
+            visible = !searchActive && !selectionActive,
             enter = scaleIn(Motion.butterSpring()) + fadeIn(Motion.effectsDefault()),
             exit = scaleOut(Motion.butterSpring()) + fadeOut(Motion.effectsFast()),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
-                .padding(end = 20.dp, bottom = 104.dp),
+                .padding(end = 20.dp, bottom = 88.dp),
         ) {
             val fabInteractionSource = remember { MutableInteractionSource() }
             val fabPressed by fabInteractionSource.collectIsPressedAsState()
@@ -793,9 +756,9 @@ fun HomeScreen(
             }
         }
 
-        // Floating Bottom Dock (64dp tall, fully rounded, 16dp side inset, 24dp from bottom, translucent blurred bg, 1px border)
+        // Floating Bottom Dock (56dp tall, compact pill, wrap content width, centered, always visible)
         AnimatedVisibility(
-            visible = isDockVisible.value && !searchActive && !selectionActive,
+            visible = !searchActive && !selectionActive,
             enter = slideInVertically(Motion.butterSpring()) { it } + fadeIn(Motion.effectsDefault()),
             exit = slideOutVertically(Motion.butterSpring()) { it } + fadeOut(Motion.effectsFast()),
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -991,7 +954,7 @@ private fun FolderPane(
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("home_conversation_list"),
-                        contentPadding = PaddingValues(bottom = 120.dp),
+                        contentPadding = PaddingValues(bottom = 144.dp),
                     ) {
                         items(
                             items = conversations,
