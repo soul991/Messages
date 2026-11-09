@@ -568,7 +568,12 @@ fun ChatScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                snackbarHostState,
+                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
+            )
+        },
         topBar = {
             val isDark = LocalDarkTheme.current
             GlassTopBar(isDark = isDark) {

@@ -184,7 +184,12 @@ fun TrashScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                snackbarHostState,
+                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
+            )
+        },
         topBar = {
             if (selectionActive) {
                 TopAppBar(

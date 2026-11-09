@@ -3,6 +3,7 @@ package com.messages.app.ui.home
 import androidx.activity.compose.BackHandler
 import com.messages.app.MainActivity
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.zIndex
 import androidx.compose.material3.Surface
 import com.messages.app.ui.common.DateSkeletons
 import com.messages.designsystem.DockItem
@@ -410,7 +411,7 @@ fun HomeScreen(
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = {},
             topBar = {
                 GlassTopBar(isDark = LocalDarkTheme.current) {
                     Box(
@@ -785,6 +786,21 @@ fun HomeScreen(
                     modifier = Modifier.size(22.dp),
                 )
             }
+        }
+
+        // Floating Undo / Transient Message Banner
+        // Sits ABOVE the dock with clear separation (at least 8dp clearance above dock top; 84dp bottom padding gives 12dp clearance)
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 84.dp)
+                .zIndex(5f),
+        ) {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
+            )
         }
 
         // Floating Bottom Dock (56dp tall, compact pill, wrap content width, centered, always visible)

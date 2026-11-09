@@ -530,7 +530,12 @@ fun DriveBackupScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            androidx.compose.material3.SnackbarHost(
+                snackbarHostState,
+                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
+            )
+        },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.drive_title)) },

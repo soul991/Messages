@@ -580,7 +580,12 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     androidx.activity.compose.BackHandler(enabled = page != null) { page = null }
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                snackbarHostState,
+                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
+            )
+        },
         topBar = {
             TopAppBar(
                 title = {

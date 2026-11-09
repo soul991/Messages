@@ -104,7 +104,12 @@ fun ArchivedScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                snackbarHostState,
+                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
+            )
+        },
     ) { padding ->
         if (conversations.isEmpty()) {
             Box(
