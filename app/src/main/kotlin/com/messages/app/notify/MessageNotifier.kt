@@ -47,7 +47,8 @@ internal sealed class NotifyAction {
     object FraudWarning : NotifyAction()
 }
 
-private const val NOTIF_ACCENT_COLOR = 0xFF30D158.toInt() // Design system brand accent green
+internal const val NOTIF_ACCENT_COLOR = 0xFF30D158.toInt() // Design system brand accent green (#30D158)
+internal const val NOTIF_FRAUD_COLOR = 0xFFFF453A.toInt() // Semantic error red per design tokens (#FF453A)
 
 /**
  * §3/§4 notification policy: Inbox/Transactions notify; Promotions, Spam and
@@ -430,8 +431,8 @@ class MessageNotifier(private val context: Context) {
             // Persistent until the user swipes it away (Truecaller pattern):
             // tapping opens the chat but the warning stays.
             .setAutoCancel(false)
-            // Semantic error red accent for critical fraud warning notification
-            .setColor(0xFFD32F2F.toInt())
+            // Semantic error red accent for critical fraud warning notification per design tokens (#FF453A)
+            .setColor(NOTIF_FRAUD_COLOR)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
         NotificationManagerCompat.from(context).notify(
