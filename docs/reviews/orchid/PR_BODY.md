@@ -1,3 +1,6 @@
+> [!NOTE]
+> **SUPERSEDED (Historical PR Description)**: Describes historical PR on `feat/orchid-theme-liquid-dock`. Superseded by the 2.5.0 redesign.
+
 ## Summary of Changes
 
 ### 1. New Default Accent: ORCHID

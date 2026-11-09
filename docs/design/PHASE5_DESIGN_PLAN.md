@@ -1,5 +1,8 @@
 # Phase 5 UI Overhaul — Design Plan (Step 1, no code)
 
+> [!NOTE]
+> **SUPERSEDED**: This document describes the legacy Phase 5 design exploration (multi-accent palette, top chips, dynamic color). In Messages 2.5.0+, the UI was redesigned to use a fixed black/off-white + iMessage green identity, floating glass dock (Personal/Promotions/Spam/Review), and Inter typography. Preserved for historical context.
+
 _2026-07-23. Sources: `docs/research/DESIGN_REFS_NOTES.md` (WA/TG measured values), `docs/research/TRUECALLER_ANALYSIS.md` §A recommendations, PRD §9. Awaiting approval before any code._
 
 **Ground rules (apply to every screen):** adapt patterns, never clone trade dress (no WA green-on-doodle default, no Telegram blue identity, no Google Messages icon language); WCAG AA on every text/container pair (extend the existing `categoryPalette()` AA discipline); `Motion.kt` spring system and the list↔chat shared-element avatar stay untouched; every Phase 4 feature (notification actions, pinned banner, ⚡ templates, badges, fraud warning, Report action) restyled as a native part of the new design, not an add-on.

@@ -1,5 +1,8 @@
 # Animation, Smoothness & Artemis Live Inspection Report
 
+> [!NOTE]
+> **SUPERSEDED (Historical Report)**: This audit documents historical animation work under legacy themes (e.g. violet surfaces/lavender indicators). Messages 2.5.0+ operates on a fixed black/off-white + green design system with unified dark surfaces. Preserved for historical record.
+
 **Branch**: `feat/liquid-smooth-polish`  
 **Base Commit**: `f1c0093` (synchronized on `main` and `origin/main`)  
 **Target Environment**: Android Virtual Device (`emulator-5554`, API 36, 1080x2400) via **Artemis MCP**  
