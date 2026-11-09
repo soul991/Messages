@@ -1106,17 +1106,13 @@ fun HomeScreen(
         }
 
         // Floating Undo / Transient Message Banner
-        // Sits ABOVE the dock with clear separation (at least 8dp clearance above dock top; 84dp bottom padding gives 16dp clearance)
-        // Does not cover dock or FAB: leaves 80dp on right when FAB is active.
+        // Sits centered above the dock with clear separation (96dp bottom padding leaves clearance over the 62dp dock).
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(
-                    start = 16.dp,
-                    end = if (!searchActive && !selectionActive) 80.dp else 16.dp,
-                    bottom = 84.dp,
-                )
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 96.dp)
                 .zIndex(5f),
         ) {
             AppTransientSnackbarHost(

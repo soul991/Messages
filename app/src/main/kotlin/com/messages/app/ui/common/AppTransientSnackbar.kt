@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -129,7 +130,9 @@ fun AppTransientSnackbarHost(
         visible = currentData != null,
         enter = fadeIn(animationSpec = tween(200)),
         exit = fadeOut(animationSpec = tween(200)),
-        modifier = modifier,
+        modifier = modifier
+            .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally),
     ) {
         currentData?.let { data ->
             AppTransientSnackbar(data = data)

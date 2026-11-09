@@ -58,12 +58,12 @@ class AppTransientSnackbarTest {
 
     @Test
     fun `dock clearance exceeds minimum 8dp requirement`() {
-        val dockHeightDp = 56
+        val dockHeightDp = 62 // 2.5.2 dock height
         val dockBottomMarginDp = 16
-        val dockTopDp = dockHeightDp + dockBottomMarginDp // 72dp
+        val dockTopDp = dockHeightDp + dockBottomMarginDp // 78dp
 
-        val snackbarBottomPaddingDp = 84
-        val clearanceDp = snackbarBottomPaddingDp - dockTopDp // 12dp
+        val snackbarBottomPaddingDp = 96
+        val clearanceDp = snackbarBottomPaddingDp - dockTopDp // 18dp
 
         assertTrue("Clearance above dock must be >= 8dp", clearanceDp >= 8)
     }
