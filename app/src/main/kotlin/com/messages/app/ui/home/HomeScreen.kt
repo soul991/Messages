@@ -55,6 +55,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -210,6 +212,8 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import com.messages.app.R
 
 private val ROW_HEIGHT = 68.dp
@@ -338,6 +342,39 @@ fun HomeScreen(
     }
     BackHandler(enabled = searchActive) { exitSearch() }
     BackHandler(enabled = selectionActive) { vm.clearSelection() }
+
+    // G1: Search bar scroll-away on scroll down, return on scroll up or top
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val searchBarMaxHeightDp = 60.dp // 12dp top + 40dp pill + 8dp bottom
+    val searchBarMaxHeightPx = with(density) { searchBarMaxHeightDp.toPx() }
+    var searchBarOffsetPx by remember { mutableFloatStateOf(0f) }
+
+    val nestedScrollConnection = remember(searchBarMaxHeightPx, selectionActive, searchActive) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (selectionActive || searchActive) return Offset.Zero
+                val delta = available.y
+                val prevOffset = searchBarOffsetPx
+                val newOffset = (prevOffset + delta).coerceIn(-searchBarMaxHeightPx, 0f)
+                val consumed = newOffset - prevOffset
+                searchBarOffsetPx = newOffset
+                return Offset(0f, consumed)
+            }
+        }
+    }
+
+    val currentFolderListState = listStateFor(folder)
+    LaunchedEffect(currentFolderListState.firstVisibleItemIndex, currentFolderListState.firstVisibleItemScrollOffset) {
+        if (currentFolderListState.firstVisibleItemIndex == 0 && currentFolderListState.firstVisibleItemScrollOffset == 0) {
+            searchBarOffsetPx = 0f
+        }
+    }
+    LaunchedEffect(folder) {
+        searchBarOffsetPx = 0f
+    }
+    LaunchedEffect(selectionActive) {
+        if (selectionActive) searchBarOffsetPx = 0f
+    }
 
     // Swipe actions (§8.2) with undo snackbars for the destructive ones.
     fun onSwipeAction(action: String, conv: ConversationEntity) {
@@ -664,7 +701,8 @@ fun HomeScreen(
             Column(
                 Modifier
                     .padding(padding)
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .nestedScroll(nestedScrollConnection),
             ) {
                 if (!isDefaultSmsApp) {
                     DefaultSmsInfoCard(
@@ -675,55 +713,66 @@ fun HomeScreen(
                     )
                 }
 
-                // Search field below header: 40dp pill, 20dp radius, surface color
-                // Always occupies fixed 40dp height + padding so entering/exiting selection never shifts list
+                // G1: Search field below header: 40dp pill, 20dp radius, surface color
+                // Smoothly collapses/expands with list scrolling via nestedScroll
                 val searchAlpha by animateFloatAsState(
                     targetValue = if (selectionActive) 0.38f else 1f,
                     animationSpec = Motion.effectsFast(),
                     label = "search-selection-alpha",
                 )
+                val searchBarHeightDp = with(density) {
+                    (searchBarMaxHeightPx + searchBarOffsetPx).coerceAtLeast(0f).toDp()
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
-                        .height(40.dp)
-                        .graphicsLayer { alpha = searchAlpha }
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
-                        .clickable(
-                            enabled = !selectionActive,
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(),
-                            onClick = { searchActive = true },
-                        )
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.CenterStart,
+                        .height(searchBarHeightDp)
+                        .clipToBounds(),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxHeight(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(searchBarMaxHeightDp)
+                            .offset { IntOffset(0, searchBarOffsetPx.roundToInt()) }
+                            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
+                            .graphicsLayer { alpha = searchAlpha }
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
+                            .clickable(
+                                enabled = !selectionActive,
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(),
+                                onClick = { searchActive = true },
+                            )
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.CenterStart,
                     ) {
-                        Icon(
-                            imageVector = DockIcons.Search,
-                            contentDescription = stringResource(R.string.home_search_placeholder),
-                            tint = MaterialTheme.colorScheme.textMuted,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.home_search_placeholder),
-                            style = TextStyle(
-                                fontFamily = InterFontFamily,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Normal,
-                                lineHeight = 20.sp,
-                                platformStyle = androidx.compose.ui.text.PlatformTextStyle(
-                                    includeFontPadding = false,
+                        Row(
+                            modifier = Modifier.fillMaxHeight(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(
+                                imageVector = DockIcons.Search,
+                                contentDescription = stringResource(R.string.home_search_placeholder),
+                                tint = MaterialTheme.colorScheme.textMuted,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                text = stringResource(R.string.home_search_placeholder),
+                                style = TextStyle(
+                                    fontFamily = InterFontFamily,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    lineHeight = 20.sp,
+                                    platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                                        includeFontPadding = false,
+                                    ),
                                 ),
-                            ),
-                            color = MaterialTheme.colorScheme.textMuted,
-                        )
+                                color = MaterialTheme.colorScheme.textMuted,
+                            )
+                        }
                     }
                 }
 
