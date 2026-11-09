@@ -386,9 +386,6 @@ fun ChatScreen(
     androidx.activity.compose.BackHandler(enabled = msgSelectionActive) {
         selectedMsgIds = emptySet()
     }
-    androidx.activity.compose.BackHandler(enabled = !msgSelectionActive) {
-        onBack()
-    }
     fun selectedTexts(): String = messages
         .filter { it.id in selectedMsgIds }
         .sortedBy { it.timestamp }
