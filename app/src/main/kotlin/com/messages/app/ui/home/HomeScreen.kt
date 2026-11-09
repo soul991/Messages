@@ -214,6 +214,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import com.messages.app.R
 
 private val ROW_HEIGHT = 68.dp
@@ -383,7 +385,7 @@ fun HomeScreen(
             SwipeActions.ARCHIVE -> {
                 vm.archive(conv.threadId)
                 scope.launch {
-                    val r = snackbarHostState.showSnackbar(
+                    val r = snackbarHostState.showTransient(
                         archivedMessage, actionLabel = undoLabel, withDismissAction = true,
                     )
                     if (r == SnackbarResult.ActionPerformed) vm.unarchive(conv.threadId)
@@ -524,7 +526,7 @@ fun HomeScreen(
                                             val at = vm.trashThreads(ids)
                                             vm.clearSelection()
                                             scope.launch {
-                                                val r = snackbarHostState.showSnackbar(
+                                                val r = snackbarHostState.showTransient(
                                                     trashedCount(ids.size),
                                                     actionLabel = undoLabel, withDismissAction = true,
                                                 )
@@ -684,7 +686,7 @@ fun HomeScreen(
                                                 showHomeMenu = false
                                                 vm.markFolderRead(folder)
                                                 scope.launch {
-                                                    snackbarHostState.showSnackbar(markedReadMessage)
+                                                    snackbarHostState.showTransient(markedReadMessage)
                                                 }
                                             },
                                         )
@@ -838,17 +840,21 @@ fun HomeScreen(
         }
 
         // Floating Undo / Transient Message Banner
-        // Sits ABOVE the dock with clear separation (at least 8dp clearance above dock top; 84dp bottom padding gives 12dp clearance)
+        // Sits ABOVE the dock with clear separation (at least 8dp clearance above dock top; 84dp bottom padding gives 16dp clearance)
+        // Does not cover dock or FAB: leaves 80dp on right when FAB is active.
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(bottom = 84.dp)
+                .padding(
+                    start = 16.dp,
+                    end = if (!searchActive && !selectionActive) 80.dp else 16.dp,
+                    bottom = 84.dp,
+                )
                 .zIndex(5f),
         ) {
-            SnackbarHost(
+            AppTransientSnackbarHost(
                 hostState = snackbarHostState,
-                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
             )
         }
 

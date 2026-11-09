@@ -41,8 +41,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -178,17 +179,14 @@ fun TrashScreen(
     val context = LocalContext.current
     LaunchedEffect(lastAction) {
         lastAction?.let {
-            snackbarHostState.showSnackbar(context.getString(it))
+            snackbarHostState.showTransient(context.getString(it))
             vm.clearLastAction()
         }
     }
 
     Scaffold(
         snackbarHost = {
-            SnackbarHost(
-                snackbarHostState,
-                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
-            )
+            AppTransientSnackbarHost(snackbarHostState)
         },
         topBar = {
             if (selectionActive) {

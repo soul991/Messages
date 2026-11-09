@@ -40,8 +40,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -262,7 +263,7 @@ fun OutboxScreen(
 
     LaunchedEffect(status) {
         status?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showTransient(it)
             vm.consumeStatus()
         }
     }
@@ -282,10 +283,7 @@ fun OutboxScreen(
             )
         },
         snackbarHost = {
-            SnackbarHost(
-                snackbarHostState,
-                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
-            )
+            AppTransientSnackbarHost(snackbarHostState)
         },
     ) { padding ->
         if (messages.isEmpty()) {

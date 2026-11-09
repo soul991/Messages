@@ -18,8 +18,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.LaunchedEffect
@@ -70,7 +71,7 @@ fun SecretSettingsScreen(
     val weakCredential = remember(changing) { SecretSpace.isCredentialWeak(context) }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { AppTransientSnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.secret_settings_title)) },
@@ -87,7 +88,7 @@ fun SecretSettingsScreen(
                 modifier = Modifier.padding(padding),
                 onDone = { message ->
                     changing = false
-                    scope.launch { snackbar.showSnackbar(message) }
+                    scope.launch { snackbar.showTransient(message) }
                 },
             )
             return@Scaffold

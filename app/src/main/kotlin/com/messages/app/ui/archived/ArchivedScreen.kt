@@ -30,8 +30,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -106,10 +107,7 @@ fun ArchivedScreen(
             )
         },
         snackbarHost = {
-            SnackbarHost(
-                snackbarHostState,
-                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
-            )
+            AppTransientSnackbarHost(snackbarHostState)
         },
     ) { padding ->
         if (conversations.isEmpty()) {
@@ -209,7 +207,7 @@ fun ArchivedScreen(
                         IconButton(onClick = {
                             vm.unarchive(conv.threadId)
                             scope.launch {
-                                snackbarHostState.showSnackbar(unarchived)
+                                snackbarHostState.showTransient(unarchived)
                             }
                         }) {
                             Icon(

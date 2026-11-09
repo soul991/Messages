@@ -86,8 +86,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -581,10 +582,7 @@ fun SettingsScreen(
     androidx.activity.compose.BackHandler(enabled = page != null) { page = null }
     Scaffold(
         snackbarHost = {
-            SnackbarHost(
-                snackbarHostState,
-                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
-            )
+            AppTransientSnackbarHost(snackbarHostState)
         },
         topBar = {
             TopAppBar(
@@ -1362,14 +1360,13 @@ private fun QuickRepliesEditor(
                         selectedTemplates = emptySet()
                         isEditMode = false
                         scope.launch {
-                            val res = snackbarHostState.showSnackbar(
+                            val res = snackbarHostState.showTransient(
                                 message = if (toDelete.size > 1) {
                                     ctx.getString(R.string.quick_replies_deleted)
                                 } else {
                                     ctx.getString(R.string.quick_reply_deleted)
                                 },
                                 actionLabel = ctx.getString(R.string.action_undo),
-                                duration = SnackbarDuration.Short,
                             )
                             if (res == SnackbarResult.ActionPerformed) {
                                 com.messages.app.ui.chat.QuickReplies.setAll(ctx, prev)

@@ -48,6 +48,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.messages.app.ui.common.showTransient
+import com.messages.app.ui.common.AppTransientSnackbarHost
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -488,7 +490,10 @@ fun DriveBackupScreen(
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
 
     androidx.compose.runtime.LaunchedEffect(snackbar) {
-        snackbar?.let { snackbarHostState.showSnackbar(it); vm.clearSnackbar() }
+        snackbar?.let {
+            snackbarHostState.showTransient(it)
+            vm.clearSnackbar()
+        }
     }
 
     // Guards against a single tap producing many overlapping sign-in intent
@@ -531,10 +536,7 @@ fun DriveBackupScreen(
 
     Scaffold(
         snackbarHost = {
-            androidx.compose.material3.SnackbarHost(
-                snackbarHostState,
-                snackbar = { data -> com.messages.app.ui.common.AppTransientSnackbar(data = data) },
-            )
+            AppTransientSnackbarHost(snackbarHostState)
         },
         topBar = {
             TopAppBar(
