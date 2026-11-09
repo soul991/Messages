@@ -664,6 +664,7 @@ fun HomeScreen(
                             .height(40.dp)
                             .clip(RoundedCornerShape(20.dp))
                             .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = ripple(),
@@ -673,6 +674,7 @@ fun HomeScreen(
                         contentAlignment = Alignment.CenterStart,
                     ) {
                         Row(
+                            modifier = Modifier.fillMaxHeight(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
@@ -688,6 +690,10 @@ fun HomeScreen(
                                     fontFamily = InterFontFamily,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Normal,
+                                    lineHeight = 20.sp,
+                                    platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                                        includeFontPadding = false,
+                                    ),
                                 ),
                                 color = MaterialTheme.colorScheme.textMuted,
                             )
