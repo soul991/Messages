@@ -1174,8 +1174,9 @@ private fun PinnedConversationsRow(
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
+                            val pinnedName = conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
                             ContactAvatar(
-                                name = conv.contactName ?: conv.address,
+                                name = pinnedName,
                                 category = conv.category,
                                 size = 52.dp,
                                 modifier = Modifier.sharedThreadAvatar(conv.threadId),
@@ -1194,8 +1195,9 @@ private fun PinnedConversationsRow(
                         }
                     }
                     Spacer(Modifier.height(4.dp))
+                    val pinnedShortName = conv.contactName?.takeIf { it.isNotBlank() }?.split(" ")?.firstOrNull() ?: FriendlySenderNames.format(conv.address)
                     Text(
-                        text = conv.contactName?.split(" ")?.firstOrNull() ?: conv.address,
+                        text = pinnedShortName,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1,
@@ -1440,15 +1442,16 @@ private fun ConversationMatchRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val displayName = conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
         ContactAvatar(
-            conv.contactName ?: conv.address, conv.category,
+            displayName, conv.category,
             modifier = Modifier.sharedThreadAvatar(conv.threadId),
             photoUri = com.messages.app.ui.common.rememberContactPhoto(conv.address),
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                SearchHighlight.annotate(conv.contactName ?: conv.address, keywords, highlight),
+                SearchHighlight.annotate(displayName, keywords, highlight),
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

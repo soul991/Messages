@@ -1484,14 +1484,15 @@ fun ChatScreen(
                                 .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            val displayName = conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
                             ContactAvatar(
-                                conv.contactName ?: conv.address,
+                                displayName,
                                 conv.category,
                                 size = 40.dp,
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                conv.contactName ?: conv.address,
+                                displayName,
                                 style = MaterialTheme.typography.bodyLarge,
                                 maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,

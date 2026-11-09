@@ -50,6 +50,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.messages.app.ui.common.AppDateFormat
 import com.messages.app.ui.common.ContactAvatar
+import com.messages.core.util.FriendlySenderNames
 import com.messages.core.MessageRepository
 import com.messages.core.db.ConversationEntity
 import kotlinx.coroutines.flow.SharingStarted
@@ -163,6 +164,7 @@ fun ArchivedScreen(
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                         .clickable { onOpenThread(conv.threadId) },
                 ) {
+                    val displayName = conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -170,7 +172,7 @@ fun ArchivedScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         ContactAvatar(
-                            conv.contactName ?: conv.address,
+                            displayName,
                             conv.category,
                             size = ROW_AVATAR,
                             photoUri = if (conv.locked) null
@@ -180,7 +182,7 @@ fun ArchivedScreen(
                         Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    conv.contactName ?: conv.address,
+                                    displayName,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
