@@ -413,83 +413,101 @@ fun HomeScreen(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 GlassTopBar(isDark = LocalDarkTheme.current) {
-                    AnimatedContent(
-                        targetState = selectionActive,
-                        transitionSpec = {
-                            fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
-                        },
-                        label = "home-topbar-mode",
-                    ) { isSelecting ->
-                        if (isSelecting) {
-                            TopAppBar(
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = Color.Transparent,
-                                ),
-                                title = {
-                                Text(
-                                    pluralStringResource(
-                                        R.plurals.home_selected_count,
-                                        selectedThreads.size, selectedThreads.size,
-                                    ),
-                                    style = TextStyle(
-                                        fontFamily = InterFontFamily,
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                    ),
-                                )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .height(64.dp),
+                    ) {
+                        AnimatedContent(
+                            targetState = selectionActive,
+                            transitionSpec = {
+                                fadeIn(Motion.effectsDefault()) togetherWith fadeOut(Motion.effectsFast())
                             },
-                            navigationIcon = {
-                                IconButton(onClick = { vm.clearSelection() }) {
-                                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.home_clear_selection))
-                                }
-                            },
-                            actions = {
-                                IconButton(onClick = {
-                                    vm.markThreadsRead(selectedThreads)
-                                    vm.clearSelection()
-                                }) {
-                                    Icon(Icons.Filled.Drafts, contentDescription = stringResource(R.string.home_mark_read))
-                                }
-                                IconButton(onClick = {
-                                    vm.markThreadsUnread(selectedThreads)
-                                    vm.clearSelection()
-                                }) {
-                                    Icon(Icons.Filled.MarkEmailUnread, contentDescription = stringResource(R.string.home_mark_unread))
-                                }
-                                IconButton(onClick = {
-                                    vm.archiveThreads(selectedThreads)
-                                    vm.clearSelection()
-                                }) {
-                                    Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.home_archive))
-                                }
-                                IconButton(onClick = {
-                                    val ids = selectedThreads
-                                    val at = vm.trashThreads(ids)
-                                    vm.clearSelection()
-                                    scope.launch {
-                                        val r = snackbarHostState.showSnackbar(
-                                            trashedCount(ids.size),
-                                            actionLabel = undoLabel, withDismissAction = true,
+                            label = "home-topbar-mode",
+                            modifier = Modifier.fillMaxSize(),
+                        ) { isSelecting ->
+                            if (isSelecting) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        IconButton(onClick = { vm.clearSelection() }) {
+                                            Icon(
+                                                Icons.Filled.Close,
+                                                contentDescription = stringResource(R.string.home_clear_selection),
+                                                tint = MaterialTheme.colorScheme.onBackground,
+                                            )
+                                        }
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            pluralStringResource(
+                                                R.plurals.home_selected_count,
+                                                selectedThreads.size, selectedThreads.size,
+                                            ),
+                                            style = TextStyle(
+                                                fontFamily = InterFontFamily,
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onBackground,
                                         )
-                                        if (r == SnackbarResult.ActionPerformed) {
-                                            vm.undoTrashThreads(ids)
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        IconButton(onClick = {
+                                            vm.markThreadsRead(selectedThreads)
+                                            vm.clearSelection()
+                                        }) {
+                                            Icon(Icons.Filled.Drafts, contentDescription = stringResource(R.string.home_mark_read))
+                                        }
+                                        IconButton(onClick = {
+                                            vm.markThreadsUnread(selectedThreads)
+                                            vm.clearSelection()
+                                        }) {
+                                            Icon(Icons.Filled.MarkEmailUnread, contentDescription = stringResource(R.string.home_mark_unread))
+                                        }
+                                        IconButton(onClick = {
+                                            vm.archiveThreads(selectedThreads)
+                                            vm.clearSelection()
+                                        }) {
+                                            Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.home_archive))
+                                        }
+                                        IconButton(onClick = {
+                                            val ids = selectedThreads
+                                            val at = vm.trashThreads(ids)
+                                            vm.clearSelection()
+                                            scope.launch {
+                                                val r = snackbarHostState.showSnackbar(
+                                                    trashedCount(ids.size),
+                                                    actionLabel = undoLabel, withDismissAction = true,
+                                                )
+                                                if (r == SnackbarResult.ActionPerformed) {
+                                                    vm.undoTrashThreads(ids)
+                                                }
+                                            }
+                                        }) {
+                                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
                                         }
                                     }
-                                }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
                                 }
-                            },
-                        )
-                    } else {
-                        // Standard Header: "Messages" 30sp/700, Shield icon button, More options
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .statusBarsPadding()
-                                .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
+                            } else {
+                                // Standard Header: "Messages" 30sp/700, Shield icon button, More options
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(start = 16.dp, end = 16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
                             val haptics = androidx.compose.ui.hapticfeedback.HapticFeedbackType
                             val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
                             val context = androidx.compose.ui.platform.LocalContext.current
@@ -639,8 +657,9 @@ fun HomeScreen(
                     }
                 }
             }
-        },
-        ) { padding ->
+        }
+    },
+) { padding ->
             Column(
                 Modifier
                     .padding(padding)
@@ -656,48 +675,54 @@ fun HomeScreen(
                 }
 
                 // Search field below header: 40dp pill, 20dp radius, surface color
-                if (!selectionActive) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
-                            .height(40.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(),
-                                onClick = { searchActive = true },
-                            )
-                            .padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.CenterStart,
+                // Always occupies fixed 40dp height + padding so entering/exiting selection never shifts list
+                val searchAlpha by animateFloatAsState(
+                    targetValue = if (selectionActive) 0.38f else 1f,
+                    animationSpec = Motion.effectsFast(),
+                    label = "search-selection-alpha",
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
+                        .height(40.dp)
+                        .graphicsLayer { alpha = searchAlpha }
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
+                        .clickable(
+                            enabled = !selectionActive,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(),
+                            onClick = { searchActive = true },
+                        )
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxHeight(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxHeight(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Icon(
-                                imageVector = DockIcons.Search,
-                                contentDescription = stringResource(R.string.home_search_placeholder),
-                                tint = MaterialTheme.colorScheme.textMuted,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Text(
-                                text = stringResource(R.string.home_search_placeholder),
-                                style = TextStyle(
-                                    fontFamily = InterFontFamily,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    lineHeight = 20.sp,
-                                    platformStyle = androidx.compose.ui.text.PlatformTextStyle(
-                                        includeFontPadding = false,
-                                    ),
+                        Icon(
+                            imageVector = DockIcons.Search,
+                            contentDescription = stringResource(R.string.home_search_placeholder),
+                            tint = MaterialTheme.colorScheme.textMuted,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.home_search_placeholder),
+                            style = TextStyle(
+                                fontFamily = InterFontFamily,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Normal,
+                                lineHeight = 20.sp,
+                                platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                                    includeFontPadding = false,
                                 ),
-                                color = MaterialTheme.colorScheme.textMuted,
-                            )
-                        }
+                            ),
+                            color = MaterialTheme.colorScheme.textMuted,
+                        )
                     }
                 }
 
