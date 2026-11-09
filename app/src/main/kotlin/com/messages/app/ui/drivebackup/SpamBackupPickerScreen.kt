@@ -124,6 +124,7 @@ fun SpamBackupPickerScreen(
     val shown by vm.shown.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
     val terms = if (query.trim().length >= 3) listOf(query.trim()) else emptyList()
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         topBar = {

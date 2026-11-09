@@ -69,6 +69,8 @@ fun SecretSettingsScreen(
     // Keyed on `changing` so returning from the change flow re-reads the flag
     // and the card goes away the moment the code is strengthened.
     val weakCredential = remember(changing) { SecretSpace.isCredentialWeak(context) }
+    androidx.activity.compose.BackHandler(enabled = changing) { changing = false }
+    androidx.activity.compose.BackHandler(enabled = !changing) { onBack() }
 
     Scaffold(
         snackbarHost = { AppTransientSnackbarHost(snackbar) },

@@ -138,6 +138,7 @@ fun DashboardScreen(
     val stats by vm.stats.collectAsStateWithLifecycle()
     val spamPalette = categoryPalette("SPAM")
     val promoPalette = categoryPalette("PROMOTIONS")
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         topBar = {

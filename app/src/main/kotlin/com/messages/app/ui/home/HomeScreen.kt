@@ -342,8 +342,30 @@ fun HomeScreen(
         focusManager.clearFocus()
         keyboardController?.hide()
     }
-    BackHandler(enabled = searchActive) { exitSearch() }
-    BackHandler(enabled = selectionActive) { vm.clearSelection() }
+    BackHandler(enabled = !searchActive && !selectionActive && folder != "INBOX") {
+        com.messages.app.ui.navigation.NavigationBackPolicy.handleHomeBack(
+            searchActive = searchActive,
+            selectionActive = selectionActive,
+            currentFolder = folder,
+            onResetFolderToInbox = { vm.setFolder("INBOX") },
+        )
+    }
+    BackHandler(enabled = searchActive) {
+        com.messages.app.ui.navigation.NavigationBackPolicy.handleHomeBack(
+            searchActive = searchActive,
+            selectionActive = selectionActive,
+            currentFolder = folder,
+            onExitSearch = { exitSearch() },
+        )
+    }
+    BackHandler(enabled = selectionActive) {
+        com.messages.app.ui.navigation.NavigationBackPolicy.handleHomeBack(
+            searchActive = searchActive,
+            selectionActive = selectionActive,
+            currentFolder = folder,
+            onClearSelection = { vm.clearSelection() },
+        )
+    }
 
     // G1: Search bar scroll-away on scroll down, return on scroll up or top
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -536,6 +558,126 @@ fun HomeScreen(
                                             }
                                         }) {
                                             Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
+                                        }
+                                    }
+                                }
+                            } else if (folder == "BLOCKED") {
+                                // Blocked Header: Back button to return to Inbox + "Blocked" title + Shield & More options
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(start = 8.dp, end = 16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        IconButton(onClick = { vm.setFolder("INBOX") }) {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.ArrowBack,
+                                                contentDescription = stringResource(R.string.action_back),
+                                                tint = MaterialTheme.colorScheme.onBackground,
+                                            )
+                                        }
+                                        Text(
+                                            text = stringResource(R.string.category_blocked),
+                                            style = TextStyle(
+                                                fontFamily = InterFontFamily,
+                                                fontSize = 24.sp,
+                                                fontWeight = FontWeight(700),
+                                                letterSpacing = (-0.5).sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                        )
+                                    }
+
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        // Shield button top right
+                                        val shieldTint = if (isDefaultSmsApp) MaterialTheme.colorScheme.greenText else MaterialTheme.colorScheme.textMuted
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = ripple(),
+                                                    onClick = onDashboard,
+                                                ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isDefaultSmsApp) DockIcons.Shield else DockIcons.ShieldOff,
+                                                contentDescription = stringResource(R.string.home_protection_dashboard),
+                                                tint = shieldTint,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
+
+                                        // More options button
+                                        Box {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(CircleShape)
+                                                    .clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = ripple(),
+                                                        onClick = { showHomeMenu = true },
+                                                    ),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Icon(
+                                                    Icons.Filled.MoreVert,
+                                                    contentDescription = stringResource(R.string.action_more_options),
+                                                    tint = MaterialTheme.colorScheme.onBackground,
+                                                    modifier = Modifier.size(22.dp),
+                                                )
+                                            }
+                                            DropdownMenu(
+                                                expanded = showHomeMenu,
+                                                onDismissRequest = { showHomeMenu = false },
+                                            ) {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.settings_title)) },
+                                                    onClick = { showHomeMenu = false; onSettings() },
+                                                )
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            if (outboxWaiting > 0) {
+                                                                stringResource(R.string.outbox_title_count, outboxWaiting)
+                                                            } else {
+                                                                stringResource(R.string.outbox_title)
+                                                            }
+                                                        )
+                                                    },
+                                                    onClick = { showHomeMenu = false; onOpenOutbox() },
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.archived_title)) },
+                                                    onClick = { showHomeMenu = false; onOpenArchived() },
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.home_starred_messages)) },
+                                                    onClick = { showHomeMenu = false; onOpenStarred() },
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.home_mark_all_as_read)) },
+                                                    onClick = {
+                                                        showHomeMenu = false
+                                                        vm.markFolderRead(folder)
+                                                        scope.launch {
+                                                            snackbarHostState.showTransient(markedReadMessage)
+                                                        }
+                                                    },
+                                                )
+                                            }
                                         }
                                     }
                                 }

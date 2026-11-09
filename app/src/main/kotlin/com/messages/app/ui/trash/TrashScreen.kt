@@ -161,6 +161,9 @@ fun TrashScreen(
     BackHandler(enabled = selectionActive) {
         selectedIds = emptySet()
     }
+    BackHandler(enabled = !selectionActive) {
+        onBack()
+    }
 
     // Per-folder search (§8.5): 3-char threshold, live filter + highlighting.
     var query by remember { mutableStateOf("") }

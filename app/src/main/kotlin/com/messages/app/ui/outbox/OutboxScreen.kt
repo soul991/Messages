@@ -260,6 +260,7 @@ fun OutboxScreen(
 
     var editing by remember { mutableStateOf<MessageEntity?>(null) }
     var choosingSimFor by remember { mutableStateOf<MessageEntity?>(null) }
+    androidx.activity.compose.BackHandler { onBack() }
 
     LaunchedEffect(status) {
         status?.let {

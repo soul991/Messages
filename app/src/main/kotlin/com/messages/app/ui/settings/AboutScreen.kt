@@ -307,6 +307,8 @@ fun AboutScreen(
         return
     }
 
+    BackHandler { onBack() }
+
     val open: (String) -> Unit = { url ->
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }

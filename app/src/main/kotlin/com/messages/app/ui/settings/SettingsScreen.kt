@@ -580,6 +580,7 @@ fun SettingsScreen(
     var page by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     androidx.activity.compose.BackHandler(enabled = page != null) { page = null }
+    androidx.activity.compose.BackHandler(enabled = page == null) { onBack() }
     Scaffold(
         snackbarHost = {
             AppTransientSnackbarHost(snackbarHostState)

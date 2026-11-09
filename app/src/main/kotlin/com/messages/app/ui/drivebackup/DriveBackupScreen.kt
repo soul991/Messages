@@ -502,6 +502,7 @@ fun DriveBackupScreen(
     // — ApiException 12502 SIGN_IN_CURRENTLY_IN_PROGRESS — and racing each
     // other's result callbacks, which stomp the account state out of order).
     var signingIn by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler { onBack() }
 
     val signInLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()

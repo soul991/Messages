@@ -174,6 +174,12 @@ fun LockedSpaceScreen(
         com.messages.core.secret.SecretSpace.notifyMode(context) ==
             com.messages.core.secret.SecretSpace.NOTIFY_OFF
     }
+    androidx.activity.compose.BackHandler(enabled = folder != "INBOX") {
+        vm.setFolder("INBOX")
+    }
+    androidx.activity.compose.BackHandler(enabled = folder == "INBOX") {
+        onBack()
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,

@@ -239,6 +239,7 @@ fun NewMessageScreen(
     val focusRequester = remember { FocusRequester() }
     val snackbarHostState = remember { SnackbarHostState() }
     val errorNotice by vm.errorNotice.collectAsStateWithLifecycle()
+    androidx.activity.compose.BackHandler { onBack() }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
     LaunchedEffect(errorNotice) {

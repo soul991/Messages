@@ -93,6 +93,7 @@ fun UpdateSettingsScreen(
     }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         snackbarHost = { AppTransientSnackbarHost(snackbarHostState) },

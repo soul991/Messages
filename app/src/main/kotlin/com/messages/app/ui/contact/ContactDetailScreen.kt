@@ -217,6 +217,7 @@ fun ContactDetailScreen(
 
     val isGroup = address.contains(';')
     val saved = lookupKey != null
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         topBar = {

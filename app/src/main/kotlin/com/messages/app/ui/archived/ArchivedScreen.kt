@@ -94,6 +94,7 @@ fun ArchivedScreen(
     val conversations by vm.conversations.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    androidx.activity.compose.BackHandler { onBack() }
 
     Scaffold(
         topBar = {
