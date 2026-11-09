@@ -130,4 +130,15 @@ class NotificationBuilderOutputTest {
         assertFalse("Locked conversation is not replyable from notification shade", payload.isReplyable)
         assertNull("No OTP code leaked when hidden", payload.copyOtpCode)
     }
+
+    @Test
+    fun `isXiaomiDevice correctly identifies Xiaomi Redmi and POCO devices`() {
+        assertTrue(MessageNotifier.isXiaomiDevice(manufacturer = "Xiaomi", brand = "Xiaomi"))
+        assertTrue(MessageNotifier.isXiaomiDevice(manufacturer = "Xiaomi", brand = "Redmi"))
+        assertTrue(MessageNotifier.isXiaomiDevice(manufacturer = "Xiaomi", brand = "POCO"))
+        assertTrue(MessageNotifier.isXiaomiDevice(manufacturer = "google", brand = "POCO"))
+        assertTrue(MessageNotifier.isXiaomiDevice(manufacturer = "Redmi", brand = "Redmi"))
+        assertFalse(MessageNotifier.isXiaomiDevice(manufacturer = "Google", brand = "Pixel"))
+        assertFalse(MessageNotifier.isXiaomiDevice(manufacturer = "Samsung", brand = "Samsung"))
+    }
 }

@@ -38,7 +38,7 @@ object ConversationShortcuts {
             }
             val shortcut = ShortcutInfoCompat.Builder(context, id)
                 .setShortLabel(displayName.ifBlank { "Conversation" })
-                .setIcon(IconCompat.createWithResource(context, R.mipmap.ic_launcher))
+                .setIcon(IconCompat.createWithResource(context, R.mipmap.ic_launcher_v2))
                 .setIntent(intent)
                 .setLongLived(true)
                 .setPerson(person)
