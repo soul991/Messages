@@ -14,11 +14,15 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.draw.clipToBounds
+
 /**
- * Top bar glass container (Phase 5).
- * - Blur behind on Android 12+ (API 31+) RenderEffect blur radius 20dp
- * - Translucent background: rgba(0,0,0,0.72) dark, rgba(247,247,244,0.80) light
- * - 1px hairline border at the bottom: rgba(255,255,255,0.09) dark, rgba(0,0,0,0.07) light
+ * Top bar glass container with API-adaptive backdrop styling:
+ * - Android 12+ (API 31+): RenderEffect blur radius 20dp with dark tint >= 72% alpha.
+ * - Below API 31: Near-opaque surface (92% alpha) ensuring underlying content is never legible.
+ * - 1px hairline border at the bottom.
+ * - clipToBounds prevents blur spill onto the search bar or content below.
  * - Child icons, titles and actions remain crisp and unblurred on top.
  */
 @Composable
@@ -27,10 +31,14 @@ fun GlassTopBar(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val bg = if (isDark) DesignTokens.Dark.TopBar else DesignTokens.Light.TopBar
-    val border = if (isDark) DesignTokens.Dark.TopBarBorder else DesignTokens.Light.TopBarBorder
+    val bg = MaterialTheme.colorScheme.topBarBackground
+    val border = MaterialTheme.colorScheme.topBarBorder
 
-    Box(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clipToBounds(),
+    ) {
         // Background glass layer with RenderEffect blur on API 31+
         Box(
             modifier = Modifier
