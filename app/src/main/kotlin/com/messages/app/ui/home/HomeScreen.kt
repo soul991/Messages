@@ -221,8 +221,8 @@ import com.messages.app.ui.common.showTransient
 import com.messages.app.ui.common.AppTransientSnackbarHost
 import com.messages.app.R
 
-private val ROW_HEIGHT = 68.dp
-private val ROW_AVATAR = 44.dp
+private val ROW_HEIGHT = 82.dp
+private val ROW_AVATAR = 52.dp
 private val ROW_GAP = 12.dp
 
 // V2-36. The left half of each pair is the stored folder/label id and never
@@ -2296,7 +2296,7 @@ private fun ConversationRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(68.dp)
+            .height(ROW_HEIGHT)
             .graphicsLayer {
                 scaleX = rowScale
                 scaleY = rowScale
@@ -2338,10 +2338,10 @@ private fun ConversationRow(
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Neutral avatar: 44dp circle, surface bg, 1px hairline border, 18sp/600 textMuted letter
+        // Neutral avatar: 52dp circle, surface bg, 1px hairline border, 20sp/600 textMuted letter
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(ROW_AVATAR)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surface)
                 .border(1.dp, MaterialTheme.colorScheme.hairline, CircleShape),
@@ -2351,14 +2351,14 @@ private fun ConversationRow(
                 text = avatarLetter,
                 style = TextStyle(
                     fontFamily = InterFontFamily,
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                 ),
                 color = MaterialTheme.colorScheme.textMuted,
             )
         }
 
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(14.dp))
 
         // Right column with inset hairline bottom border
         Column(
@@ -2403,7 +2403,7 @@ private fun ConversationRow(
                     )
                 }
 
-                Spacer(Modifier.height(3.dp))
+                Spacer(Modifier.height(5.dp))
 
                 // Bottom line: Preview (14sp muted, 1 line ellipsis) and Unread count badge (20dp green pill)
                 Row(
