@@ -1250,19 +1250,14 @@ private fun MessageTextSizeRow() {
     }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.FormatSize, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+            val isDark = com.messages.designsystem.LocalDarkTheme.current
+            val greenColor = if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight
+            SettingsIconTile(
+                icon = Icons.Outlined.FormatSize,
+                color = greenColor,
+                size = 40.dp,
+                iconSize = 22.dp,
+            )
             Spacer(Modifier.width(18.dp))
             Column {
                 Text(
@@ -1337,20 +1332,14 @@ private fun QuickRepliesEditor(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.Bolt,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+            val isDark = com.messages.designsystem.LocalDarkTheme.current
+            val greenColor = if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight
+            SettingsIconTile(
+                icon = Icons.Outlined.Bolt,
+                color = greenColor,
+                size = 40.dp,
+                iconSize = 22.dp,
+            )
             Spacer(Modifier.width(18.dp))
             Text(
                 text = stringResource(R.string.settings_quick_replies),

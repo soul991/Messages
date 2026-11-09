@@ -50,6 +50,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.messages.app.R
+import com.messages.designsystem.DesignTokens
+import com.messages.designsystem.LocalDarkTheme
 import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.groupCard
 
@@ -150,6 +152,7 @@ private fun HubGroup(label: Int, entries: List<HubEntry>, onPick: (String?) -> U
 @Composable
 private fun HubRow(e: HubEntry, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
+    val isDark = LocalDarkTheme.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val rowScale by animateFloatAsState(
@@ -157,14 +160,11 @@ private fun HubRow(e: HubEntry, onClick: () -> Unit) {
         animationSpec = Motion.butterSpring(),
         label = "hub-row-scale",
     )
-    val (bg: Color, fg: Color) = when (e.tone) {
-        Tone.PRIMARY -> cs.primaryContainer to cs.onPrimaryContainer
-        Tone.PROMO -> categoryPalette("PROMOTIONS")?.let { it.container to it.onContainer }
-            ?: (cs.tertiaryContainer to cs.onTertiaryContainer)
-        Tone.REVIEW -> categoryPalette("REVIEW")?.let { it.container to it.onContainer }
-            ?: (cs.secondaryContainer to cs.onSecondaryContainer)
-        Tone.PROTECTED -> categoryPalette("TRANSACTIONS")?.let { it.container to it.onContainer }
-            ?: (cs.primaryContainer to cs.onPrimaryContainer)
+    val iconColor = when (e.tone) {
+        Tone.PRIMARY -> if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight
+        Tone.PROMO -> if (isDark) SettingsTileColors.AmberDark else SettingsTileColors.AmberLight
+        Tone.REVIEW -> if (isDark) SettingsTileColors.BlueDark else SettingsTileColors.BlueLight
+        Tone.PROTECTED -> if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight
     }
     val tagModifier = if (e.page != null) Modifier.testTag("settings_page_${e.page}") else Modifier
     Row(
@@ -184,12 +184,12 @@ private fun HubRow(e: HubEntry, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(bg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(e.icon, contentDescription = null, tint = fg, modifier = Modifier.size(22.dp))
-        }
+        SettingsIconTile(
+            icon = e.icon,
+            color = iconColor,
+            size = 44.dp,
+            iconSize = 22.dp,
+        )
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(

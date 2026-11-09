@@ -45,6 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -56,9 +58,12 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.messages.app.R
+import com.messages.designsystem.DesignTokens
+import com.messages.designsystem.LocalDarkTheme
 import com.messages.designsystem.Motion
 import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.groupCard
@@ -162,10 +167,72 @@ internal fun SettingsGroupCard(
     }
 }
 
+object SettingsTileColors {
+    val GreenDark = Color(0xFF30D158)
+    val GreenLight = Color(0xFF146C2E)
+
+    val RedDark = Color(0xFFFFB4AB)
+    val RedLight = Color(0xFFB3261E)
+
+    val AmberDark = Color(0xFFFFB951)
+    val AmberLight = Color(0xFF7A4300)
+
+    val BlueDark = Color(0xFF64B5F6)
+    val BlueLight = Color(0xFF004BA0)
+
+    fun forCategory(categoryBadge: String?, isDark: Boolean): Color {
+        return when (categoryBadge) {
+            "SPAM", "BLOCKED" -> if (isDark) RedDark else RedLight
+            "PROMOTIONS", "OFFERS" -> if (isDark) AmberDark else AmberLight
+            "REVIEW" -> if (isDark) BlueDark else BlueLight
+            "TRANSACTIONS", "PERSONAL", "INBOX" -> if (isDark) GreenDark else GreenLight
+            else -> if (isDark) GreenDark else GreenLight
+        }
+    }
+}
+
+/**
+ * SettingsIconTile (§Phase D1):
+ * Renders an icon tile with a tinted container and full-contrast glyph.
+ * In light mode: container tinted 14% with the icon's color, glyph full contrast (the icon's color).
+ * In dark mode: container tinted 24% with the icon's color, glyph full contrast (the icon's color).
+ * This eliminates the dark gray (#2C2C2E) "holes" in light mode cards and guarantees WCAG AA 4.5:1.
+ */
+@Composable
+internal fun SettingsIconTile(
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    alpha: Float = 1f,
+    size: Dp = 40.dp,
+    iconSize: Dp = 22.dp,
+    shape: Shape = RoundedCornerShape(12.dp),
+) {
+    val isDark = LocalDarkTheme.current
+    val containerTint = if (isDark) 0.24f else 0.14f
+    val containerColor = color.copy(alpha = containerTint * alpha)
+    val glyphColor = color.copy(alpha = alpha)
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(shape)
+            .background(containerColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = glyphColor,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
 /**
  * Row scaffold every settings row builds on.
- * Left icons become squircle badges: 40dp, corner 12dp, fill categoryPalette(...).container,
- * glyph categoryPalette(...).onContainer (contrast >= 4.5:1).
+ * Left icons become squircle badges: 40dp, corner 12dp, fill 14%/24% tint of icon color,
+ * glyph full contrast (contrast >= 4.5:1).
  * Rows padded 16h x 12v, single-line ellipsized titles and subtitles.
  */
 @Composable
@@ -180,12 +247,8 @@ internal fun SettingsRow(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val alpha = if (enabled) 1f else 0.5f
-    val palette = categoryPalette(categoryBadge)
-    val (badgeBg, badgeFg) = if (palette != null) {
-        palette.container to palette.onContainer
-    } else {
-        MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-    }
+    val isDark = LocalDarkTheme.current
+    val iconColor = SettingsTileColors.forCategory(categoryBadge, isDark)
 
     Row(
         Modifier
@@ -196,20 +259,13 @@ internal fun SettingsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(badgeBg.copy(alpha = alpha)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = badgeFg.copy(alpha = alpha),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+            SettingsIconTile(
+                icon = icon,
+                color = iconColor,
+                alpha = alpha,
+                size = 40.dp,
+                iconSize = 22.dp,
+            )
             Spacer(Modifier.width(18.dp))
         } else if (indented) {
             // Align with row titles (16dp row padding + 40dp badge + 18dp spacer = 74dp)
