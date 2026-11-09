@@ -29,11 +29,26 @@ class GlassTokensTest {
     }
 
     @Test
-    fun `dark top bar background alpha is at least 72 percent`() {
-        val darkTopBarAlpha = DesignTokens.Dark.TopBar.alpha
-        assertTrue(
-            "Dark top bar background alpha must be >= 0.72f, got $darkTopBarAlpha",
-            darkTopBarAlpha >= 0.72f,
+    fun `top bar has clean transparent background without dark shade or scrim`() {
+        org.junit.Assert.assertEquals(
+            "Dark top bar must be transparent to remove black bands under header (G4)",
+            Color.Transparent,
+            DesignTokens.Dark.TopBar,
+        )
+        org.junit.Assert.assertEquals(
+            "Light top bar must be transparent to remove tinted bands under header (G4)",
+            Color.Transparent,
+            DesignTokens.Light.TopBar,
+        )
+        org.junit.Assert.assertEquals(
+            "Dark top bar border must be transparent to remove hairline divider (G4)",
+            Color.Transparent,
+            DesignTokens.Dark.TopBarBorder,
+        )
+        org.junit.Assert.assertEquals(
+            "Light top bar border must be transparent to remove hairline divider (G4)",
+            Color.Transparent,
+            DesignTokens.Light.TopBarBorder,
         )
     }
 }

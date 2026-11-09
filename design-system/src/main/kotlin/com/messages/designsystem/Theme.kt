@@ -225,14 +225,7 @@ val ColorScheme.dockActivePill: Color
     get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.DockActivePill else DesignTokens.Light.DockActivePill
 
 val ColorScheme.topBarBackground: Color
-    get() {
-        val isDark = surface.luminance() < 0.5f
-        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            if (isDark) DesignTokens.Dark.TopBar else DesignTokens.Light.TopBar
-        } else {
-            if (isDark) Color(0xEB000000) else Color(0xEBF7F7F4) // 92% near-opaque surface below API 31
-        }
-    }
+    get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.TopBar else DesignTokens.Light.TopBar
 
 val ColorScheme.topBarBorder: Color
     get() = if (surface.luminance() < 0.5f) DesignTokens.Dark.TopBarBorder else DesignTokens.Light.TopBarBorder
