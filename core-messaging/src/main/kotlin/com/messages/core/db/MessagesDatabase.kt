@@ -517,6 +517,9 @@ interface MessageDao {
     @Query("SELECT COUNT(*) FROM messages WHERE address = :address")
     suspend fun countForAddress(address: String): Int
 
+    @Query("SELECT COUNT(*) FROM messages WHERE address = :address AND isOutgoing = 1")
+    suspend fun outgoingCountForAddress(address: String): Int
+
     @Query(
         "SELECT matchedPatternIds FROM messages WHERE category IN " +
             "('SPAM','PROMOTIONS','BLOCKED','REVIEW') AND timestamp >= :since " +

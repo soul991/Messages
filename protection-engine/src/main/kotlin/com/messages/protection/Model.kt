@@ -41,6 +41,8 @@ data class SenderInfo(
      * Why? screen ("First message from this sender").
      */
     val firstContact: Boolean = false,
+    /** True when the local database contains sent/outgoing messages from the user to this sender. */
+    val hasUserReplyHistory: Boolean = false,
 )
 
 /** Where a classified message lands. */

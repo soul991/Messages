@@ -815,7 +815,14 @@ class MessageRepository private constructor(private val context: Context) {
         val isContact = lookupContactName(address) != null
         val reputation = db.reputation().forSender(address)?.score ?: 0
         val firstContact = db.messages().countForAddress(address) == 0
-        val senderInfo = SenderAnalyzer.analyze(address, isContact, reputation, firstContact = firstContact)
+        val hasUserReplyHistory = db.messages().outgoingCountForAddress(address) > 0
+        val senderInfo = SenderAnalyzer.analyze(
+            address,
+            isContact,
+            reputation,
+            firstContact = firstContact,
+            hasUserReplyHistory = hasUserReplyHistory,
+        )
         val rules = db.userRules().all()
         val allow = rules.any { it.kind == "ALLOW" && matchesRule(it.pattern, address) }
         val block = rules.any { it.kind == "BLOCK" && matchesRule(it.pattern, address) }

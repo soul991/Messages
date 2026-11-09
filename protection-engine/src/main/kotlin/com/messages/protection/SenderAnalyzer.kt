@@ -76,6 +76,7 @@ object SenderAnalyzer {
         reputationScore: Int = 0,
         homeCountryCode: String = "+91",
         firstContact: Boolean = false,
+        hasUserReplyHistory: Boolean = false,
     ): SenderInfo {
         val addr = rawAddress.trim()
         val type = when {
@@ -94,7 +95,7 @@ object SenderAnalyzer {
             ALPHA_HEADER.matches(addr) -> SenderType.ALPHANUMERIC_UNKNOWN
             else -> SenderType.ALPHANUMERIC_UNKNOWN
         }
-        return SenderInfo(addr, type, isContact, reputationScore, firstContact)
+        return SenderInfo(addr, type, isContact, reputationScore, firstContact, hasUserReplyHistory)
     }
 
     private fun dltSuffix(addr: String): Char? {

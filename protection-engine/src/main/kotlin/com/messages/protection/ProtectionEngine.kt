@@ -84,10 +84,96 @@ class ProtectionEngine(
             }
         }
 
+        // Rule 4: Carrier spam warnings (e.g. "[SPAM]" or "[FRAUD]" prepended by carrier) -> directly to Spam
+        val isCarrierSpam = Regex("""(?i)^\s*(\[(?:SPAM|POSSIBLE\s+SPAM|SUSPECTED\s+SPAM|FRAUD)\]|\((?:SPAM|FRAUD)\)|SPAM:\s*)""")
+            .containsMatchIn(input.body) ||
+            Regex("""(?i)^\s*(\[(?:SPAM|POSSIBLE\s+SPAM|SUSPECTED\s+SPAM|FRAUD)\]|\((?:SPAM|FRAUD)\)|SPAM:\s*)""")
+                .containsMatchIn(msg.normalizedText)
+        if (isCarrierSpam) {
+            return Verdict(
+                Category.SPAM,
+                dangerous = true,
+                score = 15,
+                matchedPatternIds = listOf("carrier-spam-warning"),
+                explanations = listOf("Carrier marked as spam/fraud"),
+                notify = false,
+            )
+        }
+
         val patternMatches = matcher.matchAll(msg)
         val linkSignals = LinkAnalyzer.analyze(msg)
         val combos = ComboRules.evaluate(msg, sender, patternMatches, linkSignals)
         val fraudCombos = combos.filter { it.dangerous }
+
+        // Rule 2: Any message from a saved contact or with user reply history MUST stay in Personal
+        // unless a critical fraud combo (e.g. compromised account sending UPI drain) matches
+        if ((sender.isContact || sender.hasUserReplyHistory) && fraudCombos.isEmpty()) {
+            val expl = if (sender.isContact) "From a saved contact" else "From a conversation with your reply history"
+            return Verdict(Category.INBOX, explanations = listOf(expl), notify = true)
+        }
+
+        val isUnknownSender = !sender.isContact && !sender.hasUserReplyHistory
+
+        // Rule 5: Crypto/NFT/lottery keywords from unknown senders must route to Spam
+        val isCryptoOrNft = Regex("""(?i)\b(crypto|bitcoin|btc|eth|ethereum|usdt|binance|airdrop|nft|web3|solana|coinbase|trust\s*wallet|metamask)\b""")
+            .containsMatchIn(msg.normalizedText)
+        val isLottery = Regex("""(?i)\b(lottery|lucky\s*draw|bumper\s*prize|cash\s*prize|kbc\s*(?:lottery|prize|winner)|won\s+(?:Rs\.?|INR|₹|\$)\s*[\d,]+|congratulations.*won.*(?:prize|cash|car|draw))\b""")
+            .containsMatchIn(msg.normalizedText)
+        if (isUnknownSender && (isCryptoOrNft || isLottery)) {
+            val reason = if (isCryptoOrNft) "Crypto/NFT solicitation from unknown sender" else "Lottery/prize solicitation from unknown sender"
+            val isDangerous = isLottery || linkSignals.any { it.isShortener || it.isPhishy } || fraudCombos.isNotEmpty()
+            val allPatternIds = (patternMatches.map { it.pattern.id } + listOf(if (isCryptoOrNft) "crypto-nft-unknown" else "lottery-unknown")).distinct()
+            val allExplanations = patternMatches.map { it.pattern.description } + reason
+            return Verdict(
+                Category.SPAM,
+                dangerous = isDangerous,
+                score = 15,
+                matchedPatternIds = allPatternIds,
+                explanations = allExplanations,
+                notify = false,
+            )
+        }
+
+        // Rule 3: Messages with urgency + links/phone numbers from unknown 10-digit numbers must route to Review or Spam, not Personal
+        val isUnknown10Digit = isUnknownSender &&
+            (sender.type == SenderType.PERSONAL_NUMBER || sender.type == SenderType.INTERNATIONAL_NUMBER ||
+             sender.rawAddress.filter { it.isDigit() }.length >= 10)
+        val urgencyRegex = Regex(
+            """(?i)\b(urgent|urgently|immediately|action\s*required|account\s*(?:blocked|suspended|deactivated|restricted)|verify\s*(?:now|immediately|kyc|pan)|update\s*(?:kyc|pan|aadhaar)|within\s*\d+\s*(?:hours?|mins?|days?)|today\s*only|last\s*chance|final\s*notice|threat|expire[ds]?|suspended|terminate[d]?)\b"""
+        )
+        val hasUrgency = urgencyRegex.containsMatchIn(msg.normalizedText)
+        val hasLink = msg.urls.isNotEmpty() || linkSignals.isNotEmpty()
+        val hasPhoneAction = Regex("""(?i)\b(?:call|contact|reach|helpline|whatsapp)[:\s]*(\+?\d[\d\s-]{7,}\d)""").containsMatchIn(msg.normalizedText)
+
+        if (isUnknown10Digit && hasUrgency && (hasLink || hasPhoneAction)) {
+            val isSeverePhishing = linkSignals.any { it.isShortener || it.isPhishy } ||
+                fraudCombos.isNotEmpty() ||
+                patternMatches.any { it.pattern.family in Families.SCAM }
+            val allPatternIds = (patternMatches.map { it.pattern.id } + listOf(if (isSeverePhishing) "urgent-link-numeric-spam" else "urgent-link-numeric-review")).distinct()
+            val allExplanations = patternMatches.map { it.pattern.description } + if (isSeverePhishing) {
+                "Urgent request with suspicious link from unknown 10-digit number"
+            } else {
+                "Urgent request with link/phone from unknown 10-digit number"
+            }
+            return if (isSeverePhishing) {
+                Verdict(
+                    Category.SPAM,
+                    dangerous = true,
+                    score = 15,
+                    matchedPatternIds = allPatternIds,
+                    explanations = allExplanations,
+                    notify = false,
+                )
+            } else {
+                Verdict(
+                    Category.REVIEW,
+                    score = 8,
+                    matchedPatternIds = allPatternIds,
+                    explanations = allExplanations,
+                    notify = false,
+                )
+            }
+        }
 
         // Stage 2 — Protected patterns (can NEVER be filtered).
         // §5.7: OTP protection is absolute; bank/delivery/bill/travel protection
@@ -123,10 +209,20 @@ class ProtectionEngine(
             protectedOverridden = true
         }
 
-        // Stage 3 — saved contact: Inbox directly unless a fraud combo matches
-        if (sender.isContact && fraudCombos.isEmpty()) {
-            return Verdict(Category.INBOX, explanations = listOf("From a saved contact"), notify = true)
-        }
+        // Rule 1 check: Transactional patterns from verified sender formats MUST file under Personal, NEVER under Promo
+        val isVerifiedSenderFormat = SenderAnalyzer.isRegisteredHeader(sender) ||
+            SenderAnalyzer.isDltCommercialHeader(sender) ||
+            sender.type == SenderType.SHORT_CODE ||
+            sender.type == SenderType.ALPHANUMERIC_UNKNOWN ||
+            sender.type == SenderType.REGISTERED_TRANSACTIONAL ||
+            sender.type == SenderType.REGISTERED_GOVERNMENT
+
+        val transactionalKeywords = Regex(
+            """(?i)\b(debited|credited|otp\b|one[\s-]*time\s*password|verification\s*code|ac\s*bal|account\s*balance|avail(?:able)?\s*bal(?:ance)?|bal:\s*(?:inr|rs\.?|₹)|order\s+placed|(?:order|booking|ticket|txn|transaction)\s*(?:of|for|id|#)?\s*(?:inr|rs\.?|₹|\d+)|\b(?:a/c|account)\b.*?\b(?:debited|credited|balance)\b|\b(?:debited|credited)\b.*?\b(?:inr|rs\.?|₹)\b|\b(?:inr|rs\.?|₹)\b[\d,]+.*?\b(?:debited|credited)\b)\b"""
+        )
+        val hasTransactionalPattern = patternMatches.any {
+            it.pattern.family == Families.PROTECTED_OTP || it.pattern.family == Families.PROTECTED_BANK
+        } || (isVerifiedSenderFormat && transactionalKeywords.containsMatchIn(msg.normalizedText))
 
         // Stage 4 — pattern scoring with sender-context multipliers
         var score = 0.0
@@ -194,13 +290,19 @@ class ProtectionEngine(
         // Guard 1: Must be a DLT-formatted header (XX-NAME) or known suffix; plain alphanumeric names (e.g. "AIRTEL")
         // do not take this direct lane.
         // Guard 2: Shortener/phishy links disqualify from direct promo lane.
-        // Guard 3: Transactional wording (recharge success, order delivered, etc.) stays in INBOX unless
-        // accompanied by an explicit offer/discount/cashback/coupon/sale signal.
+        // Guard 3: Rule 1 — Transactional patterns from verified senders MUST file under Personal, NEVER under Promo.
         val promoPatternIds = setOf("promo-offer-words", "promo-discount", "promo-sale", "promo-generic-offer")
         val matchesPromoPattern = patternMatches.any { it.pattern.id in promoPatternIds || it.pattern.family == Families.PROMO } ||
             Regex("""(?i)\b(offers?|discounts?|flat\s+\d+|cashbacks?|deals?|sales?|recharge|coupons?|vouchers?|save\s+\d+%?)\b""").containsMatchIn(msg.normalizedText)
         val isDltCommercial = SenderAnalyzer.isDltCommercialHeader(sender)
         val hasShortenerOrPhishyLink = linkSignals.any { it.isShortener || it.isPhishy }
+
+        if (hasTransactionalPattern && isVerifiedSenderFormat && !hasShortenerOrPhishyLink) {
+            return Verdict(
+                Category.INBOX, score = finalScore, matchedPatternIds = matchedIds,
+                matchedComboIds = comboIds, explanations = explanations + "Transactional message from verified sender — filed under Personal", notify = true,
+            )
+        }
 
         val transactionalGuard = Regex(
             """(?i)\b(recharge\s+(successful|done|confirmed|completed|processed)|payment\s+(successful|received|done|confirmed|processed)|order\s+(delivered|confirmed|shipped|dispatched|placed|cancelled)|booking\s+(confirmed|cancelled)|refund\s+(processed|initiated|credited|successful)|delivery\s+(confirmed|completed|scheduled|arriving|delivered|attempted)|pnr|ticket\s+(booked|confirmed|cancelled)|trip\s+(completed|receipt|summary)|successful(ly)?|credited|debited|confirmed)\b"""
