@@ -39,6 +39,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,6 +49,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Accessibility
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.AutoDelete
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.BrightnessHigh
@@ -73,6 +76,9 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -907,8 +913,67 @@ fun SettingsScreen(
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_conversations))
                     val ctx = androidx.compose.ui.platform.LocalContext.current
-                    val rightAction by com.messages.app.ui.home.SwipeActions.right.collectAsStateWithLifecycle()
-                    val leftAction by com.messages.app.ui.home.SwipeActions.left.collectAsStateWithLifecycle()
+                    var showArchiveShortcutDialog by remember { mutableStateOf(false) }
+                    val currentArchiveShortcut by com.messages.app.ui.home.SwipeActions.archiveShortcut.collectAsStateWithLifecycle()
+                    val archiveShortcutSubtitle = when (currentArchiveShortcut) {
+                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_RIGHT -> stringResource(R.string.settings_swipe_right)
+                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_LEFT -> stringResource(R.string.settings_swipe_left)
+                        com.messages.app.ui.home.SwipeActions.SHORTCUT_OFF -> stringResource(R.string.settings_archive_shortcut_off)
+                        else -> stringResource(R.string.settings_archive_shortcut_choose)
+                    }
+
+                    if (showArchiveShortcutDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showArchiveShortcutDialog = false },
+                            title = { Text(stringResource(R.string.settings_archive_shortcut)) },
+                            text = {
+                                Column(modifier = Modifier.selectableGroup()) {
+                                    val options = listOf(
+                                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_RIGHT to stringResource(R.string.settings_swipe_right),
+                                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_LEFT to stringResource(R.string.settings_swipe_left),
+                                        com.messages.app.ui.home.SwipeActions.SHORTCUT_OFF to stringResource(R.string.settings_archive_shortcut_off),
+                                    )
+                                    options.forEach { (optionKey, label) ->
+                                        val isSelected = currentArchiveShortcut == optionKey
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .selectable(
+                                                    selected = isSelected,
+                                                    onClick = {
+                                                        com.messages.app.ui.home.SwipeActions.setArchiveShortcut(ctx, optionKey)
+                                                        showArchiveShortcutDialog = false
+                                                    },
+                                                    role = Role.RadioButton,
+                                                )
+                                                .padding(vertical = 12.dp, horizontal = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            RadioButton(
+                                                selected = isSelected,
+                                                onClick = null,
+                                                colors = RadioButtonDefaults.colors(
+                                                    selectedColor = MaterialTheme.colorScheme.primary,
+                                                ),
+                                            )
+                                            Spacer(Modifier.width(12.dp))
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showArchiveShortcutDialog = false }) {
+                                    Text(stringResource(R.string.action_cancel))
+                                }
+                            },
+                            confirmButton = {},
+                        )
+                    }
                     var deliveryReports by remember {
                         mutableStateOf(
                             ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
@@ -930,7 +995,7 @@ fun SettingsScreen(
                                     stringResource(R.string.settings_link_previews_footer),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                    )
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     stringResource(R.string.settings_summary_cards_footer),
@@ -940,24 +1005,12 @@ fun SettingsScreen(
                             }
                         }
                     ) {
-                        SettingsDropdownRow(
-                            icon = Icons.Outlined.SwipeRight,
-                            categoryBadge = "TRANSACTIONS",
-                            title = stringResource(R.string.settings_swipe_right),
-                            subtitle = stringResource(R.string.settings_swipe_right_subtitle),
-                            value = com.messages.app.ui.home.SwipeActions.label(rightAction),
-                            options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
-                            onSelect = { com.messages.app.ui.home.SwipeActions.setRight(ctx, it) },
-                        )
-                        SettingsCardDivider()
-                        SettingsDropdownRow(
-                            icon = Icons.Outlined.SwipeLeft,
-                            categoryBadge = "SPAM",
-                            title = stringResource(R.string.settings_swipe_left),
-                            subtitle = stringResource(R.string.settings_swipe_left_subtitle),
-                            value = com.messages.app.ui.home.SwipeActions.label(leftAction),
-                            options = com.messages.app.ui.home.SwipeActions.options.map { it.first to it.second },
-                            onSelect = { com.messages.app.ui.home.SwipeActions.setLeft(ctx, it) },
+                        SettingsRow(
+                            icon = Icons.Outlined.Archive,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_archive_shortcut),
+                            subtitle = archiveShortcutSubtitle,
+                            onClick = { showArchiveShortcutDialog = true },
                         )
                         SettingsCardDivider()
                         SettingsSwitchRow(

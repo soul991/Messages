@@ -590,6 +590,9 @@
     <string name="settings_hide_previews_subtitle">Notifications show &quot;New message&quot; instead of the text.</string>
     <string name="settings_lock_chat_tip">Tip: lock individual conversations from the ⋮ menu inside a chat.</string>
     <string name="settings_section_conversations">Conversations</string>
+    <string name="settings_archive_shortcut">Archive shortcut</string>
+    <string name="settings_archive_shortcut_choose">Choose an option</string>
+    <string name="settings_archive_shortcut_off">Off</string>
     <string name="settings_swipe_right">Swipe right</string>
     <string name="settings_swipe_right_subtitle">Left-to-right swipe on a conversation</string>
     <string name="settings_swipe_left">Swipe left</string>
