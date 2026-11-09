@@ -19,14 +19,13 @@ class SpamCleanupWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
 
+    /**
+     * Phase 0.1: Freeze every automatic permanent delete (TrashRetention, SpamCleanup,
+     * OtpCleanup, and anything else that hard-deletes or purges) so nothing is permanently
+     * deleted until approved.
+     */
     override suspend fun doWork(): Result {
-        val ctx = applicationContext
-        if (!SpamCleanup.isEnabled(ctx)) return Result.success()
-        runCatching { MessageRepository.get(ctx).cleanupExpiredSpam(SpamCleanup.TTL_MS) }
-            .onFailure { t ->
-                if (t is kotlin.coroutines.cancellation.CancellationException) throw t
-                return Result.retry()
-            }
+        // Frozen: do not auto-delete or auto-trash expired spam
         return Result.success()
     }
 }

@@ -2044,14 +2044,8 @@ class MessageRepository private constructor(private val context: Context) {
 
     /** The 60-day purge (§6.4), run by [com.messages.core.trash.TrashPurge]. */
     suspend fun purgeExpiredTrash(): Int = withContext(Dispatchers.IO) {
-        val expired = db.messages().trashExpiredBefore(
-            System.currentTimeMillis() - TrashRetention.RETENTION_MS
-        )
-        expired.forEach { msg ->
-            deleteLocalMedia(msg)
-            db.messages().userDelete(msg.id)
-        }
-        expired.size
+        // Phase 0.1: Frozen. Automatic permanent deletion is frozen until approved.
+        0
     }
 
     /**
@@ -2165,14 +2159,8 @@ class MessageRepository private constructor(private val context: Context) {
      * summaries consistent. Returns how many messages were deleted.
      */
     suspend fun cleanupExpiredOtps(olderThanMs: Long): Int = withContext(Dispatchers.IO) {
-        val expired = db.messages().expiredOtps(System.currentTimeMillis() - olderThanMs)
-        expired.forEach { msg ->
-            deleteProviderRows(msg)
-            db.messages().userDelete(msg.id)
-        }
-        expired.map { it.threadId to it.space }.distinct()
-            .forEach { (t, s) -> refreshConversationSummary(t, s) }
-        expired.size
+        // Phase 0.1: Frozen. Automatic permanent deletion is frozen until approved.
+        0
     }
 
     /**
@@ -2185,15 +2173,8 @@ class MessageRepository private constructor(private val context: Context) {
      * scoped to SPAM only — Review/Blocked untouchable — and skips starred.
      */
     suspend fun cleanupExpiredSpam(olderThanMs: Long): Int = withContext(Dispatchers.IO) {
-        val expired = db.messages().expiredSpam(System.currentTimeMillis() - olderThanMs)
-        val now = System.currentTimeMillis()
-        expired.forEach { msg ->
-            deleteProviderRows(msg)
-            db.messages().moveToTrash(msg.id, now)
-        }
-        expired.map { it.threadId to it.space }.distinct()
-            .forEach { (t, s) -> refreshConversationSummary(t, s) }
-        expired.size
+        // Phase 0.1: Frozen. Automatic permanent deletion is frozen until approved.
+        0
     }
 
     /** Recompute a conversation's summary after deletions; drop it if empty. */
