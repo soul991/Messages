@@ -21,6 +21,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.messages.designsystem.JumpToTopButton
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
@@ -340,7 +342,9 @@ fun TrashScreen(
                     }
                 }
             } else {
-                LazyColumn(Modifier.fillMaxSize()) {
+                val trashListState = rememberLazyListState()
+                Box(Modifier.fillMaxSize()) {
+                    LazyColumn(state = trashListState, modifier = Modifier.fillMaxSize()) {
                     if (unknownTrashedCount > 0) {
                         item(key = "unknown_trashed_banner") {
                             Surface(
@@ -405,9 +409,17 @@ fun TrashScreen(
                         }
                     }
                 }
+                JumpToTopButton(
+                    listState = trashListState,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 16.dp, bottom = 24.dp),
+                    contentDescription = stringResource(R.string.home_back_to_top),
+                )
             }
         }
     }
+}
 
     confirmForever?.let { msg ->
         AlertDialog(
