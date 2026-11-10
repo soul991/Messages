@@ -63,7 +63,7 @@
     <string name="secret_entry_action">Open locked space</string>
     <string name="settings_accessible_entry_title">Accessible locked-space entry</string>
     <string name="settings_accessible_entry_subtitle">Adds a labelled action for screen readers, and a row below, so the locked space can be opened without the long press on the Messages title. The gesture keeps working; your code is still required either way.</string>
-    <string name="settings_accessible_entry_row_subtitle">Opens the code prompt.</string>
+    <string name="settings_accessible_entry_row_subtitle">Opens the code prompt to enter your locked space.</string>
     <!-- ===================== Shared actions and labels ================== -->
 
     <!--
@@ -146,8 +146,18 @@
     <string name="trash_auto_trashed_banner_title">%1$d messages auto-trashed</string>
     <string name="trash_auto_trashed_banner_subtitle">Recover messages moved to trash by swipe gestures or automatic cleanup</string>
     <string name="trash_restore_all_auto">Restore all</string>
-    <string name="trash_reason_auto_swipe">Auto-trashed (swipe)</string>
-    <string name="trash_reason_auto_cleanup">Auto-trashed (cleanup)</string>
+    <string name="trash_unknown_banner_title">%1$d messages trashed before 2.5.1</string>
+    <string name="trash_unknown_banner_subtitle">These messages were in Trash before version 2.5.1. Original delete reason is unknown.</string>
+    <string name="trash_restore_all_unknown">Restore all</string>
+    <string name="trash_restore_unknown_title">Restore %1$d messages?</string>
+    <string name="trash_restore_unknown_body">Confirm to restore all %1$d messages trashed before version 2.5.1 to your inbox.</string>
+    <string name="trash_reason_user">Deleted by you</string>
+    <string name="trash_reason_unknown">before 2.5.1 (unknown)</string>
+    <string name="trash_reason_auto_swipe">Auto-swipe</string>
+    <string name="trash_reason_auto_spam">Spam cleanup</string>
+    <string name="trash_reason_auto_otp">Expired OTP</string>
+    <string name="trash_reason_auto_cleanup">Auto-cleanup</string>
+    <string name="trash_retention_manual">Messages stay in Trash until you delete them permanently.</string>
     <string name="trash_delete_forever_title">Delete forever?</string>
     <string name="trash_delete_forever_body">This message will be permanently deleted. This cannot be undone.</string>
     <string name="trash_delete_forever_action">Delete forever</string>
@@ -551,7 +561,7 @@
     <string name="settings_hub_protection">Protection</string>
     <string name="settings_hub_backup">Backup &amp; restore</string>
     <string name="settings_hub_storage">Storage &amp; cleanup</string>
-    <string name="settings_hub_appearance_sub">Theme, accent color, text size, brightness</string>
+    <string name="settings_hub_appearance_sub">Text size, brightness</string>
     <string name="settings_hub_notifications_sub">Alerts, sounds and reminders</string>
     <string name="settings_hub_conversations_sub">Swipe actions, delivery reports, link previews</string>
     <string name="settings_hub_protection_sub">Sensitivity, custom rules, pattern library</string>
@@ -563,8 +573,16 @@
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_subtitle">Choose how Messages looks across the app.</string>
     <string name="settings_section_brightness">In-app brightness</string>
+    <string name="settings_use_system_brightness">Use system brightness</string>
+    <string name="settings_use_system_brightness_subtitle">Match device screen brightness</string>
     <string name="settings_brightness_custom_title">Custom brightness</string>
     <string name="settings_brightness_custom_subtitle">Override device brightness while Messages is open</string>
+    <string name="settings_brightness_slider_label">Brightness level</string>
+    <string name="settings_brightness_percent">%1$d%%</string>
+    <string name="settings_brightness_low">25%</string>
+    <string name="settings_brightness_medium">50%</string>
+    <string name="settings_brightness_high">75%</string>
+    <string name="settings_brightness_max">100%</string>
     <string name="settings_brightness_footnote">In-app brightness applies only while Messages is in the foreground. It does not affect other apps or system brightness.</string>
     <string name="settings_section_sensitivity">Protection sensitivity</string>
     <string name="settings_advanced_filtering_title">Advanced Message Filtering</string>
@@ -582,12 +600,12 @@
     <string name="settings_notification_behavior_subtitle">Per-folder alerts, sounds, and OTP copy options.</string>
     <string name="settings_section_privacy">Privacy &amp; security</string>
     <string name="settings_app_lock">App lock</string>
-    <string name="settings_app_lock_subtitle">Require fingerprint, face, or device PIN to open Messages.</string>
+    <string name="settings_app_lock_subtitle">Require fingerprint, face, or device PIN to open Messages so your conversations stay protected.</string>
     <string name="settings_app_lock_unavailable">Set up a screen lock or biometrics on this device first.</string>
     <string name="settings_lock_after">Lock after</string>
     <string name="settings_lock_after_subtitle">Skip re-unlock when returning within this window.</string>
     <string name="settings_hide_previews">Hide message previews</string>
-    <string name="settings_hide_previews_subtitle">Notifications show &quot;New message&quot; instead of the text.</string>
+    <string name="settings_hide_previews_subtitle">Notifications show &quot;New message&quot; instead of sender or text to keep incoming messages private on your lock screen.</string>
     <string name="settings_lock_chat_tip">Tip: lock individual conversations from the ⋮ menu inside a chat.</string>
     <string name="settings_section_conversations">Conversations</string>
     <string name="settings_archive_shortcut">Archive shortcut</string>
@@ -622,7 +640,9 @@
     <string name="settings_section_import">Message import</string>
     <string name="settings_reimport_subtitle">If your existing messages are missing from the app, import them again from the phone\'s SMS store. Already-imported messages are skipped.</string>
     <string name="settings_reimport">Re-import messages</string>
-    <string name="settings_trash_subtitle">Deleted messages are kept for 60 days and can be restored.</string>
+    <string name="settings_trash_subtitle">View deleted messages. Messages stay in Trash until deleted permanently.</string>
+    <string name="settings_trash_auto_purge">Auto-purge Trash</string>
+    <string name="settings_trash_auto_purge_subtitle">Permanently delete messages in Trash after 60 days (off by default).</string>
     <string name="settings_app_color">App color</string>
     <string name="settings_accent_dynamic_subtitle">Dynamic — follows your wallpaper</string>
     <string name="settings_text_size_small">Small</string>
@@ -1610,6 +1630,8 @@
     <string name="summary_action_wrong">This is wrong</string>
     <string name="summary_action_hide">Hide this summary</string>
     <string name="summary_action_turn_off">Turn off summary cards</string>
+    <string name="summary_action_hide_conversation">Hide summary cards</string>
+    <string name="summary_action_show_conversation">Show summary cards</string>
     <string name="summary_action_restore">Show summary again</string>
 
     <!-- ============================= About ============================== -->

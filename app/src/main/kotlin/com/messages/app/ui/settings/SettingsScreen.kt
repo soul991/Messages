@@ -191,6 +191,13 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         spamAutoClean.value = enabled
     }
 
+    val trashAutoPurge = MutableStateFlow(com.messages.core.trash.TrashRetention.isAutoPurgeEnabled(app))
+
+    fun setTrashAutoPurge(enabled: Boolean) {
+        com.messages.core.trash.TrashRetention.setAutoPurgeEnabled(getApplication(), enabled)
+        trashAutoPurge.value = enabled
+    }
+
     val otpAutoCopy = MutableStateFlow(com.messages.app.notify.OtpClipboard.autoCopyEnabled(app))
 
     fun setOtpAutoCopy(enabled: Boolean) {
@@ -485,6 +492,10 @@ fun SettingsScreen(
      * destination as the Home-title press, not a way around it.
      */
     onSecretEntry: () -> Unit = {},
+    customBrightness: Boolean = false,
+    onCustomBrightnessChange: (Boolean) -> Unit = {},
+    brightnessLevel: Float = ThemePreferences.DEFAULT_BRIGHTNESS,
+    onBrightnessLevelChange: (Float) -> Unit = {},
 
     vm: SettingsViewModel = viewModel(),
 ) {
@@ -495,6 +506,7 @@ fun SettingsScreen(
     val importStatus by vm.importStatus.collectAsStateWithLifecycle()
     val otpAutoDelete by vm.otpAutoDelete.collectAsStateWithLifecycle()
     val spamAutoClean by vm.spamAutoClean.collectAsStateWithLifecycle()
+    val trashAutoPurge by vm.trashAutoPurge.collectAsStateWithLifecycle()
     val appLock by vm.appLock.collectAsStateWithLifecycle()
     val lockAfterMs by vm.lockAfterMs.collectAsStateWithLifecycle()
     val hidePreviews by vm.hidePreviews.collectAsStateWithLifecycle()
@@ -675,6 +687,17 @@ fun SettingsScreen(
                                     lightIcon = enabled
                                     ThemePreferences.setLightIconEnabled(ctx, enabled)
                                 },
+                            )
+                        }
+                    }
+                    item {
+                        SettingsSectionHeader(stringResource(R.string.settings_section_brightness))
+                        SettingsGroupCard(cardIndex = 1) {
+                            InAppBrightnessSection(
+                                customBrightness = customBrightness,
+                                brightnessLevel = brightnessLevel,
+                                onCustomBrightnessChange = onCustomBrightnessChange,
+                                onBrightnessLevelChange = onBrightnessLevelChange,
                             )
                         }
                     }
@@ -1091,6 +1114,15 @@ fun SettingsScreen(
                                 else vm.setSpamAutoClean(false)
                             },
                         )
+                        SettingsCardDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Delete,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_trash_auto_purge),
+                            subtitle = stringResource(R.string.settings_trash_auto_purge_subtitle),
+                            checked = trashAutoPurge,
+                            onChange = { vm.setTrashAutoPurge(it) },
+                        )
                     }
                     if (confirmSpamClean) {
                         AlertDialog(
@@ -1267,15 +1299,11 @@ private fun MessageTextSizeRow() {
                     stringResource(R.string.settings_text_size),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     stringResource(R.string.settings_text_size_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -1297,6 +1325,109 @@ private fun MessageTextSizeRow() {
                     },
                     label = { Text(label) },
                 )
+            }
+        }
+    }
+}
+
+/** In-app brightness adjustment section (Item 9). */
+@Composable
+private fun InAppBrightnessSection(
+    customBrightness: Boolean,
+    brightnessLevel: Float,
+    onCustomBrightnessChange: (Boolean) -> Unit,
+    onBrightnessLevelChange: (Float) -> Unit,
+) {
+    Column {
+        val useSystemBrightness = !customBrightness
+        SettingsSwitchRow(
+            icon = Icons.Outlined.BrightnessMedium,
+            title = stringResource(R.string.settings_use_system_brightness),
+            subtitle = stringResource(R.string.settings_use_system_brightness_subtitle),
+            checked = useSystemBrightness,
+            onChange = { checked ->
+                onCustomBrightnessChange(!checked)
+            },
+        )
+
+        androidx.compose.animation.AnimatedVisibility(
+            visible = customBrightness,
+            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
+            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
+        ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                val percent = kotlin.math.round(brightnessLevel * 100).toInt()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.BrightnessLow,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        stringResource(R.string.settings_brightness_slider_label),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        stringResource(R.string.settings_brightness_percent, percent),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Icon(
+                        Icons.Outlined.BrightnessHigh,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+
+                Slider(
+                    value = brightnessLevel,
+                    onValueChange = { onBrightnessLevelChange(it.coerceIn(0.05f, 1.0f)) },
+                    valueRange = 0.05f..1.0f,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                val presets = listOf(
+                    stringResource(R.string.settings_brightness_low) to 0.25f,
+                    stringResource(R.string.settings_brightness_medium) to 0.50f,
+                    stringResource(R.string.settings_brightness_high) to 0.75f,
+                    stringResource(R.string.settings_brightness_max) to 1.00f,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                ) {
+                    presets.forEach { (label, presetValue) ->
+                        val isSelected = kotlin.math.abs(brightnessLevel - presetValue) < 0.03f
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onBrightnessLevelChange(presetValue) },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    stringResource(R.string.settings_brightness_footnote),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
             }
         }
     }

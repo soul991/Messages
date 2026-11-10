@@ -49,6 +49,12 @@ class FixedColorSchemesContrastTest {
         assertAa("Dark greenText/surface", s.greenText, s.surface)
         // greenText on background
         assertAa("Dark greenText/background", s.greenText, s.background)
+        // outline on surface & background (WCAG AA >= 4.5:1)
+        assertAa("Dark outline/surface", s.outline, s.surface)
+        assertAa("Dark outline/background", s.outline, s.background)
+        // error pairs
+        assertAa("Dark onError/error", s.onError, s.error)
+        assertAa("Dark onErrorContainer/errorContainer", s.onErrorContainer, s.errorContainer)
     }
 
     @Test
@@ -64,6 +70,12 @@ class FixedColorSchemesContrastTest {
         assertAa("Light textMuted/surface", s.textMuted, s.surface)
         // onSurfaceVariant (textMuted) on background
         assertAa("Light textMuted/background", s.textMuted, s.background)
+        // outline on surface & background (WCAG AA >= 4.5:1)
+        assertAa("Light outline/surface", s.outline, s.surface)
+        assertAa("Light outline/background", s.outline, s.background)
+        // error pairs
+        assertAa("Light onError/error", s.onError, s.error)
+        assertAa("Light onErrorContainer/errorContainer", s.onErrorContainer, s.errorContainer)
         // greenText token achieves WCAG accent ratio (>= 3.0:1)
         assertAa("Light greenText/surface", s.greenText, s.surface, minRatio = 3.0)
         assertAa("Light greenText/background", s.greenText, s.background, minRatio = 3.0)

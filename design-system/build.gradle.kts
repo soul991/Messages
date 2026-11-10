@@ -24,6 +24,7 @@ dependencies {
     api(libs.androidx.compose.material3)
     api(libs.androidx.compose.material.icons)
     api(libs.androidx.compose.animation)
+    api(libs.haze)
     debugApi(libs.androidx.compose.ui.tooling)
     api(libs.androidx.compose.ui.tooling.preview)
 }

@@ -61,11 +61,15 @@ object DraftStore {
             clear(ctx, threadId, space)
             return
         }
+        val currentDraft = prefs(ctx).getString(key(space, threadId), "") ?: ""
+        if (currentDraft == text) return
         prefs(ctx).edit().putString(key(space, threadId), text).apply()
         if (space == Spaces.NORMAL) drafts.value = drafts.value + (threadId to text)
     }
 
     fun clear(ctx: Context, threadId: Long, space: String = Spaces.NORMAL) {
+        val currentDraft = prefs(ctx).getString(key(space, threadId), "") ?: ""
+        if (currentDraft.isEmpty() && !drafts.value.containsKey(threadId)) return
         prefs(ctx).edit().remove(key(space, threadId)).apply()
         if (space == Spaces.NORMAL) drafts.value = drafts.value - threadId
     }

@@ -109,8 +109,8 @@ object DesignTokens {
     }
 
     object Dimensions {
-        val RowHeight = 68.dp
-        val Avatar = 44.dp
+        val RowHeight = 82.dp
+        val Avatar = 52.dp
         val Fab = 48.dp
         val DockHeight = 64.dp
         val DockRadius = 32.dp

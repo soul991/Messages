@@ -80,8 +80,8 @@ fun SummaryCard(
     onDismissField: (CardExtractor.FieldKind) -> Unit,
     /** Hides the card for this message only. */
     onHideCard: () -> Unit,
-    /** Turns the whole feature off, from the place the user is objecting to it. */
-    onTurnOff: () -> Unit,
+    /** Deprecated: moved to conversation overflow menu. */
+    onTurnOff: () -> Unit = {},
     /** The message body, so a field can point back at the words it came from. */
     body: String,
     maxWidth: Dp,
@@ -215,19 +215,6 @@ fun SummaryCard(
                             onClick = {
                                 menuOpen = false
                                 onHideCard()
-                            },
-                            modifier = Modifier.heightIn(min = 48.dp),
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(R.string.summary_action_turn_off),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            },
-                            onClick = {
-                                menuOpen = false
-                                onTurnOff()
                             },
                             modifier = Modifier.heightIn(min = 48.dp),
                         )

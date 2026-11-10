@@ -73,6 +73,19 @@ internal const val NOTIF_FRAUD_COLOR = 0xFFFF453A.toInt() // Semantic error red 
  */
 class MessageNotifier(private val context: Context) {
 
+    internal fun applyXiaomiAppIcon(
+        context: Context,
+        builder: NotificationCompat.Builder,
+        isXiaomi: Boolean = isXiaomiDevice(),
+    ) {
+        if (isXiaomi && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            try {
+                val appIcon = android.graphics.drawable.Icon.createWithResource(context, R.mipmap.ic_launcher_v2)
+                builder.extras.putParcelable("miui.appIcon", appIcon)
+            } catch (_: Throwable) {}
+        }
+    }
+
     suspend fun notifyFor(message: MessageEntity, verdict: Verdict, contactName: String?) {
         // Secret locked space: a message routed to the locked space must not
         // produce ANY identifying notification — no sender, no content, no
@@ -272,9 +285,11 @@ class MessageNotifier(private val context: Context) {
             .setContentText(context.getString(R.string.notif_new_message))
             .setContentIntent(openIntent)
             .setAutoCancel(true)
+            .also { applyXiaomiAppIcon(context, it) }
             .build()
         builder.setPublicVersion(publicNotification)
         builder.setVisibility(resolveNotificationVisibility(hidden, AppLock.hidePreviews(context)))
+        applyXiaomiAppIcon(context, builder)
 
         // Set high-resolution circular avatar (photo or neutral monogram matching chat list)
         if (!conversationLocked) {
@@ -373,7 +388,7 @@ class MessageNotifier(private val context: Context) {
             )
             builder.bubbleMetadata = NotificationCompat.BubbleMetadata.Builder(
                 bubbleIntent,
-                IconCompat.createWithResource(context, R.mipmap.ic_launcher),
+                IconCompat.createWithResource(context, R.mipmap.ic_launcher_v2),
             )
                 .setDesiredHeight(600)
                 .build()
@@ -402,6 +417,7 @@ class MessageNotifier(private val context: Context) {
             .setContentIntent(openIntent)
             .setAutoCancel(true)
             .addAction(R.drawable.ic_notif_mark_read, context.getString(R.string.notif_mark_as_read), markRead)
+            .also { applyXiaomiAppIcon(context, it) }
             .build()
 
         notificationManager.notify(
@@ -452,6 +468,7 @@ class MessageNotifier(private val context: Context) {
             .setColor(NOTIF_FRAUD_COLOR)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .also { applyXiaomiAppIcon(context, it) }
         NotificationManagerCompat.from(context).notify(
             NotificationIds.threadTag(message.threadId),
             NotificationIds.ID_FRAUD,
@@ -497,6 +514,7 @@ class MessageNotifier(private val context: Context) {
             .setContentIntent(openIntent)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .also { applyXiaomiAppIcon(context, it) }
         NotificationManagerCompat.from(context).notify(LOCKED_SPACE_ID, builder.build())
     }
 
@@ -515,6 +533,7 @@ class MessageNotifier(private val context: Context) {
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .also { applyXiaomiAppIcon(context, it) }
         NotificationManagerCompat.from(context).notify(REVIEW_ID, builder.build())
     }
 
@@ -663,6 +682,16 @@ class MessageNotifier(private val context: Context) {
                 isReplyable = replyable,
                 isFraudWarning = false,
             )
+        }
+
+        fun isXiaomiDevice(
+            manufacturer: String = android.os.Build.MANUFACTURER,
+            brand: String = android.os.Build.BRAND,
+        ): Boolean {
+            return manufacturer.equals("Xiaomi", ignoreCase = true) ||
+                brand.equals("Xiaomi", ignoreCase = true) ||
+                brand.equals("Redmi", ignoreCase = true) ||
+                brand.equals("POCO", ignoreCase = true)
         }
 
         /** Single shared id for ALL locked-space pings — never per-thread.

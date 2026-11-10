@@ -305,6 +305,22 @@ object FriendlySenderNames {
     }
 
     /**
+     * Extracts a canonical brand/sender key for deduplication and thread merging.
+     * Alphanumeric sender codes with routing prefixes (e.g. "VK-PhonePe", "VM-PhonePe", "AD-PhonePe")
+     * map to the same uppercase brand key (e.g. "PHONEPE").
+     * Phone numbers return their digits-only representation.
+     */
+    fun canonicalBrandKey(rawAddress: String?): String {
+        if (rawAddress.isNullOrBlank()) return ""
+        val cleaned = cleanShortCode(rawAddress)
+        val digitCount = cleaned.count { it.isDigit() }
+        if (digitCount >= 7 && cleaned.all { it.isDigit() || it == '+' || it == '-' || it == ' ' }) {
+            return cleaned.filter { it.isDigit() }
+        }
+        return cleaned.uppercase()
+    }
+
+    /**
      * Resolves a raw sender address/header into a friendly brand name.
      * When confident, returns the friendly brand name.
      * When not confident, returns the cleaned short code, not the raw prefixed one.

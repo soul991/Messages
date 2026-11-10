@@ -112,17 +112,44 @@ class ProtectionEngine(
             return Verdict(Category.INBOX, explanations = listOf(expl), notify = true)
         }
 
+        // Stage 2 — Protected patterns (can NEVER be filtered).
+        // §5.7: OTP protection is absolute; bank/delivery/bill/travel protection
+        // applies from registered headers or contacts — a random number saying
+        // "your parcel shipped, pay fee" must not ride the protected lane.
+        // Protected patterns are checked before unknown spam heuristics so legitimate
+        // bank alerts and OTPs mentioning crypto exchanges or trading platforms remain strictly protected.
+        val registeredOrContact = SenderAnalyzer.isRegisteredHeader(sender) ||
+            sender.isContact || sender.type == SenderType.SHORT_CODE ||
+            sender.type == SenderType.ALPHANUMERIC_UNKNOWN
+        val protectedMatches = patternMatches.filter {
+            it.pattern.family == Families.PROTECTED_OTP ||
+                (it.pattern.family in Families.PROTECTED && registeredOrContact)
+        }
+        var protectedOverridden = false
+        if (protectedMatches.isNotEmpty()) {
+            val otpProtected = protectedMatches.any { it.pattern.family == Families.PROTECTED_OTP }
+            val phishyLink = linkSignals.any { it.isPhishy }
+            val scamEvidence = fraudCombos.isNotEmpty() ||
+                patternMatches.any { it.pattern.family in Families.SCAM }
+            if (otpProtected || !phishyLink || !scamEvidence) {
+                return protectedVerdict(msg, sender, protectedMatches, patternMatches, linkSignals)
+            }
+            protectedOverridden = true
+        }
+
         val isUnknownSender = !sender.isContact && !sender.hasUserReplyHistory
 
-        // Rule 5: Crypto/NFT/lottery keywords from unknown senders must route to Spam
-        val isCryptoOrNft = Regex("""(?i)\b(crypto|bitcoin|btc|eth|ethereum|usdt|binance|airdrop|nft|web3|solana|coinbase|trust\s*wallet|metamask)\b""")
-            .containsMatchIn(msg.normalizedText)
-        val isLottery = Regex("""(?i)\b(lottery|lucky\s*draw|bumper\s*prize|cash\s*prize|kbc\s*(?:lottery|prize|winner)|won\s+(?:Rs\.?|INR|₹|\$)\s*[\d,]+|congratulations.*won.*(?:prize|cash|car|draw))\b""")
-            .containsMatchIn(msg.normalizedText)
-        if (isUnknownSender && (isCryptoOrNft || isLottery)) {
-            val reason = if (isCryptoOrNft) "Crypto/NFT solicitation from unknown sender" else "Lottery/prize solicitation from unknown sender"
+        // Rule 5: Crypto/NFT/trading solicitations/lottery keywords from unknown senders must route to Spam
+        val isCryptoOrNftOrTrading = Regex(
+            """(?i)\b(crypto|bitcoin|btc|eth|ethereum|usdt|binance|airdrop|nft|web3|solana|coinbase|trust\s*wallet|metamask|nsetrade|bsetrade|matlia|sigilum|trading\s*platform|trading\s*bot|trading\s*signals?|stock\s*tips?|share\s*market\s*(?:tips?|calls?)|intraday\s*(?:tips?|calls?)|multibagger|sure\s*shot\s*(?:calls?|profit)|bought\s+[a-z0-9]+\s+(?:nft|trading|platform)|forex\s*trading|binary\s*options?)\b"""
+        ).containsMatchIn(msg.normalizedText)
+        val isLottery = Regex(
+            """(?i)\b(lottery|lucky\s*draw|bumper\s*prize|cash\s*prize|kbc\s*(?:lottery|prize|winner)|won\s+(?:Rs\.?|INR|₹|\$)\s*[\d,]+|congratulations.*won.*(?:prize|cash|car|draw))\b"""
+        ).containsMatchIn(msg.normalizedText)
+        if (isUnknownSender && (isCryptoOrNftOrTrading || isLottery)) {
+            val reason = if (isCryptoOrNftOrTrading) "Crypto/NFT/Trading solicitation from unknown sender" else "Lottery/prize solicitation from unknown sender"
             val isDangerous = isLottery || linkSignals.any { it.isShortener || it.isPhishy } || fraudCombos.isNotEmpty()
-            val allPatternIds = (patternMatches.map { it.pattern.id } + listOf(if (isCryptoOrNft) "crypto-nft-unknown" else "lottery-unknown")).distinct()
+            val allPatternIds = (patternMatches.map { it.pattern.id } + listOf(if (isCryptoOrNftOrTrading) "crypto-nft-trading-unknown" else "lottery-unknown")).distinct()
             val allExplanations = patternMatches.map { it.pattern.description } + reason
             return Verdict(
                 Category.SPAM,
@@ -173,40 +200,6 @@ class ProtectionEngine(
                     notify = false,
                 )
             }
-        }
-
-        // Stage 2 — Protected patterns (can NEVER be filtered).
-        // §5.7: OTP protection is absolute; bank/delivery/bill/travel protection
-        // applies from registered headers or contacts — a random number saying
-        // "your parcel shipped, pay fee" must not ride the protected lane.
-        val registeredOrContact = SenderAnalyzer.isRegisteredHeader(sender) ||
-            sender.isContact || sender.type == SenderType.SHORT_CODE ||
-            sender.type == SenderType.ALPHANUMERIC_UNKNOWN
-        val protectedMatches = patternMatches.filter {
-            it.pattern.family == Families.PROTECTED_OTP ||
-                (it.pattern.family in Families.PROTECTED && registeredOrContact)
-        }
-        var protectedOverridden = false
-        if (protectedMatches.isNotEmpty()) {
-            // Registered-header abuse (real-world, 2026-07): DLT-registered
-            // headers sending "Rs X credited — withdraw now: bit.ly/…" bait.
-            // The bank-alert wording matches PROTECTED_BANK, but the message
-            // also carries hard scam evidence. OTP protection stays absolute;
-            // for the other protected families the lane is overridden ONLY
-            // when a PHISHY link (shortener/suspicious TLD/impersonation/IP/
-            // insecure) is present alongside a fraud combo or a scam-family
-            // pattern match. Textual evidence alone (e.g. C7 firing on a
-            // genuine "never share your OTP/PIN" footer) or an official-
-            // domain link on a real alert never overrides.
-            val otpProtected = protectedMatches.any { it.pattern.family == Families.PROTECTED_OTP }
-            val phishyLink = linkSignals.any { it.isPhishy }
-            val scamEvidence = fraudCombos.isNotEmpty() ||
-                patternMatches.any { it.pattern.family in Families.SCAM }
-            if (otpProtected || !phishyLink || !scamEvidence) {
-                return protectedVerdict(msg, sender, protectedMatches, patternMatches, linkSignals)
-            }
-            // else: fall through to scoring; the scam evidence decides.
-            protectedOverridden = true
         }
 
         // Rule 1 check: Transactional patterns from verified sender formats MUST file under Personal, NEVER under Promo

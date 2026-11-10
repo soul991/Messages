@@ -43,6 +43,22 @@ class MessagesApp : Application(), androidx.work.Configuration.Provider {
         sealLockedBacklog()
         cleanupSyntheticData()
         checkAndHandleVersionUpgrade()
+        runStartupMaintenance()
+    }
+
+    /**
+     * Safe startup maintenance: relabels auto-swipe rows to unknown and cleans up duplicate OTPs.
+     */
+    private fun runStartupMaintenance() {
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+        ).launch {
+            runCatching {
+                val repo = com.messages.core.MessageRepository.get(this@MessagesApp)
+                repo.db.messages().relabelAutoSwipeToUnknown()
+                repo.deduplicateExistingMessages()
+            }
+        }
     }
 
     /**

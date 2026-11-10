@@ -30,7 +30,7 @@ object NotificationAvatarGenerator {
 
         val drawable = androidx.core.content.ContextCompat.getDrawable(
             context,
-            com.messages.app.R.mipmap.ic_launcher,
+            com.messages.app.R.mipmap.ic_launcher_v2,
         ) ?: androidx.core.content.ContextCompat.getDrawable(
             context,
             com.messages.app.R.drawable.ic_launcher_foreground,

@@ -148,8 +148,12 @@ val FixedDarkColorScheme: ColorScheme = darkColorScheme(
     onSurface = DesignTokens.Dark.Text, // #F2F2F4
     surfaceVariant = DesignTokens.Dark.Surface, // #121214
     onSurfaceVariant = DesignTokens.Dark.TextMuted, // #8E8E93
-    outline = DesignTokens.Dark.Hairline, // #1F1F23
+    outline = DesignTokens.Dark.TextMuted, // #8E8E93 (WCAG AA >= 4.5:1 against black and surface)
     outlineVariant = DesignTokens.Dark.Hairline, // #1F1F23
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
 
     surfaceContainerLowest = DesignTokens.Dark.Bg, // #000000
     surfaceContainerLow = DesignTokens.Dark.Surface, // #121214
@@ -182,8 +186,12 @@ val FixedLightColorScheme: ColorScheme = lightColorScheme(
     onSurface = DesignTokens.Light.Text, // #111113
     surfaceVariant = DesignTokens.Light.Bg, // #F7F7F4
     onSurfaceVariant = DesignTokens.Light.TextMuted, // #6B6B72
-    outline = DesignTokens.Light.Hairline, // #E6E6E1
+    outline = DesignTokens.Light.TextMuted, // #6B6B72 (WCAG AA >= 4.5:1 against white and surface)
     outlineVariant = DesignTokens.Light.Hairline, // #E6E6E1
+    error = Color(0xFFBA1A1A),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFFFDAD6),
+    onErrorContainer = Color(0xFF410002),
 
     surfaceContainerLowest = DesignTokens.Light.Surface, // #FFFFFF
     surfaceContainerLow = DesignTokens.Light.Bg, // #F7F7F4

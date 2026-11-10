@@ -296,14 +296,14 @@ object Migrations {
     }
 
     /**
-     * v12: track reason for trashing (USER, AUTO_SWIPE, AUTO_SPAM, AUTO_OTP).
-     * Existing trashed rows default to 'AUTO_SWIPE' so accidental swipe deletions
-     * can be distinguished and restored en masse.
+     * v12: track reason for trashing (USER, AUTO_SWIPE, AUTO_SPAM, AUTO_OTP, UNKNOWN).
+     * Existing trashed rows default to 'before 2.5.1 (unknown)' so accidental swipe deletions
+     * are not confused with intentional user deletions.
      */
     val MIGRATION_11_12 = object : Migration(11, 12) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE messages ADD COLUMN trashReason TEXT")
-            db.execSQL("UPDATE messages SET trashReason = 'AUTO_SWIPE' WHERE trashed = 1")
+            db.execSQL("UPDATE messages SET trashReason = 'before 2.5.1 (unknown)' WHERE trashed = 1")
         }
     }
 

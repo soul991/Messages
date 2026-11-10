@@ -124,6 +124,19 @@ class MainActivity : FragmentActivity() {
     /** Folder to show on Home (e.g. Review notification tap); observed by HomeScreen. */
     private var folderRequest by mutableStateOf<String?>(null)
 
+    private var customBrightnessEnabled by mutableStateOf(false)
+    private var brightnessLevel by mutableStateOf(ThemePreferences.DEFAULT_BRIGHTNESS)
+
+    private fun applyScreenBrightness(enabled: Boolean, level: Float) {
+        val lp = window.attributes
+        lp.screenBrightness = if (enabled) {
+            level.coerceIn(0.05f, 1.0f)
+        } else {
+            android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        }
+        window.attributes = lp
+    }
+
 
 
     /** Keeps FLAG_SECURE in sync with the App lock toggle while Settings is
@@ -178,6 +191,9 @@ class MainActivity : FragmentActivity() {
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
         applyFlagSecure()
+        customBrightnessEnabled = ThemePreferences.isCustomBrightnessEnabled(this)
+        brightnessLevel = ThemePreferences.getBrightnessLevel(this)
+        applyScreenBrightness(customBrightnessEnabled, brightnessLevel)
         getSharedPreferences("settings", MODE_PRIVATE)
             .registerOnSharedPreferenceChangeListener(secureFlagListener)
         refreshDefaultState()
@@ -600,6 +616,18 @@ class MainActivity : FragmentActivity() {
                                 } else {
                                     nav.navigate("secret_setup")
                                 }
+                            },
+                            customBrightness = customBrightnessEnabled,
+                            onCustomBrightnessChange = { enabled ->
+                                customBrightnessEnabled = enabled
+                                ThemePreferences.setCustomBrightnessEnabled(this@MainActivity, enabled)
+                                applyScreenBrightness(enabled, brightnessLevel)
+                            },
+                            brightnessLevel = brightnessLevel,
+                            onBrightnessLevelChange = { level ->
+                                brightnessLevel = level
+                                ThemePreferences.setBrightnessLevel(this@MainActivity, level)
+                                applyScreenBrightness(customBrightnessEnabled, level)
                             },
                         )
                     }

@@ -182,13 +182,8 @@ object SettingsTileColors {
     val BlueLight = Color(0xFF004BA0)
 
     fun forCategory(categoryBadge: String?, isDark: Boolean): Color {
-        return when (categoryBadge) {
-            "SPAM", "BLOCKED" -> if (isDark) RedDark else RedLight
-            "PROMOTIONS", "OFFERS" -> if (isDark) AmberDark else AmberLight
-            "REVIEW" -> if (isDark) BlueDark else BlueLight
-            "TRANSACTIONS", "PERSONAL", "INBOX" -> if (isDark) GreenDark else GreenLight
-            else -> if (isDark) GreenDark else GreenLight
-        }
+        // Yellow, blue and red are reserved for dock icons only. Use neutral green tinted tiles everywhere else in settings.
+        return if (isDark) GreenDark else GreenLight
     }
 }
 
@@ -277,16 +272,12 @@ internal fun SettingsRow(
                 title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             if (subtitle != null) {
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

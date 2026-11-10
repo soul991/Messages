@@ -46,6 +46,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
@@ -57,6 +60,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.chrisbanes.haze.HazeDefaults
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeChild
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -111,9 +119,9 @@ data class DockItem(
  * Bottom Dock styled as a compact floating pill (Telegram-style).
  *
  * Compact floating capsule: centered, width wrapping its content,
- * 56dp height, 28dp corner radius, sits above the gesture bar,
- * translucent dockBackground with crisp 1dp border,
- * and neutral dockActivePill on the active tab.
+ * 62dp height, 31dp corner radius, sits above the gesture bar,
+ * true backdrop blur via Haze with >=72% dark tint and near-opaque fallback below API 31,
+ * 1dp hairline border, subtle top highlight, and neutral dockActivePill on the active tab.
  */
 @Composable
 fun BottomDock(
@@ -121,8 +129,25 @@ fun BottomDock(
     selectedKey: String,
     onItemSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
 ) {
     val isDark = LocalDarkTheme.current
+    val dockHeight = 62.dp
+    val dockCornerRadius = 31.dp
+    val dockShape = RoundedCornerShape(dockCornerRadius)
+
+    val tintColor = if (isDark) DesignTokens.Dark.Dock else DesignTokens.Light.Dock
+    val fallbackColor = if (isDark) Color(0xF21C1C1F) else Color(0xF5FFFFFF)
+
+    val dockHazeStyle = remember(isDark, tintColor, fallbackColor) {
+        HazeStyle(
+            backgroundColor = tintColor,
+            tints = listOf(HazeTint(tintColor)),
+            blurRadius = 22.dp,
+            noiseFactor = 0f,
+            fallbackTint = HazeTint(fallbackColor),
+        )
+    }
 
     Box(
         modifier = modifier
@@ -131,36 +156,56 @@ fun BottomDock(
             .padding(bottom = 16.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        // Floating Dock Glass Container (56dp height, 28dp corner radius, wrap content width)
+        // Floating Dock Glass Container (62dp height, 31dp corner radius, wrap content width)
         Box(
             modifier = Modifier
                 .wrapContentWidth()
-                .height(56.dp),
+                .height(dockHeight),
         ) {
-            // Glass background layer with blur where supported (API 31+)
+            // Glass background layer with real backdrop blur (Haze) and near-opaque fallback
             Box(
                 modifier = Modifier
                     .matchParentSize()
+                    .clip(dockShape)
                     .then(
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            Modifier.graphicsLayer {
-                                val blurPx = 20.dp.toPx()
-                                renderEffect = RenderEffect
-                                    .createBlurEffect(blurPx, blurPx, Shader.TileMode.CLAMP)
-                                    .asComposeRenderEffect()
-                            }
-                        } else Modifier
-                    )
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(MaterialTheme.colorScheme.dockBackground),
+                        if (hazeState != null) {
+                            Modifier.hazeChild(
+                                state = hazeState,
+                                style = dockHazeStyle,
+                            )
+                        } else {
+                            Modifier.background(
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) tintColor else fallbackColor
+                            )
+                        }
+                    ),
             )
 
-            // Crisp border & content layer
+            // Crisp border, subtle top highlight & content layer
             Surface(
                 modifier = Modifier
                     .wrapContentWidth()
-                    .fillMaxHeight(),
-                shape = RoundedCornerShape(28.dp),
+                    .fillMaxHeight()
+                    .drawWithContent {
+                        drawContent()
+                        // Subtle top highlight hairline across top curve
+                        val highlightColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.35f)
+                        drawLine(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    highlightColor,
+                                    Color.Transparent,
+                                ),
+                                startX = 0f,
+                                endX = size.width,
+                            ),
+                            start = Offset(x = 24.dp.toPx(), y = 1.dp.toPx()),
+                            end = Offset(x = size.width - 24.dp.toPx(), y = 1.dp.toPx()),
+                            strokeWidth = 1.dp.toPx(),
+                        )
+                    },
+                shape = dockShape,
                 color = Color.Transparent,
                 shadowElevation = 0.dp,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.dockBorder),
@@ -198,12 +243,12 @@ fun BottomDock(
                         Box(
                             modifier = Modifier
                                 .testTag("dock_${item.key}")
-                                .widthIn(min = 62.dp)
+                                .widthIn(min = 66.dp)
                                 .graphicsLayer {
                                     scaleX = tabScale
                                     scaleY = tabScale
                                 }
-                                .clip(RoundedCornerShape(24.dp))
+                                .clip(RoundedCornerShape(26.dp))
                                 .clickable(
                                     interactionSource = interactionSource,
                                     indication = ripple(
@@ -225,7 +270,7 @@ fun BottomDock(
                                     modifier = Modifier
                                         .matchParentSize()
                                         .graphicsLayer { alpha = pillAlpha }
-                                        .background(MaterialTheme.colorScheme.dockActivePill, RoundedCornerShape(24.dp))
+                                        .background(MaterialTheme.colorScheme.dockActivePill, RoundedCornerShape(26.dp))
                                 )
                             }
 
@@ -237,14 +282,14 @@ fun BottomDock(
                                     imageVector = if (selected) item.filledIcon else item.outlinedIcon,
                                     contentDescription = item.title,
                                     tint = iconColor,
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(26.dp),
                                 )
 
                                 Text(
                                     text = item.title,
                                     style = TextStyle(
                                         fontFamily = InterFontFamily,
-                                        fontSize = 11.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
                                         letterSpacing = 0.sp,
                                     ),

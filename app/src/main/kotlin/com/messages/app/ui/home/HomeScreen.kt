@@ -49,6 +49,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,6 +59,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -218,8 +223,8 @@ import com.messages.app.ui.common.showTransient
 import com.messages.app.ui.common.AppTransientSnackbarHost
 import com.messages.app.R
 
-private val ROW_HEIGHT = 68.dp
-private val ROW_AVATAR = 44.dp
+private val ROW_HEIGHT = 82.dp
+private val ROW_AVATAR = 52.dp
 private val ROW_GAP = 12.dp
 
 // V2-36. The left half of each pair is the stored folder/label id and never
@@ -342,6 +347,20 @@ fun HomeScreen(
         focusManager.clearFocus()
         keyboardController?.hide()
     }
+
+    val searchFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(searchActive) {
+        if (searchActive) {
+            kotlinx.coroutines.android.awaitFrame()
+            searchFocusRequester.requestFocus()
+        }
+    }
+
+    val searchProgress by animateFloatAsState(
+        targetValue = if (searchActive) 1f else 0f,
+        animationSpec = Motion.screenSpring(),
+        label = "search_spring_progress",
+    )
     BackHandler(enabled = !searchActive && !selectionActive && folder != "INBOX") {
         com.messages.app.ui.navigation.NavigationBackPolicy.handleHomeBack(
             searchActive = searchActive,
@@ -470,17 +489,31 @@ fun HomeScreen(
         )
     }
 
+    val hazeState = remember { HazeState() }
+
     Box(Modifier.fillMaxSize()) {
         Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = {},
             topBar = {
-                GlassTopBar(isDark = LocalDarkTheme.current) {
-                    Box(
+                GlassTopBar(
+                    isDark = LocalDarkTheme.current,
+                    hazeState = hazeState,
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .statusBarsPadding()
-                            .height(64.dp),
+                            .statusBarsPadding(),
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .graphicsLayer {
+                                    alpha = (1f - searchProgress).coerceIn(0f, 1f)
+                                    translationY = -searchProgress * 28.dp.toPx()
+                                },
+                        ) {
                         AnimatedContent(
                             targetState = selectionActive,
                             transitionSpec = {
@@ -839,61 +872,34 @@ fun HomeScreen(
                     }
                 }
             }
-        }
-    },
-) { padding ->
-            Column(
-                Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .nestedScroll(nestedScrollConnection),
-            ) {
-                if (!isDefaultSmsApp) {
-                    DefaultSmsInfoCard(
-                        onRequestDefault = onRequestDefault,
-                        roleRequestFailed = roleRequestFailed,
-                        onOpenAppSettings = onOpenAppSettings,
-                        onOpenDefaultApps = onOpenDefaultApps,
-                    )
-                }
 
-                // G1: Search field below header: 40dp pill, 20dp radius, surface color
-                // Smoothly collapses/expands with list scrolling via nestedScroll
-                val searchAlpha by animateFloatAsState(
-                    targetValue = if (selectionActive) 0.38f else 1f,
-                    animationSpec = Motion.effectsFast(),
-                    label = "search-selection-alpha",
-                )
-                val searchBarHeightDp = with(density) {
-                    (searchBarMaxHeightPx + searchBarOffsetPx).coerceAtLeast(0f).toDp()
-                }
-                Box(
+            // Unified search bar with spring transform
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(searchBarHeightDp)
-                        .clipToBounds(),
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .height(48.dp)
+                        .graphicsLayer {
+                            translationY = -searchProgress * 56.dp.toPx()
+                        }
+                        .then(
+                            if (!searchActive && !selectionActive) {
+                                Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple(),
+                                    onClick = { searchActive = true },
+                                )
+                            } else Modifier
+                        ),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(searchBarMaxHeightDp)
-                            .offset { IntOffset(0, searchBarOffsetPx.roundToInt()) }
-                            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
-                            .graphicsLayer { alpha = searchAlpha }
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
-                            .clickable(
-                                enabled = !selectionActive,
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(),
-                                onClick = { searchActive = true },
-                            )
-                            .padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
+                    if (!searchActive && searchProgress < 0.05f) {
                         Row(
-                            modifier = Modifier.fillMaxHeight(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
@@ -917,24 +923,144 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.textMuted,
                             )
                         }
+                    } else {
+                        TextField(
+                            value = typing,
+                            onValueChange = { vm.setTyping(it) },
+                            placeholder = {
+                                Text(
+                                    if (chips.isEmpty()) stringResource(R.string.home_search_placeholder)
+                                    else stringResource(R.string.home_search_add_keyword),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                )
+                            },
+                            leadingIcon = {
+                                IconButton(onClick = { exitSearch() }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = stringResource(R.string.chat_close_search),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            },
+                            trailingIcon = {
+                                if (typing.isNotEmpty() || chips.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        if (typing.isNotEmpty()) {
+                                            vm.setTyping("")
+                                        } else {
+                                            vm.clearSearch()
+                                        }
+                                    }) {
+                                        Icon(
+                                            Icons.Filled.Close,
+                                            contentDescription = stringResource(R.string.action_clear),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = {
+                                keyboardController?.hide()
+                            }),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                cursorColor = MaterialTheme.colorScheme.primary,
+                            ),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .focusRequester(searchFocusRequester),
+                        )
                     }
                 }
+            }
+        }
+    },
+) { padding ->
+            Column(
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        translationY = -searchProgress * 56.dp.toPx()
+                    }
+                    .nestedScroll(nestedScrollConnection),
+            ) {
+                if (!isDefaultSmsApp && searchProgress < 0.05f) {
+                    DefaultSmsInfoCard(
+                        onRequestDefault = onRequestDefault,
+                        roleRequestFailed = roleRequestFailed,
+                        onOpenAppSettings = onOpenAppSettings,
+                        onOpenDefaultApps = onOpenDefaultApps,
+                    )
+                }
 
-                // Contacts access banner
-                ContactsPermissionBanner()
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding(),
+                ) {
+                    if (searchProgress < 0.99f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    alpha = (1f - searchProgress).coerceIn(0f, 1f)
+                                    translationY = searchProgress * 32.dp.toPx()
+                                },
+                        ) {
+                            Column(Modifier.fillMaxSize()) {
+                                ContactsPermissionBanner()
+                                FolderPane(
+                                    vm = vm,
+                                    folder = folder,
+                                    listStateFor = listStateFor,
+                                    onSelectFolder = { key ->
+                                        if (key != folder) Haptics.tick(view)
+                                        vm.setFolder(key)
+                                    },
+                                    onOpenThread = onOpenThread,
+                                    onSwipeAction = ::onSwipeAction,
+                                    hazeState = hazeState,
+                                )
+                            }
+                        }
+                    }
 
-                // Folder conversation list
-                FolderPane(
-                    vm = vm,
-                    folder = folder,
-                    listStateFor = listStateFor,
-                    onSelectFolder = { key ->
-                        if (key != folder) Haptics.tick(view)
-                        vm.setFolder(key)
-                    },
-                    onOpenThread = onOpenThread,
-                    onSwipeAction = ::onSwipeAction,
-                )
+                    if (searchProgress > 0.01f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    alpha = searchProgress.coerceIn(0f, 1f)
+                                    translationY = (1f - searchProgress) * 32.dp.toPx()
+                                },
+                        ) {
+                            SearchPane(
+                                vm = vm,
+                                chips = chips,
+                                typing = typing,
+                                labelFilter = labelFilter,
+                                state = searchState,
+                                onOpenResult = { msg ->
+                                    vm.recordSearchUse()
+                                    onOpenSearchResult(msg.threadId, msg.id, searchState.activeKeywords)
+                                },
+                                onOpenThread = onOpenThread,
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -982,17 +1108,13 @@ fun HomeScreen(
         }
 
         // Floating Undo / Transient Message Banner
-        // Sits ABOVE the dock with clear separation (at least 8dp clearance above dock top; 84dp bottom padding gives 16dp clearance)
-        // Does not cover dock or FAB: leaves 80dp on right when FAB is active.
+        // Sits centered above the dock with clear separation (96dp bottom padding leaves clearance over the 62dp dock).
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(
-                    start = 16.dp,
-                    end = if (!searchActive && !selectionActive) 80.dp else 16.dp,
-                    bottom = 84.dp,
-                )
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 96.dp)
                 .zIndex(5f),
         ) {
             AppTransientSnackbarHost(
@@ -1014,128 +1136,8 @@ fun HomeScreen(
                     if (key != folder) Haptics.tick(view)
                     vm.setFolder(key)
                 },
+                hazeState = hazeState,
             )
-        }
-    }
-
-    // Dedicated Full-Screen Liquid Search Surface
-    AnimatedVisibility(
-        visible = searchActive,
-        enter = fadeIn(Motion.effectsDefault()) + slideInVertically(Motion.butterSpring()) { -it / 6 },
-        exit = fadeOut(Motion.effectsFast()) + slideOutVertically(Motion.butterSpring()) { -it / 6 },
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding(),
-            ) {
-                val searchFocusRequester = remember { FocusRequester() }
-                LaunchedEffect(searchActive) {
-                    if (searchActive) {
-                        kotlinx.coroutines.android.awaitFrame()
-                        searchFocusRequester.requestFocus()
-                    }
-                }
-
-                val searchHeaderProgress = animateFloatAsState(
-                    targetValue = if (searchActive) 1f else 0f,
-                    animationSpec = Motion.screenSpring(),
-                    label = "search-header-morph",
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .height(52.dp)
-                        .graphicsLayer {
-                            val p = searchHeaderProgress.value
-                            scaleX = 0.96f + 0.04f * p
-                            scaleY = 0.96f + 0.04f * p
-                            translationY = (1f - p) * 12.dp.toPx()
-                        },
-                ) {
-                    TextField(
-                        value = typing,
-                        onValueChange = { vm.setTyping(it) },
-                        placeholder = {
-                            Text(
-                                if (chips.isEmpty()) stringResource(R.string.home_search_placeholder)
-                                else stringResource(R.string.home_search_add_keyword),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
-                        },
-                        leadingIcon = {
-                            IconButton(onClick = { exitSearch() }) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.chat_close_search),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                        },
-                        trailingIcon = {
-                            if (typing.isNotEmpty() || chips.isNotEmpty()) {
-                                IconButton(onClick = {
-                                    if (typing.isNotEmpty()) {
-                                        vm.setTyping("")
-                                    } else {
-                                        vm.clearSearch()
-                                    }
-                                }) {
-                                    Icon(
-                                        Icons.Filled.Close,
-                                        contentDescription = stringResource(R.string.action_clear),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = {
-                            keyboardController?.hide()
-                        }),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = MaterialTheme.colorScheme.primary,
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .focusRequester(searchFocusRequester),
-                    )
-                }
-
-                SearchPane(
-                    vm = vm,
-                    chips = chips,
-                    typing = typing,
-                    labelFilter = labelFilter,
-                    state = searchState,
-                    onOpenResult = { msg ->
-                        vm.recordSearchUse()
-                        onOpenSearchResult(msg.threadId, msg.id, searchState.activeKeywords)
-                    },
-                    onOpenThread = onOpenThread,
-                )
-            }
         }
     }
 }
@@ -1149,6 +1151,7 @@ private fun FolderPane(
     onOpenThread: (Long) -> Unit,
     onSwipeAction: (String, ConversationEntity) -> Unit,
     listStateFor: (String) -> LazyListState,
+    hazeState: HazeState,
 ) {
     val rightAction by SwipeActions.right.collectAsStateWithLifecycle()
     val leftAction by SwipeActions.left.collectAsStateWithLifecycle()
@@ -1197,8 +1200,11 @@ private fun FolderPane(
                         state = folderListState,
                         modifier = Modifier
                             .fillMaxSize()
+                            .haze(hazeState)
                             .testTag("home_conversation_list"),
-                        contentPadding = PaddingValues(bottom = 144.dp),
+                        contentPadding = PaddingValues(
+                            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 160.dp,
+                        ),
                     ) {
                         items(
                             items = conversations,
@@ -2118,6 +2124,8 @@ private fun SwipeActionBackground(
 ) {
     val view = LocalView.current
     val colorScheme = MaterialTheme.colorScheme
+    val isDark = LocalDarkTheme.current
+    val archiveGreen = if (isDark) Color(0xFF30D158) else Color(0xFF1E9A44)
 
     // Trigger subtle tactile tick when passing the dismiss confirmation threshold
     LaunchedEffect(willDismiss) {
@@ -2131,7 +2139,7 @@ private fun SwipeActionBackground(
             outlinedIcon = SwipeIcons.ArchiveOutlined,
             filledIcon = SwipeIcons.ArchiveFilled,
             container = colorScheme.secondaryContainer,
-            tint = colorScheme.onSecondaryContainer,
+            tint = archiveGreen,
             label = stringResource(R.string.home_archive),
         )
         SwipeActions.PIN -> SwipeVisuals(
@@ -2294,7 +2302,7 @@ private fun ConversationRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(68.dp)
+            .height(ROW_HEIGHT)
             .graphicsLayer {
                 scaleX = rowScale
                 scaleY = rowScale
@@ -2336,10 +2344,10 @@ private fun ConversationRow(
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Neutral avatar: 44dp circle, surface bg, 1px hairline border, 18sp/600 textMuted letter
+        // Neutral avatar: 52dp circle, surface bg, 1px hairline border, 20sp/600 textMuted letter
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(ROW_AVATAR)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surface)
                 .border(1.dp, MaterialTheme.colorScheme.hairline, CircleShape),
@@ -2349,14 +2357,14 @@ private fun ConversationRow(
                 text = avatarLetter,
                 style = TextStyle(
                     fontFamily = InterFontFamily,
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                 ),
                 color = MaterialTheme.colorScheme.textMuted,
             )
         }
 
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(14.dp))
 
         // Right column with inset hairline bottom border
         Column(
@@ -2401,7 +2409,7 @@ private fun ConversationRow(
                     )
                 }
 
-                Spacer(Modifier.height(3.dp))
+                Spacer(Modifier.height(5.dp))
 
                 // Bottom line: Preview (14sp muted, 1 line ellipsis) and Unread count badge (20dp green pill)
                 Row(

@@ -334,6 +334,9 @@ fun ChatScreen(
     }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var summaryCardsHidden by remember(threadId) {
+        mutableStateOf(MessageCards.isHiddenForConversation(context, threadId))
+    }
 
     // V2-36. These five reach the user from a callback — a snackbar raised in a
     // coroutine, a chooser title built in an onClick — none of which is a
@@ -385,9 +388,6 @@ fun ChatScreen(
     var showForwardPicker by remember { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(enabled = msgSelectionActive) {
         selectedMsgIds = emptySet()
-    }
-    androidx.activity.compose.BackHandler(enabled = !msgSelectionActive) {
-        onBack()
     }
     fun selectedTexts(): String = messages
         .filter { it.id in selectedMsgIds }
@@ -919,6 +919,25 @@ fun ChatScreen(
                                                 exportLauncher.launch("Messages-$safeName.txt")
                                             },
                                         )
+                                        if (MessageCards.enabled(context)) {
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        stringResource(
+                                                            if (summaryCardsHidden) R.string.summary_action_show_conversation
+                                                            else R.string.summary_action_hide_conversation
+                                                        )
+                                                    )
+                                                },
+                                                onClick = {
+                                                    showChatMenu = false
+                                                    val newHidden = !summaryCardsHidden
+                                                    MessageCards.setHiddenForConversation(context, threadId, newHidden)
+                                                    summaryCardsHidden = newHidden
+                                                },
+                                                modifier = Modifier.heightIn(min = 48.dp),
+                                            )
+                                        }
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.chat_delete_conversation)) },
                                             onClick = {
@@ -1166,6 +1185,7 @@ fun ChatScreen(
                                 textScale = textScale,
                                 selectionMode = msgSelectionActive,
                                 selected = item.m.id in selectedMsgIds,
+                                summaryCardsHidden = summaryCardsHidden,
                                 onToggleSelect = {
                                     Haptics.tick(view)
                                     selectedMsgIds =
@@ -1861,6 +1881,7 @@ private fun MessageBubble(
     /** Multi-select (Phase 4 item 14): taps toggle instead of opening menus. */
     selectionMode: Boolean = false,
     selected: Boolean = false,
+    summaryCardsHidden: Boolean = false,
     onToggleSelect: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -2317,10 +2338,11 @@ private fun MessageBubble(
         // inside MessageCards on the engine's stored verdict, so a spam or
         // fraud-flagged message can never acquire one by a caller here
         // forgetting a condition.
-        val summaryCard = remember(msg.id, msg.body, cardTick) {
-            MessageCards.cardFor(
+        val summaryCard = remember(msg.id, msg.body, cardTick, summaryCardsHidden) {
+            if (summaryCardsHidden) null
+            else MessageCards.cardFor(
                 context, msg.id, msg.body, msg.category, msg.protectedLabel,
-                msg.dangerous, msg.fraudWarning,
+                msg.dangerous, msg.fraudWarning, msg.threadId,
             )
         }
         summaryCard?.let { card ->
@@ -2332,11 +2354,10 @@ private fun MessageBubble(
                     MessageCards.dismissField(context, msg.id, kind); cardTick++
                 },
                 onHideCard = { MessageCards.dismissCard(context, msg.id); cardTick++ },
-                onTurnOff = { MessageCards.setEnabled(context, false); cardTick++ },
             )
         }
 
-        if (MessageCards.dismissedFor(context, msg.id).isNotEmpty()) {
+        if (!summaryCardsHidden && MessageCards.dismissedFor(context, msg.id).isNotEmpty()) {
             TextButton(
                 onClick = {
                     MessageCards.restore(context, msg.id)

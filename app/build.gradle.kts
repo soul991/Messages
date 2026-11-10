@@ -94,8 +94,8 @@ android {
         applicationId = "com.messages.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 31
-        versionName = "2.5.1"
+        versionCode = 32
+        versionName = "2.5.2"
     }
 
     if (keystoreProps.isNotEmpty()) {
@@ -192,6 +192,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons)
+    implementation(libs.haze)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

@@ -425,7 +425,7 @@ private fun PickerHint(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(20.dp),
     )
 }
@@ -521,7 +521,7 @@ private fun ContactsFailedNotice(reason: String?, onRetry: () -> Unit) {
             Text(
                 reason,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Spacer(Modifier.height(4.dp))
@@ -617,7 +617,7 @@ private fun SendToNumberRow(number: String, onClick: () -> Unit) {
                 Text(
                     stringResource(R.string.compose_not_in_contacts),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -670,7 +670,7 @@ private fun ContactRow(contact: PickerContact, onClick: () -> Unit) {
                     R.string.compose_contact_number_label, contact.number, contact.label,
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
