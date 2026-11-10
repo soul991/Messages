@@ -2120,6 +2120,8 @@ private fun SwipeActionBackground(
 ) {
     val view = LocalView.current
     val colorScheme = MaterialTheme.colorScheme
+    val isDark = LocalDarkTheme.current
+    val archiveGreen = if (isDark) Color(0xFF30D158) else Color(0xFF1E9A44)
 
     // Trigger subtle tactile tick when passing the dismiss confirmation threshold
     LaunchedEffect(willDismiss) {
@@ -2133,7 +2135,7 @@ private fun SwipeActionBackground(
             outlinedIcon = SwipeIcons.ArchiveOutlined,
             filledIcon = SwipeIcons.ArchiveFilled,
             container = colorScheme.secondaryContainer,
-            tint = colorScheme.onSecondaryContainer,
+            tint = archiveGreen,
             label = stringResource(R.string.home_archive),
         )
         SwipeActions.PIN -> SwipeVisuals(
