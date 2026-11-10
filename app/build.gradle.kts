@@ -96,6 +96,7 @@ android {
         targetSdk = 35
         versionCode = 32
         versionName = "2.5.2"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     if (keystoreProps.isNotEmpty()) {
@@ -214,6 +215,10 @@ dependencies {
     // V2-34: the receiver work budget is a coroutine policy — tested on virtual
     // time rather than by sleeping for eight seconds.
     testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.uiautomator)
 }
 
 // ---------------------------------------------------------------------------
