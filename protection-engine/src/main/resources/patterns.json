@@ -1596,7 +1596,7 @@
     {
       "id": "protect-bank-txn",
       "family": "protected-bank",
-      "regex": "\\b(debited|credited|withdrawn|spent|deducted)\\b.{0,40}\\b(a/c|acct|account|card)\\b",
+      "regex": "\\b(debited|credited|withdrawn|spent|deducted)\\b.{0,40}\\b(a/c|acct|account|card)\\b|\\b(a/c|acct|account|card)\\b.{0,40}\\b(debited|credited|withdrawn|spent|deducted)\\b",
       "weight": 0,
       "languages": [
         "en"

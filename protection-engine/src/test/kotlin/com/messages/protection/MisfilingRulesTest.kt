@@ -152,5 +152,45 @@ class MisfilingRulesTest {
         val lotteryMsg = "You are the bumper prize winner of 10 Lakh cash prize in national draw. Claim today."
         val lotteryVerdict = classify(lotteryMsg, "+919876501234", isContact = false, hasUserReplyHistory = false)
         assertEquals("Lottery solicitation from unknown number must route to SPAM", Category.SPAM, lotteryVerdict.category)
+
+        // Item X5: MATLIA / NSETrade... BOUGHT SIGILUM NFT Trading Platform
+        val matliaMsg = "MATLIA / NSETrade... BOUGHT SIGILUM NFT Trading Platform"
+        val matliaVerdict = classify(matliaMsg, "MATLIA", isContact = false, hasUserReplyHistory = false)
+        assertEquals("MATLIA NFT trading spam must route to SPAM", Category.SPAM, matliaVerdict.category)
+
+        val nseTradeMsg = "NSETrade: Strong Buy call on SIGILUM Trading Platform. 200% profit guaranteed. Join VIP group."
+        val nseVerdict = classify(nseTradeMsg, "VM-NSETRD", isContact = false, hasUserReplyHistory = false)
+        assertEquals("NSETrade trading solicitation must route to SPAM", Category.SPAM, nseVerdict.category)
+
+        val multibaggerMsg = "Multibagger stock tip: buy SIGILUM shares today before target is reached on trading platform"
+        val multibaggerVerdict = classify(multibaggerMsg, "9876543210", isContact = false, hasUserReplyHistory = false)
+        assertEquals("Multibagger trading tip from unknown sender must route to SPAM", Category.SPAM, multibaggerVerdict.category)
+    }
+
+    // =========================================================================
+    // Rule 6: OTP and bank alerts mentioning crypto/trading remain strictly protected.
+    // =========================================================================
+    @Test
+    fun rule6_otpAndBankAlerts_mentioningCryptoOrTrading_remainProtected() {
+        // OTP mentioning Crypto Trading Platform from registered header
+        val otpCrypto = "482910 is your OTP for transaction at CoinDCX Crypto Trading Platform. Valid for 10 mins. Never share your OTP."
+        val otpVerdict = classify(otpCrypto, "VM-HDFCBK", isContact = false)
+        assertNotEquals("OTP must NEVER route to SPAM", Category.SPAM, otpVerdict.category)
+        assertEquals("OTP must have ProtectedLabel.OTP", ProtectedLabel.OTP, otpVerdict.protectedLabel)
+        assertTrue("OTP must notify", otpVerdict.notify)
+
+        // Bank debit alert mentioning NSETrade / Trading
+        val bankTrade = "Your A/c ending 1234 debited by INR 5,000.00 for order at Zerodha NSETrade. Avail Bal: INR 45,000."
+        val bankVerdict = classify(bankTrade, "AX-HDFCBK", isContact = false)
+        assertNotEquals("Bank alert must NEVER route to SPAM", Category.SPAM, bankVerdict.category)
+        assertEquals("Bank alert must have ProtectedLabel.BANK", ProtectedLabel.BANK, bankVerdict.protectedLabel)
+        assertTrue("Bank alert must notify", bankVerdict.notify)
+
+        // Card OTP for Binance Crypto
+        val cardOtp = "Your SBI Card OTP is 654321 for transaction of Rs 2,500 at Binance Trading. Do not share OTP."
+        val cardVerdict = classify(cardOtp, "VK-SBICRD", isContact = false)
+        assertNotEquals("Card OTP must NEVER route to SPAM", Category.SPAM, cardVerdict.category)
+        assertEquals("Card OTP must have ProtectedLabel.OTP", ProtectedLabel.OTP, cardVerdict.protectedLabel)
+        assertTrue("Card OTP must notify", cardVerdict.notify)
     }
 }
