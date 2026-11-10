@@ -89,15 +89,15 @@ internal fun SettingsHub(onPick: (String?) -> Unit) {
             R.string.settings_hub_personalize,
             listOf(
                 HubEntry(Icons.Outlined.Palette, Tone.PRIMARY, R.string.settings_section_appearance, R.string.settings_hub_appearance_sub, SettingsPage.APPEARANCE),
-                HubEntry(Icons.Outlined.Notifications, Tone.PROMO, R.string.settings_section_notifications, R.string.settings_hub_notifications_sub, SettingsPage.NOTIFICATIONS),
-                HubEntry(Icons.Outlined.Chat, Tone.REVIEW, R.string.settings_section_conversations, R.string.settings_hub_conversations_sub, SettingsPage.CONVERSATIONS),
+                HubEntry(Icons.Outlined.Notifications, Tone.PRIMARY, R.string.settings_section_notifications, R.string.settings_hub_notifications_sub, SettingsPage.NOTIFICATIONS),
+                HubEntry(Icons.Outlined.Chat, Tone.PRIMARY, R.string.settings_section_conversations, R.string.settings_hub_conversations_sub, SettingsPage.CONVERSATIONS),
             ),
             onPick,
         )
         HubGroup(
             R.string.settings_hub_protect,
             listOf(
-                HubEntry(Icons.Outlined.Shield, Tone.PROTECTED, R.string.settings_hub_protection, R.string.settings_hub_protection_sub, SettingsPage.PROTECTION),
+                HubEntry(Icons.Outlined.Shield, Tone.PRIMARY, R.string.settings_hub_protection, R.string.settings_hub_protection_sub, SettingsPage.PROTECTION),
                 HubEntry(Icons.Outlined.Lock, Tone.PRIMARY, R.string.settings_section_privacy, R.string.settings_hub_privacy_sub, SettingsPage.PRIVACY),
             ),
             onPick,
@@ -105,8 +105,8 @@ internal fun SettingsHub(onPick: (String?) -> Unit) {
         HubGroup(
             R.string.settings_hub_data,
             listOf(
-                HubEntry(Icons.Outlined.Cloud, Tone.REVIEW, R.string.settings_hub_backup, R.string.settings_hub_backup_sub, SettingsPage.BACKUP),
-                HubEntry(Icons.Outlined.DeleteSweep, Tone.PROMO, R.string.settings_hub_storage, R.string.settings_hub_storage_sub, SettingsPage.STORAGE),
+                HubEntry(Icons.Outlined.Cloud, Tone.PRIMARY, R.string.settings_hub_backup, R.string.settings_hub_backup_sub, SettingsPage.BACKUP),
+                HubEntry(Icons.Outlined.DeleteSweep, Tone.PRIMARY, R.string.settings_hub_storage, R.string.settings_hub_storage_sub, SettingsPage.STORAGE),
             ),
             onPick,
         )
@@ -161,10 +161,8 @@ private fun HubRow(e: HubEntry, onClick: () -> Unit) {
         label = "hub-row-scale",
     )
     val iconColor = when (e.tone) {
-        Tone.PRIMARY -> if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight
-        Tone.PROMO -> if (isDark) SettingsTileColors.AmberDark else SettingsTileColors.AmberLight
-        Tone.REVIEW -> if (isDark) SettingsTileColors.BlueDark else SettingsTileColors.BlueLight
-        Tone.PROTECTED -> if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight
+        Tone.PRIMARY, Tone.PROMO, Tone.REVIEW, Tone.PROTECTED ->
+            if (isDark) SettingsTileColors.GreenDark else SettingsTileColors.GreenLight
     }
     val tagModifier = if (e.page != null) Modifier.testTag("settings_page_${e.page}") else Modifier
     Row(
