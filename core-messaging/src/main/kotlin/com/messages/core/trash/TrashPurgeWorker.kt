@@ -20,14 +20,17 @@ class TrashPurgeWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
 
-    /**
-     * Phase 0.1: Freeze every automatic permanent delete (TrashRetention, SpamCleanup,
-     * OtpCleanup, and anything else that hard-deletes or purges) so nothing is permanently
-     * deleted until approved.
-     */
     override suspend fun doWork(): Result = try {
-        // Frozen: do not purge expired trash or sweep provider deletions automatically
-        Result.success()
+        if (!TrashRetention.isAutoPurgeEnabled(applicationContext)) {
+            // Retention purge is opt-in (default off): messages stay in Trash until deleted manually
+            Result.success()
+        } else {
+            val repo = MessageRepository.get(applicationContext)
+            val threshold = System.currentTimeMillis() - TrashRetention.RETENTION_MS
+            val expired = repo.db.messages().trashExpiredBefore(threshold)
+            expired.forEach { repo.deleteForever(it.id) }
+            Result.success()
+        }
     } catch (cancelled: kotlinx.coroutines.CancellationException) {
         throw cancelled
     } catch (_: Throwable) {
@@ -37,7 +40,7 @@ class TrashPurgeWorker(
 
 object TrashRetention {
     /**
-     * §6.4: trashed messages are restorable for this long, then purged.
+     * §6.4: trashed messages are restorable for this long, then purged (if opt-in enabled).
      *
      * V2-36: the Trash screen tells the user this number, so it is declared
      * once and read from there. A retention window that changes in code but
@@ -46,6 +49,17 @@ object TrashRetention {
     const val RETENTION_DAYS = 60
     const val RETENTION_MS = RETENTION_DAYS * 24L * 60 * 60 * 1000
     const val WORK_NAME = "trash_purge"
+    private const val PREFS = "settings"
+    private const val KEY_AUTO_PURGE = "trash_auto_purge_enabled"
+
+    fun isAutoPurgeEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_AUTO_PURGE, false)
+
+    fun setAutoPurgeEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_AUTO_PURGE, enabled).apply()
+    }
 
     /** Always-on (unlike OTP cleanup) — idempotent app-start scheduling. */
     fun ensureScheduled(context: Context) {

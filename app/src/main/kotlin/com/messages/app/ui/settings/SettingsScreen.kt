@@ -191,6 +191,13 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         spamAutoClean.value = enabled
     }
 
+    val trashAutoPurge = MutableStateFlow(com.messages.core.trash.TrashRetention.isAutoPurgeEnabled(app))
+
+    fun setTrashAutoPurge(enabled: Boolean) {
+        com.messages.core.trash.TrashRetention.setAutoPurgeEnabled(getApplication(), enabled)
+        trashAutoPurge.value = enabled
+    }
+
     val otpAutoCopy = MutableStateFlow(com.messages.app.notify.OtpClipboard.autoCopyEnabled(app))
 
     fun setOtpAutoCopy(enabled: Boolean) {
@@ -499,6 +506,7 @@ fun SettingsScreen(
     val importStatus by vm.importStatus.collectAsStateWithLifecycle()
     val otpAutoDelete by vm.otpAutoDelete.collectAsStateWithLifecycle()
     val spamAutoClean by vm.spamAutoClean.collectAsStateWithLifecycle()
+    val trashAutoPurge by vm.trashAutoPurge.collectAsStateWithLifecycle()
     val appLock by vm.appLock.collectAsStateWithLifecycle()
     val lockAfterMs by vm.lockAfterMs.collectAsStateWithLifecycle()
     val hidePreviews by vm.hidePreviews.collectAsStateWithLifecycle()
@@ -1105,6 +1113,15 @@ fun SettingsScreen(
                                 if (enable) confirmSpamClean = true
                                 else vm.setSpamAutoClean(false)
                             },
+                        )
+                        SettingsCardDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Outlined.Delete,
+                            categoryBadge = null,
+                            title = stringResource(R.string.settings_trash_auto_purge),
+                            subtitle = stringResource(R.string.settings_trash_auto_purge_subtitle),
+                            checked = trashAutoPurge,
+                            onChange = { vm.setTrashAutoPurge(it) },
                         )
                     }
                     if (confirmSpamClean) {

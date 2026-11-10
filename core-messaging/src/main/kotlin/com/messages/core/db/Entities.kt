@@ -124,6 +124,7 @@ object TrashReason {
     const val AUTO_SWIPE = "AUTO_SWIPE"
     const val AUTO_SPAM = "AUTO_SPAM"
     const val AUTO_OTP = "AUTO_OTP"
+    const val UNKNOWN = "before 2.5.1 (unknown)"
 }
 
 /**

@@ -356,6 +356,21 @@ interface MessageDao {
     @Query("UPDATE messages SET trashed = 0, trashedAt = NULL, trashReason = NULL WHERE id = :id")
     suspend fun restoreFromTrash(id: Long)
 
+    @Query("UPDATE messages SET trashReason = 'before 2.5.1 (unknown)' WHERE trashed = 1 AND trashReason = 'AUTO_SWIPE'")
+    suspend fun relabelAutoSwipeToUnknown(): Int
+
+    @Query(
+        "SELECT * FROM messages WHERE trashed = 1 AND trashReason = 'before 2.5.1 (unknown)' " +
+            "AND space = 'NORMAL' ORDER BY trashedAt DESC, timestamp DESC"
+    )
+    suspend fun unknownTrashedMessages(): List<MessageEntity>
+
+    @Query(
+        "SELECT COUNT(*) FROM messages WHERE trashed = 1 AND trashReason = 'before 2.5.1 (unknown)' " +
+            "AND space = 'NORMAL'"
+    )
+    fun unknownTrashedCount(): Flow<Int>
+
     @Query(
         "SELECT * FROM messages WHERE trashed = 1 AND (trashReason = 'AUTO_SWIPE' OR trashReason = 'AUTO_SPAM' OR trashReason = 'AUTO_OTP') " +
             "AND space = 'NORMAL' ORDER BY trashedAt DESC, timestamp DESC"

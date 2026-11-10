@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -93,6 +94,10 @@ class TrashViewModel(app: Application) : AndroidViewModel(app) {
         repo.db.messages().autoTrashedCount()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    val unknownTrashedCount: StateFlow<Int> =
+        repo.db.messages().unknownTrashedCount()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     /**
      * V2-36: a resource id, not a sentence. Resolving it in composition means
      * the snackbar follows a locale change even if the flow emitted before it,
@@ -107,6 +112,11 @@ class TrashViewModel(app: Application) : AndroidViewModel(app) {
 
     fun restoreAllAutoTrashed() = viewModelScope.launch {
         repo.restoreAllAutoTrashed()
+        lastAction.value = R.string.trash_restored_snackbar
+    }
+
+    fun restoreAllUnknownTrashed() = viewModelScope.launch {
+        repo.restoreAllUnknownTrashed()
         lastAction.value = R.string.trash_restored_snackbar
     }
 
@@ -148,11 +158,13 @@ fun TrashScreen(
 ) {
     val trashed by vm.trashed.collectAsStateWithLifecycle()
     val autoTrashedCount by vm.autoTrashedCount.collectAsStateWithLifecycle()
+    val unknownTrashedCount by vm.unknownTrashedCount.collectAsStateWithLifecycle()
     val lastAction by vm.lastAction.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmForever by remember { mutableStateOf<MessageEntity?>(null) }
     var confirmEmpty by remember { mutableStateOf(false) }
     var confirmDeleteSelected by remember { mutableStateOf(false) }
+    var confirmRestoreUnknown by remember { mutableStateOf(false) }
 
     // Multi-select state
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
@@ -180,6 +192,7 @@ fun TrashScreen(
     }
 
     val context = LocalContext.current
+    val autoPurgeEnabled = remember { TrashRetention.isAutoPurgeEnabled(context) }
     LaunchedEffect(lastAction) {
         lastAction?.let {
             snackbarHostState.showTransient(context.getString(it))
@@ -261,14 +274,15 @@ fun TrashScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             Text(
-                // V2-36: the window comes from the constant the purge worker
-                // actually enforces, so the sentence cannot drift from the
-                // behaviour it describes.
-                pluralStringResource(
-                    R.plurals.trash_retention_notice,
-                    TrashRetention.RETENTION_DAYS,
-                    TrashRetention.RETENTION_DAYS,
-                ),
+                if (autoPurgeEnabled) {
+                    pluralStringResource(
+                        R.plurals.trash_retention_notice,
+                        TrashRetention.RETENTION_DAYS,
+                        TrashRetention.RETENTION_DAYS,
+                    )
+                } else {
+                    stringResource(R.string.trash_retention_manual)
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -327,8 +341,8 @@ fun TrashScreen(
                 }
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {
-                    if (autoTrashedCount > 0) {
-                        item(key = "auto_trashed_banner") {
+                    if (unknownTrashedCount > 0) {
+                        item(key = "unknown_trashed_banner") {
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -345,22 +359,22 @@ fun TrashScreen(
                                 ) {
                                     Column(Modifier.weight(1f)) {
                                         Text(
-                                            stringResource(R.string.trash_auto_trashed_banner_title, autoTrashedCount),
+                                            stringResource(R.string.trash_unknown_banner_title, unknownTrashedCount),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.SemiBold,
                                         )
                                         Text(
-                                            stringResource(R.string.trash_auto_trashed_banner_subtitle),
+                                            stringResource(R.string.trash_unknown_banner_subtitle),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                     Spacer(Modifier.width(8.dp))
                                     Button(
-                                        onClick = { vm.restoreAllAutoTrashed() },
+                                        onClick = { confirmRestoreUnknown = true },
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                     ) {
-                                        Text(stringResource(R.string.trash_restore_all_auto))
+                                        Text(stringResource(R.string.trash_restore_all_unknown))
                                     }
                                 }
                             }
@@ -372,6 +386,7 @@ fun TrashScreen(
                             terms = terms,
                             selected = msg.id in selectedIds,
                             selectionActive = selectionActive,
+                            autoPurgeEnabled = autoPurgeEnabled,
                             onToggleSelect = {
                                 selectedIds = if (msg.id in selectedIds) selectedIds - msg.id else selectedIds + msg.id
                             },
@@ -458,6 +473,22 @@ fun TrashScreen(
             },
         )
     }
+    if (confirmRestoreUnknown) {
+        AlertDialog(
+            onDismissRequest = { confirmRestoreUnknown = false },
+            title = { Text(stringResource(R.string.trash_restore_unknown_title, unknownTrashedCount)) },
+            text = { Text(stringResource(R.string.trash_restore_unknown_body, unknownTrashedCount)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRestoreUnknown = false
+                    vm.restoreAllUnknownTrashed()
+                }) { Text(stringResource(R.string.trash_restore_all_unknown)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRestoreUnknown = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
 }
 
 // V2-45: locale and zone read at render time, not at class-init.
@@ -469,6 +500,7 @@ private fun TrashRow(
     terms: List<String> = emptyList(),
     selected: Boolean = false,
     selectionActive: Boolean = false,
+    autoPurgeEnabled: Boolean = false,
     onToggleSelect: () -> Unit = {},
     onRestore: () -> Unit,
     onDeleteForever: () -> Unit,
@@ -547,44 +579,51 @@ private fun TrashRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                val reasonLabel = when (msg.trashReason) {
+                    com.messages.core.db.TrashReason.USER -> stringResource(R.string.trash_reason_user)
+                    com.messages.core.db.TrashReason.UNKNOWN, "before 2.5.1 (unknown)" -> stringResource(R.string.trash_reason_unknown)
+                    com.messages.core.db.TrashReason.AUTO_SWIPE -> stringResource(R.string.trash_reason_auto_swipe)
+                    com.messages.core.db.TrashReason.AUTO_SPAM -> stringResource(R.string.trash_reason_auto_spam)
+                    com.messages.core.db.TrashReason.AUTO_OTP -> stringResource(R.string.trash_reason_auto_otp)
+                    null -> stringResource(R.string.trash_reason_user)
+                    else -> msg.trashReason ?: stringResource(R.string.trash_reason_user)
+                }
+
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.errorContainer)
-                            .padding(horizontal = 8.dp, vertical = 2.dp),
-                    ) {
-                        Text(
-                            if (daysLeft > 0) {
-                                pluralStringResource(R.plurals.trash_purge_countdown, daysLeft, daysLeft)
-                            } else {
-                                stringResource(R.string.trash_purge_imminent)
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                        )
-                    }
-                    if (msg.trashReason != null && msg.trashReason != "USER") {
-                        Spacer(Modifier.width(6.dp))
+                    if (autoPurgeEnabled) {
                         Box(
                             Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
+                                .background(MaterialTheme.colorScheme.errorContainer)
                                 .padding(horizontal = 8.dp, vertical = 2.dp),
                         ) {
                             Text(
-                                if (msg.trashReason == "AUTO_SWIPE") {
-                                    stringResource(R.string.trash_reason_auto_swipe)
+                                if (daysLeft > 0) {
+                                    pluralStringResource(R.plurals.trash_purge_countdown, daysLeft, daysLeft)
                                 } else {
-                                    stringResource(R.string.trash_reason_auto_cleanup)
+                                    stringResource(R.string.trash_purge_imminent)
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
                             )
                         }
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            text = reasonLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
                     }
                 }
             }

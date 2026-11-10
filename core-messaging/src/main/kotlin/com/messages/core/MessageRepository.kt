@@ -21,6 +21,8 @@ import com.messages.core.search.MessageSearch
 import com.messages.core.secret.LockedContent
 import com.messages.core.secret.LockedSealException
 import com.messages.core.secret.LockedWriteBlockedException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -61,6 +63,12 @@ class MessageRepository private constructor(private val context: Context) {
         .build()
 
     private val settingsPrefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    init {
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching { db.messages().relabelAutoSwipeToUnknown() }
+        }
+    }
 
     /** §8.5 multi-keyword FTS search. */
     val search: MessageSearch by lazy { MessageSearch(db.messages()) }
@@ -2043,6 +2051,27 @@ class MessageRepository private constructor(private val context: Context) {
             refreshConversationSummary(threadId, space)
         }
         autoTrashed.size
+    }
+
+    /**
+     * Restores all messages trashed before 2.5.1 (unknown original reason).
+     * Rebuilds provider rows and updates conversation summaries.
+     */
+    suspend fun restoreAllUnknownTrashed(): Int = withContext(Dispatchers.IO) {
+        val unknownTrashed = db.messages().unknownTrashedMessages()
+        val affectedThreads = mutableSetOf<Pair<Long, String>>()
+        unknownTrashed.forEach { msg ->
+            try {
+                restoreFromTrash(msg.id)
+                affectedThreads.add(msg.threadId to msg.space)
+            } catch (e: Exception) {
+                android.util.Log.e("MessageRepository", "Failed to restore unknown trashed message ${msg.id}", e)
+            }
+        }
+        affectedThreads.forEach { (threadId, space) ->
+            refreshConversationSummary(threadId, space)
+        }
+        unknownTrashed.size
     }
 
     /** Undo-from-trash for an INCOMING SMS: one Inbox row, mapped for R-05. */

@@ -148,7 +148,43 @@ class TrashReasonAndRestoreTest {
     }
 
     @Test
-    fun `MIGRATION_11_12 migrates existing trashed rows to AUTO_SWIPE`() {
+    fun `restoreAllUnknownTrashed restores only legacy unknown trashed messages`() = runTest {
+        val userId = repo.db.messages().insert(msg(body = "User delete", trashed = true, trashReason = TrashReason.USER))
+        val autoSwipe = repo.db.messages().insert(msg(threadId = 300L, body = "Swipe delete", trashed = true, trashReason = TrashReason.AUTO_SWIPE))
+        val unknown1 = repo.db.messages().insert(msg(threadId = 300L, body = "Legacy 1", trashed = true, trashReason = TrashReason.UNKNOWN))
+        val unknown2 = repo.db.messages().insert(msg(threadId = 300L, body = "Legacy 2", trashed = true, trashReason = TrashReason.UNKNOWN))
+
+        val count = repo.restoreAllUnknownTrashed()
+        assertEquals(2, count)
+
+        // Legacy unknown messages are restored
+        val restored1 = repo.db.messages().byId(unknown1)!!
+        val restored2 = repo.db.messages().byId(unknown2)!!
+        assertFalse(restored1.trashed)
+        assertNull(restored1.trashReason)
+        assertFalse(restored2.trashed)
+        assertNull(restored2.trashReason)
+
+        // User and auto-swipe deletions remain untouched
+        val userMsg = repo.db.messages().byId(userId)!!
+        assertTrue(userMsg.trashed)
+        assertEquals(TrashReason.USER, userMsg.trashReason)
+
+        val swipeMsg = repo.db.messages().byId(autoSwipe)!!
+        assertTrue(swipeMsg.trashed)
+        assertEquals(TrashReason.AUTO_SWIPE, swipeMsg.trashReason)
+    }
+
+    @Test
+    fun `relabelAutoSwipeToUnknown updates AUTO_SWIPE rows to UNKNOWN`() = runTest {
+        val id = db.messages().insert(msg(body = "Falsely auto-swiped", trashed = true, trashReason = "AUTO_SWIPE"))
+        db.messages().relabelAutoSwipeToUnknown()
+        val updated = db.messages().byId(id)!!
+        assertEquals(TrashReason.UNKNOWN, updated.trashReason)
+    }
+
+    @Test
+    fun `MIGRATION_11_12 migrates existing trashed rows to UNKNOWN`() {
         val dbName = "migration-11-12-test.db"
         context.deleteDatabase(dbName)
 
@@ -202,7 +238,7 @@ class TrashReasonAndRestoreTest {
         sqliteDb.query("SELECT `body`, `trashReason`, `trashed` FROM `messages` ORDER BY `id`").use { c ->
             assertTrue(c.moveToFirst())
             assertEquals("Old trashed bank message", c.getString(0))
-            assertEquals(TrashReason.AUTO_SWIPE, c.getString(1))
+            assertEquals(TrashReason.UNKNOWN, c.getString(1))
             assertEquals(1, c.getInt(2))
 
             assertTrue(c.moveToNext())
