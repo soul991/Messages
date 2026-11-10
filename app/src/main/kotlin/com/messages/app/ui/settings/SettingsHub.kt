@@ -201,8 +201,6 @@ private fun HubRow(e: HubEntry, onClick: () -> Unit) {
                 stringResource(e.subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = cs.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
         Icon(

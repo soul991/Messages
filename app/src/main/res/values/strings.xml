@@ -63,7 +63,7 @@
     <string name="secret_entry_action">Open locked space</string>
     <string name="settings_accessible_entry_title">Accessible locked-space entry</string>
     <string name="settings_accessible_entry_subtitle">Adds a labelled action for screen readers, and a row below, so the locked space can be opened without the long press on the Messages title. The gesture keeps working; your code is still required either way.</string>
-    <string name="settings_accessible_entry_row_subtitle">Opens the code prompt.</string>
+    <string name="settings_accessible_entry_row_subtitle">Opens the code prompt to enter your locked space.</string>
     <!-- ===================== Shared actions and labels ================== -->
 
     <!--
@@ -590,12 +590,12 @@
     <string name="settings_notification_behavior_subtitle">Per-folder alerts, sounds, and OTP copy options.</string>
     <string name="settings_section_privacy">Privacy &amp; security</string>
     <string name="settings_app_lock">App lock</string>
-    <string name="settings_app_lock_subtitle">Require fingerprint, face, or device PIN to open Messages.</string>
+    <string name="settings_app_lock_subtitle">Require fingerprint, face, or device PIN to open Messages so your conversations stay protected.</string>
     <string name="settings_app_lock_unavailable">Set up a screen lock or biometrics on this device first.</string>
     <string name="settings_lock_after">Lock after</string>
     <string name="settings_lock_after_subtitle">Skip re-unlock when returning within this window.</string>
     <string name="settings_hide_previews">Hide message previews</string>
-    <string name="settings_hide_previews_subtitle">Notifications show &quot;New message&quot; instead of the text.</string>
+    <string name="settings_hide_previews_subtitle">Notifications show &quot;New message&quot; instead of sender or text to keep incoming messages private on your lock screen.</string>
     <string name="settings_lock_chat_tip">Tip: lock individual conversations from the ⋮ menu inside a chat.</string>
     <string name="settings_section_conversations">Conversations</string>
     <string name="settings_archive_shortcut">Archive shortcut</string>
