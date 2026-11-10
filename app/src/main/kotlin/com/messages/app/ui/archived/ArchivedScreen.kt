@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.messages.designsystem.JumpToTopButton
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
@@ -150,7 +152,9 @@ fun ArchivedScreen(
             }
             return@Scaffold
         }
-        LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+        val listState = rememberLazyListState()
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
             items(conversations, key = { it.threadId }) { conv ->
                 // V2-36: read in composition, used from the coroutine.
                 val unarchived = stringResource(R.string.archived_unarchived_snackbar)
@@ -221,5 +225,13 @@ fun ArchivedScreen(
                 }
             }
         }
+        JumpToTopButton(
+            listState = listState,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, bottom = 24.dp),
+            contentDescription = stringResource(R.string.home_back_to_top),
+        )
     }
+}
 }

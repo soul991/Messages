@@ -187,6 +187,7 @@ import com.messages.app.ui.search.SearchHighlight
 import com.messages.core.db.ConversationEntity
 import com.messages.designsystem.DockIcons
 import com.messages.designsystem.Haptics
+import com.messages.designsystem.JumpToTopButton
 import com.messages.designsystem.Motion
 import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.SwipeIcons
@@ -1064,6 +1065,21 @@ fun HomeScreen(
             }
         }
 
+        // Floating Jump to Top Button (44dp visual glass, 48dp touch target, 16dp from start, above dock at 88dp)
+        JumpToTopButton(
+            listState = currentFolderListState,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .navigationBarsPadding()
+                .padding(start = 16.dp, bottom = 88.dp),
+            hazeState = hazeState,
+            visible = !searchActive && !selectionActive,
+            contentDescription = stringResource(R.string.home_back_to_top),
+            onClickExtra = {
+                searchBarOffsetPx = 0f
+            },
+        )
+
         // Floating New Message FAB (48dp round icon-only, green, 20dp from right, above dock at 88dp)
         AnimatedVisibility(
             visible = !searchActive && !selectionActive,
@@ -1577,40 +1593,50 @@ private fun SearchPane(
     val (filtered, normal) = state.results.partition {
         it.message.category == "SPAM" || it.message.category == "BLOCKED"
     }
-    LazyColumn(
-        state = searchListState,
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        // §8.5.3: conversations whose contact name / number matches ("mom").
-        if (state.conversationMatches.isNotEmpty()) {
-            item {
-                SearchSectionHeader(stringResource(R.string.home_search_section_conversations))
-            }
-            itemsIndexed(state.conversationMatches, key = { _, it -> "conv-${it.threadId}" }) { index, conv ->
-                val rowKey = "conv-${conv.threadId}"
-                Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
-                    ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = searchListState,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            // §8.5.3: conversations whose contact name / number matches ("mom").
+            if (state.conversationMatches.isNotEmpty()) {
+                item {
+                    SearchSectionHeader(stringResource(R.string.home_search_section_conversations))
+                }
+                itemsIndexed(state.conversationMatches, key = { _, it -> "conv-${it.threadId}" }) { index, conv ->
+                    val rowKey = "conv-${conv.threadId}"
+                    Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
+                        ConversationMatchRow(conv, state.activeKeywords) { onOpenThread(conv.threadId) }
+                    }
+                }
+                if (state.results.isNotEmpty()) {
+                    item { SearchSectionHeader(stringResource(R.string.home_search_section_messages)) }
                 }
             }
-            if (state.results.isNotEmpty()) {
-                item { SearchSectionHeader(stringResource(R.string.home_search_section_messages)) }
-            }
-        }
-        itemsIndexed(normal, key = { _, it -> it.message.id }) { index, row ->
-            val rowKey = "msg-${row.message.id}"
-            Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
-                SearchResultRow(row, state.activeKeywords, onOpenResult)
-            }
-        }
-        if (filtered.isNotEmpty()) {
-            item { SearchSectionHeader(stringResource(R.string.home_search_section_spam)) }
-            itemsIndexed(filtered, key = { _, it -> it.message.id }) { index, row ->
-                val rowKey = "spam-${row.message.id}"
+            itemsIndexed(normal, key = { _, it -> it.message.id }) { index, row ->
+                val rowKey = "msg-${row.message.id}"
                 Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
                     SearchResultRow(row, state.activeKeywords, onOpenResult)
                 }
             }
+            if (filtered.isNotEmpty()) {
+                item { SearchSectionHeader(stringResource(R.string.home_search_section_spam)) }
+                itemsIndexed(filtered, key = { _, it -> it.message.id }) { index, row ->
+                    val rowKey = "spam-${row.message.id}"
+                    Box(Modifier.searchCascadeEntrance(rowKey, index, alreadyAnimatedKeys, isScrolling)) {
+                        SearchResultRow(row, state.activeKeywords, onOpenResult)
+                    }
+                }
+            }
         }
+        JumpToTopButton(
+            listState = searchListState,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .navigationBarsPadding()
+                .padding(start = 16.dp, bottom = 24.dp),
+            contentDescription = stringResource(R.string.home_back_to_top),
+        )
     }
 }
 
