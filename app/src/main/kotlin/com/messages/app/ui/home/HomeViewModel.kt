@@ -239,8 +239,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun markThreadRead(threadId: Long) = viewModelScope.launch {
         try {
-            repo.db.messages().markThreadRead(threadId, Spaces.NORMAL)
-            repo.db.conversations().clearUnread(threadId, Spaces.NORMAL)
+            repo.markThreadRead(threadId, Spaces.NORMAL)
         } catch (t: Throwable) {
             android.util.Log.e("HomeViewModel", "markThreadRead failed", t)
         }
@@ -264,8 +263,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                 listOf(category)
             }
             for (cat in categories) {
-                repo.db.messages().markCategoryRead(cat)
-                repo.db.conversations().clearUnreadForCategory(cat)
+                repo.markCategoryRead(cat)
             }
         } catch (t: Throwable) {
             android.util.Log.e("HomeViewModel", "markFolderRead failed", t)
@@ -320,8 +318,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun markThreadsRead(ids: Set<Long>) = viewModelScope.launch {
         try {
             ids.forEach {
-                repo.db.messages().markThreadRead(it, Spaces.NORMAL)
-                repo.db.conversations().clearUnread(it, Spaces.NORMAL)
+                repo.markThreadRead(it, Spaces.NORMAL)
             }
         } catch (t: Throwable) {
             android.util.Log.e("HomeViewModel", "markThreadsRead failed", t)

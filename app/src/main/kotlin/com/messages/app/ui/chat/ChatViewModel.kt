@@ -79,8 +79,7 @@ class ChatViewModel(
                     repo.displayNameFor(fallbackAddress)
                 }
             }
-            repo.db.messages().markThreadRead(threadId, space)
-            repo.db.conversations().clearUnread(threadId, space)
+            repo.markThreadRead(threadId, space)
             com.messages.app.widget.WidgetUpdater.requestUpdate(getApplication())
             // Conversation shortcuts + direct-share ranking (§8.2). NEVER for
             // the secret space or legacy locked chats — no launcher identity.

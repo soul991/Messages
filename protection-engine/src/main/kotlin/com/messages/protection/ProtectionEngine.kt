@@ -85,10 +85,8 @@ class ProtectionEngine(
         }
 
         // Rule 4: Carrier spam warnings (e.g. "[SPAM]" or "[FRAUD]" prepended by carrier) -> directly to Spam
-        val isCarrierSpam = Regex("""(?i)^\s*(\[(?:SPAM|POSSIBLE\s+SPAM|SUSPECTED\s+SPAM|FRAUD)\]|\((?:SPAM|FRAUD)\)|SPAM:\s*)""")
-            .containsMatchIn(input.body) ||
-            Regex("""(?i)^\s*(\[(?:SPAM|POSSIBLE\s+SPAM|SUSPECTED\s+SPAM|FRAUD)\]|\((?:SPAM|FRAUD)\)|SPAM:\s*)""")
-                .containsMatchIn(msg.normalizedText)
+        val isCarrierSpam = CARRIER_SPAM_REGEX.containsMatchIn(input.body) ||
+            CARRIER_SPAM_REGEX.containsMatchIn(msg.normalizedText)
         if (isCarrierSpam) {
             return Verdict(
                 Category.SPAM,
@@ -140,12 +138,8 @@ class ProtectionEngine(
         val isUnknownSender = !sender.isContact && !sender.hasUserReplyHistory
 
         // Rule 5: Crypto/NFT/trading solicitations/lottery keywords from unknown senders must route to Spam
-        val isCryptoOrNftOrTrading = Regex(
-            """(?i)\b(crypto|bitcoin|btc|eth|ethereum|usdt|binance|airdrop|nft|web3|solana|coinbase|trust\s*wallet|metamask|nsetrade|bsetrade|matlia|sigilum|trading\s*platform|trading\s*bot|trading\s*signals?|stock\s*tips?|share\s*market\s*(?:tips?|calls?)|intraday\s*(?:tips?|calls?)|multibagger|sure\s*shot\s*(?:calls?|profit)|bought\s+[a-z0-9]+\s+(?:nft|trading|platform)|forex\s*trading|binary\s*options?)\b"""
-        ).containsMatchIn(msg.normalizedText)
-        val isLottery = Regex(
-            """(?i)\b(lottery|lucky\s*draw|bumper\s*prize|cash\s*prize|kbc\s*(?:lottery|prize|winner)|won\s+(?:Rs\.?|INR|₹|\$)\s*[\d,]+|congratulations.*won.*(?:prize|cash|car|draw))\b"""
-        ).containsMatchIn(msg.normalizedText)
+        val isCryptoOrNftOrTrading = CRYPTO_NFT_TRADING_REGEX.containsMatchIn(msg.normalizedText)
+        val isLottery = LOTTERY_REGEX.containsMatchIn(msg.normalizedText)
         if (isUnknownSender && (isCryptoOrNftOrTrading || isLottery)) {
             val reason = if (isCryptoOrNftOrTrading) "Crypto/NFT/Trading solicitation from unknown sender" else "Lottery/prize solicitation from unknown sender"
             val isDangerous = isLottery || linkSignals.any { it.isShortener || it.isPhishy } || fraudCombos.isNotEmpty()
@@ -165,12 +159,9 @@ class ProtectionEngine(
         val isUnknown10Digit = isUnknownSender &&
             (sender.type == SenderType.PERSONAL_NUMBER || sender.type == SenderType.INTERNATIONAL_NUMBER ||
              sender.rawAddress.filter { it.isDigit() }.length >= 10)
-        val urgencyRegex = Regex(
-            """(?i)\b(urgent|urgently|immediately|action\s*required|account\s*(?:blocked|suspended|deactivated|restricted)|verify\s*(?:now|immediately|kyc|pan)|update\s*(?:kyc|pan|aadhaar)|within\s*\d+\s*(?:hours?|mins?|days?)|today\s*only|last\s*chance|final\s*notice|threat|expire[ds]?|suspended|terminate[d]?)\b"""
-        )
-        val hasUrgency = urgencyRegex.containsMatchIn(msg.normalizedText)
+        val hasUrgency = URGENCY_REGEX.containsMatchIn(msg.normalizedText)
         val hasLink = msg.urls.isNotEmpty() || linkSignals.isNotEmpty()
-        val hasPhoneAction = Regex("""(?i)\b(?:call|contact|reach|helpline|whatsapp)[:\s]*(\+?\d[\d\s-]{7,}\d)""").containsMatchIn(msg.normalizedText)
+        val hasPhoneAction = PHONE_ACTION_REGEX.containsMatchIn(msg.normalizedText)
 
         if (isUnknown10Digit && hasUrgency && (hasLink || hasPhoneAction)) {
             val isSeverePhishing = linkSignals.any { it.isShortener || it.isPhishy } ||
@@ -210,12 +201,9 @@ class ProtectionEngine(
             sender.type == SenderType.REGISTERED_TRANSACTIONAL ||
             sender.type == SenderType.REGISTERED_GOVERNMENT
 
-        val transactionalKeywords = Regex(
-            """(?i)\b(debited|credited|otp\b|one[\s-]*time\s*password|verification\s*code|ac\s*bal|account\s*balance|avail(?:able)?\s*bal(?:ance)?|bal:\s*(?:inr|rs\.?|₹)|order\s+placed|(?:order|booking|ticket|txn|transaction)\s*(?:of|for|id|#)?\s*(?:inr|rs\.?|₹|\d+)|\b(?:a/c|account)\b.*?\b(?:debited|credited|balance)\b|\b(?:debited|credited)\b.*?\b(?:inr|rs\.?|₹)\b|\b(?:inr|rs\.?|₹)\b[\d,]+.*?\b(?:debited|credited)\b)\b"""
-        )
         val hasTransactionalPattern = patternMatches.any {
             it.pattern.family == Families.PROTECTED_OTP || it.pattern.family == Families.PROTECTED_BANK
-        } || (isVerifiedSenderFormat && transactionalKeywords.containsMatchIn(msg.normalizedText))
+        } || (isVerifiedSenderFormat && TRANSACTIONAL_KEYWORDS_REGEX.containsMatchIn(msg.normalizedText))
 
         // Stage 4 — pattern scoring with sender-context multipliers
         var score = 0.0
@@ -256,9 +244,9 @@ class ProtectionEngine(
             explanations += "Sender is an identified commercial entity"
         }
         // "dear customer" from a numeric sender + threat/link (§5.4 last row)
-        if (Regex("""(?i)dear (customer|user|consumer)""").containsMatchIn(msg.normalizedText) &&
+        if (DEAR_CUSTOMER_REGEX.containsMatchIn(msg.normalizedText) &&
             (sender.type == SenderType.PERSONAL_NUMBER || sender.type == SenderType.INTERNATIONAL_NUMBER) &&
-            (msg.urls.isNotEmpty() || Regex("""(?i)(block|suspend|expir|verify|urgent)""").containsMatchIn(msg.normalizedText))
+            (msg.urls.isNotEmpty() || DEAR_CUSTOMER_THREAT_REGEX.containsMatchIn(msg.normalizedText))
         ) {
             score += 4.0
             matchedIds += "dear-customer-numeric"
@@ -286,7 +274,7 @@ class ProtectionEngine(
         // Guard 3: Rule 1 — Transactional patterns from verified senders MUST file under Personal, NEVER under Promo.
         val promoPatternIds = setOf("promo-offer-words", "promo-discount", "promo-sale", "promo-generic-offer")
         val matchesPromoPattern = patternMatches.any { it.pattern.id in promoPatternIds || it.pattern.family == Families.PROMO } ||
-            Regex("""(?i)\b(offers?|discounts?|flat\s+\d+|cashbacks?|deals?|sales?|recharge|coupons?|vouchers?|save\s+\d+%?)\b""").containsMatchIn(msg.normalizedText)
+            PROMO_KEYWORDS_REGEX.containsMatchIn(msg.normalizedText)
         val isDltCommercial = SenderAnalyzer.isDltCommercialHeader(sender)
         val hasShortenerOrPhishyLink = linkSignals.any { it.isShortener || it.isPhishy }
 
@@ -297,14 +285,8 @@ class ProtectionEngine(
             )
         }
 
-        val transactionalGuard = Regex(
-            """(?i)\b(recharge\s+(successful|done|confirmed|completed|processed)|payment\s+(successful|received|done|confirmed|processed)|order\s+(delivered|confirmed|shipped|dispatched|placed|cancelled)|booking\s+(confirmed|cancelled)|refund\s+(processed|initiated|credited|successful)|delivery\s+(confirmed|completed|scheduled|arriving|delivered|attempted)|pnr|ticket\s+(booked|confirmed|cancelled)|trip\s+(completed|receipt|summary)|successful(ly)?|credited|debited|confirmed)\b"""
-        )
-        val explicitOfferSignal = Regex(
-            """(?i)\b(offers?|discounts?|cashbacks?|coupons?|sales?|flat\s+\d+\s*%?\s*off|save\s+\d+%?|deal|promo\s*code|voucher|free(?:bie)?|buy\s+\d+\s+get)\b"""
-        )
-        val isTransactionalBody = transactionalGuard.containsMatchIn(msg.normalizedText)
-        val hasExplicitOffer = explicitOfferSignal.containsMatchIn(msg.normalizedText)
+        val isTransactionalBody = TRANSACTIONAL_GUARD_REGEX.containsMatchIn(msg.normalizedText)
+        val hasExplicitOffer = EXPLICIT_OFFER_SIGNAL_REGEX.containsMatchIn(msg.normalizedText)
 
         if (matchesPromoPattern && isDltCommercial && !hasShortenerOrPhishyLink) {
             // If the body reads like a transactional notification (recharge success, order
@@ -418,6 +400,32 @@ class ProtectionEngine(
             matchedPatternIds = ids,
             explanations = expl,
             notify = true,
+        )
+    }
+
+    companion object {
+        private val CARRIER_SPAM_REGEX = Regex("""(?i)^\s*(\[(?:SPAM|POSSIBLE\s+SPAM|SUSPECTED\s+SPAM|FRAUD)\]|\((?:SPAM|FRAUD)\)|SPAM:\s*)""")
+        private val CRYPTO_NFT_TRADING_REGEX = Regex(
+            """(?i)\b(crypto|bitcoin|btc|eth|ethereum|usdt|binance|airdrop|nft|web3|solana|coinbase|trust\s*wallet|metamask|nsetrade|bsetrade|matlia|sigilum|trading\s*platform|trading\s*bot|trading\s*signals?|stock\s*tips?|share\s*market\s*(?:tips?|calls?)|intraday\s*(?:tips?|calls?)|multibagger|sure\s*shot\s*(?:calls?|profit)|bought\s+[a-z0-9]+\s+(?:nft|trading|platform)|forex\s*trading|binary\s*options?)\b"""
+        )
+        private val LOTTERY_REGEX = Regex(
+            """(?i)\b(lottery|lucky\s*draw|bumper\s*prize|cash\s*prize|kbc\s*(?:lottery|prize|winner)|won\s+(?:Rs\.?|INR|₹|\$)\s*[\d,]+|congratulations.*won.*(?:prize|cash|car|draw))\b"""
+        )
+        private val URGENCY_REGEX = Regex(
+            """(?i)\b(urgent|urgently|immediately|action\s*required|account\s*(?:blocked|suspended|deactivated|restricted)|verify\s*(?:now|immediately|kyc|pan)|update\s*(?:kyc|pan|aadhaar)|within\s*\d+\s*(?:hours?|mins?|days?)|today\s*only|last\s*chance|final\s*notice|threat|expire[ds]?|suspended|terminate[d]?)\b"""
+        )
+        private val PHONE_ACTION_REGEX = Regex("""(?i)\b(?:call|contact|reach|helpline|whatsapp)[:\s]*(\+?\d[\d\s-]{7,}\d)""")
+        private val TRANSACTIONAL_KEYWORDS_REGEX = Regex(
+            """(?i)\b(debited|credited|otp\b|one[\s-]*time\s*password|verification\s*code|ac\s*bal|account\s*balance|avail(?:able)?\s*bal(?:ance)?|bal:\s*(?:inr|rs\.?|₹)|order\s+placed|(?:order|booking|ticket|txn|transaction)\s*(?:of|for|id|#)?\s*(?:inr|rs\.?|₹|\d+)|\b(?:a/c|account)\b.*?\b(?:debited|credited|balance)\b|\b(?:debited|credited)\b.*?\b(?:inr|rs\.?|₹)\b|\b(?:inr|rs\.?|₹)\b[\d,]+.*?\b(?:debited|credited)\b)\b"""
+        )
+        private val DEAR_CUSTOMER_REGEX = Regex("""(?i)dear (customer|user|consumer)""")
+        private val DEAR_CUSTOMER_THREAT_REGEX = Regex("""(?i)(block|suspend|expir|verify|urgent)""")
+        private val PROMO_KEYWORDS_REGEX = Regex("""(?i)\b(offers?|discounts?|flat\s+\d+|cashbacks?|deals?|sales?|recharge|coupons?|vouchers?|save\s+\d+%?)\b""")
+        private val TRANSACTIONAL_GUARD_REGEX = Regex(
+            """(?i)\b(recharge\s+(successful|done|confirmed|completed|processed)|payment\s+(successful|received|done|confirmed|processed)|order\s+(delivered|confirmed|shipped|dispatched|placed|cancelled)|booking\s+(confirmed|cancelled)|refund\s+(processed|initiated|credited|successful)|delivery\s+(confirmed|completed|scheduled|arriving|delivered|attempted)|pnr|ticket\s+(booked|confirmed|cancelled)|trip\s+(completed|receipt|summary)|successful(ly)?|credited|debited|confirmed)\b"""
+        )
+        private val EXPLICIT_OFFER_SIGNAL_REGEX = Regex(
+            """(?i)\b(offers?|discounts?|cashbacks?|coupons?|sales?|flat\s+\d+\s*%?\s*off|save\s+\d+%?|deal|promo\s*code|voucher|free(?:bie)?|buy\s+\d+\s+get)\b"""
         )
     }
 }

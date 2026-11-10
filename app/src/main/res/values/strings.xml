@@ -1365,6 +1365,10 @@
     <string name="channel_fraud_desc">Warnings about dangerous, likely-fraudulent messages</string>
     <string name="channel_spam_name">Spam</string>
     <string name="channel_spam_desc">Silent notifications for filtered spam messages</string>
+    <string name="channel_updates_name">App Updates</string>
+    <string name="channel_updates_desc">Notifications when a new version of Messages is available</string>
+    <string name="channel_download_name">Download Progress</string>
+    <string name="channel_download_desc">Shows download progress when updating the app</string>
     <string name="notif_spam_channel_subtitle">Configure minimal/silent spam alerts</string>
     <string name="notif_system_settings_title">All system notification settings</string>
     <string name="notif_system_settings_desc">Open Android settings for all message channels</string>

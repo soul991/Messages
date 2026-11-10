@@ -207,6 +207,7 @@ class DriveClient(private val context: Context, private val account: Account) {
             conn.readTimeout = 120_000
             if (body != null) {
                 conn.doOutput = true
+                conn.setFixedLengthStreamingMode(body.size)
                 if (contentType != null) conn.setRequestProperty("Content-Type", contentType)
                 conn.outputStream.use { out ->
                     var sent = 0
