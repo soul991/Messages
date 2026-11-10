@@ -7,6 +7,7 @@ import com.messages.core.db.MessageEntity
 import com.messages.core.db.Spaces
 import com.messages.core.util.FriendlySenderNames
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -29,6 +30,11 @@ class DuplicateOtpDeduplicationTest {
         MessageRepository.resetForTests()
         context = ApplicationProvider.getApplicationContext()
         repo = MessageRepository.get(context)
+    }
+
+    @After
+    fun tearDown() {
+        MessageRepository.resetForTests()
     }
 
     @Test

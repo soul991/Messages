@@ -65,13 +65,6 @@ class MessageRepository private constructor(private val context: Context) {
 
     private val settingsPrefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
-    init {
-        CoroutineScope(Dispatchers.IO).launch {
-            runCatching { db.messages().relabelAutoSwipeToUnknown() }
-            runCatching { deduplicateExistingMessages() }
-        }
-    }
-
     /** §8.5 multi-keyword FTS search. */
     val search: MessageSearch by lazy { MessageSearch(db.messages()) }
 
