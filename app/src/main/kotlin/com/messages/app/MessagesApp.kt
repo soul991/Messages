@@ -233,11 +233,11 @@ class MessagesApp : Application(), androidx.work.Configuration.Provider {
                 NotificationChannel(CH_FRAUD, getString(R.string.channel_fraud_name), NotificationManager.IMPORTANCE_HIGH).apply {
                     description = getString(R.string.channel_fraud_desc)
                 },
-                NotificationChannel(CH_UPDATES, "App Updates", NotificationManager.IMPORTANCE_LOW).apply {
-                    description = "Notifications when a new version of Messages is available"
+                NotificationChannel(CH_UPDATES, getString(R.string.channel_updates_name), NotificationManager.IMPORTANCE_LOW).apply {
+                    description = getString(R.string.channel_updates_desc)
                 },
-                NotificationChannel(CH_DOWNLOAD, "Download Progress", NotificationManager.IMPORTANCE_LOW).apply {
-                    description = "Shows download progress when updating the app"
+                NotificationChannel(CH_DOWNLOAD, getString(R.string.channel_download_name), NotificationManager.IMPORTANCE_LOW).apply {
+                    description = getString(R.string.channel_download_desc)
                     setShowBadge(false)
                 },
             )

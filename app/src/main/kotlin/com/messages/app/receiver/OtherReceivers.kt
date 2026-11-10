@@ -379,8 +379,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
             val space = com.messages.core.db.Spaces.NORMAL
             when (action) {
                 "mark_read" -> if (threadId != -1L) {
-                    repo.db.messages().markThreadRead(threadId, space)
-                    repo.db.conversations().clearUnread(threadId, space)
+                    repo.markThreadRead(threadId, space)
                 }
                 "reply" -> if (threadId != -1L && !replyText.isNullOrBlank()) {
                     val conv = repo.db.conversations().byThreadId(threadId)
@@ -392,8 +391,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             System.currentTimeMillis(), conv.preferredSubId,
                         )
                         com.messages.app.schedule.SmsRadio.send(context, repo, entity)
-                        repo.db.messages().markThreadRead(threadId, space)
-                        repo.db.conversations().clearUnread(threadId, space)
+                        repo.markThreadRead(threadId, space)
                     }
                 }
                 "not_spam" -> if (messageId != -1L) repo.moveToInbox(messageId)

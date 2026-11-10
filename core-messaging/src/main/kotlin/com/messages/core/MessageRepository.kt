@@ -2367,6 +2367,70 @@ class MessageRepository private constructor(private val context: Context) {
         )
     }
 
+    /**
+     * Marks a conversation thread as read in both the local Room database
+     * and Android's Telephony provider (for NORMAL space threads).
+     * Synchronizes WearOS smartwatches, Android Auto, and system unread counts.
+     */
+    suspend fun markThreadRead(threadId: Long, space: String = Spaces.NORMAL) = withContext(Dispatchers.IO) {
+        db.messages().markThreadRead(threadId, space)
+        db.conversations().clearUnread(threadId, space)
+        if (space == Spaces.NORMAL) {
+            runCatching {
+                val values = android.content.ContentValues().apply {
+                    put(Telephony.Sms.READ, 1)
+                    put(Telephony.Sms.SEEN, 1)
+                }
+                context.contentResolver.update(
+                    Telephony.Sms.CONTENT_URI,
+                    values,
+                    "${Telephony.Sms.THREAD_ID} = ? AND ${Telephony.Sms.READ} = 0",
+                    arrayOf(threadId.toString()),
+                )
+                val mmsValues = android.content.ContentValues().apply {
+                    put(Telephony.Mms.READ, 1)
+                    put(Telephony.Mms.SEEN, 1)
+                }
+                context.contentResolver.update(
+                    Telephony.Mms.CONTENT_URI,
+                    mmsValues,
+                    "${Telephony.Mms.THREAD_ID} = ? AND ${Telephony.Mms.READ} = 0",
+                    arrayOf(threadId.toString()),
+                )
+            }
+        }
+    }
+
+    /**
+     * Marks all conversations in a category as read in Room and Telephony.
+     */
+    suspend fun markCategoryRead(category: String) = withContext(Dispatchers.IO) {
+        db.messages().markCategoryRead(category)
+        db.conversations().clearUnreadForCategory(category)
+        runCatching {
+            val values = android.content.ContentValues().apply {
+                put(Telephony.Sms.READ, 1)
+                put(Telephony.Sms.SEEN, 1)
+            }
+            context.contentResolver.update(
+                Telephony.Sms.CONTENT_URI,
+                values,
+                "${Telephony.Sms.READ} = 0",
+                null,
+            )
+            val mmsValues = android.content.ContentValues().apply {
+                put(Telephony.Mms.READ, 1)
+                put(Telephony.Mms.SEEN, 1)
+            }
+            context.contentResolver.update(
+                Telephony.Mms.CONTENT_URI,
+                mmsValues,
+                "${Telephony.Mms.READ} = 0",
+                null,
+            )
+        }
+    }
+
     companion object {
         /**
          * R-16: `provider_rows.messageId` for a journalled orphan — a provider
