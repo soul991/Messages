@@ -187,7 +187,8 @@ object TelephonySyncManager {
 
                     val effectiveThreadId = if (rawThreadId > 0) rawThreadId else {
                         try {
-                            Telephony.Threads.getOrCreateThreadId(context, address)
+                            val clean = com.messages.core.util.FriendlySenderNames.cleanShortCode(address)
+                            Telephony.Threads.getOrCreateThreadId(context, clean)
                         } catch (_: Exception) { 0L }
                     }
 

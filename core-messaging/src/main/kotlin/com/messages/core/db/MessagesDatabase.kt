@@ -84,6 +84,21 @@ interface MessageDao {
     )
     suspend fun findIncomingDuplicate(address: String, timestamp: Long, body: String): MessageEntity?
 
+    @Query(
+        "SELECT * FROM messages WHERE body = :body AND isOutgoing = 0 " +
+            "AND timestamp BETWEEN (:timestamp - 2000) AND (:timestamp + 2000)"
+    )
+    suspend fun findPotentialDuplicates(body: String, timestamp: Long): List<MessageEntity>
+
+    @Query("UPDATE messages SET smsId = :smsId WHERE id = :id AND smsId IS NULL")
+    suspend fun updateSmsId(id: Long, smsId: Long): Int
+
+    @Query("UPDATE messages SET threadId = :targetThreadId WHERE threadId = :sourceThreadId")
+    suspend fun migrateThreadMessages(sourceThreadId: Long, targetThreadId: Long): Int
+
+    @Query("SELECT * FROM messages WHERE isOutgoing = 0 AND trashed = 0")
+    suspend fun allActiveIncoming(): List<MessageEntity>
+
     /**
      * V2-6 companion to [findIncomingDuplicate]. A locked row's body column
      * holds AES-GCM ciphertext under a random nonce, so `body = :body` can
@@ -641,6 +656,12 @@ interface ConversationDao {
 
     @Query("DELETE FROM conversations WHERE threadId = :threadId AND space = :space")
     suspend fun deleteByThreadId(threadId: Long, space: String)
+
+    @Query("SELECT * FROM conversations WHERE space = :space")
+    suspend fun allInSpace(space: String = Spaces.NORMAL): List<ConversationEntity>
+
+    @Query("DELETE FROM conversations WHERE threadId = :threadId")
+    suspend fun deleteThread(threadId: Long): Int
 
     @Query(
         "SELECT COUNT(*) FROM conversations WHERE category = :category " +

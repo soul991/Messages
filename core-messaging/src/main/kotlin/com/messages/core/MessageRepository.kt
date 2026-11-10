@@ -29,6 +29,7 @@ import kotlinx.coroutines.sync.withLock
 import com.messages.core.send.SendAggregate
 import com.messages.core.send.SendRetry
 import com.messages.core.trash.TrashRetention
+import com.messages.core.util.FriendlySenderNames
 import com.messages.protection.Category
 import com.messages.protection.Normalizer
 import com.messages.protection.PatternMatcher
@@ -67,6 +68,7 @@ class MessageRepository private constructor(private val context: Context) {
     init {
         CoroutineScope(Dispatchers.IO).launch {
             runCatching { db.messages().relabelAutoSwipeToUnknown() }
+            runCatching { deduplicateExistingMessages() }
         }
     }
 
@@ -235,6 +237,10 @@ class MessageRepository private constructor(private val context: Context) {
             // it up front: no second provider row, no second index row, no
             // inflated unread count, no duplicate notification.
             val existing = db.messages().findIncomingDuplicate(address, timestamp, body)
+                ?: db.messages().findPotentialDuplicates(body, timestamp).firstOrNull {
+                    it.address == address ||
+                        FriendlySenderNames.canonicalBrandKey(it.address) == FriendlySenderNames.canonicalBrandKey(address)
+                }
             // V2-6: sealed locked bodies cannot be matched by the SQL above.
             // V2-6b: a TOMBSTONE (apocalypse-corner row, text withheld) cannot
             // body-compare at all — match it by identity instead: same sender,
@@ -266,12 +272,7 @@ class MessageRepository private constructor(private val context: Context) {
                 null
             }
             val smsId = uri?.lastPathSegment?.toLongOrNull()
-            val threadId = try {
-                val tid = Telephony.Threads.getOrCreateThreadId(context, address)
-                if (tid <= 0L) syntheticThreadId(address) else tid
-            } catch (_: Exception) {
-                syntheticThreadId(address) // R-16: never a 32-bit hash
-            }
+            val threadId = resolveThreadId(address)
 
             // §14.2: a classification failure must never make a message invisible.
             // Fall back to Inbox with a normal notification — annoying at worst,
@@ -391,8 +392,31 @@ class MessageRepository private constructor(private val context: Context) {
         bumpUnread: Boolean = false,
     ): Boolean = withContext(Dispatchers.IO) {
         if (db.messages().bySmsId(smsId) != null) return@withContext false
+
+        // Duplicate check against messages already indexed or received via intake
+        val duplicate = db.messages().findIncomingDuplicate(address, timestamp, body)
+            ?: db.messages().findPotentialDuplicates(body, timestamp).firstOrNull {
+                it.address == address ||
+                    FriendlySenderNames.canonicalBrandKey(it.address) == FriendlySenderNames.canonicalBrandKey(address)
+            }
+        if (duplicate != null) {
+            if (duplicate.smsId == null) {
+                db.messages().updateSmsId(duplicate.id, smsId)
+                db.providerRows().upsert(
+                    ProviderRowEntity("content://sms/$smsId", duplicate.id, address, "SMS")
+                )
+            }
+            return@withContext false
+        }
+
+        val effectiveThreadId = if (threadId > 0) {
+            findConversationForAddress(address)?.threadId ?: threadId
+        } else {
+            resolveThreadId(address)
+        }
+
         indexHistoricalRow(
-            smsId = smsId, mmsId = null, threadId = threadId, address = address, body = body,
+            smsId = smsId, mmsId = null, threadId = effectiveThreadId, address = address, body = body,
             timestamp = timestamp, isOutgoing = isOutgoing, read = read,
             mediaRef = null, mediaMimeType = null, bumpUnread = bumpUnread,
         )
@@ -771,22 +795,69 @@ class MessageRepository private constructor(private val context: Context) {
     fun recipientsOf(address: String): List<String> =
         address.split(';').map { it.trim() }.filter { it.isNotEmpty() }
 
-    private suspend fun resolveThreadId(address: String): Long {
-        val existing = db.conversations().byAddress(address)
+    suspend fun findConversationForAddress(address: String): ConversationEntity? {
+        val exact = db.conversations().byAddress(address)
+        if (exact != null) return exact
+        val targetKey = FriendlySenderNames.canonicalBrandKey(address)
+        if (targetKey.isBlank()) return null
+        return db.conversations().allInSpace(Spaces.NORMAL).firstOrNull { conv ->
+            FriendlySenderNames.canonicalBrandKey(conv.address) == targetKey
+        }
+    }
+
+    suspend fun resolveThreadId(address: String): Long {
+        val existing = findConversationForAddress(address)
         if (existing != null && existing.threadId != 0L) {
             return existing.threadId
         }
-        val recipients = recipientsOf(address)
+        val clean = FriendlySenderNames.cleanShortCode(address)
+        val recipients = recipientsOf(clean)
         return try {
             val tid = if (recipients.size > 1) {
                 Telephony.Threads.getOrCreateThreadId(context, recipients.toSet())
             } else {
-                Telephony.Threads.getOrCreateThreadId(context, address)
+                Telephony.Threads.getOrCreateThreadId(context, clean)
             }
-            if (tid <= 0L) syntheticThreadId(address) else tid
+            if (tid <= 0L) syntheticThreadId(clean) else tid
         } catch (_: Exception) {
-            syntheticThreadId(address)
+            syntheticThreadId(clean)
         }
+    }
+
+    /**
+     * Safely deduplicate duplicate incoming messages (same text, same brand,
+     * timestamp within 2000ms) and merge fragmented threads (e.g. VK-PhonePe and VM-PhonePe).
+     */
+    suspend fun deduplicateExistingMessages(): Int = withContext(Dispatchers.IO) {
+        var dedupedCount = 0
+        val incoming = db.messages().allActiveIncoming()
+        val groups = incoming.groupBy { msg ->
+            "${FriendlySenderNames.canonicalBrandKey(msg.address)}|||${msg.body}"
+        }
+
+        for ((_, list) in groups) {
+            if (list.size <= 1) continue
+            val sorted = list.sortedBy { it.timestamp }
+            for (i in 0 until sorted.size - 1) {
+                val primary = sorted[i]
+                val secondary = sorted[i + 1]
+                if (Math.abs(primary.timestamp - secondary.timestamp) <= 2000L) {
+                    val keep = if (primary.smsId != null) primary else secondary
+                    val remove = if (keep.id == primary.id) secondary else primary
+                    if (keep.smsId == null && remove.smsId != null) {
+                        db.messages().updateSmsId(keep.id, remove.smsId)
+                    }
+                    db.messages().userDelete(remove.id)
+                    dedupedCount++
+
+                    if (keep.threadId != remove.threadId) {
+                        db.messages().migrateThreadMessages(remove.threadId, keep.threadId)
+                        db.conversations().deleteThread(remove.threadId)
+                    }
+                }
+            }
+        }
+        dedupedCount
     }
 
     /**
@@ -814,7 +885,10 @@ class MessageRepository private constructor(private val context: Context) {
     /** Digits-only, de-duplicated, sorted, ';'-joined — order-independent. */
     internal fun canonicalRecipientKey(address: String): String =
         recipientsOf(address)
-            .map { r -> r.filter { it.isDigit() }.ifEmpty { r.lowercase() } }
+            .map { r ->
+                val brand = FriendlySenderNames.canonicalBrandKey(r)
+                if (brand.isNotEmpty()) brand.lowercase() else r.filter { it.isDigit() }.ifEmpty { r.lowercase() }
+            }
             .distinct()
             .sorted()
             .joinToString(";")
