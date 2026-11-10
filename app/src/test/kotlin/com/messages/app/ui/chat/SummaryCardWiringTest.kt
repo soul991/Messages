@@ -114,11 +114,18 @@ class SummaryCardWiringTest {
     }
 
     @Test
-    fun `the feature can be turned off from the card and from settings`() {
-        assertTrue(chat.contains("MessageCards.setEnabled(context, false)"))
+    fun `the feature can be toggled per conversation and globally from settings`() {
+        // Conversation-level toggle in chat menu
+        assertTrue(chat.contains("MessageCards.setHiddenForConversation(context, threadId"))
+        assertTrue(chat.contains("R.string.summary_action_hide_conversation"))
+        assertTrue(chat.contains("R.string.summary_action_show_conversation"))
+        // Card menu keeps only 'Hide this summary', not 'turn off'
+        assertFalse(cardUi.contains("summary_action_turn_off"))
+        // Global master switch in settings
         assertTrue(settings.contains("com.messages.app.ui.chat.MessageCards.setEnabled(ctx, it)"))
         assertTrue(strings.contains("""name="settings_summary_cards""""))
         assertTrue(cards.contains("if (!enabled(context)) return null"))
+        assertTrue(cards.contains("isHiddenForConversation(context, threadId)"))
     }
 
     @Test

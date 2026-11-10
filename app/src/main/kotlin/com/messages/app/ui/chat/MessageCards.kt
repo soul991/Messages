@@ -55,6 +55,25 @@ object MessageCards {
             .edit().putBoolean(KEY_ENABLED, enabled).apply()
     }
 
+    private const val KEY_HIDDEN_CONVERSATIONS = "hidden_conversations"
+
+    fun isHiddenForConversation(context: Context, threadId: Long): Boolean {
+        val prefs = context.getSharedPreferences(DISMISS_PREFS, Context.MODE_PRIVATE)
+        val set = prefs.getStringSet(KEY_HIDDEN_CONVERSATIONS, emptySet()) ?: emptySet()
+        return set.contains(threadId.toString())
+    }
+
+    fun setHiddenForConversation(context: Context, threadId: Long, hidden: Boolean) {
+        val prefs = context.getSharedPreferences(DISMISS_PREFS, Context.MODE_PRIVATE)
+        val set = (prefs.getStringSet(KEY_HIDDEN_CONVERSATIONS, emptySet()) ?: emptySet()).toMutableSet()
+        if (hidden) {
+            set.add(threadId.toString())
+        } else {
+            set.remove(threadId.toString())
+        }
+        prefs.edit().putStringSet(KEY_HIDDEN_CONVERSATIONS, set).apply()
+    }
+
     /**
      * The card for a message, or null when there should not be one.
      *
@@ -71,8 +90,10 @@ object MessageCards {
         protectedLabel: String,
         dangerous: Boolean,
         fraudWarning: Boolean,
+        threadId: Long? = null,
     ): CardExtractor.Card? {
         if (!enabled(context)) return null
+        if (threadId != null && isHiddenForConversation(context, threadId)) return null
         if (!eligible(category, protectedLabel, dangerous, fraudWarning)) return null
         cache.get(messageId)?.let { return visible(context, messageId, it.card) }
         val card = CardExtractor.extract(body)

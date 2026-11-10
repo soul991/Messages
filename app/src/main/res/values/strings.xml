@@ -1618,6 +1618,8 @@
     <string name="summary_action_wrong">This is wrong</string>
     <string name="summary_action_hide">Hide this summary</string>
     <string name="summary_action_turn_off">Turn off summary cards</string>
+    <string name="summary_action_hide_conversation">Hide summary cards</string>
+    <string name="summary_action_show_conversation">Show summary cards</string>
     <string name="summary_action_restore">Show summary again</string>
 
     <!-- ============================= About ============================== -->
