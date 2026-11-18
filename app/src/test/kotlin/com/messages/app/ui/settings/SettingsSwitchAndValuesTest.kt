@@ -92,4 +92,13 @@ class SettingsSwitchAndValuesTest {
             content.contains("""<string name="settings_advanced_filtering_subtitle">Stricter rules for suspicious senders</string>"""),
         )
     }
+
+    @Test
+    fun conversationsSettings_doesNotExposeSwipeCustomizationSetting() {
+        val settingsSrc = java.io.File("src/main/kotlin/com/messages/app/ui/settings/SettingsScreen.kt").readText()
+        org.junit.Assert.assertFalse(
+            "SettingsScreen must not expose archive/swipe customization dialog",
+            settingsSrc.contains("settings_archive_shortcut"),
+        )
+    }
 }

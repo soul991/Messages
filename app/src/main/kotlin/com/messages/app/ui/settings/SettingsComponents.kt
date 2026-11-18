@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -148,10 +147,12 @@ internal fun SettingsGroupCard(
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .cascadeEntrance(cardIndex),
     ) {
+        val isDark = LocalDarkTheme.current
+        val rimBrush = remember(isDark) { com.messages.designsystem.liquidGlassRimBrush(isDark) }
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.groupCard,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = BorderStroke(1.dp, rimBrush),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column {

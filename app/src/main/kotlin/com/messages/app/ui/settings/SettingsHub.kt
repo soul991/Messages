@@ -129,10 +129,12 @@ private fun HubGroup(label: Int, entries: List<HubEntry>, onPick: (String?) -> U
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 8.dp),
     )
+    val isDark = LocalDarkTheme.current
+    val rimBrush = remember(isDark) { com.messages.designsystem.liquidGlassRimBrush(isDark) }
     Surface(
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.groupCard,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, rimBrush),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column {

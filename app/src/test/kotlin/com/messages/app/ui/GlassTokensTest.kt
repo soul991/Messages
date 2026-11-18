@@ -51,4 +51,16 @@ class GlassTokensTest {
             DesignTokens.Light.TopBarBorder,
         )
     }
+
+    @Test
+    fun `liquid glass sheet containers maintain high readability alpha`() {
+        assertTrue(
+            "Dark Liquid Glass sheet alpha must be >= 0.85f",
+            DesignTokens.LiquidGlass.Dark.SheetContainer.alpha >= 0.85f,
+        )
+        assertTrue(
+            "Light Liquid Glass sheet alpha must be >= 0.85f",
+            DesignTokens.LiquidGlass.Light.SheetContainer.alpha >= 0.85f,
+        )
+    }
 }

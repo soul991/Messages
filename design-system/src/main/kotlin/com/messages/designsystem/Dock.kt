@@ -46,7 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -134,7 +134,8 @@ fun BottomDock(
     val isDark = LocalDarkTheme.current
     val dockHeight = 62.dp
     val dockCornerRadius = 31.dp
-    val dockShape = RoundedCornerShape(dockCornerRadius)
+    val dockShape = remember { RoundedCornerShape(dockCornerRadius) }
+    val pillShape = remember { RoundedCornerShape(26.dp) }
 
     val tintColor = if (isDark) DesignTokens.Dark.Dock else DesignTokens.Light.Dock
     val fallbackColor = if (isDark) Color(0xF21C1C1F) else Color(0xF5FFFFFF)
@@ -181,34 +182,45 @@ fun BottomDock(
                     ),
             )
 
-            // Crisp border, subtle top highlight & content layer
+            // Crisp Liquid Glass directional border, subtle top highlight & content layer
+            val dockRimBrush = remember(isDark) { liquidGlassRimBrush(isDark) }
+            val dockSheenBrush = remember(isDark) { liquidGlassSheenBrush(isDark) }
+            val topHighlightColors = remember(isDark) {
+                val highlightColor = if (isDark) Color.White.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.60f)
+                listOf(Color.Transparent, highlightColor, Color.Transparent)
+            }
+            val pillBorder = if (isDark) Color(0x26FFFFFF) else Color(0x1F000000)
             Surface(
                 modifier = Modifier
                     .wrapContentWidth()
                     .fillMaxHeight()
-                    .drawWithContent {
-                        drawContent()
-                        // Subtle top highlight hairline across top curve
-                        val highlightColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.35f)
-                        drawLine(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    highlightColor,
-                                    Color.Transparent,
-                                ),
-                                startX = 0f,
-                                endX = size.width,
-                            ),
-                            start = Offset(x = 24.dp.toPx(), y = 1.dp.toPx()),
-                            end = Offset(x = size.width - 24.dp.toPx(), y = 1.dp.toPx()),
-                            strokeWidth = 1.dp.toPx(),
+                    .background(dockSheenBrush, dockShape)
+                    .drawWithCache {
+                        // Specular Liquid Glass catch-light arc along the top curve
+                        val highlightBrush = Brush.horizontalGradient(
+                            colors = topHighlightColors,
+                            startX = 0f,
+                            endX = size.width,
                         )
+                        val insetPx = 24.dp.toPx()
+                        val yPx = 1.dp.toPx()
+                        val strokePx = 1.dp.toPx()
+                        val start = Offset(x = insetPx, y = yPx)
+                        val end = Offset(x = (size.width - insetPx).coerceAtLeast(insetPx), y = yPx)
+                        onDrawWithContent {
+                            drawContent()
+                            drawLine(
+                                brush = highlightBrush,
+                                start = start,
+                                end = end,
+                                strokeWidth = strokePx,
+                            )
+                        }
                     },
                 shape = dockShape,
                 color = Color.Transparent,
                 shadowElevation = 0.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.dockBorder),
+                border = BorderStroke(1.dp, dockRimBrush),
             ) {
                 Row(
                     modifier = Modifier
@@ -229,12 +241,12 @@ fun BottomDock(
 
                         val interactionSource = remember { MutableInteractionSource() }
                         val isPressed by interactionSource.collectIsPressedAsState()
-                        val tabScale by animateFloatAsState(
+                        val tabScaleState = animateFloatAsState(
                             targetValue = if (isPressed) 0.94f else 1f,
                             animationSpec = Motion.bouncySpring(),
                             label = "tab-scale-${item.key}",
                         )
-                        val pillAlpha by animateFloatAsState(
+                        val pillAlphaState = animateFloatAsState(
                             targetValue = if (selected) 1f else 0f,
                             animationSpec = Motion.effectsDefault(),
                             label = "pill-alpha-${item.key}",
@@ -245,10 +257,11 @@ fun BottomDock(
                                 .testTag("dock_${item.key}")
                                 .widthIn(min = 66.dp)
                                 .graphicsLayer {
-                                    scaleX = tabScale
-                                    scaleY = tabScale
+                                    val s = tabScaleState.value
+                                    scaleX = s
+                                    scaleY = s
                                 }
-                                .clip(RoundedCornerShape(26.dp))
+                                .clip(pillShape)
                                 .clickable(
                                     interactionSource = interactionSource,
                                     indication = ripple(
@@ -264,15 +277,14 @@ fun BottomDock(
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            // Neutral active pill with spring alpha fade
-                            if (pillAlpha > 0.01f) {
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .graphicsLayer { alpha = pillAlpha }
-                                        .background(MaterialTheme.colorScheme.dockActivePill, RoundedCornerShape(26.dp))
-                                )
-                            }
+                            // Liquid Glass active capsule pill with subtle inner rim
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .graphicsLayer { alpha = pillAlphaState.value }
+                                    .background(MaterialTheme.colorScheme.dockActivePill, pillShape)
+                                    .border(0.75.dp, pillBorder, pillShape),
+                            )
 
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,

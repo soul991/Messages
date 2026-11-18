@@ -84,16 +84,20 @@ class WcagContrastTestSuite {
 
     @Test
     fun chat_sentBubbleText_meetsWcagAA() {
-        val darkText = Color(0xFF04210E)
-        val darkBubble = DesignTokens.Dark.Green
+        val darkText = DesignTokens.SentBubble.DarkOnContainer
+        val darkBubble = DesignTokens.SentBubble.DarkContainer
         val darkRatio = contrastRatio(darkText, darkBubble)
 
-        val lightText = Color(0xFF04210E)
-        val lightBubble = DesignTokens.Light.Green
+        val lightText = DesignTokens.SentBubble.LightOnContainer
+        val lightBubble = DesignTokens.SentBubble.LightContainer
         val lightRatio = contrastRatio(lightText, lightBubble)
 
         assertTrue("Dark sent bubble text ($darkRatio:1) must be >= 4.5:1", darkRatio >= 4.5f)
         assertTrue("Light sent bubble text ($lightRatio:1) must be >= 4.5:1", lightRatio >= 4.5f)
+        assertTrue(
+            "Dark sent bubble container luminance (${darkBubble.luminance()}) must remain soothing (< 0.15)",
+            darkBubble.luminance() < 0.15f,
+        )
     }
 
     @Test

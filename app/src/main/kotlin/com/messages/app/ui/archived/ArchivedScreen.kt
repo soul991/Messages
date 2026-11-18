@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,10 +23,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import com.messages.designsystem.SwipeIcons
 import com.messages.designsystem.groupCard
+import com.messages.designsystem.textMuted
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -200,13 +205,45 @@ fun ArchivedScreen(
                                 )
                             }
                             Spacer(Modifier.height(3.dp))
-                            Text(
-                                if (conv.locked) stringResource(R.string.conversation_locked_preview) else conv.lastMessage,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    if (conv.locked) stringResource(R.string.conversation_locked_preview) else conv.lastMessage,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (conv.muted || conv.pinned) {
+                                    Spacer(Modifier.width(8.dp))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        if (conv.muted) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.NotificationsOff,
+                                                contentDescription = stringResource(R.string.home_muted),
+                                                tint = MaterialTheme.colorScheme.textMuted,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                        if (conv.pinned) {
+                                            Icon(
+                                                imageVector = SwipeIcons.PinFilled,
+                                                contentDescription = stringResource(R.string.home_pinned),
+                                                tint = MaterialTheme.colorScheme.textMuted,
+                                                modifier = Modifier
+                                                    .size(16.dp)
+                                                    .rotate(45f),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                         Spacer(Modifier.width(8.dp))
                         IconButton(onClick = {

@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
@@ -365,6 +366,44 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             repo.db.conversations().setMuted(threadId, muted, Spaces.NORMAL)
         } catch (t: Throwable) {
             android.util.Log.e("HomeViewModel", "toggleMute failed", t)
+        }
+    }
+
+    /** Block a sender from the Home conversation action sheet and move thread to Blocked. */
+    fun blockSender(address: String, threadId: Long) = viewModelScope.launch {
+        val trimmed = address.trim()
+        if (trimmed.isBlank() || trimmed.contains(';')) return@launch
+        try {
+            withContext(Dispatchers.IO) {
+                val dao = repo.db.userRules()
+                val existingRules = dao.all()
+                existingRules
+                    .filter {
+                        it.kind == "ALLOW" && it.target == "SENDER" &&
+                            it.pattern.equals(trimmed, ignoreCase = true)
+                    }
+                    .forEach { dao.delete(it.id) }
+                val alreadyBlocked = existingRules.any {
+                    it.kind == "BLOCK" && it.target == "SENDER" &&
+                        it.pattern.equals(trimmed, ignoreCase = true)
+                }
+                if (!alreadyBlocked) {
+                    val position = (existingRules.maxOfOrNull { it.position } ?: -1) + 1
+                    dao.insert(
+                        com.messages.core.db.UserRuleEntity(
+                            position = position,
+                            kind = "BLOCK",
+                            target = "SENDER",
+                            pattern = trimmed,
+                        ),
+                    )
+                }
+                repo.db.messages().listForThread(threadId, Spaces.NORMAL)
+                    .forEach { repo.db.messages().recategorize(it.id, "BLOCKED") }
+                repo.refreshConversationSummary(threadId, Spaces.NORMAL)
+            }
+        } catch (t: Throwable) {
+            android.util.Log.e("HomeViewModel", "blockSender failed", t)
         }
     }
 

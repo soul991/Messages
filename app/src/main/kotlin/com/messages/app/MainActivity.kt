@@ -373,6 +373,7 @@ class MainActivity : FragmentActivity() {
                             onOpenAppSettings = { openAppSettings(this@MainActivity) },
                             onOpenDefaultApps = { openDefaultAppsSettings(this@MainActivity) },
                             onOpenThread = { threadId -> nav.navigate("chat/$threadId") },
+                            onOpenContact = { threadId -> nav.navigate("contactDetail/$threadId") },
                             onOpenSearchResult = { threadId, messageId, terms ->
                                 val q = Uri.encode(terms.joinToString(" "))
                                 nav.navigate("chat/$threadId?q=$q&target=$messageId")

@@ -88,7 +88,7 @@ object DesignTokens {
 
     object DatePill {
         val DarkFill = Color(0x12FFFFFF) // rgba(255,255,255,0.07) matching Thread.html
-        val LightFill = Color(0x0F000000) // rgba(0,0,0,0.06)
+        val LightFill = Color(0xD9FFFFFF) // rgba(255,255,255,0.85)
     }
 
     object Monogram {
@@ -106,6 +106,66 @@ object DesignTokens {
         val Highlight = Color(0x4D30D158) // rgba(48,209,88,.30) matching TextSelect.html
         val LoupeSurface = Color(0xFF1C1C1F) // Loupe dark surface from TextSelect.html
         val LoupeBorder = Color(0x24FFFFFF) // Loupe border rgba(255,255,255,0.14)
+    }
+
+    /**
+     * Outgoing (sent) message bubble tokens: calm, soothing emerald/sage greens
+     * replacing high-glare neon green while maintaining WCAG AAA text contrast.
+     */
+    object SentBubble {
+        // Dark mode: deep forest-emerald (#134D2E) with soft crisp off-white (#F2F7F3) -> ~8.7:1 contrast
+        val DarkContainer = Color(0xFF134D2E)
+        val DarkOnContainer = Color(0xFFF2F7F3)
+        val DarkBorder = Color(0x3D30D158)
+        val DarkMeta = Color(0xBFE6F4EA)
+        val DarkReadTick = Color(0xFF5CE686)
+
+        // Light mode: soothing sage-mint (#D8F3DF) with rich forest-ink (#0E2918) -> ~13.2:1 contrast
+        val LightContainer = Color(0xFFD8F3DF)
+        val LightOnContainer = Color(0xFF0E2918)
+        val LightBorder = Color(0x2E1E9A44)
+        val LightMeta = Color(0xB80E2918)
+        val LightReadTick = Color(0xFF137333)
+    }
+
+    /**
+     * macOS / WhatsApp-Mac inspired Liquid Glass materiality tokens:
+     * layered translucency, directional specular top catch-light, and floating inner groups.
+     */
+    object LiquidGlass {
+        val BlurRadius = 24.dp
+
+        object Dark {
+            val SheetContainer = Color(0xF2161719)
+            val SheetGroup = Color(0xF0303034)
+            val PillContainer = Color(0xCC1C1C20)
+            val PillFallback = Color(0xF01C1C20)
+            val RimTop = Color(0x42FFFFFF)
+            val RimMid = Color(0x18FFFFFF)
+            val RimBottom = Color(0x0DFFFFFF)
+            val SheenTop = Color(0x16FFFFFF)
+            val SheenBottom = Color(0x03FFFFFF)
+            val Divider = Color(0x2EFFFFFF)
+            val SwipeNeutral = Color(0xD9323236)
+            val SwipeNeutralContent = Color(0xFFF2F2F4)
+            val Destructive = Color(0xFFFB5061)
+        }
+
+        object Light {
+            val SheetContainer = Color(0xF5F2F2F5)
+            val SheetGroup = Color(0xFFFFFFFF)
+            val PillContainer = Color(0xD9FFFFFF)
+            val PillFallback = Color(0xF5FFFFFF)
+            val RimTop = Color(0xE6FFFFFF)
+            val RimMid = Color(0x1A000000)
+            val RimBottom = Color(0x14000000)
+            val SheenTop = Color(0x73FFFFFF)
+            val SheenBottom = Color(0x0DFFFFFF)
+            val Divider = Color(0x14000000)
+            val SwipeNeutral = Color(0xE6E5E5EA)
+            val SwipeNeutralContent = Color(0xFF111113)
+            val Destructive = Color(0xFFE53935)
+        }
     }
 
     object Dimensions {

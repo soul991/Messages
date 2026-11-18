@@ -39,8 +39,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -49,7 +47,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Accessibility
-import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.AutoDelete
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.BrightnessHigh
@@ -67,8 +64,6 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.SwipeLeft
-import androidx.compose.material.icons.outlined.SwipeRight
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -76,8 +71,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -618,8 +611,16 @@ fun SettingsScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { if (page != null) page = null else onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                    com.messages.designsystem.LiquidGlassIconButton(
+                        onClick = { if (page != null) page = null else onBack() },
+                        modifier = Modifier.padding(start = 4.dp),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
                 },
             )
@@ -939,72 +940,11 @@ fun SettingsScreen(
                 }
             }
 
-            // ---- Conversations (§8.1/§8.2): swipe actions + delivery reports ----
+            // ---- Conversations (§8.1/§8.2): delivery reports, link previews, summary cards ----
             if (currentPage == SettingsPage.CONVERSATIONS) {
                 item {
                     SettingsSectionHeader(stringResource(R.string.settings_section_conversations))
                     val ctx = androidx.compose.ui.platform.LocalContext.current
-                    var showArchiveShortcutDialog by remember { mutableStateOf(false) }
-                    val currentArchiveShortcut by com.messages.app.ui.home.SwipeActions.archiveShortcut.collectAsStateWithLifecycle()
-                    val archiveShortcutSubtitle = when (currentArchiveShortcut) {
-                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_RIGHT -> stringResource(R.string.settings_swipe_right)
-                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_LEFT -> stringResource(R.string.settings_swipe_left)
-                        com.messages.app.ui.home.SwipeActions.SHORTCUT_OFF -> stringResource(R.string.settings_archive_shortcut_off)
-                        else -> stringResource(R.string.settings_archive_shortcut_choose)
-                    }
-
-                    if (showArchiveShortcutDialog) {
-                        AlertDialog(
-                            onDismissRequest = { showArchiveShortcutDialog = false },
-                            title = { Text(stringResource(R.string.settings_archive_shortcut)) },
-                            text = {
-                                Column(modifier = Modifier.selectableGroup()) {
-                                    val options = listOf(
-                                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_RIGHT to stringResource(R.string.settings_swipe_right),
-                                        com.messages.app.ui.home.SwipeActions.SHORTCUT_SWIPE_LEFT to stringResource(R.string.settings_swipe_left),
-                                        com.messages.app.ui.home.SwipeActions.SHORTCUT_OFF to stringResource(R.string.settings_archive_shortcut_off),
-                                    )
-                                    options.forEach { (optionKey, label) ->
-                                        val isSelected = currentArchiveShortcut == optionKey
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .selectable(
-                                                    selected = isSelected,
-                                                    onClick = {
-                                                        com.messages.app.ui.home.SwipeActions.setArchiveShortcut(ctx, optionKey)
-                                                        showArchiveShortcutDialog = false
-                                                    },
-                                                    role = Role.RadioButton,
-                                                )
-                                                .padding(vertical = 12.dp, horizontal = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            RadioButton(
-                                                selected = isSelected,
-                                                onClick = null,
-                                                colors = RadioButtonDefaults.colors(
-                                                    selectedColor = MaterialTheme.colorScheme.primary,
-                                                ),
-                                            )
-                                            Spacer(Modifier.width(12.dp))
-                                            Text(
-                                                text = label,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                            )
-                                        }
-                                    }
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { showArchiveShortcutDialog = false }) {
-                                    Text(stringResource(R.string.action_cancel))
-                                }
-                            },
-                            confirmButton = {},
-                        )
-                    }
                     var deliveryReports by remember {
                         mutableStateOf(
                             ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
@@ -1036,14 +976,6 @@ fun SettingsScreen(
                             }
                         }
                     ) {
-                        SettingsRow(
-                            icon = Icons.Outlined.Archive,
-                            categoryBadge = null,
-                            title = stringResource(R.string.settings_archive_shortcut),
-                            subtitle = archiveShortcutSubtitle,
-                            onClick = { showArchiveShortcutDialog = true },
-                        )
-                        SettingsCardDivider()
                         SettingsSwitchRow(
                             icon = Icons.Outlined.DoneAll,
                             categoryBadge = null,

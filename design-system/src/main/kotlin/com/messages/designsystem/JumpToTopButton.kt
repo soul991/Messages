@@ -111,7 +111,9 @@ fun JumpToTopButton(
             modifier = Modifier.size(48.dp),
             contentAlignment = Alignment.Center,
         ) {
-            // 44dp visual round glass surface
+            val rimBrush = remember(isDark) { liquidGlassRimBrush(isDark) }
+            val sheenBrush = remember(isDark) { liquidGlassSheenBrush(isDark) }
+            // 44dp visual round Liquid Glass surface
             Surface(
                 modifier = Modifier
                     .size(44.dp)
@@ -133,6 +135,7 @@ fun JumpToTopButton(
                             )
                         }
                     )
+                    .background(sheenBrush, CircleShape)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = ripple(bounded = true),
@@ -146,7 +149,7 @@ fun JumpToTopButton(
                 shape = CircleShape,
                 color = Color.Transparent,
                 shadowElevation = 0.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.dockBorder),
+                border = BorderStroke(1.dp, rimBrush),
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),

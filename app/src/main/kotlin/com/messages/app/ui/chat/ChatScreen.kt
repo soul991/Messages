@@ -89,6 +89,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.sp
 import com.messages.designsystem.groupCard
@@ -120,7 +121,23 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.Summarize
 import com.messages.designsystem.GlassTopBar
+import com.messages.designsystem.LiquidGlassActionDivider
+import com.messages.designsystem.LiquidGlassActionGroup
+import com.messages.designsystem.LiquidGlassActionRow
+import com.messages.designsystem.LiquidGlassIconButton
+import com.messages.designsystem.LiquidGlassSheetDialog
+import com.messages.designsystem.LiquidGlassSurface
+import com.messages.designsystem.LocalSentBubble
+import com.messages.designsystem.hairline
+import com.messages.designsystem.liquidGlassRimBrush
+import com.messages.designsystem.liquidGlassSheenBrush
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -204,6 +221,7 @@ private sealed interface ChatItem {
 }
 
 private const val GROUP_GAP_MS = 3 * 60 * 1000L
+private val OFFER_HINT_REGEX = Regex("""(?i)\b(offer|discount|recharge|coupon|sale)\b""")
 
 private fun sameDay(a: Long, b: Long): Boolean {
     val ca = Calendar.getInstance().apply { timeInMillis = a }
@@ -574,7 +592,7 @@ fun ChatScreen(
             },
             topBar = {
             val isDark = LocalDarkTheme.current
-            GlassTopBar(isDark = isDark) {
+            GlassTopBar(isDark = isDark, hazeState = null) {
                 val hintPrefs = remember {
                     context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
                 }
@@ -859,13 +877,30 @@ fun ChatScreen(
                                 }
                             },
                             navigationIcon = {
-                                IconButton(onClick = onBack) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                                LiquidGlassIconButton(
+                                    onClick = onBack,
+                                    hazeState = null,
+                                    modifier = Modifier.padding(start = 4.dp),
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = stringResource(R.string.action_back),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(20.dp),
+                                    )
                                 }
                             },
                             actions = {
-                                IconButton(onClick = { chatSearchActive = true }) {
-                                    Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.chat_search_in_conversation))
+                                LiquidGlassIconButton(
+                                    onClick = { chatSearchActive = true },
+                                    hazeState = null,
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Search,
+                                        contentDescription = stringResource(R.string.chat_search_in_conversation),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(20.dp),
+                                    )
                                 }
                                 if (locked) {
                                     Icon(
@@ -874,78 +909,17 @@ fun ChatScreen(
                                         modifier = Modifier.width(18.dp),
                                     )
                                 }
-                                Box {
-                                    IconButton(onClick = { showChatMenu = true }) {
-                                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more_options))
-                                    }
-                                    DropdownMenu(
-                                        expanded = showChatMenu,
-                                        onDismissRequest = { showChatMenu = false },
-                                        shape = RoundedCornerShape(8.dp),
-                                        containerColor = MaterialTheme.colorScheme.surface,
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                        tonalElevation = 6.dp,
-                                        shadowElevation = 8.dp,
-                                    ) {
-                                        // Secret space: "Lock chat" opens the two-option
-                                        // sheet (normal space); inside the locked space
-                                        // the action is "Unlock chat" (move back).
-                                        if (!inLockedSpace) {
-                                            DropdownMenuItem(
-                                                text = { Text(stringResource(R.string.chat_lock_chat)) },
-                                                onClick = {
-                                                    showChatMenu = false
-                                                    showLockSheet = true
-                                                },
-                                                modifier = Modifier.heightIn(min = 48.dp),
-                                            )
-                                        } else {
-                                            DropdownMenuItem(
-                                                text = { Text(stringResource(R.string.chat_unlock_chat)) },
-                                                onClick = {
-                                                    showChatMenu = false
-                                                    vm.unlockChat(onDone = onBack)
-                                                },
-                                                modifier = Modifier.heightIn(min = 48.dp),
-                                            )
-                                        }
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.chat_export_conversation)) },
-                                            onClick = {
-                                                showChatMenu = false
-                                                val safeName = (contactName ?: address).replace(
-                                                    Regex("""[^A-Za-z0-9+_-]"""), "_",
-                                                ).take(40)
-                                                exportLauncher.launch("Messages-$safeName.txt")
-                                            },
-                                        )
-                                        if (MessageCards.enabled(context)) {
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Text(
-                                                        stringResource(
-                                                            if (summaryCardsHidden) R.string.summary_action_show_conversation
-                                                            else R.string.summary_action_hide_conversation
-                                                        )
-                                                    )
-                                                },
-                                                onClick = {
-                                                    showChatMenu = false
-                                                    val newHidden = !summaryCardsHidden
-                                                    MessageCards.setHiddenForConversation(context, threadId, newHidden)
-                                                    summaryCardsHidden = newHidden
-                                                },
-                                                modifier = Modifier.heightIn(min = 48.dp),
-                                            )
-                                        }
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.chat_delete_conversation)) },
-                                            onClick = {
-                                                showChatMenu = false
-                                                showDeleteThreadConfirm = true
-                                            },
-                                        )
-                                    }
+                                LiquidGlassIconButton(
+                                    onClick = { showChatMenu = true },
+                                    hazeState = null,
+                                    modifier = Modifier.padding(end = 4.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.MoreVert,
+                                        contentDescription = stringResource(R.string.action_more_options),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(20.dp),
+                                    )
                                 }
                             },
                         )
@@ -977,11 +951,13 @@ fun ChatScreen(
                         Icon(
                             Icons.Filled.PushPin, contentDescription = stringResource(R.string.chat_pinned_message),
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier
+                                .size(16.dp)
+                                .rotate(45f),
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            current.body.ifBlank { "Pinned message" },
+                            current.body.ifBlank { stringResource(R.string.chat_pinned_message) },
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -1292,32 +1268,31 @@ fun ChatScreen(
                 }
             }
 
-            // Composer — pill field, spring-scaled send button (§9).
+            // Composer — Liquid Glass pill field, spring-scaled send button (§9).
             if (canReply) Row(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
-                // Redesign: attach lives in a tonal round "+" like the field it sits beside.
-                FilledTonalIconButton(
+                LiquidGlassIconButton(
                     onClick = { showAttachSheet = true },
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
-                    modifier = Modifier.size(48.dp),
+                    hazeState = null,
+                    visualSize = 44.dp,
                 ) {
                     Icon(
                         Icons.Filled.Add,
                         contentDescription = stringResource(R.string.chat_attach),
                         tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(22.dp),
                     )
                 }
-                Spacer(Modifier.width(8.dp))
-                // Refs' pill anatomy (plan §2): 40dp rx-18 field with the ⚡
+                Spacer(Modifier.width(6.dp))
+                // Refs' pill anatomy (plan §2): Liquid Glass rx-24 field with the ⚡
                 // quick-replies button living inside the pill's right edge.
                 ComposerField(
                     value = draft,
                     onValueChange = { draft = it },
                     onQuickReplies = { showQuickReplies = true },
+                    hazeState = null,
                     modifier = Modifier.weight(1f),
                 )
                 // Scheduled send (§8.2) — text-only, so hidden while an attachment is staged
@@ -1399,24 +1374,136 @@ fun ChatScreen(
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.action_send))
                         }
                     } else {
-                        FilledTonalIconButton(
+                        LiquidGlassIconButton(
                             onClick = {
                                 Haptics.tick(view)
                                 vm.sendWithAttachment("[voice:0:12|14,20,26,18,12,22,28,16,10,18,24,14,20,16]")
                             },
-                            interactionSource = actionInteractionSource,
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ),
-                            modifier = Modifier.size(48.dp).scale(actionScale),
+                            hazeState = null,
+                            visualSize = 44.dp,
+                            modifier = Modifier.scale(actionScale),
                         ) {
                             Icon(
                                 Icons.Filled.Mic,
                                 contentDescription = stringResource(R.string.chat_voice_note_record),
                                 tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp),
                             )
                         }
                     }
+                }
+            }
+        }
+
+        // Liquid Glass chat overflow sheet (matching macOS / Mac WhatsApp grouped glass aesthetic)
+        if (showChatMenu) {
+            val friendlyName = remember(address, contactName) {
+                contactName ?: FriendlySenderNames.format(address)
+            }
+            LiquidGlassSheetDialog(
+                onDismissRequest = { showChatMenu = false },
+                header = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ContactAvatar(
+                            name = friendlyName,
+                            category = category,
+                            size = 42.dp,
+                            photoUri = com.messages.app.ui.common.rememberContactPhoto(address.ifBlank { null }),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = friendlyName,
+                                fontSize = 18.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            )
+                            if (address.isNotBlank() && address != friendlyName) {
+                                Text(
+                                    text = address,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                },
+            ) {
+                LiquidGlassActionGroup {
+                    LiquidGlassActionRow(
+                        icon = Icons.Outlined.Info,
+                        label = stringResource(R.string.home_contact_info),
+                        onClick = {
+                            showChatMenu = false
+                            onOpenContact()
+                        },
+                    )
+                    LiquidGlassActionDivider()
+                    if (!inLockedSpace) {
+                        LiquidGlassActionRow(
+                            icon = Icons.Outlined.Lock,
+                            label = stringResource(R.string.chat_lock_chat),
+                            onClick = {
+                                showChatMenu = false
+                                showLockSheet = true
+                            },
+                        )
+                    } else {
+                        LiquidGlassActionRow(
+                            icon = Icons.Outlined.LockOpen,
+                            label = stringResource(R.string.chat_unlock_chat),
+                            onClick = {
+                                showChatMenu = false
+                                vm.unlockChat(onDone = onBack)
+                            },
+                        )
+                    }
+                    LiquidGlassActionDivider()
+                    LiquidGlassActionRow(
+                        icon = Icons.Outlined.Download,
+                        label = stringResource(R.string.chat_export_conversation),
+                        onClick = {
+                            showChatMenu = false
+                            val safeName = (contactName ?: address).replace(
+                                Regex("""[^A-Za-z0-9+_-]"""), "_",
+                            ).take(40)
+                            exportLauncher.launch("Messages-$safeName.txt")
+                        },
+                    )
+                    if (MessageCards.enabled(context)) {
+                        LiquidGlassActionDivider()
+                        LiquidGlassActionRow(
+                            icon = Icons.Outlined.Summarize,
+                            label = stringResource(
+                                if (summaryCardsHidden) R.string.summary_action_show_conversation
+                                else R.string.summary_action_hide_conversation,
+                            ),
+                            onClick = {
+                                showChatMenu = false
+                                val newHidden = !summaryCardsHidden
+                                MessageCards.setHiddenForConversation(context, threadId, newHidden)
+                                summaryCardsHidden = newHidden
+                            },
+                        )
+                    }
+                }
+                LiquidGlassActionGroup {
+                    LiquidGlassActionRow(
+                        icon = Icons.Outlined.Delete,
+                        label = stringResource(R.string.chat_delete_conversation),
+                        destructive = true,
+                        onClick = {
+                            showChatMenu = false
+                            showDeleteThreadConfirm = true
+                        },
+                    )
                 }
             }
         }
@@ -1696,8 +1783,9 @@ private fun ComposerField(
     onValueChange: (String) -> Unit,
     onQuickReplies: () -> Unit,
     modifier: Modifier = Modifier,
+    hazeState: dev.chrisbanes.haze.HazeState? = null,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = remember { RoundedCornerShape(24.dp) }
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -1708,40 +1796,44 @@ private fun ComposerField(
         maxLines = 5,
         modifier = modifier.testTag("chat_composer_field"),
         decorationBox = { inner ->
-            Row(
-                Modifier
-                    .clip(shape)
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .heightIn(min = 48.dp)
-                    .padding(start = 18.dp, end = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            LiquidGlassSurface(
+                shape = shape,
+                hazeState = hazeState,
+                modifier = Modifier.heightIn(min = 48.dp),
             ) {
-                Box(Modifier.weight(1f).padding(vertical = 8.dp)) {
-                    if (value.isEmpty()) {
-                        Text(
-                            stringResource(R.string.chat_composer_placeholder),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 18.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.weight(1f).padding(vertical = 8.dp)) {
+                        if (value.isEmpty()) {
+                            Text(
+                                stringResource(R.string.chat_composer_placeholder),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                        inner()
+                    }
+                    // V2-40: `.size(36.dp)` overrode the 48 dp IconButton default
+                    // to keep the composer pill at 40 dp. The pill now settles at
+                    // 48 — which is where Material's composer sits anyway — rather
+                    // than shipping a 36 dp target inside the most-tapped row in
+                    // the app. The glyph stays 20 dp, so nothing looks heavier.
+                    IconButton(
+                        onClick = onQuickReplies,
+                        modifier = Modifier.testTag("chat_quick_reply_chip"),
+                    ) {
+                        Icon(
+                            Icons.Filled.Bolt,
+                            contentDescription = stringResource(R.string.chat_quick_replies),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
-                    inner()
-                }
-                // V2-40: `.size(36.dp)` overrode the 48 dp IconButton default
-                // to keep the composer pill at 40 dp. The pill now settles at
-                // 48 — which is where Material's composer sits anyway — rather
-                // than shipping a 36 dp target inside the most-tapped row in
-                // the app. The glyph stays 20 dp, so nothing looks heavier.
-                IconButton(
-                    onClick = onQuickReplies,
-                    modifier = Modifier.testTag("chat_quick_reply_chip"),
-                ) {
-                    Icon(
-                        Icons.Filled.Bolt,
-                        contentDescription = stringResource(R.string.chat_quick_replies),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp),
-                    )
                 }
             }
         },
@@ -1836,10 +1928,17 @@ private fun DatePill(ts: Long, modifier: Modifier = Modifier) {
             else -> AppDateFormat.dayMonthYear(ts)
         }
     }
+    val shape = remember { RoundedCornerShape(14.dp) }
+    val fill = if (isDark) DesignTokens.DatePill.DarkFill else DesignTokens.DatePill.LightFill
+    val rimBrush = remember(isDark) { liquidGlassRimBrush(isDark) }
+    val sheenBrush = remember(isDark) { liquidGlassSheenBrush(isDark) }
     Box(modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = if (isDark) DesignTokens.DatePill.DarkFill else DesignTokens.DatePill.LightFill,
+        Box(
+            modifier = Modifier
+                .clip(shape)
+                .background(fill, shape)
+                .background(sheenBrush, shape)
+                .border(0.75.dp, rimBrush, shape),
         ) {
             Text(
                 label,
@@ -1917,14 +2016,14 @@ private fun MessageBubble(
         }.value
 
     // Bubble radius: 20dp per tokens/design-tokens.json & Thread.html
-    val bubbleShape = RoundedCornerShape(20.dp)
+    val bubbleShape = remember { RoundedCornerShape(20.dp) }
 
-    val isEmoji = isEmojiOnly(msg.body) && msg.mediaUri == null
+    val isEmoji = remember(msg.body, msg.mediaUri) { isEmojiOnly(msg.body) && msg.mediaUri == null }
     val reply = remember(msg.body) { parseReply(msg.body) }
     val voiceNote = remember(msg.body) { parseVoiceNote(msg.body) }
     val tapback = remember(msg.body) { RcsReactionParser.parse(msg.body) }
-    val offer = remember(msg.body, msg.category) {
-        if (!isOut && (msg.category == "PROMOTIONS" || msg.body.contains(Regex("""(?i)\b(offer|discount|recharge|coupon|sale)\b""")))) {
+    val offer = remember(msg.body, msg.category, isOut) {
+        if (!isOut && (msg.category == "PROMOTIONS" || OFFER_HINT_REGEX.containsMatchIn(msg.body))) {
             OfferExtractor.extract(msg.body)
         } else null
     }
@@ -1983,8 +2082,11 @@ private fun MessageBubble(
                     lineHeight = 40.sp,
                 )
                 BubbleMetaRow(
-                    msg = msg, isOut = isOut,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    msg = msg,
+                    isOut = isOut,
+                    pinned = pinned,
+                    useSentMeta = false,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
@@ -2022,7 +2124,7 @@ private fun MessageBubble(
                 )
                 if (!isScheduled) {
                     BubbleMetaRow(
-                        msg = msg, isOut = isOut,
+                        msg = msg, isOut = isOut, pinned = pinned,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .align(Alignment.End)
@@ -2032,13 +2134,38 @@ private fun MessageBubble(
             }
         } else {
             val receivedSurface = MaterialTheme.colorScheme.surface
+            val isDarkBubble = LocalDarkTheme.current
+            val sentBubbleTokens = LocalSentBubble.current
+            val bubbleBorderColor = if (isOut) sentBubbleTokens.border else MaterialTheme.colorScheme.hairline
+            val bubbleSheen = remember(isDarkBubble, isOut) {
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    if (isOut) {
+                        listOf(
+                            Color.White.copy(alpha = if (isDarkBubble) 0.08f else 0.35f),
+                            Color.Transparent,
+                        )
+                    } else {
+                        listOf(
+                            Color.White.copy(alpha = if (isDarkBubble) 0.05f else 0.25f),
+                            Color.Transparent,
+                        )
+                    },
+                )
+            }
 
             Box(
                 Modifier
                     .widthIn(max = maxBubbleWidth)
+                    .clip(bubbleShape)
                     .background(
                         color = if (isOut) outBubbleColors.first else receivedSurface,
                         shape = bubbleShape,
+                    )
+                    .background(bubbleSheen, bubbleShape)
+                    .then(
+                        if (bubbleBorderColor != Color.Transparent) {
+                            Modifier.border(0.75.dp, bubbleBorderColor, bubbleShape)
+                        } else Modifier,
                     )
                     .combinedClickable(
                         onClick = { if (selectionMode) onToggleSelect() },
@@ -2105,7 +2232,7 @@ private fun MessageBubble(
                             )
                             if (!isScheduled) {
                                 BubbleMetaRow(
-                                    msg = msg, isOut = isOut,
+                                    msg = msg, isOut = isOut, pinned = pinned,
                                     color = if (isOut) outBubbleColors.second
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier
@@ -2149,7 +2276,7 @@ private fun MessageBubble(
                             if (!isScheduled) {
                                 Spacer(Modifier.height(2.dp))
                                 BubbleMetaRow(
-                                    msg = msg, isOut = isOut,
+                                    msg = msg, isOut = isOut, pinned = pinned,
                                     color = if (isOut) outBubbleColors.second
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.align(Alignment.End),
@@ -2158,14 +2285,22 @@ private fun MessageBubble(
                         }
                     } else if (rawBody.isNotBlank()) {
                         // §8.5.3: in-conversation search highlights terms inside the bubble.
-                        val highlighted = if (highlightTerms.isEmpty()) AnnotatedString(rawBody)
-                        else com.messages.app.ui.search.SearchHighlight.annotate(
-                            rawBody, highlightTerms,
+                        val highlightSpanStyle = if (isOut) {
+                            androidx.compose.ui.text.SpanStyle(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                background = outBubbleColors.second.copy(alpha = 0.22f),
+                                color = outBubbleColors.second,
+                            )
+                        } else {
                             androidx.compose.ui.text.SpanStyle(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                                 background = MaterialTheme.colorScheme.tertiaryContainer,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            ),
+                            )
+                        }
+                        val highlighted = if (highlightTerms.isEmpty()) AnnotatedString(rawBody)
+                        else com.messages.app.ui.search.SearchHighlight.annotate(
+                            rawBody, highlightTerms, highlightSpanStyle,
                         )
                         // Smart spans layer tappable actions on top (Phase 4 item 5).
                         val linkColor = if (isOut) outBubbleColors.second
@@ -2223,7 +2358,7 @@ private fun MessageBubble(
                             if (!isScheduled) {
                                 Spacer(Modifier.height(4.dp))
                                 BubbleMetaRow(
-                                    msg = msg, isOut = isOut,
+                                    msg = msg, isOut = isOut, pinned = pinned,
                                     color = if (isOut) outBubbleColors.second
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.align(Alignment.End),
@@ -2233,7 +2368,7 @@ private fun MessageBubble(
                     } else if (!isScheduled) {
                         // Media-only bubble: the timestamp still lives inside.
                         BubbleMetaRow(
-                            msg = msg, isOut = isOut,
+                            msg = msg, isOut = isOut, pinned = pinned,
                             color = if (isOut) outBubbleColors.second
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
@@ -2320,7 +2455,8 @@ private fun MessageBubble(
         if (linkPreviewsEnabled && msg.category == "INBOX" &&
             !msg.dangerous && !msg.fraudWarning
         ) {
-            LinkPreview.firstUrl(msg.body)?.let { url ->
+            val previewUrl = remember(msg.body) { LinkPreview.firstUrl(msg.body) }
+            previewUrl?.let { url ->
                 LinkPreviewCard(url)
             }
         }
@@ -2357,7 +2493,10 @@ private fun MessageBubble(
             )
         }
 
-        if (!summaryCardsHidden && MessageCards.dismissedFor(context, msg.id).isNotEmpty()) {
+        val hasDismissedCards = remember(msg.id, cardTick, summaryCardsHidden) {
+            !summaryCardsHidden && MessageCards.dismissedFor(context, msg.id).isNotEmpty()
+        }
+        if (hasDismissedCards) {
             TextButton(
                 onClick = {
                     MessageCards.restore(context, msg.id)
@@ -2374,11 +2513,11 @@ private fun MessageBubble(
         }
 
         // Promotional offer card for commercial / promotional messages
-        if ((msg.category == "PROMOTIONS" || msg.category == "REVIEW") && !msg.dangerous && !msg.fraudWarning) {
-            val offer = remember(msg.body) { OfferExtractor.extract(msg.body) }
-            if (offer != null) {
+        if (!isOut && offer == null && (msg.category == "PROMOTIONS" || msg.category == "REVIEW") && !msg.dangerous && !msg.fraudWarning) {
+            val promoOffer = remember(msg.body) { OfferExtractor.extract(msg.body) }
+            if (promoOffer != null) {
                 OfferCard(
-                    offer = offer,
+                    offer = promoOffer,
                     body = msg.body,
                     maxWidth = maxBubbleWidth,
                     onCopyCode = { code ->
@@ -2398,7 +2537,8 @@ private fun MessageBubble(
 
         // One-tap OTP copy chip (§8.2); same extractor as the notification action.
         if (msg.protectedLabel == "OTP") {
-            com.messages.protection.OtpExtractor.extract(msg.body)?.let { code ->
+            val otpCode = remember(msg.body) { com.messages.protection.OtpExtractor.extract(msg.body) }
+            otpCode?.let { code ->
                 AssistChip(
                     onClick = { clipboard.setText(AnnotatedString(code)) },
                     label = { Text(stringResource(R.string.chat_copy_otp, code)) },
@@ -2445,12 +2585,30 @@ private fun BubbleMetaRow(
     isOut: Boolean,
     color: Color,
     modifier: Modifier = Modifier,
+    pinned: Boolean = false,
+    useSentMeta: Boolean = isOut,
 ) {
+    val isDarkMeta = LocalDarkTheme.current
+    val resolvedColor = if (useSentMeta) {
+        if (isDarkMeta) DesignTokens.SentBubble.DarkMeta else DesignTokens.SentBubble.LightMeta
+    } else color
+    val readTickColor = if (isDarkMeta) DesignTokens.SentBubble.DarkReadTick else DesignTokens.SentBubble.LightReadTick
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        if (pinned) {
+            Icon(
+                Icons.Filled.PushPin,
+                contentDescription = stringResource(R.string.chat_pinned_message),
+                tint = resolvedColor,
+                modifier = Modifier
+                    .size(12.dp)
+                    .rotate(45f),
+            )
+            Spacer(Modifier.width(4.dp))
+        }
         Text(
             AppDateFormat.clock(msg.timestamp),
             style = MaterialTheme.typography.labelSmall,
-            color = color,
+            color = resolvedColor,
         )
         if (isOut) {
             when {
@@ -2459,7 +2617,7 @@ private fun BubbleMetaRow(
                     Icon(
                         Icons.Filled.DoneAll,
                         contentDescription = stringResource(R.string.chat_read),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = readTickColor,
                         modifier = Modifier.size(14.dp),
                     )
                 }
@@ -2468,7 +2626,7 @@ private fun BubbleMetaRow(
                     Icon(
                         Icons.Filled.DoneAll,
                         contentDescription = stringResource(R.string.chat_delivered),
-                        tint = color,
+                        tint = resolvedColor,
                         modifier = Modifier.size(14.dp),
                     )
                 }
@@ -2477,7 +2635,7 @@ private fun BubbleMetaRow(
                     Icon(
                         Icons.Filled.Done,
                         contentDescription = stringResource(R.string.chat_sent),
-                        tint = color,
+                        tint = resolvedColor,
                         modifier = Modifier.size(14.dp),
                     )
                 }
@@ -2486,7 +2644,7 @@ private fun BubbleMetaRow(
                     Icon(
                         Icons.Filled.Schedule,
                         contentDescription = stringResource(R.string.chat_sending),
-                        tint = color.copy(alpha = 0.7f),
+                        tint = resolvedColor.copy(alpha = 0.7f),
                         modifier = Modifier.size(13.dp),
                     )
                 }

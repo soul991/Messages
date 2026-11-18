@@ -276,4 +276,50 @@ object SwipeIcons {
             )
         }.build()
     }
+
+    // -------------------------------------------------------------------------
+    // 6. UnreadBubble: Filled chat bubble with unread badge ring (Mac WhatsApp style)
+    // -------------------------------------------------------------------------
+
+    val UnreadBubble: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "SwipeIcons.UnreadBubble",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            // Unread badge circle at top-right
+            addPath(
+                pathData = parseNodes("M18 3a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7z"),
+                fill = null,
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 2.0f,
+            )
+            // Speech bubble body
+            addPath(
+                pathData = parseNodes("M12 4.5C7.03 4.5 3 7.95 3 12.2c0 2.04.93 3.89 2.44 5.26L4.3 20.6c-.12.34.2.67.55.55l3.3-1.15c1.17.44 2.48.7 3.85.7 4.97 0 9-3.45 9-7.7 0-.5-.06-.99-.17-1.46-.85.3-1.78.46-2.83.46-3.04 0-5.5-2.46-5.5-5.5 0-.69.13-1.35.36-1.96-.29-.03-.57-.04-.86-.04z"),
+                fill = SolidColor(Color.White),
+            )
+        }.build()
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. MoreDots: Three horizontal dots for the swipe "More" action pill
+    // -------------------------------------------------------------------------
+
+    val MoreDots: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "SwipeIcons.MoreDots",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = parseNodes("M6 10a2 2 0 1 0 0 4a2 2 0 1 0 0-4z M12 10a2 2 0 1 0 0 4a2 2 0 1 0 0-4z M18 10a2 2 0 1 0 0 4a2 2 0 1 0 0-4z"),
+                fill = SolidColor(Color.White),
+            )
+        }.build()
+    }
 }

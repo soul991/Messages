@@ -23,12 +23,16 @@ import androidx.compose.ui.unit.sp
 val LocalDarkTheme = staticCompositionLocalOf { false }
 
 /**
- * Sent-bubble color role: outgoing message bubble container and onContainer.
- * In Dark mode: #30D158 / #04210E.
- * In Light mode: #34C759 / #04210E.
+ * Sent-bubble color role: soothing outgoing message bubble container, text, and glass border.
+ * In Dark mode: deep forest-emerald #134D2E / soft off-white #F2F7F3.
+ * In Light mode: soft sage-mint #D8F3DF / deep forest-ink #0E2918.
  */
 @Immutable
-data class SentBubbleColors(val container: Color, val onContainer: Color)
+data class SentBubbleColors(
+    val container: Color,
+    val onContainer: Color,
+    val border: Color = Color.Transparent,
+)
 
 val LocalSentBubble = staticCompositionLocalOf {
     SentBubbleColors(Color.Unspecified, Color.Unspecified)
@@ -262,7 +266,7 @@ object AppSwitchTokens {
 /** Standard SwitchColors ensuring off switches remain clearly visible in both light and dark themes. */
 @Composable
 fun appSwitchColors(): SwitchColors {
-    val isDark = LocalDarkTheme.current || isSystemInDarkTheme()
+    val isDark = LocalDarkTheme.current
     return SwitchDefaults.colors(
         checkedThumbColor = if (isDark) Color(0xFF04210E) else Color.White,
         checkedTrackColor = if (isDark) DesignTokens.Dark.Green else DesignTokens.Light.Green,
@@ -331,8 +335,9 @@ fun MessagesTheme(
     CompositionLocalProvider(
         LocalDarkTheme provides darkTheme,
         LocalSentBubble provides SentBubbleColors(
-            container = if (darkTheme) DesignTokens.Dark.Green else DesignTokens.Light.Green,
-            onContainer = DesignTokens.Dark.OnGreen,
+            container = if (darkTheme) DesignTokens.SentBubble.DarkContainer else DesignTokens.SentBubble.LightContainer,
+            onContainer = if (darkTheme) DesignTokens.SentBubble.DarkOnContainer else DesignTokens.SentBubble.LightOnContainer,
+            border = if (darkTheme) DesignTokens.SentBubble.DarkBorder else DesignTokens.SentBubble.LightBorder,
         ),
     ) {
         MaterialTheme(

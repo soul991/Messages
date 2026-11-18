@@ -61,14 +61,15 @@ fun AppTransientSnackbar(
     val isDark = LocalDarkTheme.current
     val undoGreen = if (isDark) Color(0xFF30D158) else Color(0xFF1E9A44)
 
+    val rimBrush = androidx.compose.runtime.remember { com.messages.designsystem.liquidGlassRimBrush(isDark = true) }
     Surface(
         modifier = modifier
             .padding(horizontal = 16.dp)
             .widthIn(max = 480.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF1C1C1E),
-        shadowElevation = 8.dp,
-        border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xEB1C1C1E),
+        shadowElevation = 12.dp,
+        border = BorderStroke(1.dp, rimBrush),
     ) {
         Row(
             modifier = Modifier

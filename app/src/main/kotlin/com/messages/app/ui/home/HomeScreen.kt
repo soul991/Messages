@@ -96,13 +96,17 @@ import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.MarkChatRead
+import androidx.compose.material.icons.outlined.MarkChatUnread
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.RateReview
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Badge
 import androidx.compose.material3.FilledTonalIconButton
@@ -133,7 +137,16 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import com.messages.designsystem.GlassTopBar
+import com.messages.designsystem.LiquidGlassActionDivider
+import com.messages.designsystem.LiquidGlassActionGroup
+import com.messages.designsystem.LiquidGlassActionRow
+import com.messages.designsystem.LiquidGlassIconButton
+import com.messages.designsystem.LiquidGlassSheetDialog
+import com.messages.designsystem.LiquidGlassSurface
+import com.messages.designsystem.liquidGlassRimBrush
+import com.messages.designsystem.liquidGlassSheenBrush
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
@@ -142,7 +155,9 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -152,6 +167,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -160,6 +176,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
@@ -193,6 +210,7 @@ import com.messages.designsystem.categoryPalette
 import com.messages.designsystem.SwipeIcons
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.shadow
@@ -264,6 +282,7 @@ fun HomeScreen(
     onFolderConsumed: () -> Unit = {},
     onRequestDefault: () -> Unit,
     onOpenThread: (Long) -> Unit,
+    onOpenContact: (Long) -> Unit = {},
     /** Open a chat at a specific matched message with terms highlighted (§8.5.3). */
     onOpenSearchResult: (threadId: Long, messageId: Long, terms: List<String>) -> Unit,
     onCompose: () -> Unit,
@@ -313,6 +332,7 @@ fun HomeScreen(
     val outboxWaiting by vm.outboxCount.collectAsStateWithLifecycle()
     val selectionActive = selectedThreads.isNotEmpty()
     var showHomeMenu by remember { mutableStateOf(false) }
+    var moreSheetConv by remember { mutableStateOf<ConversationEntity?>(null) }
 
     // Hoist per-folder listState to maintain independent scroll positions across tabs
     val inboxListState = rememberLazyListState()
@@ -628,22 +648,13 @@ fun HomeScreen(
                                     }
 
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        // Shield button top right
                                         val shieldTint = if (isDefaultSmsApp) MaterialTheme.colorScheme.greenText else MaterialTheme.colorScheme.textMuted
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surface)
-                                                .clickable(
-                                                    interactionSource = remember { MutableInteractionSource() },
-                                                    indication = ripple(),
-                                                    onClick = onDashboard,
-                                                ),
-                                            contentAlignment = Alignment.Center,
+                                        LiquidGlassIconButton(
+                                            onClick = onDashboard,
+                                            hazeState = hazeState,
                                         ) {
                                             Icon(
                                                 imageVector = if (isDefaultSmsApp) DockIcons.Shield else DockIcons.ShieldOff,
@@ -652,66 +663,16 @@ fun HomeScreen(
                                                 modifier = Modifier.size(20.dp),
                                             )
                                         }
-
-                                        // More options button
-                                        Box {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(40.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable(
-                                                        interactionSource = remember { MutableInteractionSource() },
-                                                        indication = ripple(),
-                                                        onClick = { showHomeMenu = true },
-                                                    ),
-                                                contentAlignment = Alignment.Center,
-                                            ) {
-                                                Icon(
-                                                    Icons.Filled.MoreVert,
-                                                    contentDescription = stringResource(R.string.action_more_options),
-                                                    tint = MaterialTheme.colorScheme.onBackground,
-                                                    modifier = Modifier.size(22.dp),
-                                                )
-                                            }
-                                            DropdownMenu(
-                                                expanded = showHomeMenu,
-                                                onDismissRequest = { showHomeMenu = false },
-                                            ) {
-                                                DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.settings_title)) },
-                                                    onClick = { showHomeMenu = false; onSettings() },
-                                                )
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Text(
-                                                            if (outboxWaiting > 0) {
-                                                                stringResource(R.string.outbox_title_count, outboxWaiting)
-                                                            } else {
-                                                                stringResource(R.string.outbox_title)
-                                                            }
-                                                        )
-                                                    },
-                                                    onClick = { showHomeMenu = false; onOpenOutbox() },
-                                                )
-                                                DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.archived_title)) },
-                                                    onClick = { showHomeMenu = false; onOpenArchived() },
-                                                )
-                                                DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.home_starred_messages)) },
-                                                    onClick = { showHomeMenu = false; onOpenStarred() },
-                                                )
-                                                DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.home_mark_all_as_read)) },
-                                                    onClick = {
-                                                        showHomeMenu = false
-                                                        vm.markFolderRead(folder)
-                                                        scope.launch {
-                                                            snackbarHostState.showTransient(markedReadMessage)
-                                                        }
-                                                    },
-                                                )
-                                            }
+                                        LiquidGlassIconButton(
+                                            onClick = { showHomeMenu = true },
+                                            hazeState = hazeState,
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.MoreVert,
+                                                contentDescription = stringResource(R.string.action_more_options),
+                                                tint = MaterialTheme.colorScheme.onBackground,
+                                                modifier = Modifier.size(20.dp),
+                                            )
                                         }
                                     }
                                 }
@@ -776,22 +737,13 @@ fun HomeScreen(
                             )
 
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                // Shield button top right (40dp circle, surface bg, green if protected, slashed if off)
                                 val shieldTint = if (isDefaultSmsApp) MaterialTheme.colorScheme.greenText else MaterialTheme.colorScheme.textMuted
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = ripple(),
-                                            onClick = onDashboard,
-                                        ),
-                                    contentAlignment = Alignment.Center,
+                                LiquidGlassIconButton(
+                                    onClick = onDashboard,
+                                    hazeState = hazeState,
                                 ) {
                                     Icon(
                                         imageVector = if (isDefaultSmsApp) DockIcons.Shield else DockIcons.ShieldOff,
@@ -800,73 +752,16 @@ fun HomeScreen(
                                         modifier = Modifier.size(20.dp),
                                     )
                                 }
-
-                                // More options button (40dp circle, transparent bg)
-                                Box {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = ripple(),
-                                                onClick = { showHomeMenu = true },
-                                            ),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.MoreVert,
-                                            contentDescription = stringResource(R.string.action_more_options),
-                                            tint = MaterialTheme.colorScheme.onBackground,
-                                            modifier = Modifier.size(22.dp),
-                                        )
-                                    }
-                                    DropdownMenu(
-                                        expanded = showHomeMenu,
-                                        onDismissRequest = { showHomeMenu = false },
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.settings_title)) },
-                                            onClick = { showHomeMenu = false; onSettings() },
-                                        )
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    if (outboxWaiting > 0) {
-                                                        stringResource(R.string.outbox_title_count, outboxWaiting)
-                                                    } else {
-                                                        stringResource(R.string.outbox_title)
-                                                    }
-                                                )
-                                            },
-                                            onClick = { showHomeMenu = false; onOpenOutbox() },
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.archived_title)) },
-                                            onClick = { showHomeMenu = false; onOpenArchived() },
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.home_starred_messages)) },
-                                            onClick = { showHomeMenu = false; onOpenStarred() },
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.category_blocked)) },
-                                            onClick = {
-                                                showHomeMenu = false
-                                                vm.setFolder("BLOCKED")
-                                            },
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.home_mark_all_as_read)) },
-                                            onClick = {
-                                                showHomeMenu = false
-                                                vm.markFolderRead(folder)
-                                                scope.launch {
-                                                    snackbarHostState.showTransient(markedReadMessage)
-                                                }
-                                            },
-                                        )
-                                    }
+                                LiquidGlassIconButton(
+                                    onClick = { showHomeMenu = true },
+                                    hazeState = hazeState,
+                                ) {
+                                    Icon(
+                                        Icons.Filled.MoreVert,
+                                        contentDescription = stringResource(R.string.action_more_options),
+                                        tint = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.size(20.dp),
+                                    )
                                 }
                             }
                         }
@@ -874,11 +769,11 @@ fun HomeScreen(
                 }
             }
 
-            // Unified search bar with spring transform
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            // Unified Liquid Glass search bar with spring transform
+                val searchPillShape = remember { RoundedCornerShape(24.dp) }
+                LiquidGlassSurface(
+                    shape = searchPillShape,
+                    hazeState = hazeState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -886,6 +781,7 @@ fun HomeScreen(
                         .graphicsLayer {
                             translationY = -searchProgress * 56.dp.toPx()
                         }
+                        .clip(searchPillShape)
                         .then(
                             if (!searchActive && !selectionActive) {
                                 Modifier.clickable(
@@ -1025,6 +921,7 @@ fun HomeScreen(
                                 FolderPane(
                                     vm = vm,
                                     folder = folder,
+                                    searchActive = searchActive,
                                     listStateFor = listStateFor,
                                     onSelectFolder = { key ->
                                         if (key != folder) Haptics.tick(view)
@@ -1032,6 +929,10 @@ fun HomeScreen(
                                     },
                                     onOpenThread = onOpenThread,
                                     onSwipeAction = ::onSwipeAction,
+                                    onMoreAction = { conv ->
+                                        Haptics.tick(view)
+                                        moreSheetConv = conv
+                                    },
                                     hazeState = hazeState,
                                 )
                             }
@@ -1097,6 +998,17 @@ fun HomeScreen(
                 animationSpec = Motion.butterSpring(),
                 label = "fab-scale",
             )
+            val isDarkFab = LocalDarkTheme.current
+            val fabRim = remember(isDarkFab) {
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = if (isDarkFab) 0.45f else 0.70f), Color.Transparent),
+                )
+            }
+            val fabSheen = remember {
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.20f), Color.Transparent),
+                )
+            }
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -1104,12 +1016,15 @@ fun HomeScreen(
                         scaleX = fabScale
                         scaleY = fabScale
                     }
-                    .shadow(elevation = 6.dp, shape = CircleShape)
+                    .shadow(elevation = 8.dp, shape = CircleShape)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
+                    .background(fabSheen)
+                    .border(1.dp, fabRim, CircleShape)
                     .clickable(
                         interactionSource = fabInteractionSource,
                         indication = ripple(),
+                        role = Role.Button,
                         onClick = onCompose,
                     ),
                 contentAlignment = Alignment.Center,
@@ -1117,7 +1032,7 @@ fun HomeScreen(
                 Icon(
                     imageVector = DockIcons.NewMessage,
                     contentDescription = stringResource(R.string.home_new_message),
-                    tint = DesignTokens.Dark.OnGreen,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -1155,6 +1070,187 @@ fun HomeScreen(
                 hazeState = hazeState,
             )
         }
+
+        // Liquid Glass Home overflow menu sheet
+        if (showHomeMenu) {
+            LiquidGlassSheetDialog(
+                onDismissRequest = { showHomeMenu = false },
+            ) {
+                LiquidGlassActionGroup {
+                    LiquidGlassActionRow(
+                        icon = Icons.Filled.Settings,
+                        label = stringResource(R.string.settings_title),
+                        onClick = { showHomeMenu = false; onSettings() },
+                    )
+                    LiquidGlassActionDivider()
+                    LiquidGlassActionRow(
+                        icon = Icons.Filled.Drafts,
+                        label = if (outboxWaiting > 0) {
+                            stringResource(R.string.outbox_title_count, outboxWaiting)
+                        } else {
+                            stringResource(R.string.outbox_title)
+                        },
+                        onClick = { showHomeMenu = false; onOpenOutbox() },
+                    )
+                    LiquidGlassActionDivider()
+                    LiquidGlassActionRow(
+                        icon = Icons.Outlined.Archive,
+                        label = stringResource(R.string.archived_title),
+                        onClick = { showHomeMenu = false; onOpenArchived() },
+                    )
+                    LiquidGlassActionDivider()
+                    LiquidGlassActionRow(
+                        icon = Icons.Outlined.StarOutline,
+                        label = stringResource(R.string.home_starred_messages),
+                        onClick = { showHomeMenu = false; onOpenStarred() },
+                    )
+                    if (folder != "BLOCKED") {
+                        LiquidGlassActionDivider()
+                        LiquidGlassActionRow(
+                            icon = Icons.Outlined.Block,
+                            label = stringResource(R.string.category_blocked),
+                            onClick = {
+                                showHomeMenu = false
+                                vm.setFolder("BLOCKED")
+                            },
+                        )
+                    }
+                }
+                LiquidGlassActionGroup {
+                    LiquidGlassActionRow(
+                        icon = Icons.Outlined.MarkChatRead,
+                        label = stringResource(R.string.home_mark_all_as_read),
+                        onClick = {
+                            showHomeMenu = false
+                            vm.markFolderRead(folder)
+                            scope.launch {
+                                snackbarHostState.showTransient(markedReadMessage)
+                            }
+                        },
+                    )
+                }
+            }
+        }
+
+        // Mac WhatsApp Liquid Glass conversation "More" action sheet
+        moreSheetConv?.let { conv ->
+            val displayName = remember(conv.contactName, conv.address) {
+                conv.contactName?.takeIf { it.isNotBlank() } ?: FriendlySenderNames.format(conv.address)
+            }
+            val blockedSnackbarText = stringResource(R.string.home_blocked_snackbar, displayName)
+            LiquidGlassSheetDialog(
+                onDismissRequest = { moreSheetConv = null },
+                header = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ContactAvatar(
+                            name = displayName,
+                            category = conv.category,
+                            size = 44.dp,
+                            photoUri = com.messages.app.ui.common.rememberContactPhoto(conv.address.ifBlank { null }),
+                        )
+                        Spacer(Modifier.width(14.dp))
+                        Text(
+                            text = displayName,
+                            style = TextStyle(
+                                fontFamily = InterFontFamily,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                },
+            ) {
+                LiquidGlassActionGroup {
+                    LiquidGlassActionRow(
+                        icon = if (conv.muted) Icons.Outlined.Notifications else Icons.Outlined.NotificationsOff,
+                        label = stringResource(if (conv.muted) R.string.home_unmute else R.string.home_mute),
+                        onClick = {
+                            moreSheetConv = null
+                            Haptics.tick(view)
+                            vm.toggleMute(conv.threadId, !conv.muted)
+                        },
+                    )
+                    LiquidGlassActionDivider()
+                    LiquidGlassActionRow(
+                        icon = Icons.Outlined.Info,
+                        label = stringResource(R.string.home_contact_info),
+                        onClick = {
+                            moreSheetConv = null
+                            onOpenContact(conv.threadId)
+                        },
+                    )
+                    LiquidGlassActionDivider()
+                    LiquidGlassActionRow(
+                        icon = if (conv.unreadCount > 0) Icons.Outlined.MarkChatRead else Icons.Outlined.MarkChatUnread,
+                        label = stringResource(if (conv.unreadCount > 0) R.string.home_mark_read else R.string.home_mark_unread),
+                        onClick = {
+                            moreSheetConv = null
+                            Haptics.tick(view)
+                            if (conv.unreadCount > 0) vm.markThreadRead(conv.threadId)
+                            else vm.markThreadUnread(conv.threadId)
+                        },
+                    )
+                    LiquidGlassActionDivider()
+                    LiquidGlassActionRow(
+                        icon = Icons.Outlined.PushPin,
+                        label = stringResource(if (conv.pinned) R.string.home_unpin else R.string.home_pin),
+                        onClick = {
+                            moreSheetConv = null
+                            Haptics.tick(view)
+                            vm.togglePin(conv.threadId, !conv.pinned)
+                        },
+                    )
+                }
+                val canBlock = conv.category != "BLOCKED" && conv.address.isNotBlank() && !conv.address.contains(';')
+                LiquidGlassActionGroup {
+                    if (canBlock) {
+                        LiquidGlassActionRow(
+                            icon = Icons.Outlined.Block,
+                            label = stringResource(R.string.home_block_sender, displayName),
+                            destructive = true,
+                            onClick = {
+                                moreSheetConv = null
+                                Haptics.tick(view)
+                                vm.blockSender(conv.address, conv.threadId)
+                                scope.launch {
+                                    snackbarHostState.showTransient(blockedSnackbarText)
+                                }
+                            },
+                        )
+                        LiquidGlassActionDivider()
+                    }
+                    LiquidGlassActionRow(
+                        icon = Icons.Outlined.Delete,
+                        label = stringResource(R.string.home_delete_chat),
+                        destructive = true,
+                        onClick = {
+                            moreSheetConv = null
+                            Haptics.tick(view)
+                            val trashedAfter = System.currentTimeMillis()
+                            vm.trashThread(conv.threadId)
+                            scope.launch {
+                                val r = snackbarHostState.showTransient(
+                                    trashedMessage,
+                                    actionLabel = undoLabel,
+                                    withDismissAction = true,
+                                )
+                                if (r == SnackbarResult.ActionPerformed) {
+                                    vm.undoTrashThread(conv.threadId, trashedAfter)
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -1163,18 +1259,25 @@ fun HomeScreen(
 private fun FolderPane(
     vm: HomeViewModel,
     folder: String,
+    searchActive: Boolean,
     onSelectFolder: (String) -> Unit,
     onOpenThread: (Long) -> Unit,
     onSwipeAction: (String, ConversationEntity) -> Unit,
+    onMoreAction: (ConversationEntity) -> Unit,
     listStateFor: (String) -> LazyListState,
     hazeState: HazeState,
 ) {
-    val rightAction by SwipeActions.right.collectAsStateWithLifecycle()
-    val leftAction by SwipeActions.left.collectAsStateWithLifecycle()
     val drafts by com.messages.app.ui.common.DraftStore.drafts.collectAsStateWithLifecycle()
     val selectedThreads by vm.selectedThreads.collectAsStateWithLifecycle()
     val selectionActive = selectedThreads.isNotEmpty()
     val rowView = LocalView.current
+    var openSwipeThreadId by remember { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(folder, selectionActive, searchActive) {
+        if (openSwipeThreadId != null) {
+            openSwipeThreadId = null
+        }
+    }
 
     AnimatedContent(
         targetState = folder,
@@ -1212,6 +1315,14 @@ private fun FolderPane(
             ListRender.EMPTY -> EmptyFolderState(targetFolder)
             ListRender.CONTENT -> {
                 Box(Modifier.fillMaxSize()) {
+                    LaunchedEffect(folderListState) {
+                        snapshotFlow { folderListState.isScrollInProgress }
+                            .collect { scrolling ->
+                                if (scrolling && openSwipeThreadId != null) {
+                                    openSwipeThreadId = null
+                                }
+                            }
+                    }
                     LazyColumn(
                         state = folderListState,
                         modifier = Modifier
@@ -1229,12 +1340,17 @@ private fun FolderPane(
                             SwipeableConversationRow(
                                 conv = conv,
                                 draft = drafts[conv.threadId],
-                                rightAction = rightAction,
-                                leftAction = leftAction,
+                                isSwipedOpen = openSwipeThreadId == conv.threadId,
+                                onSwipeOpenChange = { open ->
+                                    openSwipeThreadId = if (open) conv.threadId else if (openSwipeThreadId == conv.threadId) null else openSwipeThreadId
+                                },
                                 onAction = onSwipeAction,
+                                onMore = { onMoreAction(conv) },
                                 accessibilityActionsEnabled = !selectionActive,
                                 onClick = {
-                                    if (targetFolder == folder) {
+                                    if (openSwipeThreadId != null) {
+                                        openSwipeThreadId = null
+                                    } else if (targetFolder == folder) {
                                         if (selectionActive) vm.toggleSelected(conv.threadId)
                                         else onOpenThread(conv.threadId)
                                     }
@@ -1242,6 +1358,7 @@ private fun FolderPane(
                                 selectionActive = selectionActive,
                                 selected = conv.threadId in selectedThreads,
                                 onLongClick = {
+                                    openSwipeThreadId = null
                                     Haptics.longPress(rowView)
                                     vm.toggleSelected(conv.threadId)
                                 },
@@ -1685,13 +1802,45 @@ private fun ConversationMatchRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                conv.lastMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    conv.lastMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                if (conv.muted || conv.pinned) {
+                    Spacer(Modifier.width(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (conv.muted) {
+                            Icon(
+                                imageVector = Icons.Outlined.NotificationsOff,
+                                contentDescription = stringResource(R.string.home_muted),
+                                tint = MaterialTheme.colorScheme.textMuted,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                        if (conv.pinned) {
+                            Icon(
+                                imageVector = SwipeIcons.PinFilled,
+                                contentDescription = stringResource(R.string.home_pinned),
+                                tint = MaterialTheme.colorScheme.textMuted,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .rotate(45f),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1904,22 +2053,21 @@ private fun DefaultSmsInfoCard(
 }
 
 /**
- * Swipe-action wrapper (§8.2): start→end runs [rightAction], end→start runs
- * [leftAction]. The row always snaps back — rows that leave the list do so via
- * the data update + animateItem, so non-removing actions (pin, read, mute)
- * don't strand a dismissed row.
+ * Mac WhatsApp Liquid Glass dual-side swipe-to-reveal row.
  *
- * Horizontal-axis-locked drags keep small sideways finger movement from
- * competing with vertical list scrolling. Actions require a deliberate
- * distance threshold; fling velocity alone never commits one.
+ * - Swipe right (start→end) reveals two rounded floating action cards: Unread/Read (emerald) + Pin/Unpin (smoked glass).
+ * - Swipe left (end→start) reveals two rounded floating action cards: More (smoked glass) + Archive (emerald).
+ * - Horizontal-axis-locked drags ([SwipeGesturePolicy]) keep vertical scrolling crisp and accidental swipes impossible.
+ * - Snaps open cleanly so the user taps the exact card they want (no accidental delete on swipe).
  */
 @Composable
 private fun SwipeableConversationRow(
     conv: ConversationEntity,
     draft: String?,
-    rightAction: String,
-    leftAction: String,
+    isSwipedOpen: Boolean,
+    onSwipeOpenChange: (Boolean) -> Unit,
     onAction: (String, ConversationEntity) -> Unit,
+    onMore: () -> Unit,
     accessibilityActionsEnabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1930,190 +2078,304 @@ private fun SwipeableConversationRow(
     onLongClick: (() -> Unit)? = null,
     canCommitSwipe: () -> Boolean = { true },
 ) {
-    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val rightEnabled = rightAction != SwipeActions.NONE && !selectionActive
-    val leftEnabled = leftAction != SwipeActions.NONE && !selectionActive
-
-    if (selectionActive || (!rightEnabled && !leftEnabled)) {
-        Box(
-            modifier = modifier.fillMaxWidth(),
-        ) {
+    if (selectionActive) {
+        Box(modifier = modifier.fillMaxWidth()) {
             ConversationRow(
-                conv = conv, draft = draft, onClick = onClick,
-                badge = badge, onBadgeTap = onBadgeTap,
-                selected = selected, onLongClick = onLongClick,
-                rightAction = rightAction,
-                leftAction = leftAction,
+                conv = conv,
+                draft = draft,
+                onClick = onClick,
+                badge = badge,
+                onBadgeTap = onBadgeTap,
+                selected = selected,
+                onLongClick = onLongClick,
                 onAction = { action -> onAction(action, conv) },
+                onMore = onMore,
                 accessibilityActionsEnabled = accessibilityActionsEnabled,
             )
         }
         return
     }
 
-    val scope = rememberCoroutineScope()
-    val returnOffset = remember { Animatable(0f) }
-    val liveOffset = remember { mutableFloatStateOf(0f) }
-    val rowWidthPx = remember { mutableFloatStateOf(0f) }
-
-    val direction by remember(rightEnabled, leftEnabled, isRtl) {
-        derivedStateOf {
-            val tx = liveOffset.floatValue + returnOffset.value
-            when {
-                tx > 0f -> if (isRtl) (if (leftEnabled) -1 else 0) else (if (rightEnabled) 1 else 0)
-                tx < 0f -> if (isRtl) (if (rightEnabled) 1 else 0) else (if (leftEnabled) -1 else 0)
-                else -> 0
-            }
-        }
-    }
-    val swipeAction by remember(rightAction, leftAction) {
-        derivedStateOf {
-            when (direction) {
-                1 -> rightAction
-                -1 -> leftAction
-                else -> null
-            }
-        }
-    }
-    val willCommit by remember(rightAction, leftAction) {
-        derivedStateOf {
-            val tx = liveOffset.floatValue + returnOffset.value
-            swipeAction != null && SwipeGesturePolicy.shouldCommit(tx, rowWidthPx.floatValue)
-        }
-    }
-
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val density = androidx.compose.ui.platform.LocalDensity.current
+    val view = LocalView.current
+    val scope = rememberCoroutineScope()
+    val revealWidthDp = 168.dp
+    val revealWidthPx = with(density) { revealWidthDp.toPx() }
+    val maxPullPx = revealWidthPx * 1.15f
+
+    // Synchronous live drag state + spring settle Animatable: zero per-pixel recomposition or coroutine churn at 120Hz.
+    val dragOffset = remember(conv.threadId) { mutableFloatStateOf(0f) }
+    val settleAnim = remember(conv.threadId) { Animatable(0f) }
+    var settleJob by remember(conv.threadId) { mutableStateOf<Job?>(null) }
+
+    fun currentOffsetPx(): Float = dragOffset.floatValue + settleAnim.value
+
+    fun settleTo(target: Float) {
+        val from = currentOffsetPx()
+        settleJob?.cancel()
+        settleJob = scope.launch {
+            settleAnim.snapTo(from)
+            dragOffset.floatValue = 0f
+            if (from != target) {
+                settleAnim.animateTo(target, Motion.butterSpring())
+            }
+        }
+    }
+
+    val latestIsSwipedOpen by rememberUpdatedState(isSwipedOpen)
+    val latestOnSwipeOpenChange by rememberUpdatedState(onSwipeOpenChange)
+    val latestCanCommitSwipe by rememberUpdatedState(canCommitSwipe)
+
+    DisposableEffect(conv.threadId) {
+        onDispose {
+            if (latestIsSwipedOpen) {
+                latestOnSwipeOpenChange(false)
+            }
+        }
+    }
+
+    LaunchedEffect(isSwipedOpen) {
+        if (!isSwipedOpen && currentOffsetPx() != 0f) {
+            settleTo(0f)
+        }
+    }
+
+    fun closeRow(after: (() -> Unit)? = null) {
+        latestOnSwipeOpenChange(false)
+        settleTo(0f)
+        after?.invoke()
+    }
+
+    val startSideRevealed by remember(conv.threadId, isRtl) {
+        derivedStateOf {
+            val tx = dragOffset.floatValue + settleAnim.value
+            if (isRtl) tx < -1f else tx > 1f
+        }
+    }
+    val endSideRevealed by remember(conv.threadId, isRtl) {
+        derivedStateOf {
+            val tx = dragOffset.floatValue + settleAnim.value
+            if (isRtl) tx > 1f else tx < -1f
+        }
+    }
+    val revealProgressProvider: () -> Float = remember(conv.threadId, revealWidthPx) {
+        { (kotlin.math.abs(dragOffset.floatValue + settleAnim.value) / revealWidthPx).coerceIn(0f, 1f) }
+    }
 
     Box(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(ROW_HEIGHT),
     ) {
-        val currentAction = swipeAction
-        if (currentAction != null && rowWidthPx.floatValue > 0f) {
-            SwipeActionBackground(
-                action = currentAction,
-                fromStart = direction > 0,
-                progress = {
-                    val w = rowWidthPx.floatValue
-                    if (w > 0f) (kotlin.math.abs(liveOffset.floatValue + returnOffset.value) / w).coerceIn(0f, 1f) else 0f
-                },
-                willDismiss = willCommit,
-                modifier = Modifier.matchParentSize(),
-            )
+        // Revealed Start-side action cards (Swipe Right in LTR): Unread/Read + Pin/Unpin
+        if (startSideRevealed) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .width(revealWidthDp)
+                    .fillMaxHeight()
+                    .graphicsLayer {
+                        val p = revealProgressProvider()
+                        alpha = (p * 1.4f).coerceIn(0f, 1f)
+                        val s = 0.90f + 0.10f * p
+                        scaleX = s
+                        scaleY = s
+                        transformOrigin = TransformOrigin(if (isRtl) 1f else 0f, 0.5f)
+                    }
+                    .padding(start = 6.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val isUnread = conv.unreadCount > 0
+                LiquidGlassSwipeTile(
+                    icon = SwipeIcons.UnreadBubble,
+                    label = stringResource(if (isUnread) R.string.home_swipe_read else R.string.home_swipe_unread),
+                    accentGreen = true,
+                    progress = revealProgressProvider,
+                    onClick = { closeRow { onAction(SwipeActions.READ, conv) } },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .testTag("swipe_unread_${conv.threadId}"),
+                )
+                LiquidGlassSwipeTile(
+                    icon = if (conv.pinned) SwipeIcons.PinOutlined else SwipeIcons.PinFilled,
+                    label = stringResource(if (conv.pinned) R.string.home_unpin else R.string.home_pin),
+                    accentGreen = false,
+                    progress = revealProgressProvider,
+                    onClick = { closeRow { onAction(SwipeActions.PIN, conv) } },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .testTag("swipe_pin_${conv.threadId}"),
+                )
+            }
         }
+
+        // Revealed End-side action cards (Swipe Left in LTR): More + Archive
+        if (endSideRevealed) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .width(revealWidthDp)
+                    .fillMaxHeight()
+                    .graphicsLayer {
+                        val p = revealProgressProvider()
+                        alpha = (p * 1.4f).coerceIn(0f, 1f)
+                        val s = 0.90f + 0.10f * p
+                        scaleX = s
+                        scaleY = s
+                        transformOrigin = TransformOrigin(if (isRtl) 0f else 1f, 0.5f)
+                    }
+                    .padding(start = 4.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LiquidGlassSwipeTile(
+                    icon = SwipeIcons.MoreDots,
+                    label = stringResource(R.string.home_swipe_more),
+                    accentGreen = false,
+                    progress = revealProgressProvider,
+                    onClick = { closeRow { onMore() } },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .testTag("swipe_more_${conv.threadId}"),
+                )
+                LiquidGlassSwipeTile(
+                    icon = SwipeIcons.ArchiveFilled,
+                    label = stringResource(R.string.home_archive),
+                    accentGreen = true,
+                    progress = revealProgressProvider,
+                    onClick = { closeRow { onAction(SwipeActions.ARCHIVE, conv) } },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .testTag("swipe_archive_${conv.threadId}"),
+                )
+            }
+        }
+
+        // Foreground conversation row sliding smoothly on spring physics
         Box(
             Modifier
-                .fillMaxWidth()
-                .graphicsLayer { translationX = liveOffset.floatValue + returnOffset.value }
-                .background(MaterialTheme.colorScheme.surface)
-                .pointerInput(conv.threadId, rightAction, leftAction, selectionActive, isRtl) {
-                    if (selectionActive || (!rightEnabled && !leftEnabled)) return@pointerInput
-
+                .fillMaxSize()
+                .graphicsLayer { translationX = dragOffset.floatValue + settleAnim.value }
+                .background(MaterialTheme.colorScheme.background)
+                .pointerInput(conv.threadId, selectionActive, isRtl, revealWidthPx) {
+                    if (selectionActive) return@pointerInput
                     val touchSlopPx = with(density) { SwipeGesturePolicy.TOUCH_SLOP_DP.dp.toPx() }
+                    val verticalAbortSlopPx = with(density) { 6.dp.toPx() }
+                    val verticalCancelSlopPx = with(density) { 16.dp.toPx() }
 
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
-                        if (!canCommitSwipe()) return@awaitEachGesture
+                        if (!latestCanCommitSwipe()) return@awaitEachGesture
 
                         var totalDx = 0f
                         var totalDy = 0f
+                        var dragDx = 0f
+                        var dragDy = 0f
                         var dragStarted = false
+                        var settled = false
+                        val initialOffset = currentOffsetPx()
 
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        try {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
 
-                            if (!change.pressed) {
-                                if (dragStarted) {
-                                    val released = liveOffset.floatValue
-                                    val shouldCommit = SwipeGesturePolicy.shouldCommit(released, rowWidthPx.floatValue)
-                                    val action = when {
-                                        !shouldCommit -> null
-                                        isRtl -> when {
-                                            released < 0f && rightEnabled -> rightAction
-                                            released > 0f && leftEnabled -> leftAction
-                                            else -> null
+                                if (!change.pressed) {
+                                    if (dragStarted) {
+                                        settled = true
+                                        val released = currentOffsetPx()
+                                        val threshold = revealWidthPx * SwipeGesturePolicy.COMMIT_THRESHOLD_FRACTION
+                                        val target = when {
+                                            released >= threshold -> revealWidthPx
+                                            released <= -threshold -> -revealWidthPx
+                                            else -> 0f
                                         }
-                                        else -> when {
-                                            released > 0f && rightEnabled -> rightAction
-                                            released < 0f && leftEnabled -> leftAction
-                                            else -> null
+                                        val willBeOpen = target != 0f
+                                        if (willBeOpen && initialOffset == 0f) {
+                                            Haptics.tick(view)
                                         }
+                                        latestOnSwipeOpenChange(willBeOpen)
+                                        settleTo(target)
                                     }
-                                    scope.launch {
-                                        returnOffset.snapTo(released)
-                                        liveOffset.floatValue = 0f
-                                        if (action != null && canCommitSwipe()) onAction(action, conv)
-                                        returnOffset.animateTo(0f, Motion.butterSpring())
-                                    }
-                                }
-                                break
-                            }
-
-                            // If vertical scrolling started or list is flinging, cancel swipe immediately
-                            if (!canCommitSwipe()) {
-                                if (dragStarted) {
-                                    val released = liveOffset.floatValue
-                                    scope.launch {
-                                        returnOffset.snapTo(released)
-                                        liveOffset.floatValue = 0f
-                                        returnOffset.animateTo(0f, Motion.butterSpring())
-                                    }
-                                }
-                                break
-                            }
-
-                            val dragAmountX = change.position.x - change.previousPosition.x
-                            val dragAmountY = change.position.y - change.previousPosition.y
-
-                            totalDx += dragAmountX
-                            totalDy += dragAmountY
-
-                            val absDx = kotlin.math.abs(totalDx)
-                            val absDy = kotlin.math.abs(totalDy)
-
-                            if (!dragStarted) {
-                                // If vertical movement is steeper than 20 degrees, give gesture to vertical scroll
-                                if (absDy > 0f && (absDx == 0f || (absDy / absDx) >= SwipeGesturePolicy.MAX_DY_DX_RATIO)) {
                                     break
                                 }
 
-                                // If horizontal touch slop (24dp) reached within 20 degrees of horizontal, engage drag
-                                if (absDx >= touchSlopPx && SwipeGesturePolicy.isHorizontalDominant(totalDx, totalDy)) {
-                                    dragStarted = true
+                                if (!latestCanCommitSwipe()) {
+                                    if (dragStarted) {
+                                        settled = true
+                                        latestOnSwipeOpenChange(false)
+                                        settleTo(0f)
+                                    }
+                                    break
+                                }
+
+                                val dragAmountX = change.position.x - change.previousPosition.x
+                                val dragAmountY = change.position.y - change.previousPosition.y
+                                totalDx += dragAmountX
+                                totalDy += dragAmountY
+
+                                val absDx = kotlin.math.abs(totalDx)
+                                val absDy = kotlin.math.abs(totalDy)
+
+                                if (!dragStarted) {
+                                    // Require >= 6dp vertical movement before yielding so 1px thumb jitter never kills horizontal swipes
+                                    if (absDy >= verticalAbortSlopPx && (absDx == 0f || (absDy / absDx) >= SwipeGesturePolicy.MAX_DY_DX_RATIO)) {
+                                        break
+                                    }
+                                    // Engage drag once horizontal slop (24dp) is crossed (or smaller slop if already open)
+                                    val effectiveSlop = if (initialOffset != 0f) touchSlopPx * 0.5f else touchSlopPx
+                                    if (absDx >= effectiveSlop && SwipeGesturePolicy.isHorizontalDominant(totalDx, totalDy)) {
+                                        dragStarted = true
+                                        dragDx = 0f
+                                        dragDy = 0f
+                                        settleJob?.cancel()
+                                        settleJob = null
+                                        latestOnSwipeOpenChange(true)
+                                        change.consume()
+                                    }
+                                } else {
+                                    dragDx += dragAmountX
+                                    dragDy += dragAmountY
+                                    val absDragDx = kotlin.math.abs(dragDx)
+                                    val absDragDy = kotlin.math.abs(dragDy)
+                                    if (absDragDy > verticalCancelSlopPx && (absDragDx == 0f || absDragDy / absDragDx > 1.5f)) {
+                                        settled = true
+                                        latestOnSwipeOpenChange(false)
+                                        settleTo(0f)
+                                        break
+                                    }
                                     change.consume()
+                                    val current = currentOffsetPx()
+                                    val rawNext = current + dragAmountX
+                                    // Gentle rubber-band past revealWidthPx: damp only dragAmountX, never accumulated overshoot
+                                    val damped = when {
+                                        dragAmountX > 0f && current >= revealWidthPx ->
+                                            current + dragAmountX * 0.25f
+                                        dragAmountX > 0f && rawNext > revealWidthPx ->
+                                            revealWidthPx + (rawNext - revealWidthPx) * 0.25f
+                                        dragAmountX < 0f && current <= -revealWidthPx ->
+                                            current + dragAmountX * 0.25f
+                                        dragAmountX < 0f && rawNext < -revealWidthPx ->
+                                            -revealWidthPx + (rawNext + revealWidthPx) * 0.25f
+                                        else -> rawNext
+                                    }.coerceIn(-maxPullPx, maxPullPx)
+                                    dragOffset.floatValue = damped - settleAnim.value
                                 }
-                            } else {
-                                // Actively dragging: if sharp vertical gesture occurs, cancel immediately
-                                val stepAbsDx = kotlin.math.abs(dragAmountX)
-                                val stepAbsDy = kotlin.math.abs(dragAmountY)
-                                if (stepAbsDy > with(density) { 16.dp.toPx() } && (stepAbsDx == 0f || stepAbsDy / stepAbsDx > 1.5f)) {
-                                    val released = liveOffset.floatValue
-                                    scope.launch {
-                                        returnOffset.snapTo(released)
-                                        liveOffset.floatValue = 0f
-                                        returnOffset.animateTo(0f, Motion.butterSpring())
-                                    }
-                                    break
-                                }
-
-                                change.consume()
-                                val next = liveOffset.floatValue + dragAmountX
-                                val minOffset = if (isRtl) {
-                                    if (rightEnabled) -size.width.toFloat() else 0f
-                                } else {
-                                    if (leftEnabled) -size.width.toFloat() else 0f
-                                }
-                                val maxOffset = if (isRtl) {
-                                    if (leftEnabled) size.width.toFloat() else 0f
-                                } else {
-                                    if (rightEnabled) size.width.toFloat() else 0f
-                                }
-                                liveOffset.floatValue = next.coerceIn(minOffset, maxOffset)
+                            }
+                        } finally {
+                            if (dragStarted && !settled) {
+                                latestOnSwipeOpenChange(false)
+                                settleTo(0f)
                             }
                         }
                     }
-                }
-                .onSizeChanged { rowWidthPx.floatValue = it.width.toFloat() },
+                },
         ) {
             ConversationRow(
                 conv = conv,
@@ -2123,170 +2385,109 @@ private fun SwipeableConversationRow(
                 onBadgeTap = onBadgeTap,
                 selected = selected,
                 onLongClick = onLongClick,
-                rightAction = rightAction,
-                leftAction = leftAction,
                 onAction = { action -> onAction(action, conv) },
+                onMore = onMore,
                 accessibilityActionsEnabled = accessibilityActionsEnabled,
             )
         }
     }
 }
 
-private data class SwipeVisuals(
-    val outlinedIcon: ImageVector,
-    val filledIcon: ImageVector,
-    val container: Color,
-    val tint: Color,
-    val label: String,
-)
-
+/**
+ * Individual rounded Liquid Glass swipe action card matching Mac WhatsApp's
+ * floating pill geometry (emerald green for primary action, smoked glass for secondary).
+ */
 @Composable
-private fun SwipeActionBackground(
-    action: String,
-    fromStart: Boolean,
+private fun LiquidGlassSwipeTile(
+    icon: ImageVector,
+    label: String,
+    accentGreen: Boolean,
     progress: () -> Float,
-    willDismiss: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val view = LocalView.current
-    val colorScheme = MaterialTheme.colorScheme
     val isDark = LocalDarkTheme.current
-    val archiveGreen = if (isDark) Color(0xFF30D158) else Color(0xFF1E9A44)
-
-    // Trigger subtle tactile tick when passing the dismiss confirmation threshold
-    LaunchedEffect(willDismiss) {
-        if (willDismiss) {
-            com.messages.designsystem.Haptics.tick(view)
-        }
+    val shape = remember { RoundedCornerShape(16.dp) }
+    val labelStyle = remember {
+        TextStyle(
+            fontFamily = InterFontFamily,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
-
-    val visuals = when (action) {
-        SwipeActions.ARCHIVE -> SwipeVisuals(
-            outlinedIcon = SwipeIcons.ArchiveOutlined,
-            filledIcon = SwipeIcons.ArchiveFilled,
-            container = colorScheme.secondaryContainer,
-            tint = archiveGreen,
-            label = stringResource(R.string.home_archive),
-        )
-        SwipeActions.PIN -> SwipeVisuals(
-            outlinedIcon = SwipeIcons.PinOutlined,
-            filledIcon = SwipeIcons.PinFilled,
-            container = colorScheme.primaryContainer,
-            tint = colorScheme.onPrimaryContainer,
-            label = stringResource(R.string.home_pinned),
-        )
-        SwipeActions.READ -> SwipeVisuals(
-            outlinedIcon = SwipeIcons.ReadOutlined,
-            filledIcon = SwipeIcons.ReadFilled,
-            container = colorScheme.tertiaryContainer,
-            tint = colorScheme.onTertiaryContainer,
-            label = stringResource(R.string.home_mark_read),
-        )
-        SwipeActions.MUTE -> SwipeVisuals(
-            outlinedIcon = SwipeIcons.MuteOutlined,
-            filledIcon = SwipeIcons.MuteFilled,
-            container = colorScheme.surfaceContainerHighest,
-            tint = colorScheme.onSurface,
-            label = stringResource(R.string.action_mute),
-        )
-        else -> return
+    val bgColor = if (accentGreen) {
+        if (isDark) DesignTokens.Dark.Green else DesignTokens.Light.Green
+    } else {
+        if (isDark) DesignTokens.LiquidGlass.Dark.SwipeNeutral else DesignTokens.LiquidGlass.Light.SwipeNeutral
     }
-
-    val willDismissScale by animateFloatAsState(
-        targetValue = if (willDismiss) 1.25f else 1.0f,
-        animationSpec = Motion.spatialDefault(),
-        label = "swipe-action-scale",
-    )
-
-    Row(
-        modifier = modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(16.dp))
-            .background(visuals.container)
-            .padding(horizontal = 24.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (fromStart) Arrangement.Start else Arrangement.End,
-    ) {
-        if (fromStart) {
-            Icon(
-                imageVector = if (willDismiss) visuals.filledIcon else visuals.outlinedIcon,
-                contentDescription = null,
-                tint = visuals.tint,
-                modifier = Modifier
-                    .size(24.dp)
-                    .graphicsLayer {
-                        val p = progress()
-                        val s = if (willDismiss) willDismissScale else (0.80f + p * 0.40f).coerceIn(0.80f, 1.05f)
-                        scaleX = s
-                        scaleY = s
-                        alpha = (p * 4.0f).coerceIn(0.40f, 1.0f)
-                    },
-            )
-            Spacer(Modifier.width(8.dp))
-            SwipeActionLabel(
-                label = visuals.label,
-                tint = visuals.tint,
-                fromStart = true,
-                progress = progress,
-                willDismiss = willDismiss,
+    val contentColor = if (accentGreen) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        if (isDark) DesignTokens.LiquidGlass.Dark.SwipeNeutralContent else DesignTokens.LiquidGlass.Light.SwipeNeutralContent
+    }
+    val borderBrush = remember(isDark, accentGreen) {
+        if (accentGreen) {
+            androidx.compose.ui.graphics.Brush.verticalGradient(
+                listOf(Color.White.copy(alpha = 0.40f), Color.Transparent),
             )
         } else {
-            SwipeActionLabel(
-                label = visuals.label,
-                tint = visuals.tint,
-                fromStart = false,
-                progress = progress,
-                willDismiss = willDismiss,
-            )
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                imageVector = if (willDismiss) visuals.filledIcon else visuals.outlinedIcon,
-                contentDescription = null,
-                tint = visuals.tint,
-                modifier = Modifier
-                    .size(24.dp)
-                    .graphicsLayer {
-                        val p = progress()
-                        val s = if (willDismiss) willDismissScale else (0.80f + p * 0.40f).coerceIn(0.80f, 1.05f)
-                        scaleX = s
-                        scaleY = s
-                        alpha = (p * 4.0f).coerceIn(0.40f, 1.0f)
-                    },
-            )
+            liquidGlassRimBrush(isDark)
         }
     }
-}
+    val sheenBrush = remember(isDark) { liquidGlassSheenBrush(isDark) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressScaleState = animateFloatAsState(
+        targetValue = if (pressed) 0.93f else 1f,
+        animationSpec = Motion.butterSpring(),
+        label = "swipe-tile-press",
+    )
 
-@Composable
-private fun SwipeActionLabel(
-    label: String,
-    tint: Color,
-    fromStart: Boolean,
-    progress: () -> Float,
-    willDismiss: Boolean,
-) {
-    val isVisible by remember(progress) {
-        derivedStateOf { progress() >= 0.16f }
-    }
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = scaleIn(Motion.bouncySpring(), initialScale = 0.70f) + fadeIn(Motion.effectsFast()),
-        exit = scaleOut(Motion.bouncySpring(), targetScale = 0.75f) + fadeOut(Motion.effectsFast()),
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                val s = pressScaleState.value
+                scaleX = s
+                scaleY = s
+            }
+            .clip(shape)
+            .background(bgColor, shape)
+            .background(sheenBrush, shape)
+            .border(BorderStroke(0.75.dp, borderBrush), shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(color = contentColor.copy(alpha = 0.2f)),
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        val density = androidx.compose.ui.platform.LocalDensity.current
-        Text(
-            text = label,
-            color = tint,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.graphicsLayer {
-                val p = progress()
-                val slidePx = if (willDismiss) 0f else (1f - p.coerceIn(0f, 1f)) * with(density) { 12.dp.toPx() }
-                translationX = if (fromStart) slidePx else -slidePx
-            },
-        )
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 4.dp)
+                .graphicsLayer {
+                    val contentAlpha = ((progress() - 0.30f) / 0.45f).coerceIn(0f, 1f)
+                    val contentScale = 0.76f + 0.24f * contentAlpha
+                    alpha = contentAlpha
+                    scaleX = contentScale
+                    scaleY = contentScale
+                },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(22.dp),
+            )
+            Text(
+                text = label,
+                style = labelStyle,
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -2301,9 +2502,8 @@ private fun ConversationRow(
     onBadgeTap: (com.messages.protection.SenderBadges.Badge) -> Unit = {},
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
-    rightAction: String = SwipeActions.NONE,
-    leftAction: String = SwipeActions.NONE,
     onAction: (String) -> Unit = {},
+    onMore: () -> Unit = {},
     accessibilityActionsEnabled: Boolean = false,
 ) {
     val unread = conv.unreadCount > 0
@@ -2343,28 +2543,24 @@ private fun ConversationRow(
             )
             .semantics {
                 if (accessibilityActionsEnabled) {
-                    val availableActions = listOf(rightAction, leftAction)
-                        .distinct()
-                        .filter { it != SwipeActions.NONE }
-                    customActions = availableActions.mapNotNull { action ->
-                        val label = when (action) {
-                            SwipeActions.ARCHIVE -> context.getString(R.string.home_archive)
-                            SwipeActions.PIN -> context.getString(
-                                if (conv.pinned) R.string.home_unpin else R.string.home_pin,
-                            )
-                            SwipeActions.READ -> context.getString(
-                                if (unread) R.string.home_mark_read else R.string.home_mark_unread,
-                            )
-                            SwipeActions.MUTE -> context.getString(
-                                if (conv.muted) R.string.home_unmute else R.string.home_mute,
-                            )
-                            else -> null
-                        } ?: return@mapNotNull null
-                        CustomAccessibilityAction(label) {
-                            onAction(action)
-                            true
-                        }
-                    }
+                    customActions = listOf(
+                        CustomAccessibilityAction(context.getString(R.string.home_archive)) {
+                            onAction(SwipeActions.ARCHIVE); true
+                        },
+                        CustomAccessibilityAction(
+                            context.getString(if (conv.pinned) R.string.home_unpin else R.string.home_pin),
+                        ) {
+                            onAction(SwipeActions.PIN); true
+                        },
+                        CustomAccessibilityAction(
+                            context.getString(if (unread) R.string.home_mark_read else R.string.home_mark_unread),
+                        ) {
+                            onAction(SwipeActions.READ); true
+                        },
+                        CustomAccessibilityAction(context.getString(R.string.home_swipe_more)) {
+                            onMore(); true
+                        },
+                    )
                 }
             }
             .padding(horizontal = 16.dp),
@@ -2437,7 +2633,7 @@ private fun ConversationRow(
 
                 Spacer(Modifier.height(5.dp))
 
-                // Bottom line: Preview (14sp muted, 1 line ellipsis) and Unread count badge (20dp green pill)
+                // Bottom line: Preview (14sp muted, 1 line ellipsis) and trailing indicators (muted, pinned, unread badge)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -2461,26 +2657,51 @@ private fun ConversationRow(
                         modifier = Modifier.weight(1f),
                     )
 
-                    if (unread) {
+                    if (conv.muted || conv.pinned || unread) {
                         Spacer(Modifier.width(12.dp))
-                        Box(
-                            modifier = Modifier
-                                .height(20.dp)
-                                .widthIn(min = 20.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.primary)
-                                .padding(horizontal = 6.dp),
-                            contentAlignment = Alignment.Center,
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = conv.unreadCount.toString(),
-                                style = TextStyle(
-                                    fontFamily = InterFontFamily,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                ),
-                                color = DesignTokens.Dark.OnGreen,
-                            )
+                            if (conv.muted) {
+                                Icon(
+                                    imageVector = Icons.Outlined.NotificationsOff,
+                                    contentDescription = stringResource(R.string.home_muted),
+                                    tint = MaterialTheme.colorScheme.textMuted,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                            if (conv.pinned) {
+                                Icon(
+                                    imageVector = SwipeIcons.PinFilled,
+                                    contentDescription = stringResource(R.string.home_pinned),
+                                    tint = MaterialTheme.colorScheme.textMuted,
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .rotate(45f),
+                                )
+                            }
+                            if (unread) {
+                                Box(
+                                    modifier = Modifier
+                                        .height(20.dp)
+                                        .widthIn(min = 20.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .padding(horizontal = 6.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = conv.unreadCount.toString(),
+                                        style = TextStyle(
+                                            fontFamily = InterFontFamily,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                        ),
+                                        color = DesignTokens.Dark.OnGreen,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
